@@ -57,6 +57,10 @@ func _generate_procedural(type: String) -> AudioStreamWAV:
 		"pickup":       return _tone_sweep(480.0, 1050.0, 0.13, false)
 		# Heal: warm ascending sweep with harmonic
 		"heal":         return _tone_sweep(260.0, 620.0,  0.28, true)
+		# Footstep: very short soft thud
+		"footstep":     return _noise_burst(0.030, 40.0, 0.14)
+		# Zone warning: double-beep alarm
+		"zone_warning": return _alarm_beep()
 	return null
 
 # White noise shaped by an exponential decay envelope
@@ -116,6 +120,28 @@ func _death_sound() -> AudioStreamWAV:
 		var tone  = sin(phase * TAU) * 0.45
 		buf.encode_s16(i * 2, int((noise + tone) * 32767.0 * env * 0.55))
 		phase += freq / float(rate)
+		if phase > 1.0: phase -= 1.0
+	return _build_wav(buf, rate)
+
+# Two-pulse alarm: 800 Hz beep × 2 with a short gap between
+func _alarm_beep() -> AudioStreamWAV:
+	var rate     = 44100
+	var duration = 0.50
+	var count    = int(rate * duration)
+	var buf      = PackedByteArray()
+	buf.resize(count * 2)
+	var phase    = 0.0
+	for i in range(count):
+		var t     = float(i) / float(count)
+		var in_p1 = t < 0.20
+		var in_p2 = t >= 0.28 and t < 0.48
+		var env   = 0.0
+		if in_p1:
+			env = sin((t / 0.20) * PI)
+		elif in_p2:
+			env = sin(((t - 0.28) / 0.20) * PI)
+		buf.encode_s16(i * 2, int(sin(phase * TAU) * 32767.0 * env * 0.55))
+		phase += 800.0 / float(rate)
 		if phase > 1.0: phase -= 1.0
 	return _build_wav(buf, rate)
 

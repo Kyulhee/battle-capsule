@@ -18,6 +18,27 @@ func _update_visuals():
 		mat.albedo_color = item.color
 		$MeshInstance3D.material_override = mat
 
+	var existing = get_node_or_null("PickupLabel")
+	if existing: existing.queue_free()
+	if not item: return
+
+	var label = Label3D.new()
+	label.name = "PickupLabel"
+	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	label.no_depth_test = true
+	label.font_size = 28
+	label.pixel_size = 0.005
+	label.position = Vector3(0, 1.2, 0)
+	label.outline_size = 6
+
+	var display_text = item.item_name
+	if item.type == ItemData.Type.WEAPON and item.weapon_stats:
+		display_text += "\n%d/%d" % [item.weapon_stats.current_ammo, item.weapon_stats.max_ammo]
+
+	label.text = display_text
+	label.modulate = Color.GOLD if item.rarity == ItemData.Rarity.RARE else Color.WHITE
+	add_child(label)
+
 func collect(collector: Entity) -> bool:
 	if not item: return false
 	

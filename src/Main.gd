@@ -9,6 +9,7 @@ enum GameState { MENU, PLAYING, RESULT }
 var current_state: GameState = GameState.MENU
 
 @export_group("Loot")
+@export var railgun_item: ItemData = preload("res://src/items/weapon_railgun.tres")
 @export var pickup_scene: PackedScene = preload("res://src/entities/pickup/Pickup.tscn")
 @export var item_templates: Array[ItemData] = [
 	preload("res://src/items/ammo_pickup.tres"),
@@ -19,6 +20,9 @@ var current_state: GameState = GameState.MENU
 ]
 @export var loot_count: int = 40
 @export var spawn_radius: float = 45.0
+
+var weapon_templates: Array[ItemData] = []
+var consumable_templates: Array[ItemData] = []
 
 var loot_hotspots: Array[Vector2] = []
 
@@ -50,6 +54,7 @@ var map_spec: Resource = null
 # Dynamic Supply
 var supply_telegraphed: bool = false
 var supply_spawned: bool = false
+var _zone_warning_played: bool = false
 var supply_pos: Vector3 = Vector3.ZERO
 var supply_timer: float = 0.0
 var supply_pillar: MeshInstance3D = null
@@ -125,8 +130,9 @@ func start_game():
 		get_node("/root/Telemetry").set_stage(1)
 		
 	alive_count = bot_count + 1
+	_categorize_templates()
 	spawn_entities()
-	spawn_loot(0.05)
+	_spawn_initial_loot()
 	
 	# Final Minimap Sync
 	var minimap = get_node_or_null("CanvasLayer/Control/HUD/Minimap")
@@ -252,6 +258,10 @@ func handle_zone_lifecycle(delta):
 			generate_next_zone()
 			is_shrinking = false
 			zone_timer = zone_wait_time
+			_zone_warning_played = false
+	if not is_shrinking and zone_timer <= 10.0 and not _zone_warning_played:
+		_zone_warning_played = true
+		if has_node("/root/Sfx"): get_node("/root/Sfx").play("zone_warning")
 	if is_shrinking:
 		var t = 1.0 - (zone_timer / zone_shrink_time)
 		current_zone_radius = lerp(current_zone_radius_start, next_zone_radius, t)
@@ -271,12 +281,57 @@ func spawn_entities():
 		var b = bot_scene.instantiate()
 		$Entities.add_child(b)
 		b.global_position = _get_safe_spawn_pos()
-		b.died.connect(_on_bot_died)
+		b.died.connect(_on_bot_died.bind(b))
 
 func _get_safe_spawn_pos() -> Vector3:
-	var angle = randf() * TAU
-	var dist = randf() * spawn_radius
-	return Vector3(cos(angle) * dist, 1.0, sin(angle) * dist)
+	for _attempt in range(30):
+		var angle = randf() * TAU
+		var dist = randf() * spawn_radius
+		var candidate = Vector2(cos(angle) * dist, sin(angle) * dist)
+		if _is_clear_of_obstacles(candidate):
+			return Vector3(candidate.x, 1.0, candidate.y)
+	return Vector3(randf_range(-5, 5), 1.0, randf_range(-5, 5))
+
+func _categorize_templates():
+	weapon_templates.clear()
+	consumable_templates.clear()
+	for t in item_templates:
+		if t.type == ItemData.Type.WEAPON:
+			weapon_templates.append(t)
+		else:
+			consumable_templates.append(t)
+
+func _spawn_initial_loot():
+	if loot_hotspots.is_empty(): return
+	for hotspot in loot_hotspots:
+		if not weapon_templates.is_empty():
+			var pickup = pickup_scene.instantiate()
+			$Loot.add_child(pickup)
+			var offset = Vector2(randf_range(-3, 3), randf_range(-3, 3))
+			var sp = hotspot + offset
+			pickup.global_position = Vector3(sp.x, 0.5, sp.y)
+			pickup.init(weapon_templates[randi() % weapon_templates.size()].duplicate(true))
+		for _i in range(randi_range(3, 5)):
+			if consumable_templates.is_empty(): break
+			var pickup = pickup_scene.instantiate()
+			$Loot.add_child(pickup)
+			var offset = Vector2(randf_range(-6, 6), randf_range(-6, 6))
+			var sp = hotspot + offset
+			pickup.global_position = Vector3(sp.x, 0.5, sp.y)
+			pickup.init(consumable_templates[randi() % consumable_templates.size()])
+
+func _is_clear_of_obstacles(pos: Vector2, margin: float = 2.0) -> bool:
+	if not map_spec: return true
+	for o in map_spec.obstacles:
+		var type_str = o.get("type", "")
+		if type_str not in ["rock_cluster", "canyon_wall"]: continue
+		var op = o.get("pos", [0, 0])
+		var sc = o.get("scale", [1, 1, 1])
+		var half_x = (sc[0] * 0.5) + margin
+		var half_z = (sc[2] * 0.5) + margin
+		if abs(pos.x - op[0]) < half_x and abs(pos.y - op[1]) < half_z:
+			return false
+	return true
 
 func spawn_loot(prob: float, count_mult: int = 1):
 	var total_to_spawn = int(loot_count * prob * count_mult)
@@ -319,13 +374,21 @@ func activate_supply_zone():
 		supply_pillar.queue_free()
 		supply_pillar = null
 	
-	# Spawn Rare Loot cluster
-	for i in range(5):
+	# Spawn Rare Loot cluster: 1 guaranteed railgun + 4 consumables
+	if railgun_item:
+		var rg = pickup_scene.instantiate()
+		$Loot.add_child(rg)
+		rg.global_position = supply_pos
+		rg.init(railgun_item.duplicate(true))
+	for i in range(4):
 		var pickup = pickup_scene.instantiate()
 		$Loot.add_child(pickup)
-		var offset = Vector3(randf_range(-2, 2), 0, randf_range(-2, 2))
+		var offset = Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5))
 		pickup.global_position = supply_pos + offset
-		pickup.init(item_templates[randi() % item_templates.size()]) # Could be rare items
+		if not consumable_templates.is_empty():
+			pickup.init(consumable_templates[randi() % consumable_templates.size()])
+		else:
+			pickup.init(item_templates[randi() % item_templates.size()])
 		
 	if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_supply_event("contest")
 
@@ -336,8 +399,12 @@ func generate_next_zone():
 	var dist = randf() * max_offset
 	next_zone_center = current_zone_center + Vector2(cos(angle), sin(angle)) * dist
 
-func _on_bot_died():
+func _on_bot_died(bot: Entity = null):
 	alive_count -= 1
+	if bot and is_instance_valid(player_ref) and not player_ref.is_dead:
+		if player_ref in bot.damage_history:
+			if player_ref.has_method("show_kill_notification"):
+				player_ref.show_kill_notification()
 	_check_match_end()
 
 func _on_player_died():
