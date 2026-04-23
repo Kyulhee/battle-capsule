@@ -5,9 +5,15 @@ extends Entity
 @onready var hud_label = $CanvasLayer/Control/HPLabel
 
 var fire_cooldown: float = 0.0
+var is_crouching: bool = false
+var footstep_timer: float = 0.0
+const FOOTSTEP_INTERVAL: float = 0.38
 
 @onready var interaction_area = $InteractionArea
 var weapon_label: Label = null
+var zone_timer_label: Label = null
+var kill_feed_container: VBoxContainer = null
+var kill_feed_entries: Array = []
 
 var camera_shake_amount: float = 0.0
 var camera_shake_decay: float = 5.0
@@ -32,6 +38,25 @@ func _ready():
 	weapon_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	weapon_label.add_theme_constant_override("outline_size", 12)
 	
+	# Zone timer (top-center)
+	zone_timer_label = Label.new()
+	$CanvasLayer/Control.add_child(zone_timer_label)
+	zone_timer_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_CENTER)
+	zone_timer_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	zone_timer_label.add_theme_font_size_override("font_size", 26)
+	zone_timer_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	zone_timer_label.add_theme_constant_override("outline_size", 8)
+	zone_timer_label.position.y += 8
+
+	# Kill feed (top-right)
+	kill_feed_container = VBoxContainer.new()
+	$CanvasLayer/Control.add_child(kill_feed_container)
+	kill_feed_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	kill_feed_container.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	kill_feed_container.position.x -= 220
+	kill_feed_container.position.y += 60
+	kill_feed_container.custom_minimum_size = Vector2(200, 0)
+
 	health_changed.connect(_on_health_changed)
 	shield_changed.connect(_on_shield_changed)
 	if ray_cast:
@@ -65,6 +90,9 @@ func _physics_process(delta):
 	if is_dead: return
 	if fire_cooldown > 0: fire_cooldown -= delta
 	handle_aiming(delta)
+	is_crouching = Input.is_key_pressed(KEY_C)
+	var effective_speed = stats.move_speed * (0.45 if is_crouching else 1.0)
+
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	if input_dir == Vector2.ZERO:
 		var manual_dir = Vector2.ZERO
@@ -79,11 +107,20 @@ func _physics_process(delta):
 	var right = cam_basis.x; right.y = 0; right = right.normalized()
 	var direction = (right * input_dir.x + forward * input_dir.y).normalized()
 	if direction:
-		velocity.x = lerp(velocity.x, direction.x * stats.move_speed, stats.acceleration * delta)
-		velocity.z = lerp(velocity.z, direction.z * stats.move_speed, stats.acceleration * delta)
+		velocity.x = lerp(velocity.x, direction.x * effective_speed, stats.acceleration * delta)
+		velocity.z = lerp(velocity.z, direction.z * effective_speed, stats.acceleration * delta)
 	else:
 		velocity.x = lerp(velocity.x, 0.0, stats.friction * delta)
 		velocity.z = lerp(velocity.z, 0.0, stats.friction * delta)
+
+	# Footstep
+	if is_on_floor() and Vector2(velocity.x, velocity.z).length() > 1.0:
+		footstep_timer -= delta
+		if footstep_timer <= 0:
+			footstep_timer = FOOTSTEP_INTERVAL
+			if Sfx: Sfx.play("footstep", global_position)
+	else:
+		footstep_timer = 0.0
 	if Input.is_action_pressed("click") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		if fire_cooldown <= 0:
 			if stats.current_ammo > 0:
@@ -96,9 +133,19 @@ func _physics_process(delta):
 			else:
 				if Sfx: Sfx.play("dry_fire")
 				fire_cooldown = 0.5
+	if Input.is_key_pressed(KEY_SPACE) and is_on_floor() and not is_crouching:
+		velocity.y = 7.0
+		footstep_timer = 0.0
 	if Input.is_key_pressed(KEY_E): handle_interaction()
 	if Input.is_key_pressed(KEY_Q): handle_healing()
 	super._physics_process(delta)
+	# Crouch: stealth boost when not revealed
+	if is_crouching and reveal_timer <= 0:
+		stealth_modifier = min(stealth_modifier, 0.35)
+	# Crouch visual (squish mesh)
+	if has_node("MeshInstance3D"):
+		$MeshInstance3D.scale.y = 0.55 if is_crouching else 1.0
+		$MeshInstance3D.position.y = -0.225 if is_crouching else 0.0
 	camera_pivot.global_position = global_position
 
 func _process(delta):
@@ -113,6 +160,29 @@ func _process(delta):
 		if not a is Entity or a == self: continue
 		if a.has_node("MeshInstance3D"):
 			a.get_node("MeshInstance3D").visible = a.is_revealed_to(self)
+
+	# Zone timer label
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and zone_timer_label:
+		if main.is_shrinking:
+			zone_timer_label.text = "ZONE CLOSING"
+			zone_timer_label.modulate = Color(1.0, 0.3, 0.3)
+		else:
+			var t = main.zone_timer
+			zone_timer_label.text = "ZONE  %ds" % int(max(0, t))
+			zone_timer_label.modulate = Color.CYAN if t > 10.0 else Color.YELLOW
+
+	# Kill feed decay
+	var i = kill_feed_entries.size() - 1
+	while i >= 0:
+		var entry = kill_feed_entries[i]
+		entry["timer"] -= delta
+		if entry["timer"] <= 0:
+			entry["label"].queue_free()
+			kill_feed_entries.remove_at(i)
+		else:
+			entry["label"].modulate.a = clamp(entry["timer"], 0.0, 1.0)
+		i -= 1
 
 func handle_interaction():
 	var pickups = interaction_area.get_overlapping_areas()
@@ -154,6 +224,21 @@ func _update_hud():
 		]
 	if weapon_label:
 		weapon_label.text = stats.weapon_type.to_upper().replace("_", " ")
+
+func show_kill_notification():
+	if not kill_feed_container: return
+	var label = Label.new()
+	label.text = "ELIMINATED"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	label.add_theme_font_size_override("font_size", 22)
+	label.add_theme_color_override("font_color", Color.YELLOW)
+	label.add_theme_color_override("font_outline_color", Color.BLACK)
+	label.add_theme_constant_override("outline_size", 6)
+	kill_feed_container.add_child(label)
+	kill_feed_entries.append({"label": label, "timer": 3.0})
+	if kill_feed_entries.size() > 5:
+		kill_feed_entries[0]["label"].queue_free()
+		kill_feed_entries.pop_front()
 
 func shoot_pellet(_idx: int):
 	reveal()
