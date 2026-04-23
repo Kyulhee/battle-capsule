@@ -70,6 +70,10 @@ func _ready():
 		ray_cast.collision_mask = 2 | 8
 	_on_health_changed(current_health, stats.max_health)
 
+func _input(event):
+	if event is InputEventKey and event.keycode == KEY_C and event.pressed and not event.echo:
+		is_crouching = not is_crouching
+
 func reveal(duration: float = 2.0):
 	super.reveal(duration)
 	if has_node("/root/Telemetry"):
@@ -94,7 +98,6 @@ func _physics_process(delta):
 	if is_dead: return
 	if fire_cooldown > 0: fire_cooldown -= delta
 	handle_aiming(delta)
-	is_crouching = Input.is_key_pressed(KEY_C)
 	var effective_speed = stats.move_speed * (0.45 if is_crouching else 1.0)
 
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
