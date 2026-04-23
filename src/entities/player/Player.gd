@@ -8,6 +8,7 @@ var fire_cooldown: float = 0.0
 var is_crouching: bool = false
 var footstep_timer: float = 0.0
 const FOOTSTEP_INTERVAL: float = 0.38
+var _mesh_origin_y: float = 0.0
 
 @onready var interaction_area = $InteractionArea
 var weapon_label: Label = null
@@ -56,6 +57,9 @@ func _ready():
 	kill_feed_container.position.x -= 220
 	kill_feed_container.position.y += 60
 	kill_feed_container.custom_minimum_size = Vector2(200, 0)
+
+	if has_node("MeshInstance3D"):
+		_mesh_origin_y = $MeshInstance3D.position.y
 
 	health_changed.connect(_on_health_changed)
 	shield_changed.connect(_on_shield_changed)
@@ -142,10 +146,10 @@ func _physics_process(delta):
 	# Crouch: stealth boost when not revealed
 	if is_crouching and reveal_timer <= 0:
 		stealth_modifier = min(stealth_modifier, 0.35)
-	# Crouch visual (squish mesh)
+	# Crouch visual (squish mesh down toward feet, not into ground)
 	if has_node("MeshInstance3D"):
 		$MeshInstance3D.scale.y = 0.55 if is_crouching else 1.0
-		$MeshInstance3D.position.y = -0.225 if is_crouching else 0.0
+		$MeshInstance3D.position.y = _mesh_origin_y - 0.225 if is_crouching else _mesh_origin_y
 	camera_pivot.global_position = global_position
 
 func _process(delta):
