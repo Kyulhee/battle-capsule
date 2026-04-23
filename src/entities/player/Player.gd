@@ -41,7 +41,7 @@ func _ready():
 	# Zone timer (top-center)
 	zone_timer_label = Label.new()
 	$CanvasLayer/Control.add_child(zone_timer_label)
-	zone_timer_label.set_anchors_and_offsets_preset(Control.PRESET_TOP_CENTER)
+	zone_timer_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	zone_timer_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	zone_timer_label.add_theme_font_size_override("font_size", 26)
 	zone_timer_label.add_theme_color_override("font_outline_color", Color.BLACK)
