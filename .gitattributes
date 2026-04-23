@@ -1,0 +1,9 @@
+# Godot 프로젝트 줄바꿈 통일 (LF)
+* text=auto eol=lf
+
+# 바이너리 파일은 변환 없이
+*.wav   binary
+*.ogg   binary
+*.png   binary
+*.svg   binary
+*.ico   binary

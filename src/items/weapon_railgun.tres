@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/core/ItemData.gd" id="1_script"]
+[ext_resource type="Resource" uid="uid://b8v8j3m8n2x2e" path="res://src/core/super_weapon_stats.tres" id="2_stats"]
+
+[resource]
+script = ExtResource("1_script")
+type = 0
+item_name = "Railgun"
+amount = 1
+weapon_stats = ExtResource("2_stats")
+color = Color(1, 0.2, 1, 1)

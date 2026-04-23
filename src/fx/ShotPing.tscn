@@ -1,0 +1,26 @@
+[gd_scene load_steps=4 format=3 uid="uid://cih8x5u5m4i4y"]
+
+[ext_resource type="Script" path="res://src/fx/ShotPing.gd" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_1"]
+transparency = 1
+albedo_color = Color(1, 0, 0, 0.8)
+emission_enabled = true
+emission = Color(1, 0, 0, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="SphereMesh" id="SphereMesh_1"]
+material = SubResource("StandardMaterial3D_1")
+radius = 0.3
+height = 0.6
+
+[node name="ShotPing" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("SphereMesh_1")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(1, 0, 0, 1)
+light_energy = 5.0
+omni_range = 3.0

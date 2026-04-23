@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/core/StatsData.gd" id="1_stats"]
+[ext_resource type="Script" path="res://src/core/ItemData.gd" id="2_item"]
+
+[sub_resource type="Resource" id="Resource_shotgun"]
+script = ExtResource("1_stats")
+attack_damage = 12.0
+fire_rate = 0.8
+attack_range = 10.0
+weapon_type = "shotgun"
+pellet_count = 5
+current_ammo = 16
+max_ammo = 48
+
+[resource]
+script = ExtResource("2_item")
+type = 0
+rarity = 1
+item_name = "Shotgun"
+amount = 1
+weapon_stats = SubResource("Resource_shotgun")
+color = Color(1, 0.5, 0, 1)

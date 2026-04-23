@@ -1,0 +1,24 @@
+[gd_scene load_steps=5 format=3 uid="uid://cih8x5u5m4i4v"]
+
+[ext_resource type="Script" path="res://src/environment/WorldElement.gd" id="1_world_element"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_obstacle"]
+size = Vector3(2, 2, 2)
+
+[sub_resource type="BoxShape3D" id="BoxShape_obstacle"]
+size = Vector3(2, 2, 2)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_obs"]
+albedo_color = Color(0.3, 0.25, 0.2, 1)
+
+[node name="Obstacle" type="StaticBody3D" groups=["obstacles"]]
+collision_layer = 1
+collision_mask = 0
+script = ExtResource("1_world_element")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_obstacle")
+surface_material_override/0 = SubResource("StandardMaterial3D_obs")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape_obstacle")

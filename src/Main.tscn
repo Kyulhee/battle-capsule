@@ -1,0 +1,271 @@
+[gd_scene load_steps=7 format=3 uid="uid://b1m8x8v5u5m4i"]
+
+[ext_resource type="Script" path="res://src/Main.gd" id="1_script"]
+[ext_resource type="Script" path="res://src/maps/WorldBuilder.gd" id="2_builder"]
+[ext_resource type="PackedScene" uid="uid://dyqy0q7n7q7l" path="res://src/ui/Minimap.tscn" id="3_minimap"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
+sky_top_color = Color(0.384314, 0.454902, 0.54902, 1)
+sky_horizon_color = Color(0.646275, 0.655686, 0.670588, 1)
+ground_horizon_color = Color(0.646275, 0.655686, 0.670588, 1)
+
+[sub_resource type="Sky" id="Sky_1"]
+sky_material = SubResource("ProceduralSkyMaterial_1")
+
+[sub_resource type="Environment" id="Environment_1"]
+background_mode = 2
+sky = SubResource("Sky_1")
+tonemap_mode = 2
+glow_enabled = true
+ambient_light_source = 2
+ambient_light_color = Color(1, 1, 1, 1)
+ambient_light_energy = 0.1
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_1")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, 0.75, -0.433013, 0, 0, 0)
+light_energy = 0.2
+shadow_enabled = true
+
+[node name="WorldBuilder" type="Node3D" parent="."]
+script = ExtResource("2_builder")
+
+[node name="Entities" type="Node3D" parent="."]
+
+[node name="Loot" type="Node3D" parent="."]
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Control" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+
+	[node name="HUD" type="Control" parent="CanvasLayer/Control"]
+		layout_mode = 1
+		anchors_preset = 15
+		anchor_right = 1.0
+		anchor_bottom = 1.0
+		grow_horizontal = 2
+		grow_vertical = 2
+
+		[node name="Minimap" parent="CanvasLayer/Control/HUD" instance=ExtResource("3_minimap")]
+		layout_mode = 1
+		anchors_preset = 1
+		anchor_left = 1.0
+		anchor_right = 1.0
+		offset_left = -260.0
+		offset_top = 20.0
+		offset_right = -20.0
+		offset_bottom = 260.0
+		grow_horizontal = 0
+
+	[node name="MainMenuPanel" type="ColorRect" parent="CanvasLayer/Control"]
+	layout_mode = 1
+	anchors_preset = 15
+	anchor_right = 1.0
+	anchor_bottom = 1.0
+	grow_horizontal = 2
+	grow_vertical = 2
+	color = Color(0.1, 0.1, 0.1, 0.9)
+
+	[node name="Title" type="Label" parent="CanvasLayer/Control/MainMenuPanel"]
+	layout_mode = 1
+	anchors_preset = 5
+	anchor_left = 0.5
+	anchor_right = 0.5
+	offset_left = -200.0
+	offset_top = 100.0
+	offset_right = 200.0
+	offset_bottom = 160.0
+	grow_horizontal = 2
+	theme_override_font_sizes/font_size = 64
+	text = "BATTLE CAPSULE"
+	horizontal_alignment = 1
+
+	[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Control/MainMenuPanel"]
+	layout_mode = 1
+	anchors_preset = 8
+	anchor_left = 0.5
+	anchor_top = 0.5
+	anchor_right = 0.5
+	anchor_bottom = 0.5
+	offset_left = -100.0
+	offset_top = -100.0
+	offset_right = 100.0
+	offset_bottom = 100.0
+	grow_horizontal = 2
+	grow_vertical = 2
+	theme_override_constants/separation = 20
+
+	[node name="StartBtn" type="Button" parent="CanvasLayer/Control/MainMenuPanel/VBoxContainer"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 32
+	text = "START MATCH"
+
+	[node name="RecordsBtn" type="Button" parent="CanvasLayer/Control/MainMenuPanel/VBoxContainer"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 24
+	text = "RECORDS"
+
+	[node name="HelpBtn" type="Button" parent="CanvasLayer/Control/MainMenuPanel/VBoxContainer"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 24
+	text = "HOW TO PLAY"
+
+	[node name="ExitBtn" type="Button" parent="CanvasLayer/Control/MainMenuPanel/VBoxContainer"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 24
+	text = "EXIT"
+
+	[node name="ResultPanel" type="ColorRect" parent="CanvasLayer/Control"]
+	visible = false
+	layout_mode = 1
+	anchors_preset = 15
+	anchor_right = 1.0
+	anchor_bottom = 1.0
+	grow_horizontal = 2
+	grow_vertical = 2
+	color = Color(0.1, 0.1, 0.1, 0.95)
+
+	[node name="Content" type="VBoxContainer" parent="CanvasLayer/Control/ResultPanel"]
+	layout_mode = 1
+	anchors_preset = 8
+	anchor_left = 0.5
+	anchor_top = 0.5
+	anchor_right = 0.5
+	anchor_bottom = 0.5
+	offset_left = -200.0
+	offset_top = -250.0
+	offset_right = 200.0
+	offset_bottom = 250.0
+	grow_horizontal = 2
+	grow_vertical = 2
+	theme_override_constants/separation = 40
+
+	[node name="HeaderLabel" type="Label" parent="CanvasLayer/Control/ResultPanel/Content"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 64
+	text = "VICTORY!"
+	horizontal_alignment = 1
+
+	[node name="StatsLabel" type="Label" parent="CanvasLayer/Control/ResultPanel/Content"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 32
+	text = "RANK: #0
+KILLS: 0
+ASSISTS: 0
+TIME: 0 sec"
+	horizontal_alignment = 1
+
+	[node name="RestartBtn" type="Button" parent="CanvasLayer/Control/ResultPanel/Content"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 32
+	text = "RESTART"
+
+	[node name="MenuBtn" type="Button" parent="CanvasLayer/Control/ResultPanel/Content"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 24
+	text = "RETURN TO MENU"
+
+	[node name="RecordsPanel" type="ColorRect" parent="CanvasLayer/Control"]
+	visible = false
+	layout_mode = 1
+	anchors_preset = 15
+	anchor_right = 1.0
+	anchor_bottom = 1.0
+	grow_horizontal = 2
+	grow_vertical = 2
+	color = Color(0.05, 0.05, 0.05, 1)
+
+	[node name="VBox" type="VBoxContainer" parent="CanvasLayer/Control/RecordsPanel"]
+	layout_mode = 1
+	anchors_preset = 13
+	anchor_left = 0.5
+	anchor_right = 0.5
+	anchor_bottom = 1.0
+	offset_left = -300.0
+	offset_top = 50.0
+	offset_right = 300.0
+	offset_bottom = -50.0
+	grow_horizontal = 2
+	grow_vertical = 2
+
+	[node name="Title" type="Label" parent="CanvasLayer/Control/RecordsPanel/VBox"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 40
+	text = "MATCH HISTORY"
+	horizontal_alignment = 1
+
+	[node name="Scroll" type="ScrollContainer" parent="CanvasLayer/Control/RecordsPanel/VBox"]
+	layout_mode = 2
+	size_flags_vertical = 3
+
+	[node name="List" type="VBoxContainer" parent="CanvasLayer/Control/RecordsPanel/VBox/Scroll"]
+	layout_mode = 2
+	size_flags_horizontal = 3
+
+	[node name="CloseRecordsBtn" type="Button" parent="CanvasLayer/Control/RecordsPanel/VBox"]
+	layout_mode = 2
+	text = "BACK"
+
+	[node name="HelpPanel" type="ColorRect" parent="CanvasLayer/Control"]
+	visible = false
+	layout_mode = 1
+	anchors_preset = 15
+	anchor_right = 1.0
+	anchor_bottom = 1.0
+	grow_horizontal = 2
+	grow_vertical = 2
+	color = Color(0.1, 0.15, 0.2, 0.95)
+
+	[node name="VBox" type="VBoxContainer" parent="CanvasLayer/Control/HelpPanel"]
+	layout_mode = 1
+	anchors_preset = 8
+	anchor_left = 0.5
+	anchor_top = 0.5
+	anchor_right = 0.5
+	anchor_bottom = 0.5
+	offset_left = -350.0
+	offset_top = -250.0
+	offset_right = 350.0
+	offset_bottom = 250.0
+	grow_horizontal = 2
+	grow_vertical = 2
+
+	[node name="Title" type="Label" parent="CanvasLayer/Control/HelpPanel/VBox"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 36
+	text = "HOW TO PLAY"
+	horizontal_alignment = 1
+
+	[node name="Text" type="Label" parent="CanvasLayer/Control/HelpPanel/VBox"]
+	layout_mode = 2
+	theme_override_font_sizes/font_size = 18
+	text = "
+CONTROLS:
+- WASD: Move
+- MOUSE: Aim & Shoot
+- SHIFT (Hold): Sprint
+- Q: Heal (when available)
+
+SYSTEMS:
+- RARITY: Gray (Common) < Blue (Rare) < Gold (Epic)
+- SUPPLY ZONES: Look for golden pillars in sky. High risk, high reward.
+- STEALTH: Bushes reduce visibility. Shooting reveals you.
+- ZONE: Stay inside the blue ring to avoid damage.
+"
+	horizontal_alignment = 1
+
+	[node name="CloseHelpBtn" type="Button" parent="CanvasLayer/Control/HelpPanel/VBox"]
+	layout_mode = 2
+	text = "BACK"

@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8j2x7n2v7m4y"]
+
+[ext_resource type="Script" path="res://src/tests/CombatTest.gd" id="1_script"]
+
+[node name="CombatTest" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 10, 0)

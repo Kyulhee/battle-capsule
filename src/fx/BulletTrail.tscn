@@ -1,0 +1,17 @@
+[gd_scene load_steps=4 format=3 uid="uid://c6m8x5u5m4i3x"]
+
+[ext_resource type="Script" path="res://src/fx/BulletTrail.gd" id="1_script"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_trail"]
+shading_mode = 0
+albedo_color = Color(1, 0.843137, 0, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_trail"]
+material = SubResource("StandardMaterial3D_trail")
+size = Vector3(0.05, 0.05, 1)
+
+[node name="BulletTrail" type="Node3D"]
+script = ExtResource("1_script")
+
+[node name="Mesh" type="MeshInstance3D" parent="."]
+mesh = SubResource("BoxMesh_trail")

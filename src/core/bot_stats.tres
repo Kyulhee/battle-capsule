@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="StatsData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/StatsData.gd" id="1_stats"]
+
+[resource]
+script = ExtResource("1_stats")
+move_speed = 4.0
+acceleration = 8.0
+friction = 5.0
+rotation_speed = 10.0
+max_health = 80.0
+attack_damage = 10.0
+fire_rate = 1.0
+attack_range = 10.0
+vision_range = 20.0

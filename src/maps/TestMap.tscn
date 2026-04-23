@@ -1,0 +1,141 @@
+[gd_scene load_steps=10 format=3 uid="uid://dyqy0q7n7q7l"]
+
+[ext_resource type="PackedScene" uid="uid://cih8x5u5m4i4v" path="res://src/environment/Obstacle.tscn" id="2_obs"]
+[ext_resource type="PackedScene" uid="uid://cih8x5u5m4i4x" path="res://src/environment/Bush.tscn" id="3_bush"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
+albedo_color = Color(0.15, 0.12, 0.08, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_floor"]
+material = SubResource("StandardMaterial3D_floor")
+size = Vector3(120, 1, 120)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_floor"]
+size = Vector3(120, 1, 120)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
+albedo_color = Color(0.2, 0.2, 0.2, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall"]
+material = SubResource("StandardMaterial3D_wall")
+size = Vector3(120, 10, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_wall_v"]
+material = SubResource("StandardMaterial3D_wall")
+size = Vector3(1, 10, 120)
+
+[node name="TestMap" type="Node3D"]
+
+[node name="Floor" type="StaticBody3D" parent="."]
+collision_layer = 1
+collision_mask = 0
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.5, 0)
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Floor"]
+mesh = SubResource("BoxMesh_floor")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Floor"]
+shape = SubResource("BoxShape3D_floor")
+
+[node name="Boundaries" type="Node3D" parent="."]
+
+[node name="Wall_N" type="StaticBody3D" parent="Boundaries"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, -60)
+[node name="Mesh" type="MeshInstance3D" parent="Boundaries/Wall_N"]
+mesh = SubResource("BoxMesh_wall")
+
+[node name="Wall_S" type="StaticBody3D" parent="Boundaries"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 60)
+[node name="Mesh" type="MeshInstance3D" parent="Boundaries/Wall_S"]
+mesh = SubResource("BoxMesh_wall")
+
+[node name="Wall_E" type="StaticBody3D" parent="Boundaries"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 5, 0)
+[node name="Mesh" type="MeshInstance3D" parent="Boundaries/Wall_E"]
+mesh = SubResource("BoxMesh_wall_v")
+
+[node name="Wall_W" type="StaticBody3D" parent="Boundaries"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 5, 0)
+[node name="Mesh" type="MeshInstance3D" parent="Boundaries/Wall_W"]
+mesh = SubResource("BoxMesh_wall_v")
+
+[node name="LoggingSite_Center" type="Node3D" parent="."]
+
+[node name="Log1" parent="LoggingSite_Center" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0, 3)
+type = 2
+
+[node name="Log2" parent="LoggingSite_Center" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, -4)
+type = 2
+
+[node name="Log3" parent="LoggingSite_Center" instance=ExtResource("2_obs")]
+transform = Transform3D(0.707107, 0, 0.707107, 0, 1, 0, -0.707107, 0, 0.707107, 10, 0, -8)
+type = 2
+
+[node name="CanyonPass_North" type="Node3D" parent="."]
+
+[node name="RockWall1" parent="CanyonPass_North" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10, 0, -35)
+type = 0
+
+[node name="RockWall2" parent="CanyonPass_North" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 10, 0, -35)
+type = 0
+
+[node name="RockWall3" parent="CanyonPass_North" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -12, 0, -45)
+type = 0
+
+[node name="RockWall4" parent="CanyonPass_North" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 12, 0, -45)
+type = 0
+
+[node name="Cabin_South" type="Node3D" parent="."]
+
+[node name="Wall1" parent="Cabin_South" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 40)
+type = 0
+
+[node name="Wall2" parent="Cabin_South" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3, 0, 43)
+type = 0
+
+[node name="Bush1" parent="Cabin_South" instance=ExtResource("3_bush")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5, 0, 40)
+
+[node name="Bush2" parent="Cabin_South" instance=ExtResource("3_bush")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 5, 0, 40)
+
+[node name="Bush3" parent="Cabin_South" instance=ExtResource("3_bush")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 35)
+
+[node name="Forest_East" type="Node3D" parent="."]
+
+[node name="Tree1" parent="Forest_East" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 40, 0, 10)
+type = 1
+
+[node name="Tree2" parent="Forest_East" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 45, 0, 0)
+type = 1
+
+[node name="Bush1" parent="Forest_East" instance=ExtResource("3_bush")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 42, 0, 5)
+
+[node name="Forest_West" type="Node3D" parent="."]
+
+[node name="Tree1" parent="Forest_West" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -40, 0, -10)
+type = 1
+
+[node name="Tree2" parent="Forest_West" instance=ExtResource("2_obs")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -45, 0, 0)
+type = 1
+
+[node name="Bush1" parent="Forest_West" instance=ExtResource("3_bush")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -42, 0, -5)
+
+[node name="Entities" type="Node3D" parent="."]
+
+[node name="Loot" type="Node3D" parent="."]
