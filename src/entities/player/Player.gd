@@ -33,6 +33,8 @@ const MELEE_RATE: float = 0.55
 var weapon_slots: Array = [null, null, null, null, null]  # [0]=knife placeholder, [1-4]=StatsData
 var slot_ammo: Array = [0, 0, 0, 0, 0]
 var active_slot: int = 0
+var reload_timer: float = 0.0
+var reload_total_time: float = 0.0
 
 var slot_panels: Array = []
 var slot_icon_rects: Array = []
@@ -100,7 +102,7 @@ func _ready():
 
 		var ammo_lbl = Label.new()
 		ammo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		ammo_lbl.add_theme_font_size_override("font_size", 15)
+		ammo_lbl.add_theme_font_size_override("font_size", 12)
 		vbox.add_child(ammo_lbl)
 		slot_ammo_labels.append(ammo_lbl)
 
@@ -126,6 +128,7 @@ func _input(event):
 			KEY_2: switch_to_slot(2)
 			KEY_3: switch_to_slot(3)
 			KEY_4: switch_to_slot(4)
+			KEY_R: _start_reload()
 
 func reveal(duration: float = 2.0):
 	super.reveal(duration)
@@ -150,6 +153,10 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 func _physics_process(delta):
 	if is_dead: return
 	if fire_cooldown > 0: fire_cooldown -= delta
+	if reload_timer > 0:
+		reload_timer -= delta
+		if reload_timer <= 0:
+			_finish_reload()
 	handle_aiming(delta)
 	var effective_speed = stats.move_speed * (0.45 if is_crouching else 1.0)
 
@@ -184,7 +191,7 @@ func _physics_process(delta):
 
 	# Fire / melee
 	if Input.is_action_pressed("click") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		if fire_cooldown <= 0:
+		if fire_cooldown <= 0 and reload_timer <= 0:
 			if active_slot == 0:
 				_melee_attack()
 			else:
@@ -243,6 +250,12 @@ func _process(delta):
 			zone_timer_label.text = "ZONE  %ds" % int(max(0, t))
 			zone_timer_label.modulate = Color.CYAN if t > 10.0 else Color.YELLOW
 
+	# Reload HUD progress (per-frame update)
+	if reload_timer > 0 and not slot_ammo_labels.is_empty() and active_slot > 0 and reload_total_time > 0:
+		var pct = int((1.0 - reload_timer / reload_total_time) * 100)
+		slot_ammo_labels[active_slot].text = "R %d%%" % pct
+		slot_ammo_labels[active_slot].modulate = Color.YELLOW
+
 	# Kill feed decay
 	var i = kill_feed_entries.size() - 1
 	while i >= 0:
@@ -299,6 +312,7 @@ func _update_hud():
 
 func switch_to_slot(slot: int):
 	if slot < 0 or slot > 4: return
+	reload_timer = 0.0
 	active_slot = slot
 	if slot >= 1:
 		var wdata = weapon_slots[slot]
@@ -312,6 +326,10 @@ func switch_to_slot(slot: int):
 	_refresh_slot_hud()
 
 func receive_weapon(wstats: StatsData) -> bool:
+	# Reject duplicate weapon type
+	for i in range(1, 5):
+		if weapon_slots[i] != null and weapon_slots[i].weapon_type == wstats.weapon_type:
+			return false
 	# Fill first empty slot 1-4
 	for i in range(1, 5):
 		if weapon_slots[i] == null:
@@ -347,6 +365,32 @@ func _try_auto_switch():
 func _sync_slot_ammo():
 	if active_slot >= 1:
 		stats.current_ammo = slot_ammo[active_slot]
+
+func _start_reload():
+	if active_slot == 0: return
+	var wdata = weapon_slots[active_slot]
+	if not wdata: return
+	if slot_ammo[active_slot] >= wdata.max_ammo: return
+	if reload_timer > 0: return
+	reload_total_time = _get_reload_time()
+	reload_timer = reload_total_time
+	if Sfx: Sfx.play("reload")
+
+func _finish_reload():
+	var wdata = weapon_slots[active_slot]
+	if wdata:
+		slot_ammo[active_slot] = wdata.max_ammo
+		_sync_slot_ammo()
+	_refresh_slot_hud()
+
+func _get_reload_time() -> float:
+	var wdata = weapon_slots[active_slot]
+	if not wdata: return 1.5
+	match wdata.weapon_type:
+		"shotgun": return 2.2
+		"railgun": return 3.0
+		"ar":      return 1.8
+		_:         return 1.3  # pistol
 
 func _melee_attack():
 	reveal()
@@ -396,12 +440,14 @@ func _refresh_slot_hud():
 				slot_icon_rects[i].texture = _make_weapon_icon(weapon_slots[i].weapon_type)
 		if i == 0:
 			slot_ammo_labels[i].text = ""
+			slot_ammo_labels[i].modulate = Color.WHITE
 		elif weapon_slots[i] == null:
 			slot_ammo_labels[i].text = ""
 		else:
 			var ammo = slot_ammo[i]
-			slot_ammo_labels[i].text = str(ammo)
-			slot_ammo_labels[i].modulate = Color.RED if ammo <= 0 else Color.WHITE
+			var max_a = weapon_slots[i].max_ammo
+			slot_ammo_labels[i].text = "%d/%d" % [ammo, max_a]
+			slot_ammo_labels[i].modulate = Color.RED if ammo <= 0 else (Color.YELLOW if ammo <= max_a / 4 else Color.WHITE)
 
 func _make_weapon_icon(wtype: String) -> ImageTexture:
 	var W := 28; var H := 14

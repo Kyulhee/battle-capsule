@@ -96,7 +96,8 @@ func collect(collector: Entity) -> bool:
 		ItemData.Type.WEAPON:
 			if item.weapon_stats:
 				if collector.has_method("receive_weapon"):
-					collector.receive_weapon(item.weapon_stats)
+					if not collector.receive_weapon(item.weapon_stats):
+						return false  # duplicate weapon type — leave on ground
 				else:
 					# Bot fallback: direct stats copy
 					collector.stats.weapon_type   = item.weapon_stats.weapon_type

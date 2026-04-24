@@ -61,6 +61,7 @@ func _generate_procedural(type: String) -> AudioStreamWAV:
 		"footstep":     return _noise_burst(0.030, 40.0, 0.14)
 		# Zone warning: double-beep alarm
 		"melee":        return _noise_burst(0.040, 15.0, 0.30)
+		"reload":       return _reload_sound()
 		"zone_warning": return _alarm_beep()
 	return null
 
@@ -144,6 +145,24 @@ func _alarm_beep() -> AudioStreamWAV:
 		buf.encode_s16(i * 2, int(sin(phase * TAU) * 32767.0 * env * 0.55))
 		phase += 800.0 / float(rate)
 		if phase > 1.0: phase -= 1.0
+	return _build_wav(buf, rate)
+
+func _reload_sound() -> AudioStreamWAV:
+	var rate   = 44100
+	var duration = 0.28
+	var count  = int(rate * duration)
+	var buf    = PackedByteArray()
+	buf.resize(count * 2)
+	var rng = RandomNumberGenerator.new()
+	rng.seed = 99137
+	for i in range(count):
+		var t = float(i) / float(count)
+		var in_c1 = t < 0.06
+		var in_c2 = t >= 0.14 and t < 0.22
+		var env = 0.0
+		if in_c1: env = exp(-t * 90.0)
+		elif in_c2: env = exp(-(t - 0.14) * 70.0)
+		buf.encode_s16(i * 2, int(rng.randf_range(-1.0, 1.0) * 32767.0 * env * 0.45))
 	return _build_wav(buf, rate)
 
 func _build_wav(buf: PackedByteArray, rate: int) -> AudioStreamWAV:
