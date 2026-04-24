@@ -2,6 +2,42 @@
 
 ---
 
+## v0.4 — 2026-04-24
+
+**봇 AI 개선 + Telemetry 재설계**
+
+→ 테스팅 프로세스 전반은 [TESTING.md](TESTING.md) 참조
+
+**봇 AI (Bot.gd)**
+
+- **끼임 방지**: `_update_stuck()` — velocity < 0.35 가 1초 지속되면 봇 방향의 수직 방향으로 0.65초 burst 이동. `_move_or_unstick()`으로 모든 이동 상태에서 자동 적용.
+- **분산 도주**: `_scatter_dir_from()` — `get_instance_id() % 8 * 45°` 각도 오프셋으로 각 봇이 개인화된 방향으로 도주. 여러 봇이 같은 벽에 몰리는 현상 방지.
+- **봇 예비 탄약**: `reserve_ammo` 변수 추가. `receive_ammo()` 구현 — 탄약 픽업 시 직접 탄창에 넣는 대신 reserve에 적립. `change_state(RECOVER)` 진입 시 reserve > 0이면 즉시 `_try_reload()`하고 IDLE 복귀 (RECOVER 건너뜀).
+- **RECOVER 3단계**: seek_cover(2.5s, scatter 도주) → seek_loot(탐색 반경 70, 4s) → patrol(랜덤 존 포인트 순회, 8s 타임아웃).
+- **피격 강제 후퇴**: `take_damage()` 오버라이드 — 탄약 없는 봇이 피격되면 RECOVER 강제 전환.
+- **사망 시 무기 드롭**: `die()` 오버라이드 → `_drop_weapon()` — 봇 사망 시 현재 무기를 Pickup 씬으로 스폰.
+
+**Telemetry 재설계 (Telemetry.gd)**
+
+기존 구조의 문제점을 전면 정리:
+
+- `stages.match_summary` 블록 제거 (tactics/combat과 중복)
+- `log_damage`, `log_shot` 실제 구현 (기존 no-op)
+- `log_supply_event("telegraph")` 케이스 추가 (기존 누락)
+- 죽은 스텁 제거: `log_state_duration`, `log_state_transition`, `log_engagement`, `log_loot`
+- **그룹 토글 시스템**: `enabled_groups` 딕셔너리로 core / combat / tactics / economy / supply 개별 ON/OFF
+- **JSON 출력**: `end_match()` 시 `user://sim_result_latest.json` 자동 저장 (QA 스크립트 연동용)
+- **v0.4 신규 지표**: stuck_triggered, reserve_reload, patrol_entered, weapon_drop_spawned
+
+**다음 버전 예고 (v0.5)**
+
+- outnumbered 감지 + DISENGAGE 상태
+- 실제 엄폐물 탐색 (obstacles 그룹 기반)
+- 봇 무기 다양화 (스폰 시 랜덤 배정)
+- 자기장 피해 플레이어에게도 적용
+
+---
+
 ## v0.3.2 — 2026-04-24
 
 **탄창 + 예비 탄약 2단계 시스템**

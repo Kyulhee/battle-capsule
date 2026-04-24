@@ -112,6 +112,8 @@ func _update_stuck(delta):
 			_stuck_override_dir = Vector3(-fwd.z * side, 0, fwd.x * side).normalized()
 			_stuck_override_timer = 0.65
 			_stuck_timer = 0.0
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_tactics("stuck_triggered")
 	else:
 		_stuck_timer = 0.0
 
@@ -266,6 +268,8 @@ func handle_recover_state(delta):
 			recovery_substate = "patrol"
 			recovery_timer = 0.0
 			patrol_target = _random_zone_point()
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_tactics("patrol_entered")
 
 	elif recovery_substate == "patrol":
 		# Wander to a random zone point until loot appears or timeout
@@ -377,6 +381,8 @@ func _drop_weapon():
 	get_tree().root.add_child(pickup)
 	pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5))
 	pickup.init(item)
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_tactics("weapon_drop_spawned")
 
 func _weapon_display_name(wtype: String) -> String:
 	match wtype:
@@ -489,6 +495,8 @@ func change_state(new_state: State):
 			_try_reload()
 			current_state = State.IDLE
 			state_timer = 0.0
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_tactics("reserve_reload")
 			return
 		recovery_substate = "seek_cover"
 		recovery_timer = 0.0
