@@ -6,6 +6,6 @@
 script = ExtResource("1_script")
 type = 1
 item_name = "Shotgun Shells"
-amount = 6
+amount = 4
 ammo_weapon_type = "shotgun"
 color = Color(1, 0.55, 0.1, 1)

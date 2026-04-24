@@ -10,8 +10,8 @@ fire_rate = 0.8
 attack_range = 10.0
 weapon_type = "shotgun"
 pellet_count = 5
-current_ammo = 16
-max_ammo = 48
+current_ammo = 2
+max_ammo = 6
 
 [resource]
 script = ExtResource("2_item")

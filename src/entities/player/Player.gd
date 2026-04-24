@@ -31,10 +31,13 @@ const MELEE_DAMAGE: float = 20.0
 const MELEE_RATE: float = 0.55
 
 var weapon_slots: Array = [null, null, null, null, null]  # [0]=knife placeholder, [1-4]=StatsData
-var slot_ammo: Array = [0, 0, 0, 0, 0]
+var slot_ammo: Array = [0, 0, 0, 0, 0]     # loaded magazine
+var slot_reserve: Array = [0, 0, 0, 0, 0]  # reserve / backpack ammo
 var active_slot: int = 0
 var reload_timer: float = 0.0
 var reload_total_time: float = 0.0
+var reload_ammo_start: int = 0
+var reload_ammo_target: int = 0
 
 var slot_panels: Array = []
 var slot_icon_rects: Array = []
@@ -250,10 +253,15 @@ func _process(delta):
 			zone_timer_label.text = "ZONE  %ds" % int(max(0, t))
 			zone_timer_label.modulate = Color.CYAN if t > 10.0 else Color.YELLOW
 
-	# Reload HUD progress (per-frame update)
+	# Reload HUD progress (per-frame count-up animation)
 	if reload_timer > 0 and not slot_ammo_labels.is_empty() and active_slot > 0 and reload_total_time > 0:
-		var pct = int((1.0 - reload_timer / reload_total_time) * 100)
-		slot_ammo_labels[active_slot].text = "R %d%%" % pct
+		var progress = 1.0 - reload_timer / reload_total_time
+		var disp_ammo = int(lerp(float(reload_ammo_start), float(reload_ammo_target), progress))
+		var wdata_r = weapon_slots[active_slot]
+		var max_a_r = wdata_r.max_ammo if wdata_r else 0
+		var transferred = disp_ammo - reload_ammo_start
+		var disp_res = max(0, slot_reserve[active_slot] - transferred)
+		slot_ammo_labels[active_slot].text = "%d/%d+%d" % [disp_ammo, max_a_r, disp_res]
 		slot_ammo_labels[active_slot].modulate = Color.YELLOW
 
 	# Kill feed decay
@@ -334,13 +342,15 @@ func receive_weapon(wstats: StatsData) -> bool:
 	for i in range(1, 5):
 		if weapon_slots[i] == null:
 			weapon_slots[i] = wstats
-			slot_ammo[i] = wstats.current_ammo
+			slot_ammo[i] = wstats.current_ammo  # starts at 1/3 magazine (set in .tres)
+			slot_reserve[i] = 0
 			switch_to_slot(i)
 			return true
 	# All slots full — replace active weapon slot
 	if active_slot >= 1:
 		weapon_slots[active_slot] = wstats
 		slot_ammo[active_slot] = wstats.current_ammo
+		slot_reserve[active_slot] = 0
 		switch_to_slot(active_slot)
 		return true
 	return false
@@ -349,16 +359,22 @@ func receive_ammo(weapon_type: String, amount: int):
 	for i in range(1, 5):
 		var wdata = weapon_slots[i]
 		if wdata and wdata.weapon_type == weapon_type:
-			slot_ammo[i] = min(wdata.max_ammo, slot_ammo[i] + amount)
-			if i == active_slot:
-				stats.current_ammo = slot_ammo[i]
+			var res_max = _get_reserve_max(weapon_type)
+			slot_reserve[i] = min(res_max, slot_reserve[i] + amount)
 			_refresh_slot_hud()
 			return
 
 func _try_auto_switch():
+	# Prefer slots with ammo already loaded
 	for i in range(1, 5):
 		if weapon_slots[i] != null and slot_ammo[i] > 0:
 			switch_to_slot(i)
+			return
+	# Then slots with reserve (auto-reload)
+	for i in range(1, 5):
+		if weapon_slots[i] != null and slot_reserve[i] > 0:
+			switch_to_slot(i)
+			_start_reload()
 			return
 	switch_to_slot(0)
 
@@ -370,16 +386,22 @@ func _start_reload():
 	if active_slot == 0: return
 	var wdata = weapon_slots[active_slot]
 	if not wdata: return
-	if slot_ammo[active_slot] >= wdata.max_ammo: return
+	if slot_reserve[active_slot] <= 0: return  # no reserve
+	if slot_ammo[active_slot] >= wdata.max_ammo: return  # magazine full
 	if reload_timer > 0: return
-	reload_total_time = _get_reload_time()
-	reload_timer = reload_total_time
+	var transfer = min(slot_reserve[active_slot], wdata.max_ammo - slot_ammo[active_slot])
+	reload_ammo_start  = slot_ammo[active_slot]
+	reload_ammo_target = slot_ammo[active_slot] + transfer
+	reload_total_time  = _get_reload_time()
+	reload_timer       = reload_total_time
 	if Sfx: Sfx.play("reload")
 
 func _finish_reload():
 	var wdata = weapon_slots[active_slot]
 	if wdata:
-		slot_ammo[active_slot] = wdata.max_ammo
+		var transferred = reload_ammo_target - reload_ammo_start
+		slot_ammo[active_slot]    = reload_ammo_target
+		slot_reserve[active_slot] = max(0, slot_reserve[active_slot] - transferred)
 		_sync_slot_ammo()
 	_refresh_slot_hud()
 
@@ -387,10 +409,18 @@ func _get_reload_time() -> float:
 	var wdata = weapon_slots[active_slot]
 	if not wdata: return 1.5
 	match wdata.weapon_type:
-		"shotgun": return 2.2
-		"railgun": return 3.0
-		"ar":      return 1.8
+		"shotgun": return 2.8
+		"railgun": return 4.5
+		"ar":      return 2.0
 		_:         return 1.3  # pistol
+
+func _get_reserve_max(wtype: String) -> int:
+	match wtype:
+		"pistol":  return 30
+		"ar":      return 60
+		"shotgun": return 12
+		"railgun": return 6
+		_:         return 30
 
 func _melee_attack():
 	reveal()
@@ -422,7 +452,7 @@ func _refresh_slot_hud():
 
 	for i in range(5):
 		var panel = slot_panels[i]
-		var out_of_ammo = (i >= 1) and weapon_slots[i] != null and slot_ammo[i] <= 0
+		var out_of_ammo = (i >= 1) and weapon_slots[i] != null and slot_ammo[i] <= 0 and slot_reserve[i] <= 0
 
 		if i == active_slot:
 			panel.add_theme_stylebox_override("panel", active_style)
@@ -446,8 +476,14 @@ func _refresh_slot_hud():
 		else:
 			var ammo = slot_ammo[i]
 			var max_a = weapon_slots[i].max_ammo
-			slot_ammo_labels[i].text = "%d/%d" % [ammo, max_a]
-			slot_ammo_labels[i].modulate = Color.RED if ammo <= 0 else (Color.YELLOW if ammo <= max_a / 4 else Color.WHITE)
+			var res   = slot_reserve[i]
+			slot_ammo_labels[i].text = "%d/%d+%d" % [ammo, max_a, res]
+			if ammo <= 0 and res <= 0:
+				slot_ammo_labels[i].modulate = Color.RED
+			elif ammo <= max_a / 4:
+				slot_ammo_labels[i].modulate = Color.YELLOW
+			else:
+				slot_ammo_labels[i].modulate = Color.WHITE
 
 func _make_weapon_icon(wtype: String) -> ImageTexture:
 	var W := 28; var H := 14

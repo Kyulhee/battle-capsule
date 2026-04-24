@@ -6,6 +6,6 @@
 script = ExtResource("1_script")
 type = 1
 item_name = "Rail Cells"
-amount = 3
+amount = 2
 ammo_weapon_type = "railgun"
 color = Color(0.8, 0.2, 1.0, 1)

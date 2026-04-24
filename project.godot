@@ -24,6 +24,10 @@ config/icon="res://icon.svg"
 Sfx="*res://src/core/SoundManager.gd"
 Telemetry="*res://src/core/Telemetry.gd"
 
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true
+
 [display]
 
 window/size/viewport_width=1280

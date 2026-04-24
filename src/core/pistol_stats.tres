@@ -9,5 +9,5 @@ fire_rate = 0.45
 attack_range = 22.0
 weapon_type = "pistol"
 pellet_count = 1
-current_ammo = 30
-max_ammo = 60
+current_ammo = 5
+max_ammo = 15
