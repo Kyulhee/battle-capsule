@@ -1,0 +1,202 @@
+# 배틀캡슐 마스터 플랜
+
+> 마지막 업데이트: 2026-04-24 (v0.3.2 기준)  
+> 이 문서는 AI 에이전트 간 인수인계 및 장기 방향 공유를 위해 작성되었습니다.
+
+---
+
+## 프로젝트 개요
+
+**배틀캡슐 (Battle Capsule)** 은 Godot 4.6.2 / GDScript로 개발 중인 쿼터뷰(탑다운 45°) 배틀로얄 프로토타입입니다.
+
+- 플레이어 1명 vs 봇 11명, 자기장이 좁아지며 최후의 1인 생존
+- 숲 맵 1개 (절차적 배치, MapSpec JSON 기반)
+- Windows / macOS Universal 동시 출시 목표
+- 프로젝트 저장소: `https://github.com/Kyulhee/battle-capsule`
+
+**핵심 설계 원칙**
+
+1. 절차적 우선 — 에셋보다 코드 생성(절차적 사운드, 픽셀 아이콘, 맵 배치)으로 빠른 이터레이션
+2. 상태 머신 AI — 봇은 State enum + 핸들러 함수 구조로 확장 가능하게 유지
+3. 데이터 분리 — 무기/아이템 밸런스는 `.tres` 리소스 파일에서 관리, 코드 수정 최소화
+4. 난이도는 파라미터 — AI 행동을 하드코딩하지 않고 변수로 노출해 난이도 시스템으로 연결
+
+---
+
+## 코드베이스 구조
+
+```
+src/
+├── core/
+│   ├── Entity.gd           # 모든 캐릭터의 기반 클래스 (CharacterBody3D)
+│   ├── StatsData.gd        # 무기/캐릭터 스탯 Resource
+│   ├── ItemData.gd         # 아이템 정의 Resource (type, rarity, ammo_weapon_type)
+│   ├── SoundManager.gd     # 절차적 오디오 생성 (Autoload: Sfx)
+│   ├── Telemetry.gd        # 매치 통계 기록 (Autoload: Telemetry)
+│   ├── MapSpec.gd          # JSON 맵 스펙 파서
+│   ├── pistol_stats.tres   # 기본 지급 피스톨 스탯
+│   ├── player_stats.tres   # 플레이어 기본 스탯
+│   ├── bot_stats.tres      # 봇 기본 스탯
+│   └── super_weapon_stats.tres  # 레일건 스탯
+├── entities/
+│   ├── Entity.gd           # HP, 방어막, 인식 시스템, 이동
+│   ├── player/Player.gd    # 입력, 무기 슬롯, HUD, 재장전
+│   ├── bot/Bot.gd          # AI 상태 머신 (IDLE/CHASE/ATTACK/ZONE_ESCAPE/RECOVER)
+│   └── pickup/Pickup.gd    # 아이템 픽업 (Area3D)
+├── items/                  # .tres 아이템 정의 파일
+├── maps/
+│   └── WorldBuilder.gd     # MapSpec을 읽어 맵 오브젝트 생성
+├── environment/
+│   ├── Bush.gd             # 풀숲 (스텔스 영역)
+│   └── WorldElement.gd     # 맵 환경 요소 기반
+├── fx/                     # 시각 이펙트 (MuzzleFlash, BulletTrail 등)
+├── ui/
+│   └── Minimap.gd
+└── Main.gd                 # 게임 루프, 존, 스폰, 보급 캡슐
+data/
+└── mapSpec_example.json    # 맵 POI 및 배치 정보
+```
+
+---
+
+## 핵심 시스템 요약
+
+### 무기 인벤토리 (Player.gd)
+
+- 5슬롯: slot 0 = 칼(항상), slot 1~4 = 총기
+- `weapon_slots[]: Array[StatsData]` — 슬롯별 무기 데이터
+- `slot_ammo[]: Array[int]` — 탄창 (장전된 탄)
+- `slot_reserve[]: Array[int]` — 예비 탄약 (백팩)
+- R키 → `_start_reload()`: reserve → ammo 이동, 장전 시간 중 카운트업 애니메이션
+- 같은 weapon_type 중복 습득 불가
+
+### 봇 AI (Bot.gd)
+
+상태 머신: `IDLE → CHASE → ATTACK → RECOVER → ZONE_ESCAPE`
+
+| 상태 | 전환 조건 |
+|---|---|
+| IDLE | 적 없음, 루팅 없음 |
+| CHASE | 적 발견 (ammo > 0) 또는 픽업 목표 있음 |
+| ATTACK | 적과 engage 거리 이내 |
+| RECOVER | ammo == 0 (seek_cover → seek_loot 서브스테이트) |
+| ZONE_ESCAPE | 자기장 밖 감지 |
+
+**현재 한계**: 직선 이동(pathfinding 없음), 같은 벽에 클러스터링, 아군 봇 인식 없음
+
+### 인식 시스템 (Entity.gd)
+
+- `perception_meters: Dictionary` — 대상별 0.0~1.0 감지 게이지
+- 시야 범위 + FOV 각도 + 레이캐스트 LOS 체크
+- `stealth_modifier`: 풀숲/웅크리기 시 감소
+- `is_revealed_to(viewer)` → perception_meters >= 1.0
+
+### 존 & 보급 (Main.gd)
+
+- 2단계 자기장 수축 (stage 1 → stage 2)
+- stage 2에서 supply 캡슐 낙하 (희귀 무기 포함)
+- `zone_damage`: 자기장 밖 틱 데미지 (설정값 존재, 적용 로직은 `handle_damage_tick`)
+
+### 사운드 (SoundManager.gd)
+
+절차적 오디오 — 파일 없이 코드로 WAV 버퍼 생성.  
+`Sfx.play("shoot")` / `Sfx.play("shoot", global_position)` (3D)
+
+---
+
+## 릴리즈 히스토리
+
+| 버전 | 날짜 | 핵심 내용 |
+|---|---|---|
+| v0.1.0 | 2026-04-23 | 초기 프로토타입: 봇 AI, 자기장, 기본 루팅 |
+| v0.2.0 | 2026-04-23 | 보급 캡슐, 스텔스/풀숲, 미니맵, 기록 화면 |
+| v0.2.1 | 2026-04-23 | 웅크리기 버그 수정, 풀숲 높이/투명도 수정 |
+| v0.3.0 | 2026-04-24 | 5슬롯 무기 인벤토리, 픽셀 아이콘, 픽업 비주얼 |
+| v0.3.1 | 2026-04-24 | 중복 무기 방지, R키 리로드, 탄약/최대 HUD |
+| v0.3.2 | 2026-04-24 | 탄창+예비 2단계 탄약, 무기 밸런스, macOS 출시 |
+
+---
+
+## 로드맵
+
+### v0.4 — 봇 AI 개선 (다음 버전)
+
+우선순위 높음:
+
+- **끼임 방지**: 일정 시간 속도 < 0.3 감지 → 임시 우회 방향 주입 (`stuck_timer`)
+- **개인화 분산 (scatter)**: `get_instance_id() % 8 * (PI/4)` 각도 오프셋으로 봇마다 다른 방향으로 도주 → 벽 클러스터링 방지
+- **봇 reserve ammo + 리로드**: RECOVER 진입 시 reserve 있으면 리로드 후 복귀, 없으면 루팅 탐색
+- **루팅 탐색 반경 확대**: RECOVER 시 35 → 70, 없으면 랜덤 patrol point 생성
+- **봇 사망 시 무기 드롭**: `Entity.die()`에서 현재 무기를 Pickup으로 스폰
+- **피격 도주 트리거**: 탄약 없는 봇이 피격되면 RECOVER 강제 전환
+
+### v0.5 — 전술 의식
+
+- **outnumbered 감지**: `perception_meters`에서 감지된 적 수 카운트 → 2명 이상 + 아군 없으면 DISENGAGE 상태
+- **DISENGAGE 상태 추가**: 거리 유지하며 엄폐물 탐색, 아군 합류 시 복귀
+- **실제 엄폐물 탐색**: `"obstacles"` 그룹의 노드 위치 기반으로 위협 방향 반대편 포인트 계산
+- **존 피해 플레이어 적용**: `handle_damage_tick`이 봇에만 적용 중 → 플레이어도 포함
+- **봇 무기 다양화**: 스폰 시 weapon_type 랜덤 배정
+
+### v0.6 — 그룹 전술
+
+- **CoverRegistry**: Main에 `claimed_cover: Dictionary` → 봇마다 다른 엄폐 위치 점유
+- **플랭킹**: 같은 목표를 공격 중인 봇이 있으면 90° 측면 접근
+- **느슨한 협조**: 아군 봇 위치 참조하여 포위 형성
+
+### v0.7 — 난이도 시스템
+
+`BotDifficulty` Resource (또는 Dictionary) 도입:
+
+```gdscript
+# Bot.gd에 적용할 파라미터 묶음
+var difficulty = {
+    "vision_range": 22.0,
+    "reaction_delay": 0.8,    # 적 인식 후 실제 반응까지 딜레이
+    "outnumbered_threshold": 2,
+    "use_cover": true,
+    "flank_enabled": false,
+    "aim_spread_mult": 1.0,
+    "loot_search_radius": 50.0,
+}
+```
+
+Easy / Normal / Hard / Expert 프리셋 → 메인 메뉴 선택
+
+`reaction_delay` 구현: `_find_nearest_target()` 결과를 `pending_target`에 저장, 타이머 후 `target_actor`로 확정
+
+### v0.8 — 이동 & 맵
+
+- **NavigationRegion3D + NavigationAgent3D**: 장애물 우회 경로탐색 (끼임 근본 해결)
+- **맵 커버 오브젝트 추가**: WorldBuilder에서 바위/창고/나무 군집을 POI 주변 배치, `add_to_group("obstacles")` 태그
+- **맵 경계 충돌체**: 봇/플레이어가 맵 밖으로 나가는 현상 방지
+
+### v1.0 — 알파 완성
+
+- 매치 결과 화면 (순위, 킬수, 피해량, 생존 시간)
+- 봇 이름 랜덤 생성 (킬피드 표시용)
+- 기본 이동/사격 애니메이션
+- 볼륨/감도 옵션 메뉴
+- 맵 2개 이상
+
+---
+
+## 다음 AI 에이전트에게
+
+**작업 시작 전 확인할 파일**
+- `Bot.gd` — AI 로직 전체
+- `Player.gd` — 무기 슬롯, 재장전, HUD
+- `Entity.gd` — 공통 베이스 (이동, 피해, 인식)
+- `Main.gd` — 게임 루프, 존, 스폰
+
+**알아야 할 Godot 4 quirks**
+- Control preset은 `PRESET_CENTER_BOTTOM` (not `PRESET_BOTTOM_CENTER`)
+- `grow_vertical = GROW_DIRECTION_BEGIN` 없으면 bottom anchor가 화면 밖으로 나감
+- macOS export preset key는 `application/bundle_identifier` (not `application/identifier`)
+- `--export-release` headless 시 macOS 공증 경고가 hard error로 처리됨 → 위 키 문제 해결 후 통과
+
+**현재 미해결 이슈**
+- `src/fx/ShotPing.tscn`과 `src/fx/ImpactEffect.tscn`의 UID 충돌 경고 (기능에는 무해)
+- 봇 탄약 소진 시 벽 클러스터링 (v0.4 목표)
+- 자기장 피해가 봇에만 적용됨 (플레이어 제외 버그, v0.5 목표)
+- NavigationMesh 없어서 봇 직선 이동만 가능 (v0.8 목표)
