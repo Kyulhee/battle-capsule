@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/ItemData.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+type = 1
+item_name = "Rail Cells"
+amount = 3
+ammo_weapon_type = "railgun"
+color = Color(0.8, 0.2, 1.0, 1)

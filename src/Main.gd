@@ -12,7 +12,9 @@ var current_state: GameState = GameState.MENU
 @export var railgun_item: ItemData = preload("res://src/items/weapon_railgun.tres")
 @export var pickup_scene: PackedScene = preload("res://src/entities/pickup/Pickup.tscn")
 @export var item_templates: Array[ItemData] = [
-	preload("res://src/items/ammo_pickup.tres"),
+	preload("res://src/items/ammo_ar.tres"),
+	preload("res://src/items/ammo_shotgun.tres"),
+	preload("res://src/items/ammo_railgun.tres"),
 	preload("res://src/items/heal_pickup.tres"),
 	preload("res://src/items/weapon_ar.tres"),
 	preload("res://src/items/weapon_shotgun.tres"),
@@ -304,7 +306,8 @@ func _categorize_templates():
 func _spawn_initial_loot():
 	if loot_hotspots.is_empty(): return
 	for hotspot in loot_hotspots:
-		if not weapon_templates.is_empty():
+		# 50% chance to spawn a weapon per hotspot
+		if not weapon_templates.is_empty() and randf() < 0.5:
 			var pickup = pickup_scene.instantiate()
 			$Loot.add_child(pickup)
 			var offset = Vector2(randf_range(-3, 3), randf_range(-3, 3))

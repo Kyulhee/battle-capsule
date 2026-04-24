@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="StatsData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/StatsData.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+attack_damage = 18.0
+fire_rate = 0.45
+attack_range = 22.0
+weapon_type = "pistol"
+pellet_count = 1
+current_ammo = 30
+max_ammo = 60

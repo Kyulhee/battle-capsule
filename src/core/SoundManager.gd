@@ -60,6 +60,7 @@ func _generate_procedural(type: String) -> AudioStreamWAV:
 		# Footstep: very short soft thud
 		"footstep":     return _noise_burst(0.030, 40.0, 0.14)
 		# Zone warning: double-beep alarm
+		"melee":        return _noise_burst(0.040, 15.0, 0.30)
 		"zone_warning": return _alarm_beep()
 	return null
 

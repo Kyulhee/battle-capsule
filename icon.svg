@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <!-- Dark background -->
+  <rect width="256" height="256" rx="44" fill="#0c1a0c"/>
+
+  <!-- Zone ring (battle royale circle) -->
+  <circle cx="128" cy="128" r="98" fill="none" stroke="#2255cc" stroke-width="6" opacity="0.85"/>
+
+  <!-- Crosshair lines -->
+  <line x1="128" y1="18"  x2="128" y2="84"  stroke="#ccd8ff" stroke-width="5" stroke-linecap="round"/>
+  <line x1="128" y1="172" x2="128" y2="238" stroke="#ccd8ff" stroke-width="5" stroke-linecap="round"/>
+  <line x1="18"  y1="128" x2="84"  y2="128" stroke="#ccd8ff" stroke-width="5" stroke-linecap="round"/>
+  <line x1="172" y1="128" x2="238" y2="128" stroke="#ccd8ff" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Inner ring -->
+  <circle cx="128" cy="128" r="32" fill="none" stroke="#ccd8ff" stroke-width="4"/>
+
+  <!-- Center glow -->
+  <circle cx="128" cy="128" r="16" fill="#2255cc" opacity="0.45"/>
+
+  <!-- Center dot -->
+  <circle cx="128" cy="128" r="7" fill="#ccd8ff"/>
+</svg>

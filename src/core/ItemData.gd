@@ -9,4 +9,5 @@ enum Rarity { COMMON, RARE }
 @export var item_name: String = "Item"
 @export var amount: int = 10
 @export var weapon_stats: StatsData # Used if it's a weapon type
+@export var ammo_weapon_type: String = "" # For AMMO type: "ar", "shotgun", "railgun"
 @export var color: Color = Color.WHITE

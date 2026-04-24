@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/ItemData.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+type = 1
+item_name = "Shotgun Shells"
+amount = 6
+ammo_weapon_type = "shotgun"
+color = Color(1, 0.55, 0.1, 1)

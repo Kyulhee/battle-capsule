@@ -11,7 +11,6 @@ const FOOTSTEP_INTERVAL: float = 0.38
 var _mesh_origin_y: float = 0.0
 
 @onready var interaction_area = $InteractionArea
-var weapon_label: Label = null
 var zone_timer_label: Label = null
 var kill_feed_container: VBoxContainer = null
 var kill_feed_entries: Array = []
@@ -23,22 +22,27 @@ const MUZZLE_FLASH_SCN = preload("res://src/fx/MuzzleFlash.tscn")
 const IMPACT_EFFECT_SCN = preload("res://src/fx/ImpactEffect.tscn")
 const BULLET_TRAIL_SCN = preload("res://src/fx/BulletTrail.tscn")
 const SHOT_PING_SCN = preload("res://src/fx/ShotPing.tscn")
+const PISTOL_STATS = preload("res://src/core/pistol_stats.tres")
+
+# ── Weapon Slot Inventory ────────────────────────────────────────────────
+# slot 0 = knife (melee, always available), slots 1-4 = ranged weapons
+const MELEE_RANGE: float = 1.8
+const MELEE_DAMAGE: float = 20.0
+const MELEE_RATE: float = 0.55
+
+var weapon_slots: Array = [null, null, null, null, null]  # [0]=knife placeholder, [1-4]=StatsData
+var slot_ammo: Array = [0, 0, 0, 0, 0]
+var active_slot: int = 0
+
+var slot_panels: Array = []
+var slot_icon_rects: Array = []
+var slot_ammo_labels: Array = []
 
 func _ready():
 	if stats:
 		stats = stats.duplicate()
 	super._ready()
-	
-	# Create Weapon Label at the bottom
-	weapon_label = Label.new()
-	$CanvasLayer/Control.add_child(weapon_label)
-	weapon_label.set_anchors_and_offsets_preset(12, 0, 40) # 12 = PRESET_BOTTOM_CENTER
-	weapon_label.grow_horizontal = 2 # GROW_DIRECTION_BOTH
-	weapon_label.position.y -= 80 # Adjust up from bottom
-	weapon_label.add_theme_font_size_override("font_size", 36)
-	weapon_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	weapon_label.add_theme_constant_override("outline_size", 12)
-	
+
 	# Zone timer (top-center)
 	zone_timer_label = Label.new()
 	$CanvasLayer/Control.add_child(zone_timer_label)
@@ -58,6 +62,48 @@ func _ready():
 	kill_feed_container.position.y += 60
 	kill_feed_container.custom_minimum_size = Vector2(200, 0)
 
+	# Slot bar (bottom-center): 5 boxes — 0=knife, 1-4=weapons
+	var slot_bar = HBoxContainer.new()
+	$CanvasLayer/Control.add_child(slot_bar)
+	slot_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
+	slot_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	slot_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	slot_bar.position.y -= 8
+	slot_bar.position.x -= 165
+	slot_bar.add_theme_constant_override("separation", 6)
+
+	var slot_labels = ["K", "1", "2", "3", "4"]
+	for i in range(5):
+		var panel = PanelContainer.new()
+		panel.custom_minimum_size = Vector2(60, 68)
+		slot_bar.add_child(panel)
+		slot_panels.append(panel)
+
+		var vbox = VBoxContainer.new()
+		panel.add_child(vbox)
+		vbox.add_theme_constant_override("separation", 2)
+
+		var key_lbl = Label.new()
+		key_lbl.text = slot_labels[i]
+		key_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		key_lbl.add_theme_font_size_override("font_size", 11)
+		key_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+		vbox.add_child(key_lbl)
+
+		var icon_rect = TextureRect.new()
+		icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH
+		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon_rect.custom_minimum_size = Vector2(0, 20)
+		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		vbox.add_child(icon_rect)
+		slot_icon_rects.append(icon_rect)
+
+		var ammo_lbl = Label.new()
+		ammo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ammo_lbl.add_theme_font_size_override("font_size", 15)
+		vbox.add_child(ammo_lbl)
+		slot_ammo_labels.append(ammo_lbl)
+
 	if has_node("MeshInstance3D"):
 		_mesh_origin_y = $MeshInstance3D.position.y
 
@@ -66,13 +112,20 @@ func _ready():
 	if ray_cast:
 		ray_cast.enabled = true
 		ray_cast.add_exception(self)
-		# Hit Layer 2 (Actors) and Layer 4 (High Obstacles)
 		ray_cast.collision_mask = 2 | 8
 	_on_health_changed(current_health, stats.max_health)
+	switch_to_slot(0)
+	receive_weapon(PISTOL_STATS.duplicate())
 
 func _input(event):
-	if event is InputEventKey and event.keycode == KEY_C and event.pressed and not event.echo:
-		is_crouching = not is_crouching
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_C: is_crouching = not is_crouching
+			KEY_0: switch_to_slot(0)
+			KEY_1: switch_to_slot(1)
+			KEY_2: switch_to_slot(2)
+			KEY_3: switch_to_slot(3)
+			KEY_4: switch_to_slot(4)
 
 func reveal(duration: float = 2.0):
 	super.reveal(duration)
@@ -128,28 +181,39 @@ func _physics_process(delta):
 			if Sfx: Sfx.play("footstep", global_position)
 	else:
 		footstep_timer = 0.0
+
+	# Fire / melee
 	if Input.is_action_pressed("click") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		if fire_cooldown <= 0:
-			if stats.current_ammo > 0:
-				if stats.weapon_type == "shotgun":
-					stats.current_ammo -= 1
-					for i in range(stats.pellet_count): shoot_pellet(i)
-					fire_cooldown = stats.fire_rate
-					if Sfx: Sfx.play("shoot")
-				else: shoot()
+			if active_slot == 0:
+				_melee_attack()
 			else:
-				if Sfx: Sfx.play("dry_fire")
-				fire_cooldown = 0.5
+				var wdata = weapon_slots[active_slot]
+				if wdata and slot_ammo[active_slot] > 0:
+					if wdata.weapon_type == "shotgun":
+						slot_ammo[active_slot] -= 1
+						_sync_slot_ammo()
+						for i in range(wdata.pellet_count): shoot_pellet(i)
+						fire_cooldown = wdata.fire_rate
+						if Sfx: Sfx.play("shoot")
+						_refresh_slot_hud()
+					else:
+						_shoot_with_slot(active_slot)
+				else:
+					if Sfx: Sfx.play("dry_fire")
+					fire_cooldown = 0.5
+					_try_auto_switch()
+
 	if Input.is_key_pressed(KEY_SPACE) and is_on_floor() and not is_crouching:
 		velocity.y = 7.0
 		footstep_timer = 0.0
 	if Input.is_key_pressed(KEY_E): handle_interaction()
 	if Input.is_key_pressed(KEY_Q): handle_healing()
 	super._physics_process(delta)
-	# Crouch: stealth boost when not revealed
+	# Crouch stealth
 	if is_crouching and reveal_timer <= 0:
 		stealth_modifier = min(stealth_modifier, 0.35)
-	# Crouch visual (squish mesh down toward feet, not into ground)
+	# Crouch visual
 	if has_node("MeshInstance3D"):
 		$MeshInstance3D.scale.y = 0.55 if is_crouching else 1.0
 		$MeshInstance3D.position.y = _mesh_origin_y - 0.225 if is_crouching else _mesh_origin_y
@@ -223,14 +287,176 @@ func _on_shield_changed(_curr, _max): _update_hud()
 func _on_health_changed(_curr, _max): _update_hud()
 func _update_hud():
 	if hud_label:
-		hud_label.text = "HP: %d/%d | SHIELD: %d/%d | Ammo: %d | Heals: %d | Alive: %d" % [
+		hud_label.text = "HP: %d/%d | SHIELD: %d/%d | Heals: %d | Alive: %d" % [
 			current_health, stats.max_health,
 			current_shield, stats.max_shield,
-			stats.current_ammo, stats.heal_items,
+			stats.heal_items,
 			get_tree().get_nodes_in_group("actors").filter(func(a): return a is Entity and not a.is_dead).size()
 		]
-	if weapon_label:
-		weapon_label.text = stats.weapon_type.to_upper().replace("_", " ")
+	_refresh_slot_hud()
+
+# ── Slot system ──────────────────────────────────────────────────────────
+
+func switch_to_slot(slot: int):
+	if slot < 0 or slot > 4: return
+	active_slot = slot
+	if slot >= 1:
+		var wdata = weapon_slots[slot]
+		if wdata:
+			stats.weapon_type   = wdata.weapon_type
+			stats.pellet_count  = wdata.pellet_count
+			stats.attack_damage = wdata.attack_damage
+			stats.fire_rate     = wdata.fire_rate
+			stats.attack_range  = wdata.attack_range
+			stats.current_ammo  = slot_ammo[slot]
+	_refresh_slot_hud()
+
+func receive_weapon(wstats: StatsData) -> bool:
+	# Fill first empty slot 1-4
+	for i in range(1, 5):
+		if weapon_slots[i] == null:
+			weapon_slots[i] = wstats
+			slot_ammo[i] = wstats.current_ammo
+			switch_to_slot(i)
+			return true
+	# All slots full — replace active weapon slot
+	if active_slot >= 1:
+		weapon_slots[active_slot] = wstats
+		slot_ammo[active_slot] = wstats.current_ammo
+		switch_to_slot(active_slot)
+		return true
+	return false
+
+func receive_ammo(weapon_type: String, amount: int):
+	for i in range(1, 5):
+		var wdata = weapon_slots[i]
+		if wdata and wdata.weapon_type == weapon_type:
+			slot_ammo[i] = min(wdata.max_ammo, slot_ammo[i] + amount)
+			if i == active_slot:
+				stats.current_ammo = slot_ammo[i]
+			_refresh_slot_hud()
+			return
+
+func _try_auto_switch():
+	for i in range(1, 5):
+		if weapon_slots[i] != null and slot_ammo[i] > 0:
+			switch_to_slot(i)
+			return
+	switch_to_slot(0)
+
+func _sync_slot_ammo():
+	if active_slot >= 1:
+		stats.current_ammo = slot_ammo[active_slot]
+
+func _melee_attack():
+	reveal()
+	fire_cooldown = MELEE_RATE
+	if Sfx: Sfx.play("melee")
+	ray_cast.target_position = Vector3(0, 0, -MELEE_RANGE)
+	ray_cast.force_raycast_update()
+	if ray_cast.is_colliding():
+		var target = ray_cast.get_collider()
+		if target.has_method("take_damage"):
+			target.take_damage(MELEE_DAMAGE, "melee", "knife", self)
+			if Sfx: Sfx.play("hit", ray_cast.get_collision_point())
+
+func _refresh_slot_hud():
+	if slot_panels.is_empty(): return
+	var active_style = StyleBoxFlat.new()
+	active_style.bg_color = Color(0.25, 0.25, 0.25, 0.9)
+	active_style.border_color = Color.WHITE
+	active_style.set_border_width_all(2)
+	active_style.set_corner_radius_all(4)
+
+	var normal_style = StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.12, 0.12, 0.12, 0.8)
+	normal_style.set_corner_radius_all(4)
+
+	var empty_style = StyleBoxFlat.new()
+	empty_style.bg_color = Color(0.25, 0.05, 0.05, 0.85)
+	empty_style.set_corner_radius_all(4)
+
+	for i in range(5):
+		var panel = slot_panels[i]
+		var out_of_ammo = (i >= 1) and weapon_slots[i] != null and slot_ammo[i] <= 0
+
+		if i == active_slot:
+			panel.add_theme_stylebox_override("panel", active_style)
+		elif out_of_ammo:
+			panel.add_theme_stylebox_override("panel", empty_style)
+		else:
+			panel.add_theme_stylebox_override("panel", normal_style)
+
+		if not slot_icon_rects.is_empty():
+			if i == 0:
+				slot_icon_rects[i].texture = _make_weapon_icon("knife")
+			elif weapon_slots[i] == null:
+				slot_icon_rects[i].texture = _make_weapon_icon("")
+			else:
+				slot_icon_rects[i].texture = _make_weapon_icon(weapon_slots[i].weapon_type)
+		if i == 0:
+			slot_ammo_labels[i].text = ""
+		elif weapon_slots[i] == null:
+			slot_ammo_labels[i].text = ""
+		else:
+			var ammo = slot_ammo[i]
+			slot_ammo_labels[i].text = str(ammo)
+			slot_ammo_labels[i].modulate = Color.RED if ammo <= 0 else Color.WHITE
+
+func _make_weapon_icon(wtype: String) -> ImageTexture:
+	var W := 28; var H := 14
+	var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var c: Color
+	match wtype:
+		"knife":
+			c = Color(0.85, 0.85, 0.9)
+			for x in range(3, 23): img.set_pixel(x, 6, c); img.set_pixel(x, 7, c)
+			for x in range(22, 26): img.set_pixel(x, 7, c)
+			for y in range(4, 10): img.set_pixel(2, y, c); img.set_pixel(3, y, c)
+		"pistol":
+			c = Color(0.55, 0.78, 1.0)
+			for x in range(7, 19):
+				for y in range(5, 9): img.set_pixel(x, y, c)
+			for x in range(18, 26): img.set_pixel(x, 6, c); img.set_pixel(x, 7, c)
+			for x in range(8, 12):
+				for y in range(8, 13): img.set_pixel(x, y, c)
+		"ar":
+			c = Color(0.2, 0.88, 0.35)
+			for x in range(2, 23):
+				for y in range(6, 9): img.set_pixel(x, y, c)
+			for x in range(2, 5):
+				for y in range(5, 10): img.set_pixel(x, y, c)
+			for x in range(22, 28): img.set_pixel(x, 7, c)
+			for x in range(11, 17):
+				for y in range(9, 14): img.set_pixel(x, y, c)
+		"shotgun":
+			c = Color(1.0, 0.6, 0.1)
+			for x in range(2, 21):
+				for y in range(5, 10): img.set_pixel(x, y, c)
+			for y in range(4, 10): img.set_pixel(2, y, c); img.set_pixel(3, y, c)
+			for x in range(20, 27):
+				for y in range(5, 10): img.set_pixel(x, y, c)
+			for x in range(20, 27): img.set_pixel(x, 7, Color(0, 0, 0, 0.6))
+		"railgun":
+			c = Color(0.85, 0.2, 1.0)
+			for x in range(0, W): img.set_pixel(x, 7, c)
+			for x in range(0, 6):
+				for y in range(5, 10): img.set_pixel(x, y, c)
+			for i in range(3):
+				var cx = 9 + i * 7
+				if cx + 1 < W:
+					img.set_pixel(cx, 5, c); img.set_pixel(cx, 6, c)
+					img.set_pixel(cx, 8, c); img.set_pixel(cx, 9, c)
+					img.set_pixel(cx+1, 5, c); img.set_pixel(cx+1, 6, c)
+					img.set_pixel(cx+1, 8, c); img.set_pixel(cx+1, 9, c)
+		_:
+			c = Color(0.45, 0.45, 0.45, 0.65)
+			for i in range(3):
+				var cx = 7 + i * 7
+				img.set_pixel(cx, 6, c); img.set_pixel(cx+1, 6, c)
+				img.set_pixel(cx, 7, c); img.set_pixel(cx+1, 7, c)
+	return ImageTexture.create_from_image(img)
 
 func show_kill_notification():
 	if not kill_feed_container: return
@@ -249,17 +475,30 @@ func show_kill_notification():
 
 func shoot_pellet(_idx: int):
 	reveal()
-	var spread = 0.15
-	var pellet_target = Vector3(randf_range(-2, 2), randf_range(-0.5, 0.5), -stats.attack_range)
+	var wdata = weapon_slots[active_slot]
+	if not wdata: return
+	var pellet_target = Vector3(randf_range(-2, 2), randf_range(-0.5, 0.5), -wdata.attack_range)
 	_internal_shoot(pellet_target)
+
+func _shoot_with_slot(slot: int):
+	var wdata = weapon_slots[slot]
+	if not wdata or slot_ammo[slot] <= 0: return
+	slot_ammo[slot] -= 1
+	_sync_slot_ammo()
+	reveal()
+	_internal_shoot(Vector3(0, 0, -wdata.attack_range))
+	fire_cooldown = wdata.fire_rate
+	if Sfx: Sfx.play("shoot")
+	_refresh_slot_hud()
 
 func _internal_shoot(target_vec: Vector3):
 	var flash = MUZZLE_FLASH_SCN.instantiate()
 	add_child(flash); flash.position = Vector3(0, 0.5, -0.5)
+	var wdata = weapon_slots[active_slot] if active_slot >= 1 else null
+	var is_shotgun = wdata and wdata.weapon_type == "shotgun"
 	var recoil_dir = global_transform.basis.z
-	var recoil_strength = 6.0 if stats.weapon_type == "shotgun" else 2.0
-	camera_shake_amount = 0.3 if stats.weapon_type == "shotgun" else 0.1
-	velocity += recoil_dir * recoil_strength
+	velocity += recoil_dir * (6.0 if is_shotgun else 2.0)
+	camera_shake_amount = 0.3 if is_shotgun else 0.1
 	ray_cast.target_position = target_vec
 	ray_cast.force_raycast_update()
 	var impact_pos = global_position + (global_transform.basis * target_vec)
@@ -270,19 +509,19 @@ func _internal_shoot(target_vec: Vector3):
 		get_tree().root.add_child(impact)
 		impact.global_position = impact_pos
 		if target.has_method("take_damage"):
-			var dist = global_position.distance_to(target.global_position)
-			target.take_damage(stats.attack_damage, "gun", stats.weapon_type, self)
+			var dmg = wdata.attack_damage if wdata else stats.attack_damage
+			var wtype = wdata.weapon_type if wdata else stats.weapon_type
+			target.take_damage(dmg, "gun", wtype, self)
 			if Sfx: Sfx.play("hit", impact_pos)
 		else: if Sfx: Sfx.play("impact_wall", impact_pos)
 	var trail = BULLET_TRAIL_SCN.instantiate()
 	get_tree().root.add_child(trail); trail.init(global_position + Vector3(0, 0.5, 0), impact_pos)
 
 func shoot():
+	# Legacy path kept for compatibility (bot AI calls Entity.shoot via super chain)
 	if stats.current_ammo <= 0: return
 	stats.current_ammo -= 1
 	reveal()
 	_internal_shoot(Vector3(0, 0, -stats.attack_range))
 	fire_cooldown = stats.fire_rate
 	if Sfx: Sfx.play("shoot")
-
-
