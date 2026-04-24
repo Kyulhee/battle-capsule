@@ -3,7 +3,14 @@
 쿼터뷰 배틀로얄. 플레이어 1명이 봇 11명과 싸워 최후의 1인이 되는 게임입니다.  
 맵은 숲 테마 1개, 자기장이 점점 좁아지며 마지막까지 살아남아야 합니다.
 
-> Godot 4.6.2 · Windows / macOS · 개발: Kyulhee
+> Godot 4.6.2 · 개발: Kyulhee
+
+## 다운로드 (v0.3.2)
+
+[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.3.2/BattleRoyalePrototype_v0.3.2_win64.zip)
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.3.2/BattleRoyalePrototype_mac.zip)
+
+> macOS: 처음 실행 시 `시스템 설정 > 개인정보 보호 및 보안`에서 허용 필요 (공증 미적용 빌드)
 
 ---
 
