@@ -1,10 +1,12 @@
 # Godot 4 임시/캐시 파일
 .godot/
 
-# 내보낸 빌드 (배포는 GitHub Releases 등 별도 사용)
+# 빌드 아티팩트 (배포는 GitHub Releases 사용)
+builds/
 *.exe
 *.pck
 *.console.exe
+*.zip
 
 # 에셋 임포트 메타데이터 (자동 생성)
 *.import
@@ -14,9 +16,6 @@ export_credentials.cfg
 
 # 디버그 스크린샷 (자동 생성)
 debug_screenshot*.png
-
-# 시뮬레이션 결과 (tools/simulate_matches.py 실행 결과물)
-tools/simulation_results.json
 
 # Python 캐시
 __pycache__/

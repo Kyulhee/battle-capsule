@@ -51,12 +51,12 @@ VER="v0.4.0"
 # Windows
 ./Godot_v4.6.2-stable_win64.exe --headless \
   --export-release "Windows Desktop" \
-  "BattleRoyalePrototype_${VER}_win64.zip"
+  "builds/BattleRoyalePrototype_${VER}_win64.zip"
 
 # macOS (Universal)
 ./Godot_v4.6.2-stable_win64.exe --headless \
   --export-release "macOS" \
-  "BattleRoyalePrototype_mac.zip"
+  "builds/BattleRoyalePrototype_mac.zip"
 ```
 
 > macOS 빌드 주의:
@@ -79,8 +79,8 @@ git push origin $VER
 
 ```bash
 VER="v0.4.0"
-WIN_ZIP="BattleRoyalePrototype_${VER}_win64.zip"
-MAC_ZIP="BattleRoyalePrototype_mac.zip"
+WIN_ZIP="builds/BattleRoyalePrototype_${VER}_win64.zip"
+MAC_ZIP="builds/BattleRoyalePrototype_mac.zip"
 
 gh release create $VER \
   --title "배틀캡슐 $VER — 봇 AI 개선" \
