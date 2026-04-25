@@ -20,3 +20,6 @@ debug_screenshot*.png
 # Python 캐시
 __pycache__/
 *.pyc
+
+# 시뮬레이션 결과 데이터
+tools/*.json

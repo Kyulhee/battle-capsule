@@ -20,10 +20,10 @@
 
 | 문서 | 용도 |
 |---|---|
-| [MASTERPLAN.md](MASTERPLAN.md) | 전체 로드맵 (v0.1~v1.0), 코드 구조, 설계 원칙 |
-| [DEVLOG.md](DEVLOG.md) | 버전별 구현 상세 기록 (가장 최근 항목부터) |
-| [TESTING.md](TESTING.md) | 헤드리스 시뮬레이션 실행법 + 지표별 판단 기준 |
-| [RELEASE.md](RELEASE.md) | Godot 빌드 → GitHub 릴리즈 → README 업데이트 전 절차 |
+| [MASTERPLAN.md](docs/MASTERPLAN.md) | 전체 로드맵 (v0.1~v1.0), 코드 구조, 설계 원칙 |
+| [DEVLOG.md](docs/DEVLOG.md) | 버전별 구현 상세 기록 (가장 최근 항목부터) |
+| [TESTING.md](docs/TESTING.md) | 헤드리스 시뮬레이션 실행법 + 지표별 판단 기준 |
+| [RELEASE.md](docs/RELEASE.md) | Godot 빌드 → GitHub 릴리즈 → README 업데이트 전 절차 |
 
 **작업 흐름**: 구현 → 시뮬레이션 검증(TESTING.md) → DEVLOG 기록 → 빌드/릴리즈(RELEASE.md) → README 배지 업데이트
 
@@ -62,4 +62,4 @@ Godot 실행 파일 → 프로젝트 루트 (`Godot_v4.6.2-stable_win64*.exe`)
 ```
 
 정상 기준: `duration > 60s`, `zone_stage_reached >= 2`, `recover_bouts > 0`  
-상세 판단 기준 → [TESTING.md](TESTING.md)
+상세 판단 기준 → [TESTING.md](docs/TESTING.md)

@@ -104,7 +104,7 @@ EOF
 
 ### 6. README 배지 업데이트
 
-[README.md](README.md) 상단 다운로드 섹션에서 버전 2곳 수정:
+[README.md](../README.md) 상단 다운로드 섹션에서 버전 2곳 수정:
 
 ```markdown
 ## 다운로드 (v0.4.0)
