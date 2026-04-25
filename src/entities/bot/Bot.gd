@@ -24,6 +24,9 @@ var patrol_target: Vector3 = Vector3.ZERO
 # Reserve ammo: filled by ammo pickups, drained on reload
 var reserve_ammo: int = 0
 
+# True only when loot chase was triggered from RECOVER state (not IDLE opportunistic looting)
+var _recovering: bool = false
+
 # Stuck detection
 var _stuck_timer: float = 0.0
 var _stuck_override_dir: Vector3 = Vector3.ZERO
@@ -153,6 +156,7 @@ func handle_idle_state(delta):
 	if nearest_loot:
 		target_actor = nearest_loot
 		is_targeting_loot = true
+		_recovering = false
 		change_state(State.CHASE)
 		return
 
@@ -190,9 +194,9 @@ func handle_chase_state(delta):
 			if target_actor.has_method("collect"):
 				target_actor.collect(self)
 				_try_reload()
-				if stats.current_ammo > 0:
+				if _recovering and stats.current_ammo > 0:
 					if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_tactics("recovery_success")
-			target_actor = null; is_targeting_loot = false; change_state(State.IDLE)
+			target_actor = null; is_targeting_loot = false; _recovering = false; change_state(State.IDLE)
 	else:
 		_move_or_unstick(dir, delta, false)
 
@@ -261,6 +265,7 @@ func handle_recover_state(delta):
 		if loot:
 			target_actor = loot
 			is_targeting_loot = true
+			_recovering = true
 			change_state(State.CHASE)
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_tactics("recovery_start")
@@ -277,6 +282,9 @@ func handle_recover_state(delta):
 		if loot:
 			target_actor = loot
 			is_targeting_loot = true
+			_recovering = true
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_tactics("recovery_start")
 			change_state(State.CHASE)
 			return
 
@@ -382,7 +390,7 @@ func _drop_weapon():
 	pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5))
 	pickup.init(item)
 	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").log_tactics("weapon_drop_spawned")
+		get_node("/root/Telemetry").log_weapon_drop()
 
 func _weapon_display_name(wtype: String) -> String:
 	match wtype:

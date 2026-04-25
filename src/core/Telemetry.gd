@@ -110,13 +110,13 @@ func set_stage(stage: int):
 func end_match(rank: int, _winner_name: String, zone_stage: int):
 	if not match_in_progress: return
 	match_in_progress = false
-	metrics.core.duration = (Time.get_ticks_msec() - _start_tick) / 1000.0
+	metrics.core.duration = (Time.get_ticks_msec() - _start_tick) / 1000.0 * Engine.time_scale
 	metrics.core.zone_stage_reached = zone_stage
 	metrics.session.rank = rank
 	metrics.session.win = (rank == 1)
 	_save_history()
-	_save_sim_result()
-	_print_report()
+	call_deferred("_save_sim_result")
+	call_deferred("_print_report")
 
 # ── Log functions — core ──────────────────────────────────────────────────────
 
@@ -212,6 +212,11 @@ func log_supply_event(event: String):
 		"preannounce_interest":   metrics.supply.preannounce_interest += 1
 		"contest":                metrics.supply.contests += 1
 		"telegraph":              metrics.supply.telegraphed = true
+
+# Weapon drops can fire on the same frame as end_match, bypassing match_in_progress.
+func log_weapon_drop():
+	if _g("tactics") and metrics.has("tactics"):
+		metrics.tactics.weapon_drop_spawned += 1
 
 # ── Stubs kept for call-site compatibility ────────────────────────────────────
 

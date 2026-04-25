@@ -68,6 +68,10 @@ func _ready():
 		if "autostart=true" in arg:
 			is_simulation = true
 			Engine.time_scale = 5.0
+			_load_map_spec()
+			if map_spec:
+				for poi in map_spec.pois:
+					loot_hotspots.append(Vector2(poi.pos[0], poi.pos[1]))
 			start_game()
 			return
 
@@ -142,9 +146,7 @@ func start_game():
 		minimap.set_map_spec(map_spec)
 	
 	# Auto-screenshot for debug after 5 seconds (ONLY in simulation mode)
-	if is_simulation:
-		await get_tree().create_timer(5.0).timeout
-		_take_screenshot("debug_screenshot_auto.png")
+	pass
 
 func _show_panel(panel_name: String):
 	var control = $CanvasLayer/Control
@@ -414,7 +416,8 @@ func _on_player_died():
 	# Capture rank BEFORE decrementing alive_count
 	var death_rank = alive_count
 	alive_count -= 1
-	# Player death always ends the match immediately
+	if is_simulation:
+		return  # In headless sim, let bots fight to the end — don't cut match short
 	if not game_over:
 		game_over = true
 		_end_match(death_rank)
