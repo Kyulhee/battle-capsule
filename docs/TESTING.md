@@ -143,6 +143,9 @@ Telemetry.set_groups({
 - [ ] `rare_pickups` > 0 → 보급 캡슐 정상 작동
 - [ ] `duration` > 60s → 게임이 너무 빨리 끝나지 않음
 
+> 체크리스트를 모두 통과하면 **DEVLOG.md** 업데이트 후 릴리즈를 진행합니다.  
+> 단계 전체 기준 → [CLAUDE.md](../CLAUDE.md)
+
 ---
 
 ## 결과 파일 읽기

@@ -5,7 +5,7 @@
 
 **현재**: v0.4 완료 — 다음: v0.5 (outnumbered 감지 + DISENGAGE, 실제 엄폐물, 봇 무기 다양화)
 
-**문서 구조**
+**문서 구조** *(각 파일의 업데이트 시점 기준 → [CLAUDE.md](../CLAUDE.md))*
 - [CLAUDE.md](../CLAUDE.md) — 세션 시작 시 온보딩 (현재 상태, 핵심 파일, 퀵 커맨드)
 - [MASTERPLAN.md](MASTERPLAN.md) — 전체 로드맵 & 설계 원칙 ← 지금 여기
 - [DEVLOG.md](DEVLOG.md) — 버전별 구현 상세 (완료된 것)

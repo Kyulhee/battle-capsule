@@ -25,7 +25,16 @@
 | [TESTING.md](docs/TESTING.md) | 헤드리스 시뮬레이션 실행법 + 지표별 판단 기준 |
 | [RELEASE.md](docs/RELEASE.md) | Godot 빌드 → GitHub 릴리즈 → README 업데이트 전 절차 |
 
-**작업 흐름**: 구현 → 시뮬레이션 검증(TESTING.md) → DEVLOG 기록 → 빌드/릴리즈(RELEASE.md) → README 배지 업데이트
+**단계별 업데이트 기준**
+
+| 단계 | 업데이트할 파일 |
+|---|---|
+| 구현 후 검증 | *(없음)* — TESTING.md 체크리스트만 실행 |
+| 검증 통과 | **DEVLOG.md** 상단에 새 버전 섹션 추가 |
+| 검증 통과 | **CLAUDE.md** 현재 상태 표 갱신 |
+| 릴리즈 실행 | **RELEASE.md** 절차 따름 (export_presets → 빌드 → README) |
+| 릴리즈 완료 | **MASTERPLAN.md** 릴리즈 히스토리 추가 + 완료 로드맵 표시 |
+| 새 텔레메트리 추가 시 | **TESTING.md** 지표 기준표 + 체크리스트 갱신 |
 
 ---
 

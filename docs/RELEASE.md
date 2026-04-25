@@ -121,9 +121,20 @@ git commit -m "docs: update download links to vX.Y.Z"
 git push origin master
 ```
 
+### 7. 문서 마무리
+
+릴리즈 완료 후 두 파일을 업데이트한다.
+
+**MASTERPLAN.md**
+- 릴리즈 히스토리 테이블에 새 버전 행 추가
+- 해당 버전 로드맵 항목에 `~~취소선~~` 표시
+
+**CLAUDE.md**
+- 현재 상태 표의 `완료 버전`, `다음 버전`, `미해결` 갱신
+
 ---
 
-## v0.4.0 릴리즈 시 체크리스트
+## 릴리즈 체크리스트
 
 ```
 [ ] 헤드리스 시뮬레이션 통과 (TESTING.md 봇 AI 체크리스트)
@@ -134,6 +145,8 @@ git push origin master
 [ ] gh release create (Windows + macOS 첨부)
 [ ] README 배지 URL 업데이트 + push
 [ ] gh release view vX.Y.Z 로 asset 업로드 확인
+[ ] MASTERPLAN.md 릴리즈 히스토리 행 추가 + 완료 로드맵 취소선
+[ ] CLAUDE.md 현재 상태 표 갱신
 ```
 
 ---
