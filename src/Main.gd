@@ -258,6 +258,7 @@ func handle_zone_lifecycle(delta):
 			current_zone_radius = next_zone_radius
 			zone_stage += 1
 			if has_node("/root/Telemetry"): get_node("/root/Telemetry").set_stage(zone_stage)
+			_print_bot_state_snapshot()
 			spawn_loot(0.1 + (zone_stage * 0.1), 10)
 			match zone_stage:
 				2: zone_wait_time = 20.0; zone_shrink_time = 15.0; zone_damage = 5.0
@@ -477,6 +478,29 @@ func _end_match(final_rank: int = 1):
 	
 	if is_simulation:
 		get_tree().quit()
+
+func _print_bot_state_snapshot():
+	# 0=IDLE 1=CHASE 2=ATTACK 3=ZONE_ESCAPE 4=RECOVER 5=DISENGAGE
+	var names = ["IDLE", "CHASE", "ATTACK", "ZONE_ESCAPE", "RECOVER", "DISENGAGE"]
+	var counts = {}
+	var positions: Array = []
+	for b in get_tree().get_nodes_in_group("actors"):
+		if b.is_in_group("players") or not b.has_method("handle_idle_state"): continue
+		if b.is_dead: continue
+		var s = names[b.current_state] if b.current_state < names.size() else str(b.current_state)
+		counts[s] = counts.get(s, 0) + 1
+		positions.append(Vector2(b.global_position.x, b.global_position.z))
+	# Compute pairwise distance average to measure clustering
+	var avg_dist = 0.0
+	var pairs = 0
+	for i in range(positions.size()):
+		for j in range(i + 1, positions.size()):
+			avg_dist += positions[i].distance_to(positions[j])
+			pairs += 1
+	if pairs > 0: avg_dist /= pairs
+	print("[BOT_SNAPSHOT] zone_stage=%d  states=%s  avg_pairwise_dist=%.1fm  alive=%d" % [
+		zone_stage, str(counts), avg_dist, positions.size()
+	])
 
 func handle_damage_tick(delta):
 	damage_tick_timer += delta

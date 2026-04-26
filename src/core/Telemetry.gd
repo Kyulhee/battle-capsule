@@ -74,6 +74,7 @@ func _reset_metrics():
 			"stuck_triggered": 0,
 			"reserve_reload": 0,
 			"patrol_entered": 0,
+			"patrol_timeout": 0,
 			"weapon_drop_spawned": 0,
 			"disengage_triggered": 0,
 		},
@@ -164,6 +165,7 @@ func log_tactics(event: String, _value: float = 0.0):
 		"stuck_triggered":  metrics.tactics.stuck_triggered += 1
 		"reserve_reload":   metrics.tactics.reserve_reload += 1
 		"patrol_entered":      metrics.tactics.patrol_entered += 1
+		"patrol_timeout":      metrics.tactics.patrol_timeout += 1
 		"weapon_drop_spawned": metrics.tactics.weapon_drop_spawned += 1
 		"disengage_triggered": metrics.tactics.disengage_triggered += 1
 
@@ -309,7 +311,7 @@ func _print_report():
 		print("  Stuck triggers: %d" % metrics.tactics.stuck_triggered)
 		print("  Disengage triggers: %d" % metrics.tactics.disengage_triggered)
 		print("  Reserve reloads: %d" % metrics.tactics.reserve_reload)
-		print("  Patrol entries: %d" % metrics.tactics.patrol_entered)
+		print("  Patrol entries: %d  timeouts: %d" % [metrics.tactics.patrol_entered, metrics.tactics.patrol_timeout])
 		print("  Weapon drops: %d" % metrics.tactics.weapon_drop_spawned)
 
 	if _g("economy"):

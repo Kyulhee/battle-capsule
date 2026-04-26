@@ -34,6 +34,8 @@ var _recovering: bool = false
 var _knife_mode: bool = false
 # Cover target used in DISENGAGE state
 var _disengage_cover: Vector3 = Vector3.ZERO
+# Cooldown after leaving DISENGAGE — prevents re-entry cascade
+var _disengage_cooldown: float = 0.0
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -55,6 +57,7 @@ func _ready():
 func _physics_process(delta):
 	if is_dead: return
 	if fire_cooldown > 0: fire_cooldown -= delta
+	if _disengage_cooldown > 0: _disengage_cooldown -= delta
 	state_timer += delta
 
 	if current_state == State.ATTACK:
@@ -229,8 +232,8 @@ func handle_attack_state(delta):
 			_bot_melee()
 		return
 
-	# Outnumbered: 2+ enemies visible simultaneously → retreat to cover
-	if not _knife_mode and _count_visible_enemies() >= 2:
+	# Outnumbered: 2+ enemies visible simultaneously → retreat to cover (if not on cooldown)
+	if not _knife_mode and _disengage_cooldown <= 0 and _count_visible_enemies() >= 2:
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_tactics("disengage_triggered")
 		change_state(State.DISENGAGE)
@@ -336,6 +339,8 @@ func handle_recover_state(delta):
 			patrol_target = _random_zone_point()
 
 		if recovery_timer > 8.0:
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_tactics("patrol_timeout")
 			change_state(State.IDLE)
 
 func handle_zone_escape_state(delta):
@@ -661,6 +666,8 @@ func _cast_and_visualize(local_target_pos: Vector3):
 
 func change_state(new_state: State):
 	if current_state == new_state: return
+	if current_state == State.DISENGAGE and new_state != State.DISENGAGE:
+		_disengage_cooldown = 10.0
 	if new_state != State.ATTACK: _knife_mode = false
 	if DEBUG_PRINT:
 		print("[BOT] %s → %s (ammo=%d reserve=%d hp=%.0f)" % [
