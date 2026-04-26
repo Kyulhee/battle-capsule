@@ -5,6 +5,47 @@
 
 ---
 
+## v0.8.0 — 2026-04-26
+
+**AI 전투 개선 — 봇 성격 분류, 집단 공격 강화, 발소리 감지, 루팅 우선순위, 난이도 시스템**
+
+**Bot.gd**
+
+- `Personality` enum 추가 (AGGRESSIVE / DEFENSIVE / SCAVENGER), `_ready()`에서 랜덤 배정.
+  - AGGRESSIVE: DISENGAGE 임계값 3, fire_rate_mult 0.8 (공격 중 연사 빨라짐), 발소리 반경 10m
+  - DEFENSIVE: DISENGAGE 임계값 1 (쉽게 후퇴), 발소리 반경 15m
+  - SCAVENGER: DISENGAGE 임계값 2, fire_rate_mult 1.15 (느린 연사), 루팅 반경 90m
+- `_apply_personality()` 추가: 성격별 파라미터(`_disengage_threshold`, `_fire_rate_mult`, `_footstep_range`, `_loot_radius`) 설정.
+- `apply_difficulty()` 추가: Main에서 스폰 후 호출 — `vision_range`, `_reaction_delay`, `_aim_spread_mult` 적용.
+- `_check_footstep_sounds()` 추가: IDLE/RECOVER 중 반경 내 달리는 액터 감지 → perception 0.85까지 부스트 + `last_known_target_pos` 갱신.
+- `_find_best_pickup()` 추가: 거리 기반 점수에 상황별 우선순위 보정 적용. HP<40% 시 힐 ×0.3, ammo==0 시 탄약 ×0.25, 다른 종류 탄약 ×3.0 (회피).
+- `_count_ally_attackers()` 추가: "bots" 그룹 중 같은 `target_actor`를 ATTACK 중인 봇 수 반환.
+- `handle_attack_state()`: shoot 직후 ally_attackers ≥ 1이면 `fire_cooldown *= _fire_rate_mult` (집단 공격 시 연사 가속).
+- DISENGAGE 진입 조건 `_count_visible_enemies() >= 2` → `>= _disengage_threshold` 교체.
+- 반응 지연: `handle_idle_state()`에 `_pending_target` + `_reaction_timer` 구조 추가. 적 발견 즉시 추적 대신 `_reaction_delay`초 후 전환.
+- `shoot_predictive()` base_spread에 `_aim_spread_mult` 곱 적용.
+- `_ready()`에서 `add_to_group("bots")` 추가 (집단 공격 카운트용).
+- `handle_recover_state()` 내 `_find_nearest_pickup(70.0)` → `_find_best_pickup(_loot_radius)` 교체.
+
+**Main.gd**
+
+- `Difficulty` enum 추가 (EASY / NORMAL / HARD), `DIFFICULTY_PARAMS` const 정의.
+  - Easy: vision ×0.75, reaction 1.2s, aim_spread ×1.8
+  - Normal: vision ×1.0, reaction 0.5s, aim_spread ×1.0
+  - Hard: vision ×1.25, reaction 0s, aim_spread ×0.65
+- 메인 메뉴에 난이도 선택 UI 동적 추가 (StartBtn 위 `쉬움/보통/어려움` 버튼). 선택 시 금색 하이라이트.
+- `spawn_entities()`: 봇 스폰 후 `apply_difficulty(DIFFICULTY_PARAMS[difficulty])` 호출.
+
+**헤드리스 시뮬레이션 결과**
+
+```
+run 1: duration: 106s  zone_stage: 4  recover: 5   disengage: 11
+run 2: duration: 52s   zone_stage: 2  recover: 13  disengage: 17
+run 3: duration: 91s   zone_stage: 3  recover: 8   disengage: 14
+```
+
+---
+
 ## v0.7.2 — 2026-04-26
 
 **HUD 스탯 아이콘 → Unicode 심볼 교체 + 픽업 비주얼 정리**

@@ -44,10 +44,26 @@ var _stuck_override_timer: float = 0.0
 
 const DEBUG_PRINT = false
 
+# ─── PERSONALITY ─────────────────────────────────────────────────────────────
+enum Personality { AGGRESSIVE, DEFENSIVE, SCAVENGER }
+var personality: Personality = Personality.AGGRESSIVE
+var _disengage_threshold: int = 2  # visible enemies needed to trigger DISENGAGE
+var _fire_rate_mult: float = 1.0   # multiplier applied to fire_cooldown post-shot when allies attack same target
+var _footstep_range: float = 12.0  # radius to hear running actors
+var _loot_radius: float = 70.0     # pickup search radius in RECOVER
+
+# ─── DIFFICULTY ──────────────────────────────────────────────────────────────
+var _reaction_delay: float = 0.0   # seconds between spotting and reacting
+var _pending_target: Entity = null
+var _reaction_timer: float = 0.0
+var _aim_spread_mult: float = 1.0  # multiplier for predictive-shot spread
+
 @onready var ray_cast = $RayCast3D
 
 func _ready():
 	super._ready()
+	add_to_group("bots")
+	_apply_personality([Personality.AGGRESSIVE, Personality.DEFENSIVE, Personality.SCAVENGER][randi() % 3])
 	await get_tree().create_timer(randf_range(0.05, 0.2)).timeout
 	if ray_cast:
 		ray_cast.enabled = true
@@ -58,6 +74,7 @@ func _physics_process(delta):
 	if is_dead: return
 	if fire_cooldown > 0: fire_cooldown -= delta
 	if _disengage_cooldown > 0: _disengage_cooldown -= delta
+	if _reaction_timer > 0: _reaction_timer -= delta
 	state_timer += delta
 
 	if current_state == State.ATTACK:
@@ -72,6 +89,7 @@ func _physics_process(delta):
 
 	_check_state_overrides(delta)
 	_update_stuck(delta)
+	_check_footstep_sounds()
 
 	match current_state:
 		State.IDLE:        handle_idle_state(delta)
@@ -161,12 +179,19 @@ func handle_idle_state(delta):
 
 	var nearest_enemy = _find_nearest_target()
 	if nearest_enemy:
-		target_actor = nearest_enemy
-		if stats.current_ammo > 0:
-			change_state(State.CHASE)
-		else:
-			change_state(State.RECOVER)
+		if nearest_enemy != _pending_target:
+			_pending_target = nearest_enemy
+			_reaction_timer = _reaction_delay
+		elif _reaction_timer <= 0:
+			target_actor = _pending_target
+			_pending_target = null
+			if stats.current_ammo > 0:
+				change_state(State.CHASE)
+			else:
+				change_state(State.RECOVER)
 		return
+	if _pending_target != null:
+		_pending_target = null
 
 	var nearest_loot = _find_nearest_pickup(35.0)
 	if nearest_loot:
@@ -232,8 +257,8 @@ func handle_attack_state(delta):
 			_bot_melee()
 		return
 
-	# Outnumbered: 2+ enemies visible simultaneously → retreat to cover (if not on cooldown)
-	if not _knife_mode and _disengage_cooldown <= 0 and _count_visible_enemies() >= 2:
+	# Outnumbered: too many visible enemies → retreat to cover (threshold varies by personality)
+	if not _knife_mode and _disengage_cooldown <= 0 and _count_visible_enemies() >= _disengage_threshold:
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_tactics("disengage_triggered")
 		change_state(State.DISENGAGE)
@@ -286,6 +311,8 @@ func handle_attack_state(delta):
 			shoot_predictive(last_known_target_pos)
 		else:
 			shoot()
+		if _count_ally_attackers() >= 1:
+			fire_cooldown *= _fire_rate_mult
 
 func handle_recover_state(delta):
 	recovery_timer += delta
@@ -303,7 +330,7 @@ func handle_recover_state(delta):
 
 	elif recovery_substate == "seek_loot":
 		# Wider search radius when actively looking for ammo
-		var loot = _find_nearest_pickup(70.0)
+		var loot = _find_best_pickup(_loot_radius)
 		if loot:
 			target_actor = loot
 			is_targeting_loot = true
@@ -320,7 +347,7 @@ func handle_recover_state(delta):
 
 	elif recovery_substate == "patrol":
 		# Wander to a random zone point until loot appears or timeout
-		var loot = _find_nearest_pickup(70.0)
+		var loot = _find_best_pickup(_loot_radius)
 		if loot:
 			target_actor = loot
 			is_targeting_loot = true
@@ -391,6 +418,98 @@ func handle_disengage_state(delta):
 	else:
 		# No cover found — fall back on scatter direction
 		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, true)
+
+# ─── PERSONALITY & DIFFICULTY ────────────────────────────────────────────────
+
+func _apply_personality(p: Personality):
+	personality = p
+	match p:
+		Personality.AGGRESSIVE:
+			_disengage_threshold = 3
+			_fire_rate_mult = 0.8
+			_footstep_range = 10.0
+			_loot_radius = 70.0
+		Personality.DEFENSIVE:
+			_disengage_threshold = 1
+			_fire_rate_mult = 1.0
+			_footstep_range = 15.0
+			_loot_radius = 60.0
+		Personality.SCAVENGER:
+			_disengage_threshold = 2
+			_fire_rate_mult = 1.15
+			_footstep_range = 18.0
+			_loot_radius = 90.0
+
+func apply_difficulty(params: Dictionary):
+	if params.has("vision_mult"):
+		stats.vision_range *= params.vision_mult
+	if params.has("reaction_delay"):
+		_reaction_delay = params.reaction_delay
+	if params.has("aim_spread"):
+		_aim_spread_mult = params.aim_spread
+
+# ─── FOOTSTEP DETECTION ───────────────────────────────────────────────────────
+# Running actors (velocity > 50% of move_speed) emit audible footsteps.
+# Nearby idle/recovering bots boost their perception toward the source,
+# making running stealthy risky near bots.
+
+func _check_footstep_sounds():
+	if current_state not in [State.IDLE, State.RECOVER]: return
+	var actors = get_tree().get_nodes_in_group("actors")
+	for actor in actors:
+		if actor == self or not actor is Entity or actor.is_dead: continue
+		if perception_meters.get(actor, 0.0) >= 1.0: continue
+		var spd = Vector2(actor.velocity.x, actor.velocity.z).length()
+		if spd < actor.stats.move_speed * 0.5: continue
+		var dist = global_position.distance_to(actor.global_position)
+		if dist > _footstep_range: continue
+		if not perception_meters.has(actor): perception_meters[actor] = 0.0
+		perception_meters[actor] = min(perception_meters[actor] + 0.4, 0.85)
+		last_known_target_pos = actor.global_position
+
+# ─── LOOT PRIORITY ────────────────────────────────────────────────────────────
+# Scores each pickup by distance, then adjusts priority based on current need.
+# Lower score = higher priority.
+
+func _find_best_pickup(search_radius: float) -> Node3D:
+	var pickups = get_tree().get_nodes_in_group("pickups")
+	var best: Node3D = null
+	var best_score: float = INF
+	for p in pickups:
+		if not is_instance_valid(p): continue
+		var d = global_position.distance_to(p.global_position)
+		if d > search_radius: continue
+		var score = d
+		var item = p.get("item")
+		if item:
+			match item.type:
+				ItemData.Type.HEAL:
+					if current_health / stats.max_health < 0.4:
+						score *= 0.3
+				ItemData.Type.AMMO:
+					if stats.current_ammo == 0 and reserve_ammo == 0:
+						score *= 0.25
+					elif item.ammo_weapon_type != "" and item.ammo_weapon_type != stats.weapon_type:
+						score *= 3.0
+				ItemData.Type.WEAPON:
+					if stats.weapon_type == "knife" or stats.weapon_type == "":
+						score *= 0.5
+		if score < best_score:
+			best_score = score
+			best = p
+	return best
+
+# ─── GROUP ATTACK ─────────────────────────────────────────────────────────────
+# Count bots in ATTACK state targeting the same actor as this bot.
+
+func _count_ally_attackers() -> int:
+	if not is_instance_valid(target_actor): return 0
+	var count = 0
+	for bot in get_tree().get_nodes_in_group("bots"):
+		if bot == self or not is_instance_valid(bot): continue
+		if bot.get("current_state") == State.ATTACK and bot.get("target_actor") == target_actor:
+			count += 1
+	return count
 
 # ─── OUTNUMBERED / COVER ─────────────────────────────────────────────────────
 
@@ -628,7 +747,7 @@ func shoot_predictive(target_pos: Vector3):
 		var flash = MUZZLE_FLASH_SCN.instantiate()
 		add_child(flash)
 		flash.position = Vector3(0, 0.5, -0.5)
-	var base_spread = 0.1
+	var base_spread = 0.1 * _aim_spread_mult
 	var total_spread = base_spread + state_timer * 0.4
 	var local_dir = Vector3(
 		randf_range(-total_spread, total_spread),

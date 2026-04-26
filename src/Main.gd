@@ -8,6 +8,15 @@ var is_simulation: bool = false
 enum GameState { MENU, PLAYING, RESULT }
 var current_state: GameState = GameState.MENU
 
+enum Difficulty { EASY, NORMAL, HARD }
+var difficulty: Difficulty = Difficulty.NORMAL
+const DIFFICULTY_PARAMS = {
+	0: { "vision_mult": 0.75, "reaction_delay": 1.2, "aim_spread": 1.8 },
+	1: { "vision_mult": 1.0,  "reaction_delay": 0.5, "aim_spread": 1.0 },
+	2: { "vision_mult": 1.25, "reaction_delay": 0.0, "aim_spread": 0.65 },
+}
+var _diff_btns: Array = []
+
 @export_group("Loot")
 @export var railgun_item: ItemData = preload("res://src/items/weapon_railgun.tres")
 @export var pickup_scene: PackedScene = preload("res://src/entities/pickup/Pickup.tscn")
@@ -113,6 +122,33 @@ func _ready():
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/RecordsBtn.pressed.connect(_on_records_pressed)
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/HelpBtn.pressed.connect(_on_help_pressed)
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/ExitBtn.pressed.connect(get_tree().quit)
+
+	# Difficulty selector (inserted before StartBtn)
+	var vbox = $CanvasLayer/Control/MainMenuPanel/VBoxContainer
+	var start_idx = $CanvasLayer/Control/MainMenuPanel/VBoxContainer/StartBtn.get_index()
+
+	var diff_lbl = Label.new()
+	diff_lbl.text = "난이도"
+	diff_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	diff_lbl.add_theme_font_size_override("font_size", 13)
+	diff_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
+	vbox.add_child(diff_lbl)
+	vbox.move_child(diff_lbl, start_idx)
+
+	var diff_hbox = HBoxContainer.new()
+	diff_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	diff_hbox.add_theme_constant_override("separation", 6)
+	vbox.add_child(diff_hbox)
+	vbox.move_child(diff_hbox, start_idx + 1)
+
+	for i in range(3):
+		var btn = Button.new()
+		btn.text = ["쉬움", "보통", "어려움"][i]
+		btn.custom_minimum_size = Vector2(72, 0)
+		btn.pressed.connect(_on_difficulty_btn.bind(i))
+		diff_hbox.add_child(btn)
+		_diff_btns.append(btn)
+	_update_diff_highlights()
 	
 	$CanvasLayer/Control/ResultPanel/Content/RestartBtn.pressed.connect(restart_game)
 	$CanvasLayer/Control/ResultPanel/Content/MenuBtn.visible = false
@@ -287,11 +323,13 @@ func spawn_entities():
 	p.died.connect(_on_player_died)
 	
 	# Spawn Bots
+	var diff_params = DIFFICULTY_PARAMS[difficulty]
 	for i in range(bot_count):
 		var b = bot_scene.instantiate()
 		$Entities.add_child(b)
 		b.global_position = _get_safe_spawn_pos()
 		b.died.connect(_on_bot_died.bind(b))
+		b.apply_difficulty(diff_params)
 
 func _get_safe_spawn_pos() -> Vector3:
 	for _attempt in range(50):
@@ -521,3 +559,13 @@ func handle_damage_tick(delta):
 					a.take_damage(zone_damage * time_mult, "zone")
 				else:
 					_zone_outside_time.erase(uid)
+
+# ─── DIFFICULTY ──────────────────────────────────────────────────────────────
+
+func _on_difficulty_btn(idx: int):
+	difficulty = idx as Difficulty
+	_update_diff_highlights()
+
+func _update_diff_highlights():
+	for i in range(_diff_btns.size()):
+		_diff_btns[i].modulate = Color(1.0, 0.88, 0.25) if i == difficulty else Color.WHITE
