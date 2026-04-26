@@ -123,8 +123,38 @@ func _ready():
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/HelpBtn.pressed.connect(_on_help_pressed)
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/ExitBtn.pressed.connect(get_tree().quit)
 
-	# Difficulty selector (inserted before StartBtn)
+	# Korean subtitle below title
+	var subtitle = Label.new()
+	subtitle.text = "배틀캡슐  ·  1 vs 11  ·  최후의 1인"
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_size_override("font_size", 16)
+	subtitle.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
+	subtitle.add_theme_color_override("font_outline_color", Color.BLACK)
+	subtitle.add_theme_constant_override("outline_size", 4)
+	var title_node = $CanvasLayer/Control/MainMenuPanel/Title
+	subtitle.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	subtitle.position = Vector2(title_node.position.x, title_node.position.y + 68)
+	subtitle.size = title_node.size
+	$CanvasLayer/Control/MainMenuPanel.add_child(subtitle)
+
+	# Version label (bottom-right corner)
+	var ver_lbl = Label.new()
+	ver_lbl.text = "v0.8.1"
+	ver_lbl.add_theme_font_size_override("font_size", 12)
+	ver_lbl.add_theme_color_override("font_color", Color(0.45, 0.45, 0.45))
+	ver_lbl.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
+	ver_lbl.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	ver_lbl.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	ver_lbl.position.x -= 4
+	ver_lbl.position.y -= 4
+	$CanvasLayer/Control/MainMenuPanel.add_child(ver_lbl)
+
+	# Widen VBoxContainer to fit difficulty buttons comfortably
 	var vbox = $CanvasLayer/Control/MainMenuPanel/VBoxContainer
+	vbox.offset_left = -140.0
+	vbox.offset_right = 140.0
+
+	# Difficulty selector (inserted before StartBtn)
 	var start_idx = $CanvasLayer/Control/MainMenuPanel/VBoxContainer/StartBtn.get_index()
 
 	var diff_lbl = Label.new()
@@ -567,5 +597,10 @@ func _on_difficulty_btn(idx: int):
 	_update_diff_highlights()
 
 func _update_diff_highlights():
+	const DIFF_COLORS = [
+		Color(0.3, 1.0, 0.45),   # 쉬움 — 초록
+		Color(1.0, 0.88, 0.25),  # 보통 — 노랑
+		Color(1.0, 0.35, 0.35),  # 어려움 — 빨강
+	]
 	for i in range(_diff_btns.size()):
-		_diff_btns[i].modulate = Color(1.0, 0.88, 0.25) if i == difficulty else Color.WHITE
+		_diff_btns[i].modulate = DIFF_COLORS[i] if i == difficulty else Color(0.55, 0.55, 0.55)
