@@ -24,6 +24,7 @@
 | [DEVLOG.md](docs/DEVLOG.md) | 버전별 구현 상세 기록 (가장 최근 항목부터) |
 | [TESTING.md](docs/TESTING.md) | 헤드리스 시뮬레이션 실행법 + 지표별 판단 기준 |
 | [RELEASE.md](docs/RELEASE.md) | Godot 빌드 → GitHub 릴리즈 → README 업데이트 전 절차 |
+| [UI_DESIGN.md](docs/UI_DESIGN.md) | HUD 디자인 프로세스 (ASCII 스케치 → 목업 → 구현) |
 
 **단계별 업데이트 기준**
 
