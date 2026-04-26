@@ -257,7 +257,7 @@ func _process(delta):
 		if a.has_node("MeshInstance3D"):
 			a.get_node("MeshInstance3D").visible = a.is_revealed_to(self)
 
-	# Zone timer label
+	# Zone timer label + alive count HUD sync
 	var main = get_tree().root.get_node_or_null("Main")
 	if main and zone_timer_label:
 		if main.is_shrinking:
@@ -267,6 +267,7 @@ func _process(delta):
 			var t = main.zone_timer
 			zone_timer_label.text = "ZONE  %ds" % int(max(0, t))
 			zone_timer_label.modulate = Color.CYAN if t > 10.0 else Color.YELLOW
+	_update_hud()
 
 	# Reload HUD progress (per-frame count-up animation)
 	if reload_timer > 0 and not slot_ammo_labels.is_empty() and active_slot > 0 and reload_total_time > 0:
@@ -330,22 +331,23 @@ func handle_aiming(delta):
 func _on_shield_changed(_curr, _max): _update_hud()
 func _on_health_changed(_curr, _max): _update_hud()
 func _update_hud():
-	if hud_label:
-		var kills = 0
-		var assists = 0
-		if has_node("/root/Telemetry"):
-			var tel = get_node("/root/Telemetry")
-			if tel.metrics.has("session"):
-				kills = tel.metrics.session.kills
-				assists = tel.metrics.session.assists
-		hud_label.text = "HP: %d/%d | SH: %d/%d | MK: %d H: %d | K: %d A: %d | Alive: %d" % [
-			int(current_health), stats.max_health,
-			int(current_shield), stats.max_shield,
-			stats.advanced_heals, stats.heal_items,
-			kills, assists,
-			get_tree().get_nodes_in_group("actors").filter(func(a): return a is Entity and not a.is_dead).size()
-		]
-	_refresh_slot_hud()
+	if not hud_label: return
+	var kills = 0
+	var assists = 0
+	if has_node("/root/Telemetry"):
+		var tel = get_node("/root/Telemetry")
+		if tel.metrics.has("session"):
+			kills = tel.metrics.session.kills
+			assists = tel.metrics.session.assists
+	var main = get_tree().root.get_node_or_null("Main")
+	var alive = main.alive_count if main else 0
+	hud_label.text = "HP: %d/%d | SH: %d/%d | MK: %d H: %d | K: %d A: %d | Alive: %d" % [
+		int(current_health), stats.max_health,
+		int(current_shield), stats.max_shield,
+		stats.advanced_heals, stats.heal_items,
+		kills, assists,
+		alive
+	]
 
 # ── Slot system ──────────────────────────────────────────────────────────
 
@@ -624,23 +626,30 @@ func _handle_wall_transparency():
 			mesh.set_surface_override_material(0, null)
 
 func show_kill_notification():
-	add_kill_feed_entry(true)
+	add_kill_feed_entry(true, false)
 
-func add_kill_feed_entry(by_player: bool):
+func add_kill_feed_entry(killer_is_player: bool, player_assisted: bool, killer_name: String = "Bot", victim_name: String = "Bot"):
 	if not kill_feed_container: return
 	var label = Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	label.add_theme_font_size_override("font_size", 20)
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
-	label.add_theme_constant_override("outline_size", 6)
-	if by_player:
-		label.text = "▶ ELIMINATED"
-		label.add_theme_color_override("font_color", Color.YELLOW)
+	if killer_is_player:
+		label.text = "★ YOU  →  %s  KILL" % victim_name
+		label.add_theme_font_size_override("font_size", 22)
+		label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.2))
+		label.add_theme_constant_override("outline_size", 8)
+	elif player_assisted:
+		label.text = "◆ ASSIST  %s  →  %s" % [killer_name, victim_name]
+		label.add_theme_font_size_override("font_size", 17)
+		label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.1))
+		label.add_theme_constant_override("outline_size", 6)
 	else:
-		label.text = "Bot Eliminated"
-		label.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
+		label.text = "%s  →  %s" % [killer_name, victim_name]
+		label.add_theme_font_size_override("font_size", 13)
+		label.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
+		label.add_theme_constant_override("outline_size", 4)
 	kill_feed_container.add_child(label)
-	kill_feed_entries.append({"label": label, "timer": 3.0})
+	kill_feed_entries.append({"label": label, "timer": 4.0 if (killer_is_player or player_assisted) else 2.5})
 	if kill_feed_entries.size() > 6:
 		kill_feed_entries[0]["label"].queue_free()
 		kill_feed_entries.pop_front()

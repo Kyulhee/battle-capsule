@@ -424,8 +424,10 @@ func _on_bot_died(bot: Entity = null):
 	if bot:
 		_zone_outside_time.erase(bot.get_instance_id())
 	if is_instance_valid(player_ref) and not player_ref.is_dead and player_ref.has_method("add_kill_feed_entry"):
-		var by_player = bot and (player_ref in bot.damage_history)
-		player_ref.add_kill_feed_entry(by_player)
+		var killer_is_player = bot and (bot.last_killer == player_ref)
+		var player_assisted = bot and (player_ref in bot.damage_history) and not killer_is_player
+		var killer_name = "Bot" if (not bot or not is_instance_valid(bot.last_killer) or bot.last_killer == player_ref) else "Bot"
+		player_ref.add_kill_feed_entry(killer_is_player, player_assisted, killer_name, "Bot")
 	_check_match_end()
 
 func _on_player_died():

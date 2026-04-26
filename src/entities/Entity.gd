@@ -15,6 +15,7 @@ var is_dead: bool = false
 var last_damage_source: String = "unknown"
 var last_damage_weapon: String = ""
 var last_damage_dist: float = -1.0
+var last_killer: Node3D = null
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 # Stealth / Concealment
@@ -155,6 +156,7 @@ func flash_hit():
 func die(killer: Node3D = null):
 	if is_dead: return
 	is_dead = true
+	last_killer = killer
 	velocity = Vector3.ZERO
 	$CollisionShape3D.set_deferred("disabled", true)
 	
