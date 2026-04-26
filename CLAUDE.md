@@ -10,9 +10,9 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v0.6.0 (전술 의식: DISENGAGE 상태, 수적 열세 감지, 커버 탐색) |
-| 다음 버전 | v0.7 — 미정 |
-| 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해), stuck 빈도 상승 (DISENGAGE 커버 이동) |
+| 완료 버전 | v0.6.1 (DISENGAGE 쿨다운으로 봇 클러스터링 핫픽스) |
+| 다음 버전 | v0.7 — HUD/UI 재설계 + 그룹 전술 |
+| 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 
 ---
 

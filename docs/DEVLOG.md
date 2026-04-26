@@ -5,6 +5,45 @@
 
 ---
 
+## v0.6.1 — 2026-04-26
+
+**DISENGAGE 클러스터링 핫픽스 + 봇 상태 진단 텔레메트리**
+
+**Bot.gd**
+
+- `_disengage_cooldown: float` 추가. DISENGAGE 이탈 시 10초 쿨다운 설정.
+- `change_state()`: DISENGAGE → 다른 상태 전환 시 `_disengage_cooldown = 10.0`.
+- `handle_attack_state()`: DISENGAGE 진입 조건에 `_disengage_cooldown <= 0` 추가.
+- `handle_recover_state()` patrol timeout: `log_tactics("patrol_timeout")` 추가.
+
+**Telemetry.gd**
+
+- `"patrol_timeout": 0` 추가. `log_tactics("patrol_timeout")` 케이스 추가. 리포트 출력 포함.
+
+**Main.gd**
+
+- `_print_bot_state_snapshot()` 추가 — 존 단계 전환 시 봇 상태분포(IDLE/CHASE/DISENGAGE 등) + 봇 간 평균 거리(avg_pairwise_dist) 콘솔 출력. 클러스터링 진단 전용.
+
+**원인 분석**
+
+데이터로 확인한 자기강화 사이클:
+1. 봇 A·B가 서로를 적으로 인식 → 둘 다 DISENGAGE 진입
+2. 같은 커버(중앙 바위)로 이동 → 합류
+3. 합류 후 서로 2명 이상 보임 → DISENGAGE 재진입 반복
+4. 전체 봇이 동일 위치에 집적, stuck 연쇄 발생
+
+쿨다운으로 3번 사이클 차단 → 사이클 해소.
+
+**헤드리스 시뮬레이션 결과 (3회)**
+
+```
+stuck 325 → 8~11  |  disengage 206 → 15~17
+avg_pairwise_dist @stage2: 2.9m → 27~30m
+매치 시간: 57~106s
+```
+
+---
+
 ## v0.6.0 — 2026-04-26
 
 **전술 의식 — 수적 열세 감지, DISENGAGE 상태, 커버 탐색**
