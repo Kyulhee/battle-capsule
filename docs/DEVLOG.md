@@ -5,6 +5,41 @@
 
 ---
 
+## v0.5.0 — 2026-04-26
+
+**전장 경제 1차 — 스폰 수정, 벽 투명화, 자기장 강화, 칼 이펙트, 봇 칼 돌진**
+
+**Main.gd**
+
+- **스폰 끼임 해소**: `_is_clear_of_obstacles()` — 이전엔 `rock_cluster`/`canyon_wall`만 체크, 이제 `bush_patch`만 제외하고 모든 솔리드 타입 차단. `_is_clear_of_entities()` 추가 — 기존 스폰 위치와 3.5m 이내 겹침 방지. `_get_safe_spawn_pos()`에서 중앙 5m 이내 제외(`randf_range(5.0, spawn_radius)`).
+- **자기장 피해 누적 강화**: `_zone_outside_time: Dictionary` (entity id → 누적 초). 틱당 `time_mult = 1.0 + min(seconds_outside, 10.0) * 0.1` → 10초 후 2× 상한. 자기장 내 진입 시 누적 초기화. 봇 사망 시 딕셔너리 항목 정리.
+
+**WorldBuilder.gd**
+
+- **occluder 그룹 태깅**: `_add_wall()`, `_add_rock_piece()`, 일반 장애물 인스턴스에 `add_to_group("occluder")` 추가 — 벽 투명화 레이캐스트 감지 대상.
+
+**Player.gd**
+
+- **벽 투명화**: `_handle_wall_transparency()` — 카메라→플레이어 방향으로 최대 5회 반복 레이캐스트. `occluder` 그룹 노드의 MeshInstance3D를 감지하면 알파 0.2 페이드. `_current_occluders` 딕셔너리로 변경 감지(전환 시에만 적용/복원). `_fade_mat_cache`로 메시당 1회만 머티리얼 복사.
+- **칼 타격 이펙트**: `_melee_attack()`에서 명중 시 `ImpactEffect` 스폰 + `Sfx.play("hit", hit_pos)`.
+
+**Bot.gd**
+
+- **봇 칼 돌진 결정**: 탄약 소진 시 `hp_ratio > 0.35 and dist < attack_range * 0.6 and randf() < hp_ratio * 0.5` 조건 만족하면 `_knife_mode = true`. 미충족 시 기존 RECOVER 전환.
+- **`_knife_mode` 동작**: ATTACK 상태에서 대상을 향해 돌진하며 `MELEE_RANGE * 1.2` 이내 접근 시 `_bot_melee()` 호출. HP 25% 미만 시 자동 탈출 → RECOVER. `change_state()` 시 ATTACK 이탈이면 플래그 초기화.
+- **`_bot_melee()`**: 쿨다운 0.65s, 범위 1.8m, 피해 20. 명중 시 `ImpactEffect` 스폰 + `Sfx.play("hit")`.
+
+**헤드리스 시뮬레이션 결과**
+
+```
+MATCH REPORT (rank #1 | 100s)
+Kills: 9, Win: YES, Zone stage reached: 4
+Deaths by stage: {"1": 5, "2": 3, "3": 2, "4": 1}
+Weapon drops: 10 (= kills count)
+```
+
+---
+
 ## v0.4 — 2026-04-24
 
 **봇 AI 개선 + Telemetry 재설계**
