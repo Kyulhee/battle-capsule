@@ -5,6 +5,62 @@
 
 ---
 
+## v0.5.1 — 2026-04-26
+
+**전장 경제 2차 — 쉴드 너프, 드랍 분리, 힐 2단계, 킬 집계 수정, 벽 투명화 수정**
+
+**StatsData.gd**
+
+- `max_shield` 100 → 50. `advanced_heals: int = 0` 필드 추가.
+
+**Entity.gd**
+
+- 초기 쉴드 0 (`current_shield = 0.0`). 방어구 아이템 파밍 전까지 쉴드 없음.
+- **킬 집계 수정**: `take_damage()`의 `log_kill` 제거. `die()`에서 killer가 "players" 그룹일 때만 `log_kill` 호출 (단일 집계). 봇-봇 킬이 플레이어 킬로 잘못 집계되던 버그, 이중 집계 모두 해소.
+- `last_damage_weapon`, `last_damage_dist` 변수 추가 → `die()` 에서 weapon/dist 정보 활용.
+
+**Pickup.gd**
+
+- HEAL 수집 시 rarity 분기: RARE → `stats.advanced_heals += 1`, COMMON → `stats.heal_items += 1`.
+
+**Bot.gd**
+
+- `_drop_weapon()`: 장전량 `max_ammo / 3`으로 고정 (실제 탄약은 분리 드랍).
+- `_drop_ammo()` 추가: `stats.current_ammo + reserve_ammo`를 AMMO 픽업으로 스폰.
+- `_drop_heals()` 추가: `heal_items` COMMON 픽업, `advanced_heals` RARE 픽업 스폰.
+- `die()`: `_drop_ammo()`, `_drop_heals()` 호출 추가.
+- `use_heal()`: `advanced_heals > 0`이면 먼저 소비(+60 즉시), 없으면 `heal_items`(+30).
+- 힐 사용 조건에 `advanced_heals > 0` 포함.
+
+**Player.gd**
+
+- `die()` 오버라이드: 모든 무기 슬롯 → WEAPON + AMMO 분리 드랍, heal/advanced_heals 드랍 후 super 호출.
+- `handle_healing()`: advanced 우선 소비(즉시 +60 HP), 기본은 점진 회복(`_heal_regen += 30`).
+- `_heal_regen` + `HEAL_REGEN_RATE = 10.0` — `_physics_process`에서 10 HP/s로 재생.
+- **벽 투명화 수정**: `_current_occluders`(frame-exact) → `_occluder_linger` (8프레임 지연 복원). 깜빡임 해소. fade 알파 0.2 → 0.35, 레이 스텝 0.05 → 0.1.
+- **킬피드 통합**: `add_kill_feed_entry(by_player)` — 플레이어 킬: 노란색 `▶ ELIMINATED`, 그 외: 회색 `Bot Eliminated`. 최대 6개 유지.
+- **HUD 킬/어시스트 실시간 표시**: Telemetry에서 읽어 `K:%d A:%d` 형식으로 표시.
+- HUD 포맷: `HP | SH | MK H | K A | Alive`.
+
+**Main.gd**
+
+- `_on_bot_died()`: 모든 봇 사망 시 `add_kill_feed_entry(by_player)` 호출. damage_history로 플레이어 관여 여부 판단.
+- `_categorize_templates()`: `heal_advanced_pickup.tres`를 consumable pool에 추가 (1/7 확률).
+- `HEAL_ADVANCED_ITEM` const 추가.
+
+**armor_pickup.tres**: amount 40 → 20.
+**heal_advanced_pickup.tres**: 신규 생성 (RARE, amount=1, gold color).
+
+**헤드리스 시뮬레이션 결과**
+
+```
+MATCH REPORT (rank #1 | 88s)
+Kills: 0 (정상 — 헤드리스에서 플레이어 직접 킬 없음), Win: YES
+Zone stage: 3, Weapon drops: 10, Heals used: 11, Rare pickups: 13
+```
+
+---
+
 ## v0.5.0 — 2026-04-26
 
 **전장 경제 1차 — 스폰 수정, 벽 투명화, 자기장 강화, 칼 이펙트, 봇 칼 돌진**
