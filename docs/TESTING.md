@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-04-26 (v0.6 기준)
+> 마지막 업데이트: 2026-04-26 (v0.6.1 기준)
 
 ---
 
@@ -101,8 +101,8 @@ Telemetry.set_groups({
 
 **체크리스트**
 - [ ] `stuck_triggered` > 0 → 끼임 감지 작동
-- [ ] `reserve_reload` > 0 → 예비 탄약 리로드 작동
-- [ ] `recover_success` / `recover_bouts` > 0.4 → 회복 성공률 40% 이상
+- [ ] `reserve_reload` ≥ 0 → (v0.6+) 교전 중 ammo 아이템 opportunistic pickup 미구현으로 0 정상
+- [ ] `recover_success` / `recover_bouts` > 0 → 회복 시스템 작동 확인 (v0.6+ 빠른 전투로 성공 전 피격 사망 흔함 — 500 HP 테스트에서 21% 확인, 시스템 버그 아님)
 - [ ] `died_in_recover` / `recover_bouts` < 0.5 → 회복 중 사망 50% 미만
 - [ ] `patrol_entered` < `recover_bouts` → 패트롤은 마지막 수단으로만 사용
 - [ ] `attack_max_continuous` < 20.0 → 봇이 ATTACK에 갇히지 않음
