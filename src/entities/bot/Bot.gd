@@ -1,8 +1,12 @@
 extends Entity
 
-const MUZZLE_FLASH_SCN = preload("res://src/fx/MuzzleFlash.tscn")
-const BULLET_TRAIL_SCN = preload("res://src/fx/BulletTrail.tscn")
-const PICKUP_SCN       = preload("res://src/entities/pickup/Pickup.tscn")
+const MUZZLE_FLASH_SCN   = preload("res://src/fx/MuzzleFlash.tscn")
+const BULLET_TRAIL_SCN   = preload("res://src/fx/BulletTrail.tscn")
+const PICKUP_SCN         = preload("res://src/entities/pickup/Pickup.tscn")
+const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
+
+const MELEE_RANGE: float  = 1.8
+const MELEE_DAMAGE: float = 20.0
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER }
 var current_state: State = State.IDLE
@@ -26,6 +30,8 @@ var reserve_ammo: int = 0
 
 # True only when loot chase was triggered from RECOVER state (not IDLE opportunistic looting)
 var _recovering: bool = false
+# True when bot decided to rush with knife instead of retreating to RECOVER
+var _knife_mode: bool = false
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -202,12 +208,31 @@ func handle_chase_state(delta):
 
 func handle_attack_state(delta):
 	if not _is_target_valid(target_actor):
-		target_actor = null; change_state(State.IDLE); return
+		_knife_mode = false; target_actor = null; change_state(State.IDLE); return
+
+	# Knife rush mode: charge and melee instead of retreating
+	if _knife_mode:
+		if current_health / stats.max_health < 0.25:
+			_knife_mode = false; change_state(State.RECOVER); return
+		var dir_to = (target_actor.global_position - global_position).normalized()
+		dir_to.y = 0
+		_move_or_unstick(dir_to, delta, true)
+		rotation.y = lerp_angle(rotation.y, atan2(dir_to.x, dir_to.z) + PI, stats.rotation_speed * delta)
+		if fire_cooldown <= 0 and global_position.distance_to(target_actor.global_position) <= MELEE_RANGE * 1.2:
+			_bot_melee()
+		return
 
 	if stats.current_ammo <= 0:
-		if has_node("/root/Telemetry"):
-			get_node("/root/Telemetry").log_tactics("ammo_empty")
-		change_state(State.RECOVER); return
+		var hp_ratio = current_health / stats.max_health
+		var dist_to_t = global_position.distance_to(target_actor.global_position)
+		# Decide: knife rush (if healthy + close) or retreat to RECOVER
+		if hp_ratio > 0.35 and dist_to_t < stats.attack_range * 0.6 and randf() < hp_ratio * 0.5:
+			_knife_mode = true
+		else:
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_tactics("ammo_empty")
+			change_state(State.RECOVER)
+		return
 
 	var can_see = target_actor.is_revealed_to(self)
 	if can_see:
@@ -368,6 +393,19 @@ func _find_nearest_pickup(search_radius: float = 35.0) -> Node3D:
 func _is_target_valid(t: Variant) -> bool:
 	return is_instance_valid(t) and (not t is Entity or not t.is_dead)
 
+# ─── MELEE ───────────────────────────────────────────────────────────────────
+
+func _bot_melee():
+	fire_cooldown = 0.65
+	if not _is_target_valid(target_actor): return
+	if global_position.distance_to(target_actor.global_position) > MELEE_RANGE: return
+	target_actor.take_damage(MELEE_DAMAGE, "melee", "knife", self)
+	var impact = IMPACT_EFFECT_SCN.instantiate()
+	get_tree().root.add_child(impact)
+	impact.global_position = target_actor.global_position + Vector3(0, 0.8, 0)
+	if has_node("/root/Sfx"):
+		get_node("/root/Sfx").play("hit", target_actor.global_position)
+
 # ─── DEATH & WEAPON DROP ─────────────────────────────────────────────────────
 
 func die(killer: Node3D = null):
@@ -490,6 +528,7 @@ func _cast_and_visualize(local_target_pos: Vector3):
 
 func change_state(new_state: State):
 	if current_state == new_state: return
+	if new_state != State.ATTACK: _knife_mode = false
 	if DEBUG_PRINT:
 		print("[BOT] %s → %s (ammo=%d reserve=%d hp=%.0f)" % [
 			State.keys()[current_state], State.keys()[new_state],

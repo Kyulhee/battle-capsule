@@ -27,6 +27,8 @@ var weapon_templates: Array[ItemData] = []
 var consumable_templates: Array[ItemData] = []
 
 var loot_hotspots: Array[Vector2] = []
+var _spawn_positions: Array = []
+var _zone_outside_time: Dictionary = {}
 
 var current_zone_center: Vector2 = Vector2.ZERO
 var current_zone_radius: float = 50.0
@@ -272,6 +274,7 @@ func handle_zone_lifecycle(delta):
 		current_zone_center = current_zone_center_start.lerp(next_zone_center, t)
 
 func spawn_entities():
+	_spawn_positions = []
 	# Spawn Player
 	var p = player_scene.instantiate()
 	$Entities.add_child(p)
@@ -288,13 +291,21 @@ func spawn_entities():
 		b.died.connect(_on_bot_died.bind(b))
 
 func _get_safe_spawn_pos() -> Vector3:
-	for _attempt in range(30):
+	for _attempt in range(50):
 		var angle = randf() * TAU
-		var dist = randf() * spawn_radius
+		var dist = randf_range(5.0, spawn_radius)
 		var candidate = Vector2(cos(angle) * dist, sin(angle) * dist)
-		if _is_clear_of_obstacles(candidate):
-			return Vector3(candidate.x, 1.0, candidate.y)
-	return Vector3(randf_range(-5, 5), 1.0, randf_range(-5, 5))
+		if _is_clear_of_obstacles(candidate) and _is_clear_of_entities(candidate):
+			var pos = Vector3(candidate.x, 1.0, candidate.y)
+			_spawn_positions.append(pos)
+			return pos
+	return Vector3(randf_range(-10, 10), 1.0, randf_range(-10, 10))
+
+func _is_clear_of_entities(pos: Vector2, min_dist: float = 3.5) -> bool:
+	for sp in _spawn_positions:
+		if Vector2(sp.x, sp.z).distance_to(pos) < min_dist:
+			return false
+	return true
 
 func _categorize_templates():
 	weapon_templates.clear()
@@ -329,7 +340,7 @@ func _is_clear_of_obstacles(pos: Vector2, margin: float = 2.0) -> bool:
 	if not map_spec: return true
 	for o in map_spec.obstacles:
 		var type_str = o.get("type", "")
-		if type_str not in ["rock_cluster", "canyon_wall"]: continue
+		if type_str == "bush_patch": continue  # bushes don't block movement
 		var op = o.get("pos", [0, 0])
 		var sc = o.get("scale", [1, 1, 1])
 		var half_x = (sc[0] * 0.5) + margin
@@ -406,6 +417,8 @@ func generate_next_zone():
 
 func _on_bot_died(bot: Entity = null):
 	alive_count -= 1
+	if bot:
+		_zone_outside_time.erase(bot.get_instance_id())
 	if bot and is_instance_valid(player_ref) and not player_ref.is_dead:
 		if player_ref in bot.damage_history:
 			if player_ref.has_method("show_kill_notification"):
@@ -468,5 +481,11 @@ func handle_damage_tick(delta):
 		for a in actors:
 			if a is Entity and not a.is_dead:
 				var pos_2d = Vector2(a.global_position.x, a.global_position.z)
+				var uid = a.get_instance_id()
 				if pos_2d.distance_to(current_zone_center) > current_zone_radius:
-					a.take_damage(zone_damage, "zone")
+					_zone_outside_time[uid] = _zone_outside_time.get(uid, 0.0) + 1.0
+					# Damage ramps up the longer you stay outside (caps at 2× after 10s)
+					var time_mult = 1.0 + min(_zone_outside_time[uid], 10.0) * 0.1
+					a.take_damage(zone_damage * time_mult, "zone")
+				else:
+					_zone_outside_time.erase(uid)

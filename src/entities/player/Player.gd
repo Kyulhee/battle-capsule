@@ -18,6 +18,9 @@ var kill_feed_entries: Array = []
 var camera_shake_amount: float = 0.0
 var camera_shake_decay: float = 5.0
 
+var _current_occluders: Dictionary = {}
+var _fade_mat_cache: Dictionary = {}
+
 const MUZZLE_FLASH_SCN = preload("res://src/fx/MuzzleFlash.tscn")
 const IMPACT_EFFECT_SCN = preload("res://src/fx/ImpactEffect.tscn")
 const BULLET_TRAIL_SCN = preload("res://src/fx/BulletTrail.tscn")
@@ -230,6 +233,7 @@ func _physics_process(delta):
 	camera_pivot.global_position = global_position
 
 func _process(delta):
+	_handle_wall_transparency()
 	if camera_shake_amount > 0:
 		var camera = camera_pivot.get_node("Camera3D")
 		if camera:
@@ -429,10 +433,14 @@ func _melee_attack():
 	ray_cast.target_position = Vector3(0, 0, -MELEE_RANGE)
 	ray_cast.force_raycast_update()
 	if ray_cast.is_colliding():
+		var hit_pos = ray_cast.get_collision_point()
+		var impact = IMPACT_EFFECT_SCN.instantiate()
+		get_tree().root.add_child(impact)
+		impact.global_position = hit_pos
 		var target = ray_cast.get_collider()
 		if target.has_method("take_damage"):
 			target.take_damage(MELEE_DAMAGE, "melee", "knife", self)
-			if Sfx: Sfx.play("hit", ray_cast.get_collision_point())
+			if Sfx: Sfx.play("hit", hit_pos)
 
 func _refresh_slot_hud():
 	if slot_panels.is_empty(): return
@@ -539,6 +547,51 @@ func _make_weapon_icon(wtype: String) -> ImageTexture:
 				img.set_pixel(cx, 6, c); img.set_pixel(cx+1, 6, c)
 				img.set_pixel(cx, 7, c); img.set_pixel(cx+1, 7, c)
 	return ImageTexture.create_from_image(img)
+
+func _get_fade_mat(mesh: MeshInstance3D) -> Material:
+	if _fade_mat_cache.has(mesh):
+		return _fade_mat_cache[mesh]
+	var orig = mesh.mesh.surface_get_material(0) if mesh.mesh else null
+	if not orig: return null
+	var fade = orig.duplicate()
+	if fade is StandardMaterial3D:
+		fade.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		fade.albedo_color.a = 0.2
+	_fade_mat_cache[mesh] = fade
+	return fade
+
+func _handle_wall_transparency():
+	var camera = camera_pivot.get_node_or_null("Camera3D")
+	if not camera: return
+	var cam_pos = camera.global_position
+	var target_pos = global_position + Vector3(0, 1.0, 0)
+	var dir = (target_pos - cam_pos).normalized()
+	var space_state = get_world_3d().direct_space_state
+	var new_occluders: Dictionary = {}
+	var ray_from = cam_pos
+	for _i in range(5):
+		var query = PhysicsRayQueryParameters3D.create(ray_from, target_pos)
+		query.exclude = [self]
+		query.collision_mask = 1
+		var result = space_state.intersect_ray(query)
+		if not result: break
+		var collider = result["collider"]
+		for check in [collider, collider.get_parent()]:
+			if check and check.is_in_group("occluder"):
+				for child in check.get_children():
+					if child is MeshInstance3D:
+						new_occluders[child] = true
+				break
+		ray_from = result["position"] + dir * 0.05
+	for mesh in _current_occluders:
+		if not new_occluders.has(mesh) and is_instance_valid(mesh):
+			mesh.set_surface_override_material(0, null)
+	for mesh in new_occluders:
+		if not _current_occluders.has(mesh) and is_instance_valid(mesh):
+			var fade = _get_fade_mat(mesh)
+			if fade:
+				mesh.set_surface_override_material(0, fade)
+	_current_occluders = new_occluders
 
 func show_kill_notification():
 	if not kill_feed_container: return

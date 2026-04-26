@@ -33,6 +33,7 @@ func generate_world(spec: Resource):
 		else:
 			var obs = obstacle_scene.instantiate()
 			obs_container.add_child(obs)
+			obs.add_to_group("occluder")
 			obs.global_position = Vector3(pos[0], 0, pos[1])
 			obs.rotation_degrees.y = rot_deg
 			obs.scale = Vector3(scale_vec[0], scale_vec[1], scale_vec[2])
@@ -145,6 +146,7 @@ func _build_rock_cluster(parent: Node3D, pos: Array, scale_vec: Array):
 func _add_rock_piece(parent: Node3D, local_pos: Vector3, size: Vector3, rng: RandomNumberGenerator, col_layer: int):
 	var body = StaticBody3D.new()
 	parent.add_child(body)
+	body.add_to_group("occluder")
 	body.position = local_pos + Vector3(0, size.y * 0.5, 0)
 	body.rotation.y = rng.randf_range(0.0, TAU)
 	body.rotation.x = rng.randf_range(-0.15, 0.15)
@@ -170,6 +172,7 @@ func _add_rock_piece(parent: Node3D, local_pos: Vector3, size: Vector3, rng: Ran
 func _add_wall(parent: Node, pos: Vector3, size: Vector3):
 	var wall = StaticBody3D.new()
 	parent.add_child(wall)
+	wall.add_to_group("occluder")
 	wall.position = pos
 	
 	var mesh_instance = MeshInstance3D.new()
