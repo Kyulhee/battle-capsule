@@ -13,6 +13,8 @@ var current_health: float = 0.0
 var current_shield: float = 0.0
 var is_dead: bool = false
 var last_damage_source: String = "unknown"
+var last_damage_weapon: String = ""
+var last_damage_dist: float = -1.0
 var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 
 # Stealth / Concealment
@@ -31,7 +33,7 @@ func _ready():
 	if stats:
 		stats = stats.duplicate()
 		current_health = stats.max_health
-		current_shield = stats.max_shield
+		current_shield = 0.0  # No starting shield — must be gained from armor pickups
 		emit_signal("health_changed", current_health, stats.max_health)
 		emit_signal("shield_changed", current_shield, stats.max_shield)
 	add_to_group("actors")
@@ -115,11 +117,13 @@ func handle_movement(direction: Vector3, delta: float, should_rotate: bool = tru
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
 	if is_dead: return
 	last_damage_source = source
-	
+	last_damage_weapon = weapon_type
+
 	if source_node and source_node != self:
 		damage_history[source_node] = Time.get_ticks_msec()
-		
+
 	var dist = global_position.distance_to(source_node.global_position) if source_node else -1.0
+	last_damage_dist = dist
 	if current_shield > 0:
 		var s_dmg = min(current_shield, amount)
 		current_shield -= s_dmg
@@ -132,8 +136,6 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 		get_node("/root/Telemetry").log_damage(amount, source, weapon_type, dist)
 	flash_hit()
 	if current_health <= 0:
-		if not is_dead and source == "gun" and has_node("/root/Telemetry"):
-			get_node("/root/Telemetry").log_kill(source, weapon_type, dist)
 		die(source_node)
 
 func flash_hit():
@@ -161,11 +163,11 @@ func die(killer: Node3D = null):
 		# Log Death
 		tel.log_death(last_damage_source, "match_end")
 		
-		# Log Kill if killer is player
+		# Kill — log only when killer is confirmed to be the player
 		if killer and killer.is_in_group("players"):
-			tel.log_combat_audit("kills", 1)
-		
-		# Assists
+			tel.log_kill(last_damage_source, last_damage_weapon, last_damage_dist)
+
+		# Assists (player dealt damage but didn't land the final shot)
 		var now = Time.get_ticks_msec()
 		for attacker in damage_history:
 			if is_instance_valid(attacker) and attacker != killer:

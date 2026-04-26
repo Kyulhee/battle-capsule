@@ -62,7 +62,7 @@ func _physics_process(delta):
 			get_node("/root/Telemetry").log_combat_audit("attack_max_continuous", attack_bout_timer)
 		attack_bout_timer = 0.0
 
-	if current_health < 60.0 and stats.heal_items > 0:
+	if current_health < 60.0 and (stats.heal_items > 0 or stats.advanced_heals > 0):
 		use_heal()
 
 	_check_state_overrides(delta)
@@ -78,8 +78,12 @@ func _physics_process(delta):
 	super._physics_process(delta)
 
 func use_heal():
-	stats.heal_items -= 1
-	current_health = min(stats.max_health, current_health + 40.0)
+	if stats.advanced_heals > 0:
+		stats.advanced_heals -= 1
+		current_health = min(stats.max_health, current_health + 60.0)
+	elif stats.heal_items > 0:
+		stats.heal_items -= 1
+		current_health = min(stats.max_health, current_health + 30.0)
 	health_changed.emit(current_health, stats.max_health)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_economy("heals_used")
@@ -410,6 +414,8 @@ func _bot_melee():
 
 func die(killer: Node3D = null):
 	_drop_weapon()
+	_drop_ammo()
+	_drop_heals()
 	super.die(killer)
 
 func _drop_weapon():
@@ -421,7 +427,7 @@ func _drop_weapon():
 	item.item_name = _weapon_display_name(stats.weapon_type)
 	item.color = _weapon_color(stats.weapon_type)
 	var wstats = stats.duplicate() as StatsData
-	wstats.current_ammo = stats.current_ammo
+	wstats.current_ammo = wstats.max_ammo / 3  # partial load only — actual ammo drops separately
 	item.weapon_stats = wstats
 	var pickup = PICKUP_SCN.instantiate()
 	get_tree().root.add_child(pickup)
@@ -429,6 +435,45 @@ func _drop_weapon():
 	pickup.init(item)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_weapon_drop()
+
+func _drop_ammo():
+	var total = stats.current_ammo + reserve_ammo
+	if total <= 0 or stats.weapon_type == "" or stats.weapon_type == "knife": return
+	var item = ItemData.new()
+	item.type = ItemData.Type.AMMO
+	item.rarity = ItemData.Rarity.COMMON
+	item.item_name = _weapon_display_name(stats.weapon_type) + " Ammo"
+	item.ammo_weapon_type = stats.weapon_type
+	item.amount = total
+	item.color = _weapon_color(stats.weapon_type)
+	var pickup = PICKUP_SCN.instantiate()
+	get_tree().root.add_child(pickup)
+	pickup.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
+	pickup.init(item)
+
+func _drop_heals():
+	if stats.heal_items > 0:
+		var item = ItemData.new()
+		item.type = ItemData.Type.HEAL
+		item.rarity = ItemData.Rarity.COMMON
+		item.item_name = "Health Potion"
+		item.amount = stats.heal_items
+		item.color = Color(0.2, 1.0, 0.4)
+		var pickup = PICKUP_SCN.instantiate()
+		get_tree().root.add_child(pickup)
+		pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5))
+		pickup.init(item)
+	if stats.advanced_heals > 0:
+		var item = ItemData.new()
+		item.type = ItemData.Type.HEAL
+		item.rarity = ItemData.Rarity.RARE
+		item.item_name = "MedKit"
+		item.amount = stats.advanced_heals
+		item.color = Color(1.0, 0.88, 0.1)
+		var pickup = PICKUP_SCN.instantiate()
+		get_tree().root.add_child(pickup)
+		pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5))
+		pickup.init(item)
 
 func _weapon_display_name(wtype: String) -> String:
 	match wtype:

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://src/core/ItemData.gd" id="1_script"]
+
+[resource]
+script = ExtResource("1_script")
+type = 2
+rarity = 1
+item_name = "MedKit"
+amount = 1
+color = Color(1, 0.88, 0.1, 1)

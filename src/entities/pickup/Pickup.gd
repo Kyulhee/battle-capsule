@@ -87,8 +87,12 @@ func collect(collector: Entity) -> bool:
 				collector.stats.current_ammo = min(collector.stats.max_ammo, collector.stats.current_ammo + item.amount)
 			print("Collected Ammo: ", item.amount, " (", item.ammo_weapon_type, ")")
 		ItemData.Type.HEAL:
-			collector.stats.heal_items += item.amount
-			print("Collected Heal: ", item.amount)
+			if item.rarity == ItemData.Rarity.RARE:
+				collector.stats.advanced_heals += item.amount
+				print("Collected MedKit: ", item.amount)
+			else:
+				collector.stats.heal_items += item.amount
+				print("Collected Heal: ", item.amount)
 		ItemData.Type.ARMOR:
 			collector.current_shield = min(collector.stats.max_shield, collector.current_shield + item.amount)
 			collector.shield_changed.emit(collector.current_shield, collector.stats.max_shield)

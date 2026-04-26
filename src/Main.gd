@@ -50,6 +50,8 @@ var game_over: bool = false
 var player_ref: Entity = null
 var match_timer: float = 0.0
 
+const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
+
 # MapSpec & Builder
 const MapSpecScript = preload("res://src/core/MapSpec.gd")
 var map_spec: Resource = null
@@ -315,6 +317,8 @@ func _categorize_templates():
 			weapon_templates.append(t)
 		else:
 			consumable_templates.append(t)
+	# Add advanced heal to pool at roughly 1:5 ratio vs other consumables (rare spawn)
+	consumable_templates.append(HEAL_ADVANCED_ITEM)
 
 func _spawn_initial_loot():
 	if loot_hotspots.is_empty(): return
@@ -419,10 +423,9 @@ func _on_bot_died(bot: Entity = null):
 	alive_count -= 1
 	if bot:
 		_zone_outside_time.erase(bot.get_instance_id())
-	if bot and is_instance_valid(player_ref) and not player_ref.is_dead:
-		if player_ref in bot.damage_history:
-			if player_ref.has_method("show_kill_notification"):
-				player_ref.show_kill_notification()
+	if is_instance_valid(player_ref) and not player_ref.is_dead and player_ref.has_method("add_kill_feed_entry"):
+		var by_player = bot and (player_ref in bot.damage_history)
+		player_ref.add_kill_feed_entry(by_player)
 	_check_match_end()
 
 func _on_player_died():

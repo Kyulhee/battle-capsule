@@ -18,14 +18,17 @@ var kill_feed_entries: Array = []
 var camera_shake_amount: float = 0.0
 var camera_shake_decay: float = 5.0
 
-var _current_occluders: Dictionary = {}
+var _occluder_linger: Dictionary = {}  # mesh → frames_remaining_faded
 var _fade_mat_cache: Dictionary = {}
+var _heal_regen: float = 0.0
+const HEAL_REGEN_RATE: float = 10.0
 
 const MUZZLE_FLASH_SCN = preload("res://src/fx/MuzzleFlash.tscn")
 const IMPACT_EFFECT_SCN = preload("res://src/fx/ImpactEffect.tscn")
 const BULLET_TRAIL_SCN = preload("res://src/fx/BulletTrail.tscn")
 const SHOT_PING_SCN = preload("res://src/fx/ShotPing.tscn")
 const PISTOL_STATS = preload("res://src/core/pistol_stats.tres")
+const PICKUP_SCN = preload("res://src/entities/pickup/Pickup.tscn")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
 # slot 0 = knife (melee, always available), slots 1-4 = ranged weapons
@@ -159,6 +162,14 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 func _physics_process(delta):
 	if is_dead: return
 	if fire_cooldown > 0: fire_cooldown -= delta
+	if _heal_regen > 0:
+		var tick = min(HEAL_REGEN_RATE * delta, min(_heal_regen, stats.max_health - current_health))
+		if tick > 0:
+			current_health += tick
+			_heal_regen -= tick
+			health_changed.emit(current_health, stats.max_health)
+		else:
+			_heal_regen = 0.0
 	if reload_timer > 0:
 		reload_timer -= delta
 		if reload_timer <= 0:
@@ -291,12 +302,20 @@ func handle_interaction():
 	if closest: closest.collect(self)
 
 func handle_healing():
-	if stats.heal_items > 0 and current_health < stats.max_health:
-		stats.heal_items -= 1
-		current_health = min(stats.max_health, current_health + 50.0)
+	if current_health >= stats.max_health: return
+	if stats.advanced_heals > 0:
+		stats.advanced_heals -= 1
+		current_health = min(stats.max_health, current_health + 60.0)
+		health_changed.emit(current_health, stats.max_health)
 		if Sfx: Sfx.play("heal", global_position)
-		_on_health_changed(current_health, stats.max_health)
 		if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
+		_refresh_slot_hud()
+	elif stats.heal_items > 0:
+		stats.heal_items -= 1
+		_heal_regen += 30.0
+		if Sfx: Sfx.play("heal", global_position)
+		if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
+		_refresh_slot_hud()
 
 func handle_aiming(delta):
 	var camera = camera_pivot.get_node("Camera3D")
@@ -312,10 +331,18 @@ func _on_shield_changed(_curr, _max): _update_hud()
 func _on_health_changed(_curr, _max): _update_hud()
 func _update_hud():
 	if hud_label:
-		hud_label.text = "HP: %d/%d | SHIELD: %d/%d | Heals: %d | Alive: %d" % [
-			current_health, stats.max_health,
-			current_shield, stats.max_shield,
-			stats.heal_items,
+		var kills = 0
+		var assists = 0
+		if has_node("/root/Telemetry"):
+			var tel = get_node("/root/Telemetry")
+			if tel.metrics.has("session"):
+				kills = tel.metrics.session.kills
+				assists = tel.metrics.session.assists
+		hud_label.text = "HP: %d/%d | SH: %d/%d | MK: %d H: %d | K: %d A: %d | Alive: %d" % [
+			int(current_health), stats.max_health,
+			int(current_shield), stats.max_shield,
+			stats.advanced_heals, stats.heal_items,
+			kills, assists,
 			get_tree().get_nodes_in_group("actors").filter(func(a): return a is Entity and not a.is_dead).size()
 		]
 	_refresh_slot_hud()
@@ -556,7 +583,7 @@ func _get_fade_mat(mesh: MeshInstance3D) -> Material:
 	var fade = orig.duplicate()
 	if fade is StandardMaterial3D:
 		fade.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		fade.albedo_color.a = 0.2
+		fade.albedo_color.a = 0.35
 	_fade_mat_cache[mesh] = fade
 	return fade
 
@@ -567,7 +594,6 @@ func _handle_wall_transparency():
 	var target_pos = global_position + Vector3(0, 1.0, 0)
 	var dir = (target_pos - cam_pos).normalized()
 	var space_state = get_world_3d().direct_space_state
-	var new_occluders: Dictionary = {}
 	var ray_from = cam_pos
 	for _i in range(5):
 		var query = PhysicsRayQueryParameters3D.create(ray_from, target_pos)
@@ -579,34 +605,117 @@ func _handle_wall_transparency():
 		for check in [collider, collider.get_parent()]:
 			if check and check.is_in_group("occluder"):
 				for child in check.get_children():
-					if child is MeshInstance3D:
-						new_occluders[child] = true
+					if child is MeshInstance3D and is_instance_valid(child):
+						if not _occluder_linger.has(child):
+							var fade = _get_fade_mat(child)
+							if fade: child.set_surface_override_material(0, fade)
+						_occluder_linger[child] = 8  # hold fade for 8 more frames
 				break
-		ray_from = result["position"] + dir * 0.05
-	for mesh in _current_occluders:
-		if not new_occluders.has(mesh) and is_instance_valid(mesh):
+		ray_from = result["position"] + dir * 0.1
+	# Decay linger; restore material when timer expires
+	var to_restore: Array = []
+	for mesh in _occluder_linger:
+		_occluder_linger[mesh] -= 1
+		if _occluder_linger[mesh] <= 0:
+			to_restore.append(mesh)
+	for mesh in to_restore:
+		_occluder_linger.erase(mesh)
+		if is_instance_valid(mesh):
 			mesh.set_surface_override_material(0, null)
-	for mesh in new_occluders:
-		if not _current_occluders.has(mesh) and is_instance_valid(mesh):
-			var fade = _get_fade_mat(mesh)
-			if fade:
-				mesh.set_surface_override_material(0, fade)
-	_current_occluders = new_occluders
 
 func show_kill_notification():
+	add_kill_feed_entry(true)
+
+func add_kill_feed_entry(by_player: bool):
 	if not kill_feed_container: return
 	var label = Label.new()
-	label.text = "ELIMINATED"
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	label.add_theme_font_size_override("font_size", 22)
-	label.add_theme_color_override("font_color", Color.YELLOW)
+	label.add_theme_font_size_override("font_size", 20)
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
 	label.add_theme_constant_override("outline_size", 6)
+	if by_player:
+		label.text = "▶ ELIMINATED"
+		label.add_theme_color_override("font_color", Color.YELLOW)
+	else:
+		label.text = "Bot Eliminated"
+		label.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
 	kill_feed_container.add_child(label)
 	kill_feed_entries.append({"label": label, "timer": 3.0})
-	if kill_feed_entries.size() > 5:
+	if kill_feed_entries.size() > 6:
 		kill_feed_entries[0]["label"].queue_free()
 		kill_feed_entries.pop_front()
+
+func die(killer: Node3D = null):
+	_drop_on_death()
+	super.die(killer)
+
+func _drop_on_death():
+	for i in range(1, 5):
+		var wdata = weapon_slots[i]
+		if wdata == null: continue
+		var item = ItemData.new()
+		item.type = ItemData.Type.WEAPON
+		item.rarity = ItemData.Rarity.COMMON
+		item.item_name = _drop_weapon_name(wdata.weapon_type)
+		item.color = _drop_weapon_color(wdata.weapon_type)
+		var wstats = wdata.duplicate() as StatsData
+		wstats.current_ammo = wstats.max_ammo / 3
+		item.weapon_stats = wstats
+		var wp = PICKUP_SCN.instantiate()
+		get_tree().root.add_child(wp)
+		wp.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
+		wp.init(item)
+		var total_ammo = slot_ammo[i] + slot_reserve[i]
+		if total_ammo > 0:
+			var ammo_item = ItemData.new()
+			ammo_item.type = ItemData.Type.AMMO
+			ammo_item.rarity = ItemData.Rarity.COMMON
+			ammo_item.item_name = _drop_weapon_name(wdata.weapon_type) + " Ammo"
+			ammo_item.ammo_weapon_type = wdata.weapon_type
+			ammo_item.amount = total_ammo
+			ammo_item.color = _drop_weapon_color(wdata.weapon_type)
+			var ap = PICKUP_SCN.instantiate()
+			get_tree().root.add_child(ap)
+			ap.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
+			ap.init(ammo_item)
+	if stats.heal_items > 0:
+		var heal_item = ItemData.new()
+		heal_item.type = ItemData.Type.HEAL
+		heal_item.rarity = ItemData.Rarity.COMMON
+		heal_item.item_name = "Health Potion"
+		heal_item.amount = stats.heal_items
+		heal_item.color = Color(0.2, 1.0, 0.4)
+		var hp = PICKUP_SCN.instantiate()
+		get_tree().root.add_child(hp)
+		hp.global_position = global_position + Vector3(0, 0.3, 0)
+		hp.init(heal_item)
+	if stats.advanced_heals > 0:
+		var adv_item = ItemData.new()
+		adv_item.type = ItemData.Type.HEAL
+		adv_item.rarity = ItemData.Rarity.RARE
+		adv_item.item_name = "MedKit"
+		adv_item.amount = stats.advanced_heals
+		adv_item.color = Color(1.0, 0.88, 0.1)
+		var ap2 = PICKUP_SCN.instantiate()
+		get_tree().root.add_child(ap2)
+		ap2.global_position = global_position + Vector3(0, 0.3, 0.5)
+		ap2.init(adv_item)
+
+func _drop_weapon_name(wtype: String) -> String:
+	match wtype:
+		"pistol":  return "Pistol"
+		"ar":      return "Assault Rifle"
+		"shotgun": return "Shotgun"
+		"railgun": return "Railgun"
+	return wtype.capitalize()
+
+func _drop_weapon_color(wtype: String) -> Color:
+	match wtype:
+		"pistol":  return Color(0.55, 0.78, 1.0)
+		"ar":      return Color(0.2, 0.88, 0.35)
+		"shotgun": return Color(1.0, 0.6, 0.1)
+		"railgun": return Color(0.85, 0.2, 1.0)
+	return Color.WHITE
 
 func shoot_pellet(_idx: int):
 	reveal()
