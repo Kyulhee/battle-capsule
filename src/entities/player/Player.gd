@@ -36,6 +36,13 @@ const MELEE_RANGE: float = 1.8
 const MELEE_DAMAGE: float = 20.0
 const MELEE_RATE: float = 0.55
 
+var _hp_bar:   ProgressBar  = null
+var _sh_bar:   ProgressBar  = null
+var _hp_fill:  StyleBoxFlat = null
+var _hp_val:   Label        = null
+var _sh_val:   Label        = null
+var _stat_row: Label        = null
+
 var weapon_slots: Array = [null, null, null, null, null]  # [0]=knife placeholder, [1-4]=StatsData
 var slot_ammo: Array = [0, 0, 0, 0, 0]     # loaded magazine
 var slot_reserve: Array = [0, 0, 0, 0, 0]  # reserve / backpack ammo
@@ -54,15 +61,24 @@ func _ready():
 		stats = stats.duplicate()
 	super._ready()
 
-	# Zone timer (top-center)
+	# Zone timer (B구역 — top-center)
 	zone_timer_label = Label.new()
-	$CanvasLayer/Control.add_child(zone_timer_label)
-	zone_timer_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	zone_timer_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	zone_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	zone_timer_label.add_theme_font_size_override("font_size", 26)
 	zone_timer_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	zone_timer_label.add_theme_constant_override("outline_size", 8)
-	zone_timer_label.position.y += 8
+	var zone_panel = PanelContainer.new()
+	$CanvasLayer/Control.add_child(zone_panel)
+	zone_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	zone_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	zone_panel.position.y += 6
+	var ps = StyleBoxFlat.new()
+	ps.bg_color = Color(0.0, 0.0, 0.0, 0.55)
+	ps.set_corner_radius_all(6)
+	ps.content_margin_left = 14; ps.content_margin_right = 14
+	ps.content_margin_top = 4;   ps.content_margin_bottom = 4
+	zone_panel.add_theme_stylebox_override("panel", ps)
+	zone_panel.add_child(zone_timer_label)
 
 	# Kill feed (top-right)
 	kill_feed_container = VBoxContainer.new()
@@ -72,6 +88,90 @@ func _ready():
 	kill_feed_container.position.x -= 220
 	kill_feed_container.position.y += 60
 	kill_feed_container.custom_minimum_size = Vector2(200, 0)
+
+	if hud_label: hud_label.visible = false
+	var hud_a = VBoxContainer.new()
+	$CanvasLayer/Control.add_child(hud_a)
+	hud_a.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
+	hud_a.position = Vector2(8, 8)
+	hud_a.add_theme_constant_override("separation", 3)
+
+	# HP row
+	var hp_row = HBoxContainer.new()
+	hud_a.add_child(hp_row)
+	hp_row.add_theme_constant_override("separation", 6)
+
+	var hp_lbl = Label.new()
+	hp_lbl.text = "HP"
+	hp_lbl.add_theme_font_size_override("font_size", 14)
+	hp_lbl.add_theme_color_override("font_color", Color(0.8, 0.8, 0.8))
+	hp_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	hp_lbl.add_theme_constant_override("outline_size", 5)
+	hp_row.add_child(hp_lbl)
+
+	_hp_bar = ProgressBar.new()
+	_hp_bar.custom_minimum_size = Vector2(140, 14)
+	_hp_bar.show_percentage = false
+	var hp_bg = StyleBoxFlat.new()
+	hp_bg.bg_color = Color(0.12, 0.12, 0.12, 0.85)
+	hp_bg.set_corner_radius_all(3)
+	hp_bg.border_color = Color(0.4, 0.4, 0.4, 0.7)
+	hp_bg.set_border_width_all(1)
+	_hp_bar.add_theme_stylebox_override("background", hp_bg)
+	_hp_fill = StyleBoxFlat.new()
+	_hp_fill.bg_color = Color(0.2, 1.0, 0.35)
+	_hp_fill.set_corner_radius_all(3)
+	_hp_bar.add_theme_stylebox_override("fill", _hp_fill)
+	hp_row.add_child(_hp_bar)
+
+	_hp_val = Label.new()
+	_hp_val.add_theme_font_size_override("font_size", 14)
+	_hp_val.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	_hp_val.add_theme_color_override("font_outline_color", Color.BLACK)
+	_hp_val.add_theme_constant_override("outline_size", 5)
+	hp_row.add_child(_hp_val)
+
+	# SH row
+	var sh_row = HBoxContainer.new()
+	hud_a.add_child(sh_row)
+	sh_row.add_theme_constant_override("separation", 6)
+
+	var sh_lbl = Label.new()
+	sh_lbl.text = "SH"
+	sh_lbl.add_theme_font_size_override("font_size", 14)
+	sh_lbl.add_theme_color_override("font_color", Color(0.4, 0.7, 1.0))
+	sh_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	sh_lbl.add_theme_constant_override("outline_size", 5)
+	sh_row.add_child(sh_lbl)
+
+	_sh_bar = ProgressBar.new()
+	_sh_bar.custom_minimum_size = Vector2(140, 14)
+	_sh_bar.show_percentage = false
+	var sh_bg = StyleBoxFlat.new()
+	sh_bg.bg_color = Color(0.06, 0.08, 0.18, 0.85)
+	sh_bg.set_corner_radius_all(3)
+	sh_bg.border_color = Color(0.3, 0.4, 0.7, 0.7)
+	sh_bg.set_border_width_all(1)
+	_sh_bar.add_theme_stylebox_override("background", sh_bg)
+	var sh_fill = StyleBoxFlat.new()
+	sh_fill.bg_color = Color(0.3, 0.6, 1.0)
+	sh_fill.set_corner_radius_all(3)
+	_sh_bar.add_theme_stylebox_override("fill", sh_fill)
+	sh_row.add_child(_sh_bar)
+
+	_sh_val = Label.new()
+	_sh_val.add_theme_font_size_override("font_size", 14)
+	_sh_val.add_theme_color_override("font_color", Color(0.4, 0.7, 1.0))
+	_sh_val.add_theme_color_override("font_outline_color", Color.BLACK)
+	_sh_val.add_theme_constant_override("outline_size", 5)
+	sh_row.add_child(_sh_val)
+
+	_stat_row = Label.new()
+	_stat_row.add_theme_font_size_override("font_size", 14)
+	_stat_row.add_theme_color_override("font_color", Color(0.78, 0.78, 0.78))
+	_stat_row.add_theme_color_override("font_outline_color", Color.BLACK)
+	_stat_row.add_theme_constant_override("outline_size", 6)
+	hud_a.add_child(_stat_row)
 
 	# Slot bar (bottom-center): 5 boxes — 0=knife, 1-4=weapons
 	var slot_bar = HBoxContainer.new()
@@ -331,23 +431,38 @@ func handle_aiming(delta):
 func _on_shield_changed(_curr, _max): _update_hud()
 func _on_health_changed(_curr, _max): _update_hud()
 func _update_hud():
-	if not hud_label: return
-	var kills = 0
-	var assists = 0
+	var main = get_tree().root.get_node_or_null("Main")
+	var alive = main.alive_count if main else 0
+	_update_status_hud(alive)
+
+func _update_status_hud(alive: int):
+	var kills = 0; var assists = 0
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
 		if tel.metrics.has("session"):
 			kills = tel.metrics.session.kills
 			assists = tel.metrics.session.assists
-	var main = get_tree().root.get_node_or_null("Main")
-	var alive = main.alive_count if main else 0
-	hud_label.text = "HP: %d/%d | SH: %d/%d | MK: %d H: %d | K: %d A: %d | Alive: %d" % [
-		int(current_health), stats.max_health,
-		int(current_shield), stats.max_shield,
-		stats.advanced_heals, stats.heal_items,
-		kills, assists,
-		alive
-	]
+	# HP — 색상: 초록 > 40%, 노랑 > 20%, 빨강 이하
+	var hp_ratio = current_health / stats.max_health if stats.max_health > 0 else 0.0
+	var hp_col = Color(0.2, 1.0, 0.35) if hp_ratio > 0.4 \
+		else (Color(1.0, 0.85, 0.0) if hp_ratio > 0.2 else Color(1.0, 0.25, 0.25))
+	if _hp_fill:
+		_hp_fill.bg_color = hp_col
+	if _hp_bar:
+		_hp_bar.max_value = stats.max_health
+		_hp_bar.value = current_health
+	if _hp_val:
+		_hp_val.text = "%d" % int(current_health)
+		_hp_val.add_theme_color_override("font_color", hp_col)
+	if _sh_bar:
+		_sh_bar.max_value = stats.max_shield
+		_sh_bar.value = current_shield
+	if _sh_val:
+		_sh_val.text = "%d" % int(current_shield)
+	if _stat_row:
+		_stat_row.text = "H:%d  MK:%d    K:%d  A:%d    ● Alive:%d" % [
+			stats.heal_items, stats.advanced_heals, kills, assists, alive
+		]
 
 # ── Slot system ──────────────────────────────────────────────────────────
 

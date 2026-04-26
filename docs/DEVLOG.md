@@ -5,6 +5,42 @@
 
 ---
 
+## v0.7.0 — 2026-04-26
+
+**HUD 재설계 — ProgressBar 기반 HP/SH 상태바 + 킬피드 개선**
+
+**Player.gd**
+
+- A구역(좌상단) 2줄 레이아웃 도입: HP row / SH row (각 `ProgressBar` + 수치 `Label`) + stat row.
+- `ProgressBar` + `StyleBoxFlat` 조합으로 SH=0일 때도 배경 테두리가 항상 표시됨.
+- HP fill 색상: 초록(>40%) → 노랑(>20%) → 빨강 (프레임마다 갱신).
+- B구역(중앙 상단) Zone 타이머: `PanelContainer` + 반투명 배경으로 A구역 겹침 방지.
+- C구역(우상단) 킬피드: 플레이어 킬(★ 황금·22px) / 어시스트(◆ 주황·17px) / 봇끼리(회색·13px) 3단계 구분.
+- 킬피드에 killer/victim 이름 표시. 플레이어 킬·어시스트는 4초 표시(봇끼리 2.5초).
+- `hud_label`(기존 단일줄) 숨김 처리 유지.
+- `_update_status_hud()` 함수로 정리 (HUD_MOCKUP 플래그 제거).
+
+**Main.gd**
+
+- `_on_bot_died()`: `bot.last_killer == player_ref` 킬 / `player_ref in bot.damage_history` 어시스트 판단 후 `add_kill_feed_entry()` 호출.
+
+**Entity.gd**
+
+- `var last_killer: Node3D = null` 추가. `die()` 내에서 `last_killer = killer` 설정.
+
+**docs/UI_DESIGN.md** (신규)
+
+- HUD 디자인 4단계 프로세스 문서: ASCII 스케치 → Godot 목업 → 스크린샷 검토 → 최종 구현.
+- HUD 구역 정의(A/B/C/D), 목업 규칙, 스크린샷 체크리스트.
+
+**헤드리스 시뮬레이션 결과**
+
+```
+duration: 69s  zone_stage: 2  disengage: 13  stuck: 5  attack_max: 7.2s
+```
+
+---
+
 ## v0.6.1 — 2026-04-26
 
 **DISENGAGE 클러스터링 핫픽스 + 봇 상태 진단 텔레메트리**

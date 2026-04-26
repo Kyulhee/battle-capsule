@@ -10,9 +10,9 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v0.6.1 (DISENGAGE 쿨다운으로 봇 클러스터링 핫픽스) |
-| 다음 버전 | v0.7 — HUD/UI 재설계 + 그룹 전술 |
-| 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
+| 완료 버전 | v0.7.0 (HUD 재설계 — ProgressBar HP/SH, 킬피드 3단계, Zone 패널) |
+| 다음 버전 | v0.7.1 — 아이템 아이콘 시스템 + assist 기록 버그 수정 |
+| 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) · assist 기록 누락 (로그↔카운터 불일치) |
 
 ---
 
