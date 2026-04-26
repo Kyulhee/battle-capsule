@@ -5,10 +5,10 @@
 
 > Godot 4.6.2 · 개발: Kyulhee
 
-## 다운로드 (v0.5.1)
+## 다운로드 (v0.6.1)
 
-[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.5.1/BattleRoyalePrototype_v0.5.1_win64.zip)
-[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.5.1/BattleRoyalePrototype_mac.zip)
+[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.6.1/BattleRoyalePrototype_v0.6.1_win64.zip)
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.6.1/BattleRoyalePrototype_mac.zip)
 
 > macOS: 처음 실행 시 `시스템 설정 > 개인정보 보호 및 보안`에서 허용 필요 (공증 미적용 빌드)
 
