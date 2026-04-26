@@ -20,7 +20,6 @@ func _update_visuals():
 		mat.emission_enabled = true
 		mat.emission = item.color * 0.5
 		mesh_inst.material_override = mat
-		# Shape and transform per type
 		mesh_inst.transform = Transform3D.IDENTITY
 		match item.type:
 			ItemData.Type.WEAPON:
@@ -28,95 +27,57 @@ func _update_visuals():
 				mesh_inst.mesh = box
 				mesh_inst.position = Vector3(0, 0.12, 0)
 			ItemData.Type.AMMO:
-				var sphere = SphereMesh.new(); sphere.radius = 0.18; sphere.height = 0.36
+				var sphere = SphereMesh.new(); sphere.radius = 0.15; sphere.height = 0.3
 				mesh_inst.mesh = sphere
-				mesh_inst.position = Vector3(0, 0.2, 0)
+				mesh_inst.position = Vector3(0, 0.18, 0)
 			ItemData.Type.HEAL:
-				var box = BoxMesh.new(); box.size = Vector3(0.32, 0.42, 0.32)
-				mesh_inst.mesh = box
-				mesh_inst.position = Vector3(0, 0.28, 0)
+				# Capsule = pill shape, universally understood as medicine
+				var cap = CapsuleMesh.new(); cap.radius = 0.14; cap.height = 0.42
+				mesh_inst.mesh = cap
+				mesh_inst.position = Vector3(0, 0.25, 0)
 			ItemData.Type.ARMOR:
-				var box = BoxMesh.new(); box.size = Vector3(0.5, 0.08, 0.5)
-				mesh_inst.mesh = box
-				mesh_inst.position = Vector3(0, 0.08, 0)
-		# Light color matches item
+				# Thin disc = armour plate
+				var cyl = CylinderMesh.new()
+				cyl.top_radius = 0.28; cyl.bottom_radius = 0.28; cyl.height = 0.07
+				mesh_inst.mesh = cyl
+				mesh_inst.position = Vector3(0, 0.07, 0)
 		if has_node("OmniLight3D"):
 			$OmniLight3D.light_color = item.color
 
 	var existing = get_node_or_null("PickupLabel")
 	if existing: existing.queue_free()
-	var existing_icon = get_node_or_null("PickupIcon")
-	if existing_icon: existing_icon.queue_free()
 	if not item: return
-
-	var sprite = Sprite3D.new()
-	sprite.name = "PickupIcon"
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	sprite.no_depth_test = true
-	sprite.pixel_size = 0.028
-	sprite.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST
-	sprite.texture = _make_pickup_icon()
-	sprite.position = Vector3(0, 0.72, 0)
-	add_child(sprite)
 
 	var label = Label3D.new()
 	label.name = "PickupLabel"
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = true
-	label.font_size = 24
+	label.font_size = 26
 	label.pixel_size = 0.005
-	label.position = Vector3(0, 1.2, 0)
+	label.position = Vector3(0, 1.1, 0)
 	label.outline_size = 6
 
-	var display_text = item.item_name
+	# Unicode prefix makes type immediately clear without adding a separate node
+	var prefix = ""
+	match item.type:
+		ItemData.Type.HEAL:
+			prefix = ("◆ " if item.rarity == ItemData.Rarity.RARE else "♥ ")
+		ItemData.Type.ARMOR:
+			prefix = "◈ "
+		ItemData.Type.AMMO:
+			prefix = "● "
+		ItemData.Type.WEAPON:
+			prefix = ""  # name alone is distinctive enough
+
+	var display_text = prefix + item.item_name
 	if item.type == ItemData.Type.WEAPON and item.weapon_stats:
 		display_text += "\n%d/%d" % [item.weapon_stats.current_ammo, item.weapon_stats.max_ammo]
 	elif item.type == ItemData.Type.AMMO and item.ammo_weapon_type != "":
-		display_text += "\n+%d" % item.amount
+		display_text += " +%d" % item.amount
 
 	label.text = display_text
 	label.modulate = Color.GOLD if item.rarity == ItemData.Rarity.RARE else Color.WHITE
 	add_child(label)
-
-func _make_pickup_icon() -> ImageTexture:
-	var W := 20; var H := 20
-	var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	match item.type:
-		ItemData.Type.HEAL:
-			var c = Color(1.0, 0.85, 0.1) if item.rarity == ItemData.Rarity.RARE else Color(0.95, 0.15, 0.15)
-			for x in range(2, 18):
-				img.set_pixel(x, 8,  c); img.set_pixel(x, 9,  c)
-				img.set_pixel(x, 10, c); img.set_pixel(x, 11, c)
-			for y in range(2, 18):
-				img.set_pixel(8,  y, c); img.set_pixel(9,  y, c)
-				img.set_pixel(10, y, c); img.set_pixel(11, y, c)
-		ItemData.Type.ARMOR:
-			var c = Color(0.45, 0.78, 1.0)
-			for y in range(2, 12):
-				for x in range(3, 17): img.set_pixel(x, y, c)
-			for y in range(12, 19):
-				var margin = y - 11
-				for x in range(3 + margin, 17 - margin):
-					img.set_pixel(x, y, c)
-		ItemData.Type.AMMO:
-			var c = item.color
-			for y in range(9, 18):
-				for x in range(7, 13): img.set_pixel(x, y, c)
-			for y in range(3, 9):
-				var shrink = 9 - y
-				for x in range(7 + shrink / 2, 13 - shrink / 2):
-					img.set_pixel(x, y, c)
-			for x in range(6, 14): img.set_pixel(x, 17, c); img.set_pixel(x, 18, c)
-		ItemData.Type.WEAPON:
-			var c = item.color
-			for x in range(1, 15):
-				img.set_pixel(x, 8, c); img.set_pixel(x, 9, c)
-			for x in range(14, 19):
-				for y in range(8, 13): img.set_pixel(x, y, c)
-			for x in range(5, 9):
-				for y in range(9, 17): img.set_pixel(x, y, c)
-	return ImageTexture.create_from_image(img)
 
 func collect(collector: Entity) -> bool:
 	if not item: return false

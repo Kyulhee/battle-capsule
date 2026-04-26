@@ -5,6 +5,33 @@
 
 ---
 
+## v0.7.2 — 2026-04-26
+
+**HUD 스탯 아이콘 → Unicode 심볼 교체 + 픽업 비주얼 정리**
+
+**Player.gd**
+
+- `_stat_pair()`: `TextureRect` 픽셀 아트 아이콘 → `Label` Unicode 심볼로 교체. 아이콘별 형태가 명확히 구분됨.
+  - ♥ 빨강 (heal), ◆ 금색 (medkit), ★ 노랑 (kill), ◇ 주황 (assist), ● 회색 (alive)
+- `_make_stat_icon()` 함수 제거 (~37줄).
+
+**Pickup.gd**
+
+- `Sprite3D` 아이콘 빌보드 제거 — mesh + 텍스트 label 두 레이어로 정리 (기존 3레이어 → 2레이어).
+- `_make_pickup_icon()` 함수 제거 (~45줄).
+- 메시 형태 교체: HEAL `BoxMesh` → `CapsuleMesh`(알약), ARMOR `BoxMesh` → `CylinderMesh` 평원판(방패 대용).
+- Label3D 텍스트에 Unicode 접두사 추가 (♥ heal, ◆ medkit, ◈ armor, ● ammo).
+- 탄약 표시 `\n+%d` → `" +%d"` (줄바꿈 제거).
+
+**헤드리스 시뮬레이션 결과**
+
+```
+run 1: duration: 44s   zone_stage: 2  recover: 1/7 (14%)
+run 2: duration: 101s  zone_stage: 4  recover: 3/6 (50%)  disengage: 16  attack_max: 11.1s
+```
+
+---
+
 ## v0.7.1 — 2026-04-26
 
 **Assist 버그 수정 + 아이템 픽셀 아이콘 시스템**

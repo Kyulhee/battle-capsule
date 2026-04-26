@@ -173,13 +173,13 @@ func _ready():
 	var stat_row = HBoxContainer.new()
 	stat_row.add_theme_constant_override("separation", 4)
 	hud_a.add_child(stat_row)
-	_stat_heal_val  = _stat_pair(stat_row, "heal",   Color(0.95, 0.2,  0.2 ))
-	_stat_mk_val    = _stat_pair(stat_row, "medkit", Color(1.0,  0.85, 0.1 ))
-	var sp1 = Label.new(); sp1.text = " "; stat_row.add_child(sp1)
-	_stat_kill_val  = _stat_pair(stat_row, "kill",   Color(1.0,  0.92, 0.15))
-	_stat_asst_val  = _stat_pair(stat_row, "assist", Color(1.0,  0.6,  0.2 ))
-	var sp2 = Label.new(); sp2.text = " "; stat_row.add_child(sp2)
-	_stat_alive_val = _stat_pair(stat_row, "alive",  Color(0.72, 0.72, 0.72))
+	_stat_heal_val  = _stat_pair(stat_row, "♥", Color(0.95, 0.25, 0.25))
+	_stat_mk_val    = _stat_pair(stat_row, "◆", Color(1.0,  0.85, 0.1 ))
+	var sp1 = Label.new(); sp1.text = "  "; stat_row.add_child(sp1)
+	_stat_kill_val  = _stat_pair(stat_row, "★", Color(1.0,  0.92, 0.15))
+	_stat_asst_val  = _stat_pair(stat_row, "◇", Color(1.0,  0.6,  0.2 ))
+	var sp2 = Label.new(); sp2.text = "  "; stat_row.add_child(sp2)
+	_stat_alive_val = _stat_pair(stat_row, "●", Color(0.72, 0.72, 0.72))
 
 	# Slot bar (bottom-center): 5 boxes — 0=knife, 1-4=weapons
 	var slot_bar = HBoxContainer.new()
@@ -473,59 +473,21 @@ func _update_status_hud(alive: int):
 	if _stat_asst_val:  _stat_asst_val.text  = "%d" % assists
 	if _stat_alive_val: _stat_alive_val.text = "×%d" % alive
 
-func _stat_pair(container: HBoxContainer, icon_type: String, col: Color) -> Label:
-	var icon = TextureRect.new()
-	icon.texture = _make_stat_icon(icon_type)
-	icon.custom_minimum_size = Vector2(14, 14)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	container.add_child(icon)
-	var lbl = Label.new()
-	lbl.add_theme_font_size_override("font_size", 13)
-	lbl.add_theme_color_override("font_color", col)
-	lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	lbl.add_theme_constant_override("outline_size", 5)
-	container.add_child(lbl)
-	return lbl
-
-func _make_stat_icon(type: String) -> ImageTexture:
-	var W := 14; var H := 14
-	var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	match type:
-		"heal":
-			var c = Color(0.95, 0.2, 0.2)
-			for x in range(1, 13): img.set_pixel(x, 6, c); img.set_pixel(x, 7, c)
-			for y in range(1, 13): img.set_pixel(6, y, c); img.set_pixel(7, y, c)
-		"medkit":
-			var c = Color(1.0, 0.85, 0.1)
-			for x in range(1, 13): img.set_pixel(x, 6, c); img.set_pixel(x, 7, c)
-			for y in range(1, 13): img.set_pixel(6, y, c); img.set_pixel(7, y, c)
-		"kill":
-			var c = Color(1.0, 0.92, 0.15)
-			for y in range(14):
-				var half = min(y + 1, 14 - y)
-				for x in range(7 - half, 7 + half):
-					if x >= 0 and x < 14: img.set_pixel(x, y, c)
-		"assist":
-			var c = Color(1.0, 0.6, 0.2)
-			for y in range(14):
-				var half = min(y + 1, 14 - y)
-				var left = 7 - half; var right = 7 + half - 1
-				if left >= 0:  img.set_pixel(left,  y, c)
-				if right < 14: img.set_pixel(right, y, c)
-				if y == 0 or y == 13:
-					for x in range(max(0, left), min(14, right + 1)):
-						img.set_pixel(x, y, c)
-		"alive":
-			var c = Color(0.72, 0.72, 0.72)
-			for y in range(14):
-				for x in range(14):
-					var dx = x - 6.5; var dy = y - 6.5
-					if dx * dx + dy * dy <= 20.25:
-						img.set_pixel(x, y, c)
-	return ImageTexture.create_from_image(img)
+func _stat_pair(container: HBoxContainer, symbol: String, col: Color) -> Label:
+	var sym = Label.new()
+	sym.text = symbol
+	sym.add_theme_font_size_override("font_size", 15)
+	sym.add_theme_color_override("font_color", col)
+	sym.add_theme_color_override("font_outline_color", Color.BLACK)
+	sym.add_theme_constant_override("outline_size", 6)
+	container.add_child(sym)
+	var val = Label.new()
+	val.add_theme_font_size_override("font_size", 13)
+	val.add_theme_color_override("font_color", col)
+	val.add_theme_color_override("font_outline_color", Color.BLACK)
+	val.add_theme_constant_override("outline_size", 5)
+	container.add_child(val)
+	return val
 
 # ── Slot system ──────────────────────────────────────────────────────────
 
