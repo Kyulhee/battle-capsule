@@ -34,6 +34,7 @@ func generate_world(spec: Resource):
 			var obs = obstacle_scene.instantiate()
 			obs_container.add_child(obs)
 			obs.add_to_group("occluder")
+			obs.add_to_group("obstacles")
 			obs.global_position = Vector3(pos[0], 0, pos[1])
 			obs.rotation_degrees.y = rot_deg
 			obs.scale = Vector3(scale_vec[0], scale_vec[1], scale_vec[2])
@@ -99,6 +100,7 @@ func _build_rock_cluster(parent: Node3D, pos: Array, scale_vec: Array):
 	root.name = "RockCluster_%d_%d" % [int(pos[0]), int(pos[1])]
 	parent.add_child(root)
 	root.position = Vector3(pos[0], 0, pos[1])
+	root.add_to_group("obstacles")
 
 	# Center piece — tallest
 	_add_rock_piece(root, Vector3(0, 0, 0), Vector3(1.3, base_height, 1.3), rng, col_layer)

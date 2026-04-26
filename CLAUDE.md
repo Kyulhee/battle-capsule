@@ -10,9 +10,9 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v0.5.1 (쉴드 너프, 드랍 분리, 힐 2단계, 킬 집계 수정, 벽 투명화 수정) |
-| 다음 버전 | v0.6 — 전술 의식 (outnumbered 감지, DISENGAGE 상태, 실제 엄폐물 탐색) |
-| 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
+| 완료 버전 | v0.6.0 (전술 의식: DISENGAGE 상태, 수적 열세 감지, 커버 탐색) |
+| 다음 버전 | v0.7 — 미정 |
+| 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해), stuck 빈도 상승 (DISENGAGE 커버 이동) |
 
 ---
 

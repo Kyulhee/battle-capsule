@@ -8,7 +8,7 @@ const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
 const MELEE_RANGE: float  = 1.8
 const MELEE_DAMAGE: float = 20.0
 
-enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER }
+enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
 var target_actor: Node3D = null
 
@@ -32,6 +32,8 @@ var reserve_ammo: int = 0
 var _recovering: bool = false
 # True when bot decided to rush with knife instead of retreating to RECOVER
 var _knife_mode: bool = false
+# Cover target used in DISENGAGE state
+var _disengage_cover: Vector3 = Vector3.ZERO
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -74,6 +76,7 @@ func _physics_process(delta):
 		State.ATTACK:      handle_attack_state(delta)
 		State.ZONE_ESCAPE: handle_zone_escape_state(delta)
 		State.RECOVER:     handle_recover_state(delta)
+		State.DISENGAGE:   handle_disengage_state(delta)
 
 	super._physics_process(delta)
 
@@ -112,7 +115,7 @@ func _update_stuck(delta):
 		_stuck_override_timer -= delta
 		return
 
-	var is_moving_state = current_state in [State.CHASE, State.RECOVER, State.ZONE_ESCAPE]
+	var is_moving_state = current_state in [State.CHASE, State.RECOVER, State.ZONE_ESCAPE, State.DISENGAGE]
 	if not is_moving_state:
 		_stuck_timer = 0.0
 		return
@@ -226,6 +229,13 @@ func handle_attack_state(delta):
 			_bot_melee()
 		return
 
+	# Outnumbered: 2+ enemies visible simultaneously → retreat to cover
+	if not _knife_mode and _count_visible_enemies() >= 2:
+		if has_node("/root/Telemetry"):
+			get_node("/root/Telemetry").log_tactics("disengage_triggered")
+		change_state(State.DISENGAGE)
+		return
+
 	if stats.current_ammo <= 0:
 		var hp_ratio = current_health / stats.max_health
 		var dist_to_t = global_position.distance_to(target_actor.global_position)
@@ -336,6 +346,84 @@ func handle_zone_escape_state(delta):
 	_move_or_unstick(dir, delta, true)
 	if global_position.distance_to(target_pos) < main.current_zone_radius * 0.75:
 		change_state(State.IDLE)
+
+func handle_disengage_state(delta):
+	# Return to action if threat count drops
+	if _count_visible_enemies() <= 1 and state_timer > 2.0:
+		target_actor = _find_nearest_target()
+		if target_actor:
+			change_state(State.CHASE)
+		else:
+			change_state(State.IDLE)
+		return
+
+	# No ammo while disengaging — recover instead
+	if stats.current_ammo <= 0 and reserve_ammo <= 0:
+		change_state(State.RECOVER); return
+
+	# Timeout safety valve
+	if state_timer > 8.0:
+		change_state(State.IDLE); return
+
+	# Zone override still applies
+	var main = get_tree().root.get_node_or_null("Main")
+	if main:
+		var zone_dist = Vector2(global_position.x, global_position.z).distance_to(main.current_zone_center)
+		if zone_dist > main.current_zone_radius:
+			change_state(State.ZONE_ESCAPE); return
+
+	# Find and move toward cover
+	var nearest_threat = _find_nearest_target()
+	if not nearest_threat: change_state(State.IDLE); return
+
+	if _disengage_cover == Vector3.ZERO or global_position.distance_to(_disengage_cover) < 2.0:
+		_disengage_cover = _find_cover_point(nearest_threat.global_position)
+
+	if _disengage_cover != Vector3.ZERO:
+		var dir = (_disengage_cover - global_position).normalized()
+		dir.y = 0
+		_move_or_unstick(dir, delta, true)
+	else:
+		# No cover found — fall back on scatter direction
+		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, true)
+
+# ─── OUTNUMBERED / COVER ─────────────────────────────────────────────────────
+
+func _count_visible_enemies() -> int:
+	var count = 0
+	for target in perception_meters:
+		if not is_instance_valid(target): continue
+		if target is Entity and not target.is_dead and perception_meters[target] >= 1.0:
+			count += 1
+	return count
+
+func _find_cover_point(threat_pos: Vector3) -> Vector3:
+	var obstacles = get_tree().get_nodes_in_group("obstacles")
+	var best_pos = Vector3.ZERO
+	var best_score = INF
+	var my_dist_to_threat = global_position.distance_to(threat_pos)
+
+	for obs in obstacles:
+		if not is_instance_valid(obs): continue
+		var obs_pos = Vector3(obs.global_position.x, global_position.y, obs.global_position.z)
+		var dist_to_obs = global_position.distance_to(obs_pos)
+		if dist_to_obs > 20.0 or dist_to_obs < 0.5: continue
+
+		# Cover point is on the far side of the obstacle from the threat
+		var threat_to_obs = (obs_pos - threat_pos).normalized()
+		threat_to_obs.y = 0
+		var cover = obs_pos + threat_to_obs * 2.0
+		cover.y = global_position.y
+
+		# Only useful if it puts more distance between us and threat
+		if cover.distance_to(threat_pos) <= my_dist_to_threat: continue
+
+		# Prefer obstacles closer to the bot (quicker to reach)
+		if dist_to_obs < best_score:
+			best_score = dist_to_obs
+			best_pos = cover
+
+	return best_pos
 
 func _check_state_overrides(_delta):
 	var main = get_tree().root.get_node_or_null("Main")
@@ -593,3 +681,5 @@ func change_state(new_state: State):
 		recovery_substate = "seek_cover"
 		recovery_timer = 0.0
 		patrol_target = Vector3.ZERO
+	if new_state == State.DISENGAGE:
+		_disengage_cover = Vector3.ZERO

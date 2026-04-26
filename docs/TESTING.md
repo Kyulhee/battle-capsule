@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-04-24 (v0.4 기준)
+> 마지막 업데이트: 2026-04-26 (v0.6 기준)
 
 ---
 
@@ -62,6 +62,7 @@ Godot 헤드리스 모드로 게임을 자동 실행하면 `Telemetry.gd`가 지
 | `stuck_triggered` | stuck 우회 발동 횟수 | > 0이지만 과도하면 맵/이동 문제 |
 | `patrol_entered` | 루팅 못 찾고 patrol로 전환된 횟수 | 아이템이 충분하면 낮아야 함 |
 | `weapon_drop_spawned` | 봇 사망 시 무기 드롭 생성 수 | 봇 사망 수와 유사해야 함 |
+| `disengage_triggered` | 수적 열세(2+ 적) 감지 후 DISENGAGE 진입 횟수 | > 0이면 정상 동작, 0이면 outnumbered 감지 실패 |
 
 ### `economy`
 
@@ -106,6 +107,7 @@ Telemetry.set_groups({
 - [ ] `patrol_entered` < `recover_bouts` → 패트롤은 마지막 수단으로만 사용
 - [ ] `attack_max_continuous` < 20.0 → 봇이 ATTACK에 갇히지 않음
 - [ ] `weapon_drop_spawned` ≈ 봇 사망 수 (11 - alive_count) → 드롭 정상 작동
+- [ ] `disengage_triggered` > 0 → 수적 열세 감지 및 DISENGAGE 상태 작동
 
 ### 무기 밸런스 검증
 

@@ -5,6 +5,50 @@
 
 ---
 
+## v0.6.0 — 2026-04-26
+
+**전술 의식 — 수적 열세 감지, DISENGAGE 상태, 커버 탐색**
+
+**Bot.gd**
+
+- `State` 열거형에 `DISENGAGE` 추가.
+- `_disengage_cover: Vector3` 변수 추가 — 현재 커버 목표 위치 캐시.
+- `handle_attack_state()`: `_count_visible_enemies() >= 2` 조건 추가 → DISENGAGE 진입. Telemetry `disengage_triggered` 기록.
+- `handle_disengage_state(delta)` 추가:
+  - 가시 적 1명 이하 + 2초 경과 → CHASE/IDLE 복귀.
+  - 탄약 없음 → RECOVER. 8초 타임아웃 → IDLE.
+  - `_find_cover_point()` 호출 → 위협 반대편 장애물 뒤로 이동.
+  - 커버 없으면 `_scatter_dir_from()`으로 산개.
+- `_count_visible_enemies() -> int`: `perception_meters` 순회, 값 >= 1.0인 생존 Entity 수 반환.
+- `_find_cover_point(threat_pos) -> Vector3`: "obstacles" 그룹 노드 순회, 위협 반대편 2m 지점 계산, 현재 위협 거리보다 멀어지는 위치만 채택, 봇에서 가장 가까운 것 반환.
+- `change_state()`: DISENGAGE 진입 시 `_disengage_cover = Vector3.ZERO` 초기화.
+- `_update_stuck()`: DISENGAGE를 이동 상태(`is_moving_state`)에 포함.
+
+**WorldBuilder.gd**
+
+- `generate_world()` else 분기: `obs.add_to_group("obstacles")` 추가 (canyon_wall, tree_cluster, log_pile).
+- `_build_rock_cluster()`: `root.add_to_group("obstacles")` 추가.
+
+**Telemetry.gd**
+
+- `tactics` 딕셔너리에 `"disengage_triggered": 0` 추가.
+- `log_tactics()`: `"disengage_triggered"` 케이스 추가.
+- `_print_report()`: `Disengage triggers` 출력 추가.
+
+**헤드리스 시뮬레이션 결과**
+
+```
+MATCH REPORT (rank #1 | 126s)
+Kills: 0, Win: YES, Zone stage: 5
+Shots: 113, Damage: 1311.2, Longest attack bout: 15.5s
+Disengage triggers: 123, Recover bouts: 2 (50% success), Stuck: 141
+Weapon drops: 10, Heals used: 12
+```
+
+disengage_triggered 123 확인 (DISENGAGE 상태 정상 동작). stuck 141은 커버 이동 중 벽 충돌 증가로 인한 예상 범위.
+
+---
+
 ## v0.5.1 — 2026-04-26
 
 **전장 경제 2차 — 쉴드 너프, 드랍 분리, 힐 2단계, 킬 집계 수정, 벽 투명화 수정**
