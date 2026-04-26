@@ -5,6 +5,45 @@
 
 ---
 
+## v0.7.1 — 2026-04-26
+
+**Assist 버그 수정 + 아이템 픽셀 아이콘 시스템**
+
+**Entity.gd**
+
+- `die()` 내 어시스트 로깅: `log_combat_audit("assists", 1)` → `tel.metrics.session.assists += 1`. combat 그룹 게이트 제거 — 어시스트는 항상 session 레벨로 집계.
+
+**Main.gd**
+
+- `_on_bot_died()`: 킬피드 어시스트 판단에 `ASSIST_WINDOW_MS` 시간 창 체크 추가. 기존에는 `damage_history` 존재 여부만 체크해 5초 창 만료 후에도 "ASSIST" 표시됐음.
+
+**Pickup.gd**
+
+- `_update_visuals()`: 아이템 위 `Sprite3D` 아이콘 빌보드 추가. `pixel_size=0.028`, `TEXTURE_FILTER_NEAREST`.
+- `_make_pickup_icon()` 추가: 아이템 타입별 20×20 픽셀 아트 생성.
+  - HEAL: 빨간 십자가 / RARE(MedKit): 황금 십자가
+  - ARMOR: 방패 형태 (상단 직사각형 + 하단 역삼각형)
+  - AMMO: 총알 실루엣 (원뿔 머리 + 원통 몸체)
+  - WEAPON: 총 실루엣 (손잡이 + 총신)
+
+**Player.gd**
+
+- HUD A구역 3행(스탯): 단일 `Label` → `HBoxContainer` + `[TextureRect 아이콘, Label 수치]` 쌍.
+- `_stat_pair()` 헬퍼: 아이콘+수치 쌍을 컨테이너에 추가하고 수치 `Label` 반환.
+- `_make_stat_icon()` 추가: 14×14 픽셀 아트.
+  - heal: 빨간 십자가, medkit: 황금 십자가
+  - kill: 노란 다이아몬드, assist: 주황 다이아몬드 테두리
+  - alive: 회색 원
+- 수치 레이블 5개 분리: `_stat_heal_val`, `_stat_mk_val`, `_stat_kill_val`, `_stat_asst_val`, `_stat_alive_val`.
+
+**헤드리스 시뮬레이션 결과**
+
+```
+duration: 101s  zone_stage: 4  disengage: 15  stuck: 40  attack_max: 11.1s  recover: 1/7 (14%)
+```
+
+---
+
 ## v0.7.0 — 2026-04-26
 
 **HUD 재설계 — ProgressBar 기반 HP/SH 상태바 + 킬피드 개선**

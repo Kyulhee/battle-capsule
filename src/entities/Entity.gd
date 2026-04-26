@@ -175,7 +175,7 @@ func die(killer: Node3D = null):
 			if is_instance_valid(attacker) and attacker != killer:
 				if now - damage_history[attacker] <= ASSIST_WINDOW_MS:
 					if attacker.is_in_group("players"):
-						tel.log_combat_audit("assists", 1)
+						tel.metrics.session.assists += 1
 	
 	if has_node("/root/Sfx"): get_node("/root/Sfx").play("death", global_position)
 	var eff = DEATH_EFFECT.instantiate()
