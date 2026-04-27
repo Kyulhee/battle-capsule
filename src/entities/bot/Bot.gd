@@ -42,6 +42,9 @@ var _stuck_timer: float = 0.0
 var _stuck_override_dir: Vector3 = Vector3.ZERO
 var _stuck_override_timer: float = 0.0
 
+# Zone tracking
+var _zone_outside_timer: float = 0.0  # continuous seconds spent outside zone
+
 const DEBUG_PRINT = false
 
 # ─── PERSONALITY ─────────────────────────────────────────────────────────────
@@ -64,11 +67,17 @@ func _ready():
 	super._ready()
 	add_to_group("bots")
 	_apply_personality([Personality.AGGRESSIVE, Personality.DEFENSIVE, Personality.SCAVENGER][randi() % 3])
+	died.connect(_on_died_zone_log)
 	await get_tree().create_timer(randf_range(0.05, 0.2)).timeout
 	if ray_cast:
 		ray_cast.enabled = true
 		ray_cast.add_exception(self)
 		ray_cast.collision_mask = 2 | 8
+
+func _on_died_zone_log():
+	if _zone_outside_timer > 0.5 and has_node("/root/Telemetry"):
+		var state_name = State.keys()[current_state]
+		get_node("/root/Telemetry").log_zone_death(state_name, _zone_outside_timer)
 
 func _physics_process(delta):
 	if is_dead: return
@@ -373,11 +382,38 @@ func handle_recover_state(delta):
 func handle_zone_escape_state(delta):
 	var main = get_tree().root.get_node_or_null("Main")
 	if not main: change_state(State.IDLE); return
-	var target_pos = Vector3(main.current_zone_center.x, global_position.y, main.current_zone_center.y)
-	var dir = (target_pos - global_position).normalized()
-	_move_or_unstick(dir, delta, true)
-	if global_position.distance_to(target_pos) < main.current_zone_radius * 0.75:
+	var zone_c = main.current_zone_center
+	var self_2d = Vector2(global_position.x, global_position.z)
+	if self_2d.distance_to(zone_c) < main.current_zone_radius * 0.75:
 		change_state(State.IDLE)
+		return
+	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
+	# When standard unstick is active, try zone-directed angular sampling instead of
+	# perpendicular escape (perpendicular can push bot sideways along the wall, away from center)
+	var dir = to_center
+	if _stuck_override_timer > 0.0:
+		dir = _sample_zone_escape_dir(zone_c)
+	_move_or_unstick(dir, delta, true)
+
+func _sample_zone_escape_dir(zone_c: Vector2) -> Vector3:
+	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
+	# Try 5 angles (−60°, −30°, 0°, +30°, +60°) relative to zone-center direction.
+	# Use instance-unique offset so nearby stuck bots fan out rather than all picking the same angle.
+	var base_offset = ((get_instance_id() % 5) - 2) * deg_to_rad(30.0)
+	var best_dir = to_center
+	var best_dot = -1.0
+	for i in range(5):
+		var angle = base_offset + (i - 2) * deg_to_rad(30.0)
+		var candidate = Vector3(
+			to_center.x * cos(angle) - to_center.z * sin(angle),
+			0,
+			to_center.x * sin(angle) + to_center.z * cos(angle)
+		).normalized()
+		var dot = candidate.dot(to_center)
+		if dot > best_dot:
+			best_dot = dot
+			best_dir = candidate
+	return best_dir
 
 func handle_disengage_state(delta):
 	# Return to action if threat count drops
@@ -549,12 +585,16 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 
 	return best_pos
 
-func _check_state_overrides(_delta):
+func _check_state_overrides(delta):
 	var main = get_tree().root.get_node_or_null("Main")
 	if not main: return
 	var dist = Vector2(global_position.x, global_position.z).distance_to(main.current_zone_center)
-	if dist > main.current_zone_radius and current_state != State.ZONE_ESCAPE:
-		change_state(State.ZONE_ESCAPE)
+	if dist > main.current_zone_radius * 0.95:
+		_zone_outside_timer += delta
+		if current_state != State.ZONE_ESCAPE:
+			change_state(State.ZONE_ESCAPE)
+	else:
+		_zone_outside_timer = 0.0
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 

@@ -19,6 +19,7 @@ var enabled_groups: Dictionary = {
 	"tactics": true,
 	"economy": true,
 	"supply":  true,
+	"zone":    true,
 }
 
 func set_groups(overrides: Dictionary):
@@ -94,6 +95,12 @@ func _reset_metrics():
 			"contests": 0,
 			"telegraphed": false,
 		},
+		# zone
+		"zone": {
+			"zone_deaths": 0,
+			"zone_deaths_by_state": {},
+			"max_outside_time": 0.0,
+		},
 	}
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -141,6 +148,14 @@ func log_death(cause: String, _state: String = ""):
 	if cause == "RECOVER":
 		if _g("tactics"):
 			metrics.tactics.died_in_recover += 1
+
+func log_zone_death(state_at_death: String, time_outside: float):
+	if not match_in_progress or not _g("zone"): return
+	metrics.zone.zone_deaths += 1
+	var key = state_at_death
+	metrics.zone.zone_deaths_by_state[key] = metrics.zone.zone_deaths_by_state.get(key, 0) + 1
+	if time_outside > metrics.zone.max_outside_time:
+		metrics.zone.max_outside_time = time_outside
 
 func log_damage(amount: float, source: String, weapon_type: String, _dist: float):
 	if not match_in_progress or not _g("combat"): return
@@ -259,6 +274,7 @@ func _save_sim_result():
 	if _g("core"):    out["core"]    = metrics.core.duplicate(true)
 	if _g("combat"):  out["combat"]  = metrics.combat.duplicate(true)
 	if _g("tactics"): out["tactics"] = metrics.tactics.duplicate(true)
+	if _g("zone"):    out["zone"]    = metrics.zone.duplicate(true)
 	if _g("economy"): out["economy"] = metrics.economy.duplicate(true)
 	if _g("supply"):  out["supply"]  = metrics.supply.duplicate(true)
 	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)

@@ -584,12 +584,16 @@ func _print_bot_state_snapshot():
 	var names = ["IDLE", "CHASE", "ATTACK", "ZONE_ESCAPE", "RECOVER", "DISENGAGE"]
 	var counts = {}
 	var positions: Array = []
+	var outside_zone = 0
 	for b in get_tree().get_nodes_in_group("actors"):
 		if b.is_in_group("players") or not b.has_method("handle_idle_state"): continue
 		if b.is_dead: continue
 		var s = names[b.current_state] if b.current_state < names.size() else str(b.current_state)
 		counts[s] = counts.get(s, 0) + 1
 		positions.append(Vector2(b.global_position.x, b.global_position.z))
+		var b2d = Vector2(b.global_position.x, b.global_position.z)
+		if b2d.distance_to(current_zone_center) > current_zone_radius:
+			outside_zone += 1
 	# Compute pairwise distance average to measure clustering
 	var avg_dist = 0.0
 	var pairs = 0
@@ -598,8 +602,8 @@ func _print_bot_state_snapshot():
 			avg_dist += positions[i].distance_to(positions[j])
 			pairs += 1
 	if pairs > 0: avg_dist /= pairs
-	print("[BOT_SNAPSHOT] zone_stage=%d  states=%s  avg_pairwise_dist=%.1fm  alive=%d" % [
-		zone_stage, str(counts), avg_dist, positions.size()
+	print("[BOT_SNAPSHOT] zone_stage=%d  states=%s  outside_zone=%d  avg_pairwise_dist=%.1fm  alive=%d" % [
+		zone_stage, str(counts), outside_zone, avg_dist, positions.size()
 	])
 
 func handle_damage_tick(delta):
