@@ -5,6 +5,37 @@
 
 ---
 
+## v0.8.2 — 2026-04-27
+
+**Zone escape 강화 + Zone death 텔레메트리**
+
+**Bot.gd**
+
+- `_zone_outside_timer` 변수 추가: 봇이 zone 밖에 머문 연속 시간 추적.
+- `_check_state_overrides()`: 경계의 정확한 외부 감지 → `radius * 0.95` 초과 시 조기 ZONE_ESCAPE 전환으로 변경. zone 밖이면 타이머 누적, 안이면 리셋.
+- `handle_zone_escape_state()`: stuck 중에 일반 `_move_or_unstick`(수직 방향) 대신 `_sample_zone_escape_dir()`로 zone 방향 각도 탐색 사용.
+- `_sample_zone_escape_dir()`: zone center 방향 기준 ±30°~±60° 5개 후보 중 zone center에 가장 가까운 방향 선택. 인스턴스별 기본 오프셋 적용으로 인접 봇끼리 분산.
+- `_on_died_zone_log()`: `died` 시그널에 연결. `_zone_outside_timer > 0.5`이면 `log_zone_death(state_name, time_outside)` 기록.
+
+**Telemetry.gd**
+
+- `"zone"` 그룹 추가 (enabled_groups + metrics 초기화 + _save_sim_result 출력 포함).
+- `log_zone_death(state_at_death, time_outside)`: zone 밖 사망 수, 상태별 분류, 최대 외부 체류 시간 기록.
+
+**Main.gd**
+
+- `_print_bot_state_snapshot()`: `outside_zone` 카운트 추가 — stage 전환 시 zone 밖 봇 수 출력.
+
+**헤드리스 시뮬레이션 결과**
+
+```
+run 1: duration=82s  zone_stage=3  zone_deaths=0  stuck=14  outside_zone(snapshot)=0
+run 2: duration=48s  zone_stage=2  zone_deaths=0  stuck=5   outside_zone(snapshot)=0
+run 3: duration=43s  zone_stage=2  zone_deaths=0  stuck=5   outside_zone(snapshot)=0
+```
+
+---
+
 ## v0.8.1 — 2026-04-27
 
 **전체 메뉴 UI 재설계 + HUD 아이콘 + 난이도 버튼 색상**
