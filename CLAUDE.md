@@ -10,8 +10,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v0.9.1 (Zone escape stuck 버그 수정, 스테이지별 조기 진입 임계값) |
-| 다음 버전 | v0.9.2 — Hell Difficulty Prototype |
+| 완료 버전 | v0.9.2 (Hell Difficulty — HP 1 시작, 힐 감소, 암전 + 폭격) |
+| 다음 버전 | v0.9.3 — 미정 |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 
 ---

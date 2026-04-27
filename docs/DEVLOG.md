@@ -5,6 +5,37 @@
 
 ---
 
+## v0.9.2 — 2026-04-27
+
+**Hell Difficulty — HP 1 시작, 힐 감소, 암전 + 폭격 이벤트**
+
+**Main.gd**
+
+- `enum Difficulty` 에 `HELL = 3` 추가. `DIFFICULTY_PARAMS[3]`: vision_mult 1.5, reaction_delay 0, aim_spread 0.5, loot_break_mult 2.0.
+- 난이도 선택 UI: 버튼 4개("쉬움"/"보통"/"어려움"/"지옥"), 지옥 버튼 색상 보라(0.75, 0.1, 1.0).
+- `spawn_entities()`: HELL이면 플레이어 HP를 1로 강제 설정 후 `health_changed` 방출.
+- `start_game()`: HELL + 비시뮬레이션이면 blackout/bomb 타이머 초기화, `_create_hell_overlay()` + `_show_hell_announcement()` 실행.
+- `_process()`: `_process_hell_events(delta)` 호출 추가.
+- `_create_hell_overlay()`: 전화면 ColorRect(z_index 10, α=0) 생성.
+- `_show_hell_announcement()`: "HELL MODE / HP 1 START / HEALING REDUCED / BLACKOUTS & BOMBARDMENTS / SURVIVE IF YOU CAN" 패널, 4.5초 후 fade-out.
+- `_process_hell_events(delta)`: blackout·bomb 타이머 tick.
+- `_trigger_blackout()`: Tween으로 페이드인(0.3s)→홀드(2–4s)→페이드아웃(0.5s); 완료 콜백에서 타이머 리셋(15–28s). Telemetry `"blackout"` 기록.
+- `_start_bombardment()`: 존 반경 85% 내 랜덤 위치에 경고 디스크(CylinderMesh r=5, 빨강), 1.5s 딜레이 후 범위 내 엔티티에 45 데미지. Telemetry `"bombardment_warned"` / `"bombardment_hit"` 기록.
+- `_show_event_text(msg, col)`: 화면 상단 중앙 이벤트 텍스트, 1.5s 후 fade-out.
+
+**Player.gd**
+
+- `handle_healing()`: HELL이면 힐량 감소 — advanced_heal 60→33 HP (×0.55), 일반 heal regen 30→12 HP (×0.40).
+
+**Telemetry.gd**
+
+- `"hell"` 그룹 추가 (`enabled_groups` 기본 true).
+- 지표: `blackout_count`, `bombardment_warned_count`, `bombardment_hit_count`.
+- `log_hell_event(event)` 함수 추가.
+- `_save_sim_result()` + `_print_report()` 에 hell 그룹 출력 추가.
+
+---
+
 ## v0.9.1 — 2026-04-27
 
 **Zone Escape 버그 수정 — stuck 탈출 로직 재설계 + 스테이지별 조기 진입**

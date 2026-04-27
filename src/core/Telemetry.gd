@@ -10,6 +10,7 @@ extends Node
 #   "tactics" — RECOVER bouts, stuck, reserve_reload, patrol, weapon_drop
 #   "economy" — heals, shields, weapon pickups, first upgrade timing
 #   "supply"  — supply capsule events
+#   "hell"    — blackout/bombardment event counts (Hell difficulty only)
 
 # ── Group toggles ─────────────────────────────────────────────────────────────
 
@@ -20,6 +21,7 @@ var enabled_groups: Dictionary = {
 	"economy": true,
 	"supply":  true,
 	"zone":    true,
+	"hell":    true,
 }
 
 func set_groups(overrides: Dictionary):
@@ -101,6 +103,12 @@ func _reset_metrics():
 			"zone_deaths_by_state": {},
 			"max_outside_time": 0.0,
 			"final_duel_deaths": [],  # deaths when exactly 2 actors remained
+		},
+		# hell
+		"hell": {
+			"blackout_count": 0,
+			"bombardment_warned_count": 0,
+			"bombardment_hit_count": 0,
 		},
 	}
 
@@ -237,6 +245,15 @@ func log_supply_event(event: String):
 		"contest":                metrics.supply.contests += 1
 		"telegraph":              metrics.supply.telegraphed = true
 
+# ── Log functions — hell ─────────────────────────────────────────────────────
+
+func log_hell_event(event: String):
+	if not match_in_progress or not _g("hell"): return
+	match event:
+		"blackout":              metrics.hell.blackout_count += 1
+		"bombardment_warned":    metrics.hell.bombardment_warned_count += 1
+		"bombardment_hit":       metrics.hell.bombardment_hit_count += 1
+
 # Weapon drops can fire on the same frame as end_match, bypassing match_in_progress.
 func log_weapon_drop():
 	if _g("tactics") and metrics.has("tactics"):
@@ -282,6 +299,7 @@ func _save_sim_result():
 	if _g("zone"):    out["zone"]    = metrics.zone.duplicate(true)
 	if _g("economy"): out["economy"] = metrics.economy.duplicate(true)
 	if _g("supply"):  out["supply"]  = metrics.supply.duplicate(true)
+	if _g("hell"):    out["hell"]    = metrics.hell.duplicate(true)
 	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(out, "\t"))
@@ -350,6 +368,13 @@ func _print_report():
 		print("── Supply ──────────────────────────────────")
 		print("  Telegraphed: %s  Visits: %d  Contests: %d" % [
 			str(metrics.supply.telegraphed), metrics.supply.visits, metrics.supply.contests
+		])
+	if _g("hell") and (metrics.hell.blackout_count > 0 or metrics.hell.bombardment_warned_count > 0):
+		print("── Hell ────────────────────────────────────")
+		print("  Blackouts: %d  Bombardments warned: %d  hit: %d" % [
+			metrics.hell.blackout_count,
+			metrics.hell.bombardment_warned_count,
+			metrics.hell.bombardment_hit_count,
 		])
 	print("=".repeat(44) + "\n")
 

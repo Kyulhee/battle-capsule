@@ -8,12 +8,13 @@ var is_simulation: bool = false
 enum GameState { MENU, PLAYING, RESULT }
 var current_state: GameState = GameState.MENU
 
-enum Difficulty { EASY, NORMAL, HARD }
+enum Difficulty { EASY, NORMAL, HARD, HELL }
 var difficulty: Difficulty = Difficulty.NORMAL
 const DIFFICULTY_PARAMS = {
 	0: { "vision_mult": 0.75, "reaction_delay": 1.2, "aim_spread": 1.8,  "loot_break_mult": 0.0 },
 	1: { "vision_mult": 1.0,  "reaction_delay": 0.5, "aim_spread": 1.0,  "loot_break_mult": 1.0 },
 	2: { "vision_mult": 1.25, "reaction_delay": 0.0, "aim_spread": 0.65, "loot_break_mult": 1.5 },
+	3: { "vision_mult": 1.5,  "reaction_delay": 0.0, "aim_spread": 0.5,  "loot_break_mult": 2.0 },
 }
 var _diff_btns: Array = []
 var _diff_tooltip: PanelContainer = null
@@ -22,7 +23,14 @@ const DIFF_DESCRIPTIONS = [
 	"봇 시야 75%  ·  반응 느림  ·  조준 부정확\n배틀로얄 첫 입문에 추천.",
 	"표준 봇 성능  ·  균형 잡힌 전투.",
 	"봇 시야 125%  ·  즉각 반응  ·  정밀 조준\n극한의 도전.",
+	"HP 1 시작  ·  힐 감소  ·  암전 + 폭격\n살아남을 수 있다면.",
 ]
+
+# Hell events
+var _hell_blackout_timer: float = 0.0
+var _hell_blackout_active: bool = false
+var _hell_bomb_timer: float = 0.0
+var _hell_overlay: ColorRect = null
 
 @export_group("Loot")
 @export var railgun_item: ItemData = preload("res://src/items/weapon_railgun.tres")
@@ -150,10 +158,10 @@ func _ready():
 	vbox.add_child(diff_hbox)
 	vbox.move_child(diff_hbox, start_idx + 1)
 
-	for i in range(3):
+	for i in range(4):
 		var btn = Button.new()
-		btn.text = ["쉬움", "보통", "어려움"][i]
-		btn.custom_minimum_size = Vector2(72, 0)
+		btn.text = ["쉬움", "보통", "어려움", "지옥"][i]
+		btn.custom_minimum_size = Vector2(68, 0)
 		btn.add_theme_font_size_override("font_size", 14)
 		btn.pressed.connect(_on_difficulty_btn.bind(i))
 		diff_hbox.add_child(btn)
@@ -222,6 +230,11 @@ func start_game():
 	_categorize_templates()
 	spawn_entities()
 	_spawn_initial_loot()
+	if difficulty == Difficulty.HELL and not is_simulation:
+		_hell_blackout_timer = randf_range(12.0, 20.0)
+		_hell_bomb_timer = 20.0
+		_create_hell_overlay()
+		_show_hell_announcement()
 	
 	# Final Minimap Sync
 	var minimap = get_node_or_null("CanvasLayer/Control/HUD/Minimap")
@@ -358,6 +371,7 @@ func _process(delta):
 	handle_zone_lifecycle(delta)
 	handle_damage_tick(delta)
 	_check_match_end()
+	_process_hell_events(delta)
 	
 	# Update Zone Visuals
 	if zone_ring:
@@ -419,7 +433,10 @@ func spawn_entities():
 	p.global_position = _get_safe_spawn_pos()
 	player_ref = p
 	p.died.connect(_on_player_died)
-	
+	if difficulty == Difficulty.HELL:
+		p.current_health = 1.0
+		p.health_changed.emit(1.0, p.stats.max_health)
+
 	# Spawn Bots
 	var diff_params = DIFFICULTY_PARAMS[difficulty]
 	for i in range(bot_count):
@@ -1041,6 +1058,149 @@ func _update_diff_highlights():
 		Color(0.3, 1.0, 0.45),   # 쉬움 — 초록
 		Color(1.0, 0.88, 0.25),  # 보통 — 노랑
 		Color(1.0, 0.35, 0.35),  # 어려움 — 빨강
+		Color(0.75, 0.1,  1.0),  # 지옥 — 보라
 	]
 	for i in range(_diff_btns.size()):
 		_diff_btns[i].modulate = DIFF_COLORS[i] if i == difficulty else Color(0.55, 0.55, 0.55)
+
+# ─── HELL EVENTS ─────────────────────────────────────────────────────────────
+
+func _create_hell_overlay():
+	_hell_overlay = ColorRect.new()
+	_hell_overlay.layout_mode = 1
+	_hell_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_hell_overlay.color = Color(0, 0, 0, 0.0)
+	_hell_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hell_overlay.z_index = 10
+	$CanvasLayer/Control.add_child(_hell_overlay)
+
+func _show_hell_announcement():
+	var panel = ColorRect.new()
+	panel.layout_mode = 1
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.offset_left = -220.0; panel.offset_right = 220.0
+	panel.offset_top  = -130.0; panel.offset_bottom = 130.0
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical   = Control.GROW_DIRECTION_BOTH
+	panel.color = Color(0.04, 0.0, 0.08, 0.92)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.z_index = 9
+
+	var vbox = VBoxContainer.new()
+	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 8)
+	panel.add_child(vbox)
+
+	for line_data in [
+		["HELL MODE",                  36, Color(0.85, 0.05, 1.0)],
+		["HP 1 START",                 20, Color(1.0,  0.3,  0.3)],
+		["HEALING REDUCED",            20, Color(1.0,  0.3,  0.3)],
+		["BLACKOUTS & BOMBARDMENTS",   18, Color(0.9,  0.5,  0.1)],
+		["SURVIVE IF YOU CAN",         18, Color(0.65, 0.65, 0.65)],
+	]:
+		var lbl = Label.new()
+		lbl.text = line_data[0]
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", line_data[1])
+		lbl.add_theme_color_override("font_color", line_data[2])
+		vbox.add_child(lbl)
+
+	$CanvasLayer/Control.add_child(panel)
+	var tw = create_tween()
+	tw.tween_interval(4.5)
+	tw.tween_property(panel, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(panel.queue_free)
+
+func _process_hell_events(delta):
+	if difficulty != Difficulty.HELL or game_over: return
+	if not _hell_blackout_active:
+		_hell_blackout_timer -= delta
+		if _hell_blackout_timer <= 0:
+			_trigger_blackout()
+	if match_timer > 10.0:
+		_hell_bomb_timer -= delta
+		if _hell_bomb_timer <= 0:
+			_hell_bomb_timer = randf_range(18.0, 28.0)
+			_start_bombardment()
+
+func _trigger_blackout():
+	if _hell_blackout_active or not is_instance_valid(_hell_overlay): return
+	_hell_blackout_active = true
+	var hold = randf_range(2.0, 4.0)
+	var tw = create_tween()
+	tw.tween_property(_hell_overlay, "color:a", 0.88, 0.3)
+	tw.tween_interval(hold)
+	tw.tween_property(_hell_overlay, "color:a", 0.0, 0.5)
+	tw.tween_callback(func():
+		_hell_blackout_active = false
+		_hell_blackout_timer = randf_range(15.0, 28.0)
+	)
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_hell_event("blackout")
+
+func _start_bombardment():
+	const BOMB_RADIUS = 5.0
+	const BOMB_DAMAGE = 45.0
+	const BOMB_DELAY  = 1.5
+
+	var angle = randf() * TAU
+	var dist  = randf() * current_zone_radius * 0.85
+	var bomb_pos = Vector3(
+		current_zone_center.x + cos(angle) * dist,
+		0.05,
+		current_zone_center.y + sin(angle) * dist
+	)
+
+	# Warning disc on ground
+	var mesh_inst = MeshInstance3D.new()
+	var cyl = CylinderMesh.new()
+	cyl.top_radius = BOMB_RADIUS; cyl.bottom_radius = BOMB_RADIUS; cyl.height = 0.12
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(1.0, 0.1, 0.1, 0.55)
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.emission_enabled = true
+	mat.emission = Color(1.0, 0.3, 0.0)
+	mat.emission_energy_multiplier = 1.2
+	cyl.surface_set_material(0, mat)
+	mesh_inst.mesh = cyl
+	add_child(mesh_inst)
+	mesh_inst.global_position = bomb_pos
+
+	_show_event_text("BOMBARDMENT INCOMING", Color(1.0, 0.35, 0.0))
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_hell_event("bombardment_warned")
+
+	get_tree().create_timer(BOMB_DELAY).timeout.connect(func():
+		if is_instance_valid(mesh_inst): mesh_inst.queue_free()
+		for actor in get_tree().get_nodes_in_group("actors"):
+			if not is_instance_valid(actor): continue
+			if actor is Entity and actor.is_dead: continue
+			if actor.global_position.distance_to(bomb_pos) <= BOMB_RADIUS:
+				actor.take_damage(BOMB_DAMAGE, "zone")
+		if is_instance_valid(_hell_overlay):
+			_hell_overlay.color = Color(0.9, 0.3, 0.0, 0.4)
+			create_tween().tween_property(_hell_overlay, "color:a", 0.0, 0.25)
+		if has_node("/root/Telemetry"):
+			get_node("/root/Telemetry").log_hell_event("bombardment_hit")
+	)
+
+func _show_event_text(msg: String, col: Color):
+	var lbl = Label.new()
+	lbl.text = msg
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 22)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
+	lbl.add_theme_constant_override("shadow_offset_x", 2)
+	lbl.add_theme_constant_override("shadow_offset_y", 2)
+	lbl.layout_mode = 1
+	lbl.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	lbl.offset_top = 80.0; lbl.offset_bottom = 120.0
+	lbl.offset_left = -200.0; lbl.offset_right = 200.0
+	lbl.z_index = 8
+	$CanvasLayer/Control.add_child(lbl)
+	var tw = create_tween()
+	tw.tween_interval(1.5)
+	tw.tween_property(lbl, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(lbl.queue_free)

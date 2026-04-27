@@ -434,16 +434,19 @@ func handle_interaction():
 
 func handle_healing():
 	if current_health >= stats.max_health: return
+	var main = get_tree().root.get_node_or_null("Main")
+	var is_hell = main != null and main.difficulty == 3
 	if stats.advanced_heals > 0:
 		stats.advanced_heals -= 1
-		current_health = min(stats.max_health, current_health + 60.0)
+		var amount = 60.0 * (0.55 if is_hell else 1.0)
+		current_health = min(stats.max_health, current_health + amount)
 		health_changed.emit(current_health, stats.max_health)
 		if Sfx: Sfx.play("heal", global_position)
 		if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 		_refresh_slot_hud()
 	elif stats.heal_items > 0:
 		stats.heal_items -= 1
-		_heal_regen += 30.0
+		_heal_regen += 30.0 * (0.40 if is_hell else 1.0)
 		if Sfx: Sfx.play("heal", global_position)
 		if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 		_refresh_slot_hud()
