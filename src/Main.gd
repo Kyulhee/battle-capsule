@@ -123,36 +123,8 @@ func _ready():
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/HelpBtn.pressed.connect(_on_help_pressed)
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/ExitBtn.pressed.connect(get_tree().quit)
 
-	# Korean subtitle below title
-	var subtitle = Label.new()
-	subtitle.text = "배틀캡슐  ·  1 vs 11  ·  최후의 1인"
-	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	subtitle.add_theme_font_size_override("font_size", 16)
-	subtitle.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
-	subtitle.add_theme_color_override("font_outline_color", Color.BLACK)
-	subtitle.add_theme_constant_override("outline_size", 4)
-	var title_node = $CanvasLayer/Control/MainMenuPanel/Title
-	subtitle.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	subtitle.position = Vector2(title_node.position.x, title_node.position.y + 68)
-	subtitle.size = title_node.size
-	$CanvasLayer/Control/MainMenuPanel.add_child(subtitle)
-
-	# Version label (bottom-right corner)
-	var ver_lbl = Label.new()
-	ver_lbl.text = "v0.8.1"
-	ver_lbl.add_theme_font_size_override("font_size", 12)
-	ver_lbl.add_theme_color_override("font_color", Color(0.45, 0.45, 0.45))
-	ver_lbl.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT)
-	ver_lbl.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	ver_lbl.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	ver_lbl.position.x -= 4
-	ver_lbl.position.y -= 4
-	$CanvasLayer/Control/MainMenuPanel.add_child(ver_lbl)
-
-	# Widen VBoxContainer to fit difficulty buttons comfortably
 	var vbox = $CanvasLayer/Control/MainMenuPanel/VBoxContainer
-	vbox.offset_left = -140.0
-	vbox.offset_right = 140.0
+	_setup_menu_visuals()
 
 	# Difficulty selector (inserted before StartBtn)
 	var start_idx = $CanvasLayer/Control/MainMenuPanel/VBoxContainer/StartBtn.get_index()
@@ -175,9 +147,11 @@ func _ready():
 		var btn = Button.new()
 		btn.text = ["쉬움", "보통", "어려움"][i]
 		btn.custom_minimum_size = Vector2(72, 0)
+		btn.add_theme_font_size_override("font_size", 14)
 		btn.pressed.connect(_on_difficulty_btn.bind(i))
 		diff_hbox.add_child(btn)
 		_diff_btns.append(btn)
+		_apply_btn_style(btn)
 	_update_diff_highlights()
 	
 	$CanvasLayer/Control/ResultPanel/Content/RestartBtn.pressed.connect(restart_game)
@@ -185,6 +159,7 @@ func _ready():
 	
 	$CanvasLayer/Control/RecordsPanel/VBox/CloseRecordsBtn.pressed.connect(func(): _show_panel("MainMenu"))
 	$CanvasLayer/Control/HelpPanel/VBox/CloseHelpBtn.pressed.connect(func(): _show_panel("MainMenu"))
+	_setup_secondary_panels()
 
 	if is_simulation:
 		start_game()
@@ -236,17 +211,71 @@ func _on_help_pressed():
 func _populate_records_list():
 	var list = $CanvasLayer/Control/RecordsPanel/VBox/Scroll/List
 	for child in list.get_children(): child.queue_free()
-	
-	if has_node("/root/Telemetry"):
-		var tel = get_node("/root/Telemetry")
-		tel.load_history()
-		for record in tel.match_history:
-			var l = Label.new()
-			l.text = "[%s] Rank: #%d | Kills: %d | Assists: %d | Time: %ds" % [
-				record.date, record.rank, record.kills, record.assists, record.duration
-			]
-			if record.win: l.modulate = Color.GOLD
-			list.add_child(l)
+	if not has_node("/root/Telemetry"): return
+	var tel = get_node("/root/Telemetry")
+	tel.load_history()
+	if tel.match_history.is_empty():
+		var empty_lbl = Label.new()
+		empty_lbl.text = "기록 없음"
+		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+		list.add_child(empty_lbl)
+		return
+	var skull_tex = _make_menu_icon("skull")
+	var hand_tex  = _make_menu_icon("hand")
+	for record in tel.match_history:
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		list.add_child(row)
+		# Win/loss badge
+		var badge = Label.new()
+		badge.text = "WIN" if record.win else "---"
+		badge.add_theme_font_size_override("font_size", 12)
+		badge.custom_minimum_size = Vector2(36, 0)
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge.add_theme_color_override("font_color", Color.GOLD if record.win else Color(0.5, 0.5, 0.5))
+		row.add_child(badge)
+		# Rank
+		var rank_lbl = Label.new()
+		rank_lbl.text = "#%d" % record.rank
+		rank_lbl.add_theme_font_size_override("font_size", 14)
+		rank_lbl.custom_minimum_size = Vector2(36, 0)
+		rank_lbl.add_theme_color_override("font_color", Color.GOLD if record.win else Color(0.85, 0.85, 0.85))
+		row.add_child(rank_lbl)
+		# Kill icon + count
+		_add_icon_val(row, skull_tex, str(record.kills), Color(1.0, 0.92, 0.15))
+		# Assist icon + count
+		_add_icon_val(row, hand_tex, str(record.assists), Color(1.0, 0.6, 0.2))
+		# Time
+		var time_lbl = Label.new()
+		time_lbl.text = "%ds" % record.duration
+		time_lbl.add_theme_font_size_override("font_size", 13)
+		time_lbl.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
+		row.add_child(time_lbl)
+		# Date (right-aligned, smaller)
+		var date_lbl = Label.new()
+		date_lbl.text = record.date
+		date_lbl.add_theme_font_size_override("font_size", 11)
+		date_lbl.add_theme_color_override("font_color", Color(0.4, 0.4, 0.4))
+		date_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		date_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		row.add_child(date_lbl)
+
+func _add_icon_val(parent: HBoxContainer, tex: ImageTexture, val: String, col: Color):
+	var icon = TextureRect.new()
+	icon.texture = tex
+	icon.custom_minimum_size = Vector2(14, 14)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.modulate = col
+	parent.add_child(icon)
+	var lbl = Label.new()
+	lbl.text = val
+	lbl.add_theme_font_size_override("font_size", 13)
+	lbl.add_theme_color_override("font_color", col)
+	lbl.custom_minimum_size = Vector2(24, 0)
+	parent.add_child(lbl)
 
 func restart_game():
 	get_tree().reload_current_scene()
@@ -589,6 +618,335 @@ func handle_damage_tick(delta):
 					a.take_damage(zone_damage * time_mult, "zone")
 				else:
 					_zone_outside_time.erase(uid)
+
+# ─── MENU VISUALS ────────────────────────────────────────────────────────────
+
+func _setup_menu_visuals():
+	var panel = $CanvasLayer/Control/MainMenuPanel
+
+	# Gradient background (replace flat ColorRect color)
+	panel.color = Color(0.04, 0.06, 0.10)
+	var grad_tex = GradientTexture2D.new()
+	var grad = Gradient.new()
+	grad.set_color(0, Color(0.04, 0.06, 0.10))
+	grad.set_color(1, Color(0.05, 0.13, 0.08))
+	grad_tex.gradient = grad
+	grad_tex.fill_from = Vector2(0.5, 0.0)
+	grad_tex.fill_to = Vector2(0.5, 1.0)
+	var grad_rect = TextureRect.new()
+	grad_rect.texture = grad_tex
+	grad_rect.layout_mode = 1
+	grad_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	grad_rect.stretch_mode = TextureRect.STRETCH_SCALE
+	panel.add_child(grad_rect)
+	panel.move_child(grad_rect, 0)
+
+	# Subtle noise overlay for texture
+	var noise_tex = NoiseTexture2D.new()
+	var noise = FastNoiseLite.new()
+	noise.noise_type = FastNoiseLite.TYPE_CELLULAR
+	noise.frequency = 0.004
+	noise_tex.noise = noise
+	noise_tex.width = 512
+	noise_tex.height = 512
+	noise_tex.as_normal_map = false
+	var overlay = TextureRect.new()
+	overlay.texture = noise_tex
+	overlay.layout_mode = 1
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.modulate = Color(0.12, 0.18, 0.12, 0.18)
+	overlay.stretch_mode = TextureRect.STRETCH_TILE
+	panel.add_child(overlay)
+	panel.move_child(overlay, 1)
+
+	# Pixel art capsule logo above title
+	var logo_size = 80
+	var img = Image.create(logo_size, logo_size, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var cx = logo_size / 2
+	var cy = logo_size / 2
+	var rx = 18; var ry = 32
+	for py in range(logo_size):
+		for px in range(logo_size):
+			var dx = float(px - cx) / rx
+			var dy = float(py - cy) / ry
+			if dx * dx + dy * dy <= 1.0:
+				var top_half = py < cy
+				var border = (dx * dx + dy * dy) > 0.80
+				if border:
+					img.set_pixel(px, py, Color(0.15, 0.15, 0.22, 1.0))
+				elif top_half:
+					img.set_pixel(px, py, Color(0.25, 0.55, 1.0, 1.0))
+				else:
+					img.set_pixel(px, py, Color(0.9, 0.25, 0.25, 1.0))
+	# Divider line
+	for px in range(cx - rx + 2, cx + rx - 1):
+		img.set_pixel(px, cy, Color(0.15, 0.15, 0.22, 1.0))
+		img.set_pixel(px, cy - 1, Color(0.15, 0.15, 0.22, 1.0))
+	var logo_tex = ImageTexture.create_from_image(img)
+	var logo_rect = TextureRect.new()
+	logo_rect.texture = logo_tex
+	logo_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	logo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	logo_rect.layout_mode = 1
+	logo_rect.anchor_left = 0.5; logo_rect.anchor_right = 0.5
+	logo_rect.offset_left = -40.0; logo_rect.offset_right = 40.0
+	logo_rect.offset_top = 26.0; logo_rect.offset_bottom = 112.0
+	panel.add_child(logo_rect)
+
+	# StyleBoxFlat for all buttons in main menu VBox
+	for child in $CanvasLayer/Control/MainMenuPanel/VBoxContainer.get_children():
+		if child is Button:
+			_apply_btn_style(child)
+
+func _setup_secondary_panels():
+	# Apply gradient overlay to Records and Help panels
+	for panel_path in [
+		"CanvasLayer/Control/RecordsPanel",
+		"CanvasLayer/Control/HelpPanel"
+	]:
+		var panel = get_node(panel_path)
+		panel.color = Color(0.04, 0.06, 0.10)
+		var gr = GradientTexture2D.new()
+		var g = Gradient.new(); g.set_color(0, Color(0.04, 0.06, 0.10)); g.set_color(1, Color(0.05, 0.13, 0.08))
+		gr.gradient = g; gr.fill_from = Vector2(0.5, 0.0); gr.fill_to = Vector2(0.5, 1.0)
+		var gr_rect = TextureRect.new()
+		gr_rect.texture = gr; gr_rect.layout_mode = 1
+		gr_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		gr_rect.stretch_mode = TextureRect.STRETCH_SCALE
+		panel.add_child(gr_rect); panel.move_child(gr_rect, 0)
+	# Style close buttons
+	_apply_btn_style($CanvasLayer/Control/RecordsPanel/VBox/CloseRecordsBtn)
+	_apply_btn_style($CanvasLayer/Control/HelpPanel/VBox/CloseHelpBtn)
+	# Build How to Play content
+	_build_help_panel()
+
+func _build_help_panel():
+	var vbox = $CanvasLayer/Control/HelpPanel/VBox
+	# Remove old text label, keep Title and CloseBtn
+	for child in vbox.get_children():
+		if child.name == "Text":
+			child.queue_free()
+	# Insert structured content between Title and CloseHelpBtn
+	var close_idx = $CanvasLayer/Control/HelpPanel/VBox/CloseHelpBtn.get_index()
+
+	# Scroll container for all content
+	var scroll = ScrollContainer.new()
+	scroll.layout_mode = 2
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 300)
+	vbox.add_child(scroll)
+	vbox.move_child(scroll, close_idx)
+
+	var content = VBoxContainer.new()
+	content.layout_mode = 2
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", 6)
+	scroll.add_child(content)
+
+	# ── CONTROLS ──
+	_help_section(content, "CONTROLS")
+	_make_key_row(content, ["W","A","S","D"], "이동")
+	_make_key_row(content, ["MOUSE"], "조준 (캐릭터가 커서 방향을 바라봄)")
+	_make_key_row(content, ["LMB"], "사격 / 근접 공격 (슬롯 0)")
+	_make_key_row(content, ["E"], "근처 아이템 줍기")
+	_make_key_row(content, ["Q"], "치료 아이템 사용 (+50 HP)")
+	_make_key_row(content, ["R"], "재장전")
+	_make_key_row(content, ["C"], "웅크리기 토글 (스텔스 증가)")
+	_make_key_row(content, ["SPACE"], "점프")
+	_make_key_row(content, ["0"], "근접 무기 (칼)")
+	_make_key_row(content, ["1","2","3","4"], "총기 슬롯 전환")
+
+	# ── HUD GUIDE ──
+	_help_section(content, "HUD 아이콘")
+	_make_icon_row(content, "skull", Color(1.0,0.92,0.15), "Kill 수")
+	_make_icon_row(content, "hand",  Color(1.0,0.6, 0.2 ), "Assist 수")
+	_make_icon_row(content, "person",Color(0.72,0.72,0.72), "현재 생존자 수")
+	_make_text_row(content, "♥", Color(0.95,0.25,0.25), "치료 아이템 보유 수")
+	_make_text_row(content, "◆", Color(1.0, 0.85,0.1 ), "고급 치료제 보유 수")
+
+	# ── SYSTEMS ──
+	_help_section(content, "SYSTEMS")
+	_make_desc_row(content, "자기장", "파란 링 밖에 있으면 지속 피해. 타이머가 빨간색이 되기 전에 이동.")
+	_make_desc_row(content, "보급 캡슐", "자기장 2단계에 맵 중앙 낙하. 레일건 포함 희귀 아이템.")
+	_make_desc_row(content, "스텔스", "풀숲에서 웅크리면 봇 시야 차단.")
+	_make_desc_row(content, "무기 획득", "주우면 탄창 1/3 장전. 탄약 아이템은 예비(+N)로 쌓임, R로 보충.")
+	_make_desc_row(content, "중복 제한", "같은 종류 무기는 두 번 주울 수 없음.")
+
+func _help_section(parent: VBoxContainer, title: String):
+	var spacer = Control.new(); spacer.custom_minimum_size = Vector2(0, 6); parent.add_child(spacer)
+	var lbl = Label.new()
+	lbl.text = title
+	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.add_theme_color_override("font_color", Color(0.55, 0.9, 0.65))
+	parent.add_child(lbl)
+	var sep = ColorRect.new()
+	sep.custom_minimum_size = Vector2(0, 1)
+	sep.color = Color(0.3, 0.55, 0.35, 0.6)
+	sep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	parent.add_child(sep)
+
+func _make_key_row(parent: VBoxContainer, keys: Array, desc: String):
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 4)
+	parent.add_child(row)
+	for k in keys:
+		var kp = PanelContainer.new()
+		var ks = StyleBoxFlat.new()
+		ks.bg_color = Color(0.18, 0.20, 0.25)
+		ks.border_color = Color(0.62, 0.65, 0.72)
+		ks.set_border_width_all(1); ks.set_corner_radius_all(3)
+		ks.content_margin_left = 6; ks.content_margin_right = 6
+		ks.content_margin_top = 2; ks.content_margin_bottom = 2
+		kp.add_theme_stylebox_override("panel", ks)
+		var kl = Label.new()
+		kl.text = k
+		kl.add_theme_font_size_override("font_size", 12)
+		kl.add_theme_color_override("font_color", Color(0.92, 0.92, 0.95))
+		kp.add_child(kl)
+		row.add_child(kp)
+	var dl = Label.new()
+	dl.text = "  " + desc
+	dl.add_theme_font_size_override("font_size", 13)
+	dl.add_theme_color_override("font_color", Color(0.78, 0.82, 0.78))
+	row.add_child(dl)
+
+func _make_icon_row(parent: VBoxContainer, shape: String, col: Color, desc: String):
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	parent.add_child(row)
+	var icon = TextureRect.new()
+	icon.texture = _make_menu_icon(shape)
+	icon.custom_minimum_size = Vector2(16, 16)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.modulate = col
+	row.add_child(icon)
+	var dl = Label.new()
+	dl.text = desc
+	dl.add_theme_font_size_override("font_size", 13)
+	dl.add_theme_color_override("font_color", Color(0.78, 0.82, 0.78))
+	row.add_child(dl)
+
+func _make_text_row(parent: VBoxContainer, symbol: String, col: Color, desc: String):
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	parent.add_child(row)
+	var sym = Label.new()
+	sym.text = symbol
+	sym.add_theme_font_size_override("font_size", 15)
+	sym.add_theme_color_override("font_color", col)
+	sym.custom_minimum_size = Vector2(16, 0)
+	sym.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	row.add_child(sym)
+	var dl = Label.new()
+	dl.text = desc
+	dl.add_theme_font_size_override("font_size", 13)
+	dl.add_theme_color_override("font_color", Color(0.78, 0.82, 0.78))
+	row.add_child(dl)
+
+func _make_desc_row(parent: VBoxContainer, label: String, desc: String):
+	var row = HBoxContainer.new()
+	row.add_theme_constant_override("separation", 6)
+	parent.add_child(row)
+	var ll = Label.new()
+	ll.text = label
+	ll.add_theme_font_size_override("font_size", 13)
+	ll.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
+	ll.custom_minimum_size = Vector2(72, 0)
+	row.add_child(ll)
+	var dl = Label.new()
+	dl.text = desc
+	dl.add_theme_font_size_override("font_size", 12)
+	dl.add_theme_color_override("font_color", Color(0.72, 0.75, 0.72))
+	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(dl)
+
+static func _make_menu_icon(shape: String) -> ImageTexture:
+	const S = 12
+	var img = Image.create(S, S, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var px: Array
+	match shape:
+		"skull":
+			px = [
+				[0,0,1,1,1,1,1,1,0,0,0,0],
+				[0,1,1,1,1,1,1,1,1,0,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[1,1,0,0,1,1,0,0,1,1,0,0],
+				[1,1,0,0,1,1,0,0,1,1,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[0,1,0,1,1,0,1,1,0,1,0,0],
+				[0,1,0,1,1,0,1,1,0,1,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+			]
+		"hand":
+			px = [
+				[0,0,1,1,0,0,0,0,0,0,0,0],
+				[0,1,1,1,0,0,0,0,0,0,0,0],
+				[0,1,1,1,0,1,1,0,0,0,0,0],
+				[0,1,1,1,1,1,1,0,1,1,0,0],
+				[0,1,1,1,1,1,1,1,1,1,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[0,1,1,1,1,1,1,1,1,0,0,0],
+				[0,0,1,1,1,1,1,1,0,0,0,0],
+				[0,0,0,1,1,1,1,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+			]
+		"person":
+			px = [
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,1,1,1,1,1,0,0,0,0,0],
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,1,1,1,1,1,0,0,0,0,0],
+				[0,0,1,1,1,1,1,0,0,0,0,0],
+				[0,1,1,1,0,1,1,1,0,0,0,0],
+				[0,1,1,0,0,0,1,1,0,0,0,0],
+				[0,1,0,0,0,0,0,1,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+			]
+		_:
+			px = []
+	for y in range(S):
+		for x in range(S):
+			if y < px.size() and x < px[y].size() and px[y][x]:
+				img.set_pixel(x, y, Color.WHITE)
+	return ImageTexture.create_from_image(img)
+
+func _apply_btn_style(btn: Button):
+	var sn = StyleBoxFlat.new()
+	sn.bg_color = Color(0.08, 0.14, 0.10, 0.92)
+	sn.border_color = Color(0.25, 0.55, 0.35, 0.8)
+	sn.set_border_width_all(1); sn.set_corner_radius_all(5)
+	sn.content_margin_left = 12; sn.content_margin_right = 12
+	sn.content_margin_top = 6; sn.content_margin_bottom = 6
+	var sh = StyleBoxFlat.new()
+	sh.bg_color = Color(0.12, 0.22, 0.15, 0.98)
+	sh.border_color = Color(0.4, 0.85, 0.55, 1.0)
+	sh.set_border_width_all(2); sh.set_corner_radius_all(5)
+	sh.content_margin_left = 12; sh.content_margin_right = 12
+	sh.content_margin_top = 6; sh.content_margin_bottom = 6
+	var sp = StyleBoxFlat.new()
+	sp.bg_color = Color(0.05, 0.10, 0.07, 1.0)
+	sp.border_color = Color(0.2, 0.5, 0.3, 1.0)
+	sp.set_border_width_all(1); sp.set_corner_radius_all(5)
+	sp.content_margin_left = 12; sp.content_margin_right = 12
+	sp.content_margin_top = 6; sp.content_margin_bottom = 6
+	btn.add_theme_stylebox_override("normal", sn)
+	btn.add_theme_stylebox_override("hover", sh)
+	btn.add_theme_stylebox_override("pressed", sp)
+	btn.add_theme_color_override("font_color", Color(0.88, 0.95, 0.9))
+	btn.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0))
 
 # ─── DIFFICULTY ──────────────────────────────────────────────────────────────
 

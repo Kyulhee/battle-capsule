@@ -176,10 +176,10 @@ func _ready():
 	_stat_heal_val  = _stat_pair(stat_row, "♥", Color(0.95, 0.25, 0.25))
 	_stat_mk_val    = _stat_pair(stat_row, "◆", Color(1.0,  0.85, 0.1 ))
 	var sp1 = Label.new(); sp1.text = "  "; stat_row.add_child(sp1)
-	_stat_kill_val  = _stat_pair(stat_row, "★", Color(1.0,  0.92, 0.15))
-	_stat_asst_val  = _stat_pair(stat_row, "◇", Color(1.0,  0.6,  0.2 ))
+	_stat_kill_val  = _stat_pair_icon(stat_row, _make_hud_icon("skull"), Color(1.0,  0.92, 0.15))
+	_stat_asst_val  = _stat_pair_icon(stat_row, _make_hud_icon("hand"),  Color(1.0,  0.6,  0.2 ))
 	var sp2 = Label.new(); sp2.text = "  "; stat_row.add_child(sp2)
-	_stat_alive_val = _stat_pair(stat_row, "●", Color(0.72, 0.72, 0.72))
+	_stat_alive_val = _stat_pair_icon(stat_row, _make_hud_icon("person"), Color(0.72, 0.72, 0.72))
 
 	# Slot bar (bottom-center): 5 boxes — 0=knife, 1-4=weapons
 	var slot_bar = HBoxContainer.new()
@@ -441,9 +441,10 @@ func _on_health_changed(_curr, _max): _update_hud()
 func _update_hud():
 	var main = get_tree().root.get_node_or_null("Main")
 	var alive = main.alive_count if main else 0
-	_update_status_hud(alive)
+	var total = (main.bot_count + 1) if main else 0
+	_update_status_hud(alive, total)
 
-func _update_status_hud(alive: int):
+func _update_status_hud(alive: int, total: int = 0):
 	var kills = 0; var assists = 0
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
@@ -471,7 +472,7 @@ func _update_status_hud(alive: int):
 	if _stat_mk_val:    _stat_mk_val.text    = "×%d" % stats.advanced_heals
 	if _stat_kill_val:  _stat_kill_val.text  = "%d" % kills
 	if _stat_asst_val:  _stat_asst_val.text  = "%d" % assists
-	if _stat_alive_val: _stat_alive_val.text = "×%d" % alive
+	if _stat_alive_val: _stat_alive_val.text = "%d/%d" % [alive, total] if total > 0 else "%d" % alive
 
 func _stat_pair(container: HBoxContainer, symbol: String, col: Color) -> Label:
 	var sym = Label.new()
@@ -488,6 +489,82 @@ func _stat_pair(container: HBoxContainer, symbol: String, col: Color) -> Label:
 	val.add_theme_constant_override("outline_size", 5)
 	container.add_child(val)
 	return val
+
+func _stat_pair_icon(container: HBoxContainer, icon_tex: ImageTexture, col: Color) -> Label:
+	var icon = TextureRect.new()
+	icon.texture = icon_tex
+	icon.custom_minimum_size = Vector2(14, 14)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	icon.modulate = col
+	container.add_child(icon)
+	var val = Label.new()
+	val.add_theme_font_size_override("font_size", 13)
+	val.add_theme_color_override("font_color", col)
+	val.add_theme_color_override("font_outline_color", Color.BLACK)
+	val.add_theme_constant_override("outline_size", 5)
+	container.add_child(val)
+	return val
+
+static func _make_hud_icon(shape: String) -> ImageTexture:
+	const S = 12
+	var img = Image.create(S, S, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
+	var px: Array
+	match shape:
+		"skull":
+			px = [
+				[0,0,1,1,1,1,1,1,0,0,0,0],
+				[0,1,1,1,1,1,1,1,1,0,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[1,1,0,0,1,1,0,0,1,1,0,0],
+				[1,1,0,0,1,1,0,0,1,1,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[0,1,0,1,1,0,1,1,0,1,0,0],
+				[0,1,0,1,1,0,1,1,0,1,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+			]
+		"hand":
+			px = [
+				[0,0,1,1,0,0,0,0,0,0,0,0],
+				[0,1,1,1,0,0,0,0,0,0,0,0],
+				[0,1,1,1,0,1,1,0,0,0,0,0],
+				[0,1,1,1,1,1,1,0,1,1,0,0],
+				[0,1,1,1,1,1,1,1,1,1,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[1,1,1,1,1,1,1,1,1,1,0,0],
+				[0,1,1,1,1,1,1,1,1,0,0,0],
+				[0,0,1,1,1,1,1,1,0,0,0,0],
+				[0,0,0,1,1,1,1,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+			]
+		"person":
+			px = [
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,1,1,1,1,1,0,0,0,0,0],
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,0,1,1,1,0,0,0,0,0,0],
+				[0,0,1,1,1,1,1,0,0,0,0,0],
+				[0,0,1,1,1,1,1,0,0,0,0,0],
+				[0,1,1,1,0,1,1,1,0,0,0,0],
+				[0,1,1,0,0,0,1,1,0,0,0,0],
+				[0,1,0,0,0,0,0,1,0,0,0,0],
+				[0,0,0,0,0,0,0,0,0,0,0,0],
+			]
+		_:
+			px = []
+	for y in range(S):
+		for x in range(S):
+			if y < px.size() and x < px[y].size() and px[y][x]:
+				img.set_pixel(x, y, Color.WHITE)
+	return ImageTexture.create_from_image(img)
 
 # ── Slot system ──────────────────────────────────────────────────────────
 

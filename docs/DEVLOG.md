@@ -5,16 +5,62 @@
 
 ---
 
-## v0.8.1 — 2026-04-26
+## v0.8.1 — 2026-04-27
 
-**메인 메뉴 UI 개선 + 난이도 버튼 색상**
+**전체 메뉴 UI 재설계 + HUD 아이콘 + 난이도 버튼 색상**
 
-**Main.gd**
+**Main.tscn**
 
-- 난이도 버튼 색상: 쉬움 초록 / 보통 노랑 / 어려움 빨강. 미선택 버튼은 회색으로 비활성화 표시.
-- 메인 메뉴 한국어 자막 추가: "배틀캡슐  ·  1 vs 11  ·  최후의 1인" (Title 아래, 하늘색).
-- 우하단 버전 라벨 추가 (v0.8.1, 회색 소자).
-- VBoxContainer 너비 200px → 280px (난이도 버튼 3개가 여유롭게 배치되도록).
+- `Subtitle`, `VersionLabel` 노드를 tscn에 직접 추가 — `_ready()` 동적 생성 시 position 미적용 버그 해소.
+- VBoxContainer 오프셋 ±100 → ±150, 버튼 간격 20 → 28px으로 여유로운 레이아웃.
+- HelpPanel VBox 너비 ±350 → ±420, 기존 단일 Text Label 제거 (코드로 재생성).
+- 서브타이틀 "1 vs 11" → "1 vs all".
+
+**Main.gd — 메인 메뉴**
+
+- `_setup_menu_visuals()` 추가:
+  - `GradientTexture2D` 배경: 다크 네이비 → 딥 포레스트 그린 그라디언트.
+  - `NoiseTexture2D` (FastNoiseLite CELLULAR) 오버레이: 18% 불투명도로 텍스처감 부여.
+  - 64→80px 픽셀아트 캡슐 로고: 파란 상단 / 빨간 하단, 구분선, 외곽선 포함. 타이틀 위 배치.
+  - `StyleBoxFlat` 버튼 스타일 (normal/hover/pressed): 다크 그린 배경, 밝은 그린 테두리, 둥근 모서리.
+- `_apply_btn_style(btn)` 헬퍼: 난이도 버튼 포함 모든 버튼에 통일 적용.
+- 난이도 버튼 색상: 쉬움 초록 / 보통 노랑 / 어려움 빨강. 미선택 회색.
+
+**Main.gd — Records 패널**
+
+- `_setup_secondary_panels()`: Records/Help 패널 모두 동일한 다크 포레스트 그라디언트 오버레이 적용.
+- `_populate_records_list()` 재작성:
+  - 행 단위: WIN 뱃지 + Rank + 해골 아이콘+Kill + 손 아이콘+Assist + Time + Date.
+  - 빈 기록 시 "기록 없음" 안내 메시지.
+  - 해골/손 아이콘은 `_make_menu_icon()` 픽셀아트 텍스처 사용.
+- BACK 버튼 `_apply_btn_style` 적용.
+
+**Main.gd — How to Play 패널**
+
+- `_build_help_panel()` 전면 재작성:
+  - ScrollContainer 내 세 섹션: **CONTROLS** / **HUD 아이콘** / **SYSTEMS**.
+  - `_make_key_row(keys, desc)`: 키보드 키캡 스타일 PanelContainer (어두운 회색, 밝은 테두리, 라운드) + 설명.
+    - [W][A][S][D] 이동, [MOUSE] 조준, [LMB] 사격, [E][Q][R][C][SPACE][0][1][2][3][4].
+  - `_make_icon_row(shape, col, desc)`: 해골/손/사람 픽셀 아이콘 + 설명.
+  - `_make_text_row(symbol, col, desc)`: ♥ ◆ 심볼 + 설명.
+  - `_make_desc_row(label, desc)`: 시스템 설명 (자기장, 보급 캡슐, 스텔스, 무기 획득, 중복 제한).
+- BACK 버튼 `_apply_btn_style` 적용.
+
+**Main.gd — 공용**
+
+- `_make_menu_icon(shape)`: skull/hand/person 12×12 픽셀아트 ImageTexture 생성 (static).
+  Records 행과 How to Play 아이콘 행 공유.
+
+**Player.gd**
+
+- `_make_hud_icon(shape)`: skull/hand/person 12×12 픽셀아트 생성 (static).
+- `_stat_pair_icon(container, icon_tex, col)`: TextureRect 아이콘 + 컬러 value Label 쌍 추가 헬퍼.
+- HUD 스탯 아이콘 교체:
+  - ★ Kill → 해골 픽셀아트 (노랑)
+  - ◇ Assist → 손 픽셀아트 (주황)
+  - ● Alive → 사람 픽셀아트 (회색)
+- Alive 표시 포맷: `×N` → `N/12` (전체 인원 대비).
+- `_update_status_hud(alive, total)`: `total = main.bot_count + 1` 전달.
 
 ---
 

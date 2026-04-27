@@ -83,13 +83,28 @@ grow_vertical = 2
 	anchors_preset = 5
 	anchor_left = 0.5
 	anchor_right = 0.5
-	offset_left = -200.0
-	offset_top = 100.0
-	offset_right = 200.0
-	offset_bottom = 160.0
+	offset_left = -240.0
+	offset_top = 118.0
+	offset_right = 240.0
+	offset_bottom = 198.0
 	grow_horizontal = 2
 	theme_override_font_sizes/font_size = 64
 	text = "BATTLE CAPSULE"
+	horizontal_alignment = 1
+
+	[node name="Subtitle" type="Label" parent="CanvasLayer/Control/MainMenuPanel"]
+	layout_mode = 1
+	anchors_preset = 5
+	anchor_left = 0.5
+	anchor_right = 0.5
+	offset_left = -240.0
+	offset_top = 204.0
+	offset_right = 240.0
+	offset_bottom = 232.0
+	grow_horizontal = 2
+	theme_override_font_sizes/font_size = 16
+	theme_override_colors/font_color = Color(0.65, 0.85, 1.0, 1)
+	text = "배틀캡슐  ·  1 vs all  ·  최후의 1인"
 	horizontal_alignment = 1
 
 	[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/Control/MainMenuPanel"]
@@ -99,13 +114,13 @@ grow_vertical = 2
 	anchor_top = 0.5
 	anchor_right = 0.5
 	anchor_bottom = 0.5
-	offset_left = -100.0
-	offset_top = -100.0
-	offset_right = 100.0
-	offset_bottom = 100.0
+	offset_left = -155.0
+	offset_top = -95.0
+	offset_right = 155.0
+	offset_bottom = 285.0
 	grow_horizontal = 2
 	grow_vertical = 2
-	theme_override_constants/separation = 20
+	theme_override_constants/separation = 28
 
 	[node name="StartBtn" type="Button" parent="CanvasLayer/Control/MainMenuPanel/VBoxContainer"]
 	layout_mode = 2
@@ -126,6 +141,23 @@ grow_vertical = 2
 	layout_mode = 2
 	theme_override_font_sizes/font_size = 24
 	text = "EXIT"
+
+	[node name="VersionLabel" type="Label" parent="CanvasLayer/Control/MainMenuPanel"]
+	layout_mode = 1
+	anchor_left = 1.0
+	anchor_top = 1.0
+	anchor_right = 1.0
+	anchor_bottom = 1.0
+	offset_left = -72.0
+	offset_top = -28.0
+	offset_right = -8.0
+	offset_bottom = -8.0
+	grow_horizontal = 0
+	grow_vertical = 0
+	theme_override_font_sizes/font_size = 12
+	theme_override_colors/font_color = Color(0.45, 0.45, 0.45, 1)
+	text = "v0.8.1"
+	horizontal_alignment = 2
 
 	[node name="ResultPanel" type="ColorRect" parent="CanvasLayer/Control"]
 	visible = false
@@ -235,37 +267,22 @@ TIME: 0 sec"
 	anchor_top = 0.5
 	anchor_right = 0.5
 	anchor_bottom = 0.5
-	offset_left = -350.0
-	offset_top = -250.0
-	offset_right = 350.0
-	offset_bottom = 250.0
+	offset_left = -420.0
+	offset_top = -300.0
+	offset_right = 420.0
+	offset_bottom = 300.0
 	grow_horizontal = 2
 	grow_vertical = 2
+	theme_override_constants/separation = 10
 
 	[node name="Title" type="Label" parent="CanvasLayer/Control/HelpPanel/VBox"]
 	layout_mode = 2
-	theme_override_font_sizes/font_size = 36
+	theme_override_font_sizes/font_size = 28
+	theme_override_colors/font_color = Color(0.85, 0.95, 0.88, 1)
 	text = "HOW TO PLAY"
-	horizontal_alignment = 1
-
-	[node name="Text" type="Label" parent="CanvasLayer/Control/HelpPanel/VBox"]
-	layout_mode = 2
-	theme_override_font_sizes/font_size = 18
-	text = "
-CONTROLS:
-- WASD: Move
-- MOUSE: Aim & Shoot
-- SHIFT (Hold): Sprint
-- Q: Heal (when available)
-
-SYSTEMS:
-- RARITY: Gray (Common) < Blue (Rare) < Gold (Epic)
-- SUPPLY ZONES: Look for golden pillars in sky. High risk, high reward.
-- STEALTH: Bushes reduce visibility. Shooting reveals you.
-- ZONE: Stay inside the blue ring to avoid damage.
-"
 	horizontal_alignment = 1
 
 	[node name="CloseHelpBtn" type="Button" parent="CanvasLayer/Control/HelpPanel/VBox"]
 	layout_mode = 2
+	theme_override_font_sizes/font_size = 18
 	text = "BACK"
