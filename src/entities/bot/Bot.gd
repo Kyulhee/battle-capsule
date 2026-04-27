@@ -65,6 +65,9 @@ var _reaction_delay: float = 0.0   # seconds between spotting and reacting
 var _pending_target: Entity = null
 var _reaction_timer: float = 0.0
 var _aim_spread_mult: float = 1.0  # multiplier for predictive-shot spread
+# 0=none 1=periodic scan(3s) 2=periodic scan(1.5s)+instant reaction on hit
+var _awareness_level: int = 0
+var _peripheral_scan_timer: float = 0.0
 
 @onready var ray_cast = $RayCast3D
 
@@ -294,6 +297,13 @@ func handle_chase_state(delta):
 func handle_attack_state(delta):
 	if not _is_target_valid(target_actor):
 		_knife_mode = false; target_actor = null; change_state(State.IDLE); return
+
+	# Peripheral awareness: periodic scan for third-party threats
+	if _awareness_level >= 1:
+		_peripheral_scan_timer -= delta
+		if _peripheral_scan_timer <= 0:
+			_peripheral_scan_timer = 3.0 if _awareness_level == 1 else 1.5
+			_peripheral_check()
 
 	# Knife rush mode: charge and melee instead of retreating
 	if _knife_mode:
@@ -573,6 +583,8 @@ func apply_difficulty(params: Dictionary):
 		_aim_spread_mult = params.aim_spread
 	if params.has("loot_break_mult"):
 		_combat_loot_threshold *= params.loot_break_mult
+	if params.has("awareness_level"):
+		_awareness_level = params.awareness_level
 
 # ─── FOOTSTEP DETECTION ───────────────────────────────────────────────────────
 # Running actors (velocity > 50% of move_speed) emit audible footsteps.
@@ -706,6 +718,38 @@ func _check_survival_overrides():
 		State.DISENGAGE:
 			if state_timer > 1.5:  # give time to find cover first, then switch to full RECOVER
 				change_state(State.RECOVER)
+
+# ─── PERIPHERAL AWARENESS ────────────────────────────────────────────────────
+
+func _peripheral_check():
+	var actors = get_tree().get_nodes_in_group("actors")
+	var best: Entity = null
+	var best_dist = INF
+	for a in actors:
+		if a == self or not a is Entity or a.is_dead: continue
+		if a == target_actor: continue
+		if not a.is_revealed_to(self): continue
+		var d = global_position.distance_to(a.global_position)
+		if d < best_dist: best_dist = d; best = a
+	if not best: return
+	if _awareness_level == 1:
+		# Normal: only switch if new threat is >30% closer than current target
+		var cur_dist = global_position.distance_to(target_actor.global_position) \
+			if (target_actor != null and is_instance_valid(target_actor)) else INF
+		if best_dist < cur_dist * 0.7:
+			_switch_target(best)
+	else:
+		# Hard+: switch to any visible new threat unless current target is nearly dead
+		var cur_hp_ratio = 1.0
+		if target_actor != null and is_instance_valid(target_actor) and target_actor is Entity:
+			cur_hp_ratio = target_actor.current_health / target_actor.stats.max_health
+		if cur_hp_ratio >= 0.25:
+			_switch_target(best)
+
+func _switch_target(new_target: Entity):
+	target_actor = new_target
+	last_known_target_pos = new_target.global_position
+	state_timer = 0.0
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -903,6 +947,16 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
 		if current_state != State.RECOVER and current_state != State.ZONE_ESCAPE:
 			change_state(State.RECOVER)
+		return
+	# HARD+: instantly react when hit by a third party during combat
+	if _awareness_level >= 2 and current_state == State.ATTACK \
+			and source_node is Entity and is_instance_valid(source_node) and not source_node.is_dead \
+			and source_node != target_actor:
+		var cur_hp_ratio = 1.0
+		if target_actor != null and is_instance_valid(target_actor) and target_actor is Entity:
+			cur_hp_ratio = target_actor.current_health / target_actor.stats.max_health
+		if cur_hp_ratio >= 0.25:
+			_switch_target(source_node)
 
 # ─── COMBAT ──────────────────────────────────────────────────────────────────
 
