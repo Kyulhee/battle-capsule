@@ -11,11 +11,18 @@ var current_state: GameState = GameState.MENU
 enum Difficulty { EASY, NORMAL, HARD }
 var difficulty: Difficulty = Difficulty.NORMAL
 const DIFFICULTY_PARAMS = {
-	0: { "vision_mult": 0.75, "reaction_delay": 1.2, "aim_spread": 1.8 },
-	1: { "vision_mult": 1.0,  "reaction_delay": 0.5, "aim_spread": 1.0 },
-	2: { "vision_mult": 1.25, "reaction_delay": 0.0, "aim_spread": 0.65 },
+	0: { "vision_mult": 0.75, "reaction_delay": 1.2, "aim_spread": 1.8,  "loot_break_mult": 0.0 },
+	1: { "vision_mult": 1.0,  "reaction_delay": 0.5, "aim_spread": 1.0,  "loot_break_mult": 1.0 },
+	2: { "vision_mult": 1.25, "reaction_delay": 0.0, "aim_spread": 0.65, "loot_break_mult": 1.5 },
 }
 var _diff_btns: Array = []
+var _diff_tooltip: PanelContainer = null
+var _diff_tooltip_label: Label = null
+const DIFF_DESCRIPTIONS = [
+	"봇 시야 75%  ·  반응 느림  ·  조준 부정확\n배틀로얄 첫 입문에 추천.",
+	"표준 봇 성능  ·  균형 잡힌 전투.",
+	"봇 시야 125%  ·  즉각 반응  ·  정밀 조준\n극한의 도전.",
+]
 
 @export_group("Loot")
 @export var railgun_item: ItemData = preload("res://src/items/weapon_railgun.tres")
@@ -153,9 +160,40 @@ func _ready():
 		_diff_btns.append(btn)
 		_apply_btn_style(btn)
 	_update_diff_highlights()
-	
+
+	# Difficulty tooltip panel
+	_diff_tooltip = PanelContainer.new()
+	_diff_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ts = StyleBoxFlat.new()
+	ts.bg_color = Color(0.06, 0.08, 0.10, 0.95)
+	ts.border_color = Color(0.35, 0.60, 0.45, 0.8)
+	ts.set_border_width_all(1); ts.set_corner_radius_all(4)
+	ts.content_margin_left = 10; ts.content_margin_right = 10
+	ts.content_margin_top = 6;   ts.content_margin_bottom = 6
+	_diff_tooltip.add_theme_stylebox_override("panel", ts)
+	_diff_tooltip_label = Label.new()
+	_diff_tooltip_label.add_theme_font_size_override("font_size", 13)
+	_diff_tooltip_label.add_theme_color_override("font_color", Color(0.82, 0.90, 0.84))
+	_diff_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_diff_tooltip_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_diff_tooltip.add_child(_diff_tooltip_label)
+	_diff_tooltip.custom_minimum_size = Vector2(240, 0)
+	_diff_tooltip.visible = false
+	$CanvasLayer/Control/MainMenuPanel.add_child(_diff_tooltip)
+	for i in range(_diff_btns.size()):
+		_diff_btns[i].mouse_entered.connect(_show_diff_tooltip.bind(i))
+		_diff_btns[i].mouse_exited.connect(func(): if _diff_tooltip: _diff_tooltip.visible = false)
+
 	$CanvasLayer/Control/ResultPanel/Content/RestartBtn.pressed.connect(restart_game)
-	$CanvasLayer/Control/ResultPanel/Content/MenuBtn.visible = false
+	$CanvasLayer/Control/ResultPanel/Content/MenuBtn.pressed.connect(return_to_menu)
+	_apply_btn_style($CanvasLayer/Control/ResultPanel/Content/RestartBtn)
+	_apply_btn_style($CanvasLayer/Control/ResultPanel/Content/MenuBtn)
+	var result_records_btn = Button.new()
+	result_records_btn.text = "RECORDS"
+	result_records_btn.add_theme_font_size_override("font_size", 24)
+	result_records_btn.pressed.connect(_on_records_pressed)
+	$CanvasLayer/Control/ResultPanel/Content.add_child(result_records_btn)
+	_apply_btn_style(result_records_btn)
 	
 	$CanvasLayer/Control/RecordsPanel/VBox/CloseRecordsBtn.pressed.connect(func(): _show_panel("MainMenu"))
 	$CanvasLayer/Control/HelpPanel/VBox/CloseHelpBtn.pressed.connect(func(): _show_panel("MainMenu"))
@@ -376,6 +414,7 @@ func spawn_entities():
 	# Spawn Player
 	var p = player_scene.instantiate()
 	$Entities.add_child(p)
+	p.display_name = "YOU"
 	p.add_to_group("players") # Ensure player is in correct group for telemetry
 	p.global_position = _get_safe_spawn_pos()
 	player_ref = p
@@ -386,6 +425,7 @@ func spawn_entities():
 	for i in range(bot_count):
 		var b = bot_scene.instantiate()
 		$Entities.add_child(b)
+		b.display_name = "Bot %d" % (i + 1)
 		b.global_position = _get_safe_spawn_pos()
 		b.died.connect(_on_bot_died.bind(b))
 		b.apply_difficulty(diff_params)
@@ -527,8 +567,18 @@ func _on_bot_died(bot: Entity = null):
 		var player_assisted = bot and not killer_is_player and \
 			(player_ref in bot.damage_history) and \
 			(_now_ms - bot.damage_history[player_ref] <= bot.ASSIST_WINDOW_MS)
-		var killer_name = "Bot" if (not bot or not is_instance_valid(bot.last_killer) or bot.last_killer == player_ref) else "Bot"
-		player_ref.add_kill_feed_entry(killer_is_player, player_assisted, killer_name, "Bot")
+		var victim_name = bot.display_name if bot else "Bot"
+		var killer_node = bot.last_killer if bot else null
+		var killer_name: String
+		if not is_instance_valid(killer_node):
+			killer_name = "Zone"
+		elif killer_node == player_ref:
+			killer_name = "YOU"
+		else:
+			killer_name = killer_node.display_name if killer_node.display_name != "" else "Bot"
+		var weapon_type = (bot.last_damage_weapon if bot else "")
+		var killer_streak = (killer_node.kill_streak if (is_instance_valid(killer_node) and killer_node is Entity) else 0)
+		player_ref.add_kill_feed_entry(killer_is_player, player_assisted, killer_name, victim_name, weapon_type, killer_streak)
 	_check_match_end()
 
 func _on_player_died():
@@ -813,6 +863,8 @@ func _make_key_row(parent: VBoxContainer, keys: Array, desc: String):
 	dl.text = "  " + desc
 	dl.add_theme_font_size_override("font_size", 13)
 	dl.add_theme_color_override("font_color", Color(0.78, 0.82, 0.78))
+	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(dl)
 
 func _make_icon_row(parent: VBoxContainer, shape: String, col: Color, desc: String):
@@ -831,6 +883,8 @@ func _make_icon_row(parent: VBoxContainer, shape: String, col: Color, desc: Stri
 	dl.text = desc
 	dl.add_theme_font_size_override("font_size", 13)
 	dl.add_theme_color_override("font_color", Color(0.78, 0.82, 0.78))
+	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(dl)
 
 func _make_text_row(parent: VBoxContainer, symbol: String, col: Color, desc: String):
@@ -848,6 +902,8 @@ func _make_text_row(parent: VBoxContainer, symbol: String, col: Color, desc: Str
 	dl.text = desc
 	dl.add_theme_font_size_override("font_size", 13)
 	dl.add_theme_color_override("font_color", Color(0.78, 0.82, 0.78))
+	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(dl)
 
 func _make_desc_row(parent: VBoxContainer, label: String, desc: String):
@@ -953,6 +1009,13 @@ func _apply_btn_style(btn: Button):
 	btn.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0))
 
 # ─── DIFFICULTY ──────────────────────────────────────────────────────────────
+
+func _show_diff_tooltip(idx: int):
+	if not _diff_tooltip or idx >= _diff_btns.size(): return
+	_diff_tooltip_label.text = DIFF_DESCRIPTIONS[idx]
+	var gr = _diff_btns[idx].get_global_rect()
+	_diff_tooltip.global_position = Vector2(gr.position.x - 10, gr.end.y + 6)
+	_diff_tooltip.visible = true
 
 func _on_difficulty_btn(idx: int):
 	difficulty = idx as Difficulty

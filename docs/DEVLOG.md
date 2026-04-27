@@ -5,6 +5,96 @@
 
 ---
 
+## v0.9.0 — 2026-04-27
+
+**Combat Feedback — 봇 상태 아이콘, 히트 마커, 피해 숫자, 자기장 경고**
+
+**Bot.gd**
+
+- `_state_label: Label3D` 추가 — 봇 머리 위 billboard 상태 인디케이터.
+  - IDLE: 숨김.
+  - CHASE: `?  ◉` (노랑).
+  - ATTACK: `!  ◎` (빨강).
+  - DISENGAGE: `?  ◉` (주황).
+- `_update_state_label()`: `change_state()` 진입 시 즉시 아이콘 갱신.
+- `_update_state_label_visibility()`: `_physics_process`에서 per-frame 실행 — 플레이어가 봇을 인식하고 거리 32m 이내일 때만 표시; 그 외 숨김.
+
+**Entity.gd**
+
+- `_spawn_damage_number(amount, source)`: 피해 시 `Label3D` 스폰 — 위로 떠오르며 fade-out (0.85s). 총상 빨강 / 근접 주황.
+
+**Player.gd**
+
+- `_hit_marker: Label` + `_hit_marker_timer`: `_internal_shoot()` / `_melee_attack()` 명중 시 중앙 `×` 0.12s 표시.
+- `_zone_warning_style: StyleBoxFlat (draw_center=false)` + `_zone_warning_pulse`: 플레이어가 자기장 밖이면 화면 테두리 빨간 박동(3.5Hz, 최대 α 0.58), 안쪽이면 즉시 fade.
+- Kill streak 스케일링 강화: streak 1→22px, 3→골드→주황, 5+→딥 오렌지, outline +1px/streak (최대 12).
+
+---
+
+## v0.8.4 — 2026-04-27
+
+**Actor Identity + Killfeed Data Foundation**
+
+**Entity.gd**
+
+- `display_name: String = ""` 필드 추가 — 모든 액터(봇·플레이어)에 표시 이름 부여.
+- `kill_streak: int = 0` 필드 추가 — 연속 킬 카운트. `die()` 시 피해자 streak 리셋, 킬러 streak +1.
+
+**Main.gd**
+
+- `spawn_entities()`: 플레이어 `display_name = "YOU"`, 봇 `display_name = "Bot %d" % (i + 1)` 순서 배정.
+- `_on_bot_died()`: 피해자 display_name, 킬러 display_name(Zone/YOU/Bot N), 무기 타입, 킬러 streak를 추출해 `add_kill_feed_entry()` 호출. 자기장 사망 시 killer_name = "Zone".
+
+**Player.gd**
+
+- `_weapon_glyph(wtype)` 헬퍼 추가: `knife→⚔  pistol→◉  ar→≡  shotgun→⊛  railgun→⚡  기타→→`.
+- `add_kill_feed_entry()` 시그니처 확장: `weapon_type`, `killer_streak` 파라미터 추가.
+  - 플레이어 킬: `★ YOU ×N  ⚔  Bot 3  KILL` (streak ≥ 2일 때 ×N 표시).
+  - 어시스트: `◆ Bot 5  ≡  Bot 2` (킬러 이름 + glyph + 피해자 이름).
+  - 봇 킬: `Bot 1  ◉  Bot 8` (회색, 소자).
+
+---
+
+## v0.8.3 — 2026-04-27
+
+**UI Polish + Bot 생존 AI 강화 — HUD, 툴팁, 상태 머신 종합 개선**
+
+**Bot.gd**
+
+- `_flee_hp_ratio` 변수 추가 + 성격별 임계값: AGGRESSIVE=0.15, DEFENSIVE=0.35, SCAVENGER=0.25.
+- `_check_survival_overrides()`: HP 기반 전역 오버라이드 — ATTACK/CHASE/DISENGAGE → RECOVER 강제 전환 (존 탈출·칼 돌진 예외 처리).
+- `handle_attack_state()`: 전투 중 탄약 부족 + 근처 픽업 감지 시 루팅으로 이탈 (`_combat_loot_threshold`). 난이도별 `loot_break_mult` 스케일링 (쉬움=0, 보통=1, 어려움=1.5).
+- `handle_idle_state()`: HP < 50% 봇은 `_find_best_pickup(55.0)` (힐 우선, 넓은 반경) 사용; 2.5m 이내 아이템 즉시 수집.
+- `handle_chase_state()` 루팅 브랜치: 수집 거리 1.5m → 2.5m; 5초 타임아웃 후 대체 픽업 전환.
+- `handle_recover_state()`: 탄약 없는 봇이 근접 적 감지 시 칼 돌진으로 반격 (`MELEE_RANGE * 2.5`).
+- `_pick_patrol_target()`: 공급 캡슐 → 성격별 목표(DEFENSIVE=수풀, SCAVENGER=핫스팟) → 랜덤 존 포인트 순서로 순찰 목표 선택.
+- `_find_nearest_bush()` / `_find_nearest_hotspot()`: MapSpec 기반 수풀·POI 위치 조회 헬퍼.
+- `_update_stuck()`: 탈출 각도 무작위화 ±135°, 오버라이드 지속 0.65s → 1.2s.
+- 공급 캡슐 흡인 반경: SCAVENGER=70m, 기타=50m.
+
+**Player.gd**
+
+- HUD 좌상단 margin `(8,8)` → `(12,12)`: HP/SH/stat 영역 화면 가장자리 잘림 방지.
+- 킬피드 컨테이너 y 오프셋 `+60` → `+280`: 미니맵(20~260px) 아래로 이동해 겹침 제거.
+- 무기 슬롯 바 하단 margin `8` → `16`: 하단 잘림 방지.
+- `handle_interaction()`: 전방 반구 FOV 제한 — 플레이어 뒤편(dot < 0) 아이템은 픽업 불가.
+
+**Main.gd**
+
+- `_diff_tooltip` / `_diff_tooltip_label` 멤버 추가.
+- `DIFF_DESCRIPTIONS` 상수: 난이도별 설명 텍스트 (한글).
+- `_ready()`: 난이도 버튼별 `mouse_entered` / `mouse_exited` 시그널 연결.
+- `_show_diff_tooltip(idx)`: 버튼 글로벌 rect 기준 바로 아래에 툴팁 패널 표시.
+- ResultPanel MenuBtn 연결 (`return_to_menu`) 및 가시화 (기존 `visible=false` 제거).
+- RestartBtn / MenuBtn에 `_apply_btn_style()` 적용.
+- ResultPanel에 RECORDS 버튼 동적 추가 → `_on_records_pressed` 연결.
+
+**Main.tscn**
+
+- VersionLabel 텍스트 `v0.8.1` → `v0.8.2`.
+
+---
+
 ## v0.8.2 — 2026-04-27
 
 **Zone escape 강화 + Zone death 텔레메트리**

@@ -9,6 +9,9 @@ signal died
 
 const DEATH_EFFECT = preload("res://src/fx/DeathEffect.tscn")
 
+var display_name: String = ""
+var kill_streak: int = 0
+
 var current_health: float = 0.0
 var current_shield: float = 0.0
 var is_dead: bool = false
@@ -136,6 +139,7 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_damage(amount, source, weapon_type, dist)
 	flash_hit()
+	_spawn_damage_number(amount, source)
 	if current_health <= 0:
 		die(source_node)
 
@@ -153,13 +157,33 @@ func flash_hit():
 				func(): if not is_dead: mesh.set_surface_override_material(0, mat)
 			)
 
+func _spawn_damage_number(amount: float, source: String = ""):
+	if amount <= 0: return
+	var lbl = Label3D.new()
+	lbl.text = "-%d" % int(amount)
+	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	lbl.double_sided = true
+	lbl.font_size = 44
+	lbl.pixel_size = 0.005
+	lbl.outline_size = 8
+	lbl.modulate = Color(1.0, 0.25, 0.15) if source == "gun" else Color(1.0, 0.55, 0.1)
+	lbl.global_position = global_position + Vector3(randf_range(-0.25, 0.25), 2.0, randf_range(-0.25, 0.25))
+	get_tree().root.add_child(lbl)
+	var tween = create_tween()
+	tween.tween_property(lbl, "position:y", lbl.position.y + 1.4, 0.85)
+	tween.parallel().tween_property(lbl, "modulate:a", 0.0, 0.85)
+	tween.tween_callback(lbl.queue_free)
+
 func die(killer: Node3D = null):
 	if is_dead: return
 	is_dead = true
 	last_killer = killer
 	velocity = Vector3.ZERO
 	$CollisionShape3D.set_deferred("disabled", true)
-	
+	kill_streak = 0  # victim's streak resets
+	if killer and killer is Entity:
+		killer.kill_streak += 1  # killer extends their streak
+
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
 		# Log Death

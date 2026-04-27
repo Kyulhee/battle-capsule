@@ -10,8 +10,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v0.8.2 (zone escape 강화, zone death 텔레메트리, 95% 경계 조기 탈출, 각도 샘플링 unstuck) |
-| 다음 버전 | v0.8.3 — UI Polish (HUD safe margin, Difficulty tooltip, Result screen 버튼) |
+| 완료 버전 | v0.9.0 (봇 상태 아이콘, 히트 마커, 피해 숫자, 자기장 경고 오버레이) |
+| 다음 버전 | v0.9.1 — Hell Difficulty Prototype |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 
 ---

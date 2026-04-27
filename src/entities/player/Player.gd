@@ -18,6 +18,9 @@ var kill_feed_entries: Array = []
 var camera_shake_amount: float = 0.0
 var camera_shake_decay: float = 5.0
 
+var _zone_warning_style: StyleBoxFlat = null
+var _zone_warning_pulse: float = 0.0
+
 var _occluder_linger: Dictionary = {}  # mesh → frames_remaining_faded
 var _fade_mat_cache: Dictionary = {}
 var _heal_regen: float = 0.0
@@ -90,14 +93,14 @@ func _ready():
 	kill_feed_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
 	kill_feed_container.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	kill_feed_container.position.x -= 220
-	kill_feed_container.position.y += 60
+	kill_feed_container.position.y += 280
 	kill_feed_container.custom_minimum_size = Vector2(200, 0)
 
 	if hud_label: hud_label.visible = false
 	var hud_a = VBoxContainer.new()
 	$CanvasLayer/Control.add_child(hud_a)
 	hud_a.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
-	hud_a.position = Vector2(8, 8)
+	hud_a.position = Vector2(12, 12)
 	hud_a.add_theme_constant_override("separation", 3)
 
 	# HP row
@@ -187,7 +190,7 @@ func _ready():
 	slot_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	slot_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	slot_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	slot_bar.position.y -= 8
+	slot_bar.position.y -= 16
 	slot_bar.position.x -= 165
 	slot_bar.add_theme_constant_override("separation", 6)
 
@@ -235,6 +238,18 @@ func _ready():
 	_on_health_changed(current_health, stats.max_health)
 	switch_to_slot(0)
 	receive_weapon(PISTOL_STATS.duplicate())
+
+	# Zone warning — pulsing red border when outside zone
+	var zone_warn_panel = Panel.new()
+	zone_warn_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	zone_warn_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_zone_warning_style = StyleBoxFlat.new()
+	_zone_warning_style.draw_center = false
+	_zone_warning_style.bg_color = Color.TRANSPARENT
+	_zone_warning_style.border_color = Color(1.0, 0.08, 0.05, 0.0)
+	_zone_warning_style.set_border_width_all(28)
+	zone_warn_panel.add_theme_stylebox_override("panel", _zone_warning_style)
+	$CanvasLayer/Control.add_child(zone_warn_panel)
 
 func _input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -388,6 +403,9 @@ func _process(delta):
 		slot_ammo_labels[active_slot].text = "%d/%d+%d" % [disp_ammo, max_a_r, disp_res]
 		slot_ammo_labels[active_slot].modulate = Color.YELLOW
 
+	# Zone warning pulse
+	_update_zone_warning(delta)
+
 	# Kill feed decay
 	var i = kill_feed_entries.size() - 1
 	while i >= 0:
@@ -404,8 +422,12 @@ func handle_interaction():
 	var pickups = interaction_area.get_overlapping_areas()
 	var closest: Pickup = null
 	var min_dist = 999.0
+	var forward = (-global_transform.basis.z * Vector3(1, 0, 1)).normalized()
 	for area in pickups:
 		if area is Pickup:
+			var to_item = (area.global_position - global_position) * Vector3(1, 0, 1)
+			if to_item.length() > 0.3 and to_item.normalized().dot(forward) < 0.0:
+				continue  # item is behind player (>90° from facing)
 			var d = global_position.distance_to(area.global_position)
 			if d < min_dist: min_dist = d; closest = area
 	if closest: closest.collect(self)
@@ -842,26 +864,52 @@ func _handle_wall_transparency():
 		if is_instance_valid(mesh):
 			mesh.set_surface_override_material(0, null)
 
-func show_kill_notification():
-	add_kill_feed_entry(true, false)
+func _update_zone_warning(delta: float):
+	if not _zone_warning_style: return
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		_zone_warning_style.border_color.a = 0.0; return
+	var self_2d = Vector2(global_position.x, global_position.z)
+	if self_2d.distance_to(main.current_zone_center) > main.current_zone_radius:
+		_zone_warning_pulse += delta * 3.5
+		_zone_warning_style.border_color.a = (sin(_zone_warning_pulse) * 0.5 + 0.5) * 0.58
+	else:
+		_zone_warning_pulse = 0.0
+		_zone_warning_style.border_color.a = maxf(0.0, _zone_warning_style.border_color.a - delta * 5.0)
 
-func add_kill_feed_entry(killer_is_player: bool, player_assisted: bool, killer_name: String = "Bot", victim_name: String = "Bot"):
+func _weapon_glyph(wtype: String) -> String:
+	match wtype:
+		"knife":   return "⚔"
+		"pistol":  return "◉"
+		"ar":      return "≡"
+		"shotgun": return "⊛"
+		"railgun": return "⚡"
+	return "→"
+
+func add_kill_feed_entry(killer_is_player: bool, player_assisted: bool, killer_name: String = "Bot", victim_name: String = "Bot", weapon_type: String = "", killer_streak: int = 0):
 	if not kill_feed_container: return
+	var glyph = _weapon_glyph(weapon_type)
 	var label = Label.new()
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	label.add_theme_color_override("font_outline_color", Color.BLACK)
 	if killer_is_player:
-		label.text = "★ YOU  →  %s  KILL" % victim_name
-		label.add_theme_font_size_override("font_size", 22)
-		label.add_theme_color_override("font_color", Color(1.0, 0.95, 0.2))
-		label.add_theme_constant_override("outline_size", 8)
+		var streak_txt = ("  ×%d" % killer_streak) if killer_streak >= 2 else ""
+		label.text = "★ YOU%s  %s  %s" % [streak_txt, glyph, victim_name]
+		var fsize = clampi(22 + (killer_streak - 1) * 2, 22, 30)
+		label.add_theme_font_size_override("font_size", fsize)
+		var kill_color: Color
+		if killer_streak >= 5:   kill_color = Color(1.0, 0.40, 0.0)
+		elif killer_streak >= 3: kill_color = Color(1.0, 0.70, 0.0)
+		else:                    kill_color = Color(1.0, 0.95, 0.2)
+		label.add_theme_color_override("font_color", kill_color)
+		label.add_theme_constant_override("outline_size", clampi(8 + killer_streak - 1, 8, 12))
 	elif player_assisted:
-		label.text = "◆ ASSIST  %s  →  %s" % [killer_name, victim_name]
+		label.text = "◆ %s  %s  %s" % [killer_name, glyph, victim_name]
 		label.add_theme_font_size_override("font_size", 17)
 		label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.1))
 		label.add_theme_constant_override("outline_size", 6)
 	else:
-		label.text = "%s  →  %s" % [killer_name, victim_name]
+		label.text = "%s  %s  %s" % [killer_name, glyph, victim_name]
 		label.add_theme_font_size_override("font_size", 13)
 		label.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
 		label.add_theme_constant_override("outline_size", 4)

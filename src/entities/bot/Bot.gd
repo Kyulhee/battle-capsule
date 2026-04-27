@@ -47,6 +47,8 @@ var _zone_outside_timer: float = 0.0  # continuous seconds spent outside zone
 
 const DEBUG_PRINT = false
 
+var _state_label: Label3D = null
+
 # ─── PERSONALITY ─────────────────────────────────────────────────────────────
 enum Personality { AGGRESSIVE, DEFENSIVE, SCAVENGER }
 var personality: Personality = Personality.AGGRESSIVE
@@ -54,6 +56,8 @@ var _disengage_threshold: int = 2  # visible enemies needed to trigger DISENGAGE
 var _fire_rate_mult: float = 1.0   # multiplier applied to fire_cooldown post-shot when allies attack same target
 var _footstep_range: float = 12.0  # radius to hear running actors
 var _loot_radius: float = 70.0     # pickup search radius in RECOVER
+var _combat_loot_threshold: float = 0.0  # ammo ratio below which bot breaks combat to grab nearby loot
+var _flee_hp_ratio: float = 0.25         # HP ratio below which bot exits combat to RECOVER
 
 # ─── DIFFICULTY ──────────────────────────────────────────────────────────────
 var _reaction_delay: float = 0.0   # seconds between spotting and reacting
@@ -68,6 +72,15 @@ func _ready():
 	add_to_group("bots")
 	_apply_personality([Personality.AGGRESSIVE, Personality.DEFENSIVE, Personality.SCAVENGER][randi() % 3])
 	died.connect(_on_died_zone_log)
+	_state_label = Label3D.new()
+	_state_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_state_label.double_sided = true
+	_state_label.font_size = 52
+	_state_label.pixel_size = 0.006
+	_state_label.outline_size = 10
+	_state_label.position = Vector3(0, 2.4, 0)
+	_state_label.visible = false
+	add_child(_state_label)
 	await get_tree().create_timer(randf_range(0.05, 0.2)).timeout
 	if ray_cast:
 		ray_cast.enabled = true
@@ -97,8 +110,10 @@ func _physics_process(delta):
 		use_heal()
 
 	_check_state_overrides(delta)
+	_check_survival_overrides()
 	_update_stuck(delta)
 	_check_footstep_sounds()
+	_update_state_label_visibility()
 
 	match current_state:
 		State.IDLE:        handle_idle_state(delta)
@@ -154,9 +169,13 @@ func _update_stuck(delta):
 		_stuck_timer += delta
 		if _stuck_timer >= 1.0:
 			var fwd = Vector3(sin(rotation.y), 0, cos(rotation.y))
-			var side = 1.0 if get_instance_id() % 2 == 0 else -1.0
-			_stuck_override_dir = Vector3(-fwd.z * side, 0, fwd.x * side).normalized()
-			_stuck_override_timer = 0.65
+			var angle = randf_range(-PI * 0.75, PI * 0.75)
+			_stuck_override_dir = Vector3(
+				fwd.x * cos(angle) - fwd.z * sin(angle),
+				0,
+				fwd.x * sin(angle) + fwd.z * cos(angle)
+			).normalized()
+			_stuck_override_timer = 1.2
 			_stuck_timer = 0.0
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_tactics("stuck_triggered")
@@ -202,17 +221,28 @@ func handle_idle_state(delta):
 	if _pending_target != null:
 		_pending_target = null
 
-	var nearest_loot = _find_nearest_pickup(35.0)
+	# Wounded bots use priority-scored pickup (heals first); healthy bots use nearest
+	var nearest_loot: Node3D = null
+	if current_health / stats.max_health < 0.5:
+		nearest_loot = _find_best_pickup(55.0)  # wider range, scores heals highest
+	else:
+		nearest_loot = _find_nearest_pickup(35.0)
 	if nearest_loot:
-		target_actor = nearest_loot
-		is_targeting_loot = true
-		_recovering = false
-		change_state(State.CHASE)
+		var loot_dist = global_position.distance_to(nearest_loot.global_position)
+		if loot_dist <= 2.5 and nearest_loot.has_method("collect"):
+			nearest_loot.collect(self)
+			_try_reload()
+		else:
+			target_actor = nearest_loot
+			is_targeting_loot = true
+			_recovering = false
+			change_state(State.CHASE)
 		return
 
 	var main = get_tree().root.get_node_or_null("Main")
 	if main and (main.supply_telegraphed or main.supply_spawned):
-		if global_position.distance_to(main.supply_pos) < 35.0:
+		var supply_range = 70.0 if personality == Personality.SCAVENGER else 50.0
+		if global_position.distance_to(main.supply_pos) < supply_range:
 			var dir = (main.supply_pos - global_position).normalized()
 			_move_or_unstick(dir, delta, true)
 			if has_node("/root/Telemetry") and state_timer < 0.1:
@@ -238,7 +268,16 @@ func handle_chase_state(delta):
 	rotation.y = lerp_angle(rotation.y, atan2(dir.x, dir.z) + PI, stats.rotation_speed * delta)
 
 	if is_targeting_loot:
-		if dist > 1.5:
+		# Give up if stuck chasing loot too long — switch to a different target
+		if state_timer > 5.0:
+			var alt = _find_best_pickup(_loot_radius)
+			if is_instance_valid(alt) and alt != target_actor:
+				target_actor = alt; state_timer = 0.0
+			else:
+				target_actor = null; is_targeting_loot = false; _recovering = false
+				change_state(State.IDLE)
+			return
+		if dist > 2.5:
 			_move_or_unstick(dir, delta, false)
 		else:
 			if target_actor.has_method("collect"):
@@ -272,6 +311,14 @@ func handle_attack_state(delta):
 			get_node("/root/Telemetry").log_tactics("disengage_triggered")
 		change_state(State.DISENGAGE)
 		return
+
+	# Proactive combat looting: break off when nearly out of ammo AND a pickup is close
+	if _combat_loot_threshold > 0 and stats.max_ammo > 0 and \
+			float(stats.current_ammo) / float(stats.max_ammo) <= _combat_loot_threshold:
+		var nearby = _find_best_pickup(15.0)
+		if nearby:
+			target_actor = nearby; is_targeting_loot = true; _recovering = true
+			change_state(State.CHASE); return
 
 	if stats.current_ammo <= 0:
 		var hp_ratio = current_health / stats.max_health
@@ -325,6 +372,14 @@ func handle_attack_state(delta):
 
 func handle_recover_state(delta):
 	recovery_timer += delta
+	# Knife retaliation: if an enemy closes in while bot is unarmed, don't just stand there
+	if stats.current_ammo <= 0 and reserve_ammo <= 0:
+		var nearby_enemy = _find_nearest_target()
+		if nearby_enemy and global_position.distance_to(nearby_enemy.global_position) < MELEE_RANGE * 2.5:
+			target_actor = nearby_enemy
+			_knife_mode = true
+			change_state(State.ATTACK)
+			return
 	var nearest_enemy = _find_nearest_target()
 
 	if recovery_substate == "seek_cover":
@@ -350,7 +405,7 @@ func handle_recover_state(delta):
 		elif recovery_timer > 4.0:
 			recovery_substate = "patrol"
 			recovery_timer = 0.0
-			patrol_target = _random_zone_point()
+			patrol_target = _pick_patrol_target()
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_tactics("patrol_entered")
 
@@ -372,7 +427,7 @@ func handle_recover_state(delta):
 			dir.y = 0
 			_move_or_unstick(dir, delta, true)
 		else:
-			patrol_target = _random_zone_point()
+			patrol_target = _pick_patrol_target()
 
 		if recovery_timer > 8.0:
 			if has_node("/root/Telemetry"):
@@ -455,6 +510,35 @@ func handle_disengage_state(delta):
 		# No cover found — fall back on scatter direction
 		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, true)
 
+# ─── STATE INDICATOR ─────────────────────────────────────────────────────────
+
+func _update_state_label():
+	if not _state_label: return
+	if is_dead: _state_label.visible = false; return
+	match current_state:
+		State.CHASE:
+			_state_label.text = "?"
+			_state_label.modulate = Color(1.0, 0.90, 0.0)
+		State.ATTACK:
+			_state_label.text = "!"
+			_state_label.modulate = Color(1.0, 0.18, 0.12)
+		State.DISENGAGE:
+			_state_label.text = "?"
+			_state_label.modulate = Color(1.0, 0.60, 0.0)
+		_:
+			_state_label.visible = false
+			return
+	_state_label.visible = true
+
+func _update_state_label_visibility():
+	if not _state_label or not _state_label.visible: return
+	if is_dead: _state_label.visible = false; return
+	var player = get_tree().get_first_node_in_group("players")
+	if not player or not player is Entity:
+		_state_label.visible = false; return
+	if not is_revealed_to(player) or global_position.distance_to(player.global_position) > 32.0:
+		_state_label.visible = false
+
 # ─── PERSONALITY & DIFFICULTY ────────────────────────────────────────────────
 
 func _apply_personality(p: Personality):
@@ -465,16 +549,22 @@ func _apply_personality(p: Personality):
 			_fire_rate_mult = 0.8
 			_footstep_range = 10.0
 			_loot_radius = 70.0
+			_combat_loot_threshold = 0.0
+			_flee_hp_ratio = 0.15  # fights until nearly dead
 		Personality.DEFENSIVE:
 			_disengage_threshold = 1
 			_fire_rate_mult = 1.0
 			_footstep_range = 15.0
 			_loot_radius = 60.0
+			_combat_loot_threshold = 0.20
+			_flee_hp_ratio = 0.35  # retreats early, values survival
 		Personality.SCAVENGER:
 			_disengage_threshold = 2
 			_fire_rate_mult = 1.15
 			_footstep_range = 18.0
 			_loot_radius = 90.0
+			_combat_loot_threshold = 0.30
+			_flee_hp_ratio = 0.25  # balanced survival instinct
 
 func apply_difficulty(params: Dictionary):
 	if params.has("vision_mult"):
@@ -483,6 +573,8 @@ func apply_difficulty(params: Dictionary):
 		_reaction_delay = params.reaction_delay
 	if params.has("aim_spread"):
 		_aim_spread_mult = params.aim_spread
+	if params.has("loot_break_mult"):
+		_combat_loot_threshold *= params.loot_break_mult
 
 # ─── FOOTSTEP DETECTION ───────────────────────────────────────────────────────
 # Running actors (velocity > 50% of move_speed) emit audible footsteps.
@@ -596,6 +688,24 @@ func _check_state_overrides(delta):
 	else:
 		_zone_outside_timer = 0.0
 
+# HP-based survival override — runs after zone override, before state handlers.
+# Pulls bots out of combat when critically wounded.
+func _check_survival_overrides():
+	if current_state == State.ZONE_ESCAPE or current_state == State.RECOVER: return
+	var hp_ratio = current_health / stats.max_health
+	if hp_ratio > _flee_hp_ratio: return
+	match current_state:
+		State.ATTACK:
+			if not _knife_mode:  # knife rush is an intentional last stand, don't interrupt
+				change_state(State.RECOVER)
+		State.CHASE:
+			if not is_targeting_loot:  # don't cancel a life-saving loot run
+				target_actor = null
+				change_state(State.RECOVER)
+		State.DISENGAGE:
+			if state_timer > 1.5:  # give time to find cover first, then switch to full RECOVER
+				change_state(State.RECOVER)
+
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 # Each bot rotates the "away" vector by a unique 45° sector so groups of
@@ -625,6 +735,44 @@ func _random_zone_point() -> Vector3:
 	var angle = randf() * TAU
 	var dist  = randf() * r
 	return Vector3(cx + cos(angle) * dist, global_position.y, cz + sin(angle) * dist)
+
+func _pick_patrol_target() -> Vector3:
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and (main.supply_telegraphed or main.supply_spawned):
+		return Vector3(main.supply_pos.x, global_position.y, main.supply_pos.z)
+	match personality:
+		Personality.DEFENSIVE:
+			var bush = _find_nearest_bush()
+			if bush != Vector3.ZERO: return bush
+		Personality.SCAVENGER:
+			var hotspot = _find_nearest_hotspot()
+			if hotspot != Vector3.ZERO: return hotspot
+	return _random_zone_point()
+
+func _find_nearest_bush() -> Vector3:
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main or not main.map_spec: return Vector3.ZERO
+	var best = Vector3.ZERO
+	var best_dist = INF
+	for obs in main.map_spec.obstacles:
+		if obs.get("type", "") != "bush_patch": continue
+		var op = obs.get("pos", [0, 0])
+		var bpos = Vector3(op[0], global_position.y, op[1])
+		var d = global_position.distance_to(bpos)
+		if d < best_dist: best_dist = d; best = bpos
+	return best
+
+func _find_nearest_hotspot() -> Vector3:
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main or not main.map_spec: return Vector3.ZERO
+	var best = Vector3.ZERO
+	var best_dist = INF
+	for poi in main.map_spec.pois:
+		var pp = poi.get("pos", [0, 0])
+		var ppos = Vector3(pp[0], global_position.y, pp[1])
+		var d = global_position.distance_to(ppos)
+		if d < best_dist: best_dist = d; best = ppos
+	return best
 
 func _find_nearest_target() -> Entity:
 	var actors = get_tree().get_nodes_in_group("actors")
@@ -665,6 +813,7 @@ func _bot_melee():
 # ─── DEATH & WEAPON DROP ─────────────────────────────────────────────────────
 
 func die(killer: Node3D = null):
+	if _state_label: _state_label.visible = false
 	_drop_weapon()
 	_drop_ammo()
 	_drop_heals()
@@ -835,6 +984,7 @@ func change_state(new_state: State):
 		])
 	current_state = new_state
 	state_timer = 0.0
+	_update_state_label()
 	if new_state == State.RECOVER:
 		# If reserve ammo is available, reload on the spot and skip RECOVER entirely
 		if reserve_ammo > 0:
