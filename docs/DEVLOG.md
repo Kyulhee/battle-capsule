@@ -5,6 +5,35 @@
 
 ---
 
+## v0.9.1 — 2026-04-27
+
+**Zone Escape 버그 수정 — stuck 탈출 로직 재설계 + 스테이지별 조기 진입**
+
+**Bot.gd**
+
+- `handle_zone_escape_state`: `_sample_zone_escape_dir` 반환값을 `_stuck_override_dir`에 실제 적용하도록 수정 (기존 dead code 버그).
+  - 수정 전: `dir` 변수에 넣었으나 `_move_or_unstick`이 무시하고 기존 수직 방향 사용.
+  - 수정 후: `_stuck_override_dir = _sample_zone_escape_dir(zone_c)` 로 실제 적용.
+- `handle_zone_escape_state`: 에스컬레이션 로직 추가 — ZONE_ESCAPE 진입 후 3초 이상 경과 시 4초 주기로 완전 랜덤 방향 2초 burst. 코너 트랩(각도 샘플링으로 해결 불가)을 강제 돌파.
+- `_zone_thrash_cooldown: float = 0.0` 멤버 추가 — 랜덤 burst 쿨다운.
+- `_sample_zone_escape_dir`: 각도 샘플링(best_dot 선택) → 벽 슬라이드 방향으로 교체.
+  - `(to_center + perp * sign * 0.6).normalized()` — 존 중심 방향 + 수직 성분 블렌드.
+  - 인스턴스 ID 기반 sign으로 인접 봇이 좌우 분산.
+- `_check_state_overrides`: 존 탈출 진입 임계값을 스테이지에 따라 선형 감소.
+  - 스테이지 1→0.95, 2→0.90, 3→0.85, 4+→0.80.
+- `handle_attack_state` 존 체크: 동일 스케일 적용 (0.90→0.75).
+
+**20회 헤드리스 시뮬 검증 결과**
+
+| 항목 | v0.9.0 | v0.9.1 |
+|---|---|---|
+| zone 사인 비율 | 12% | 5% |
+| stuck+zone 조합 사망 | 1건 (stage 8, dist=1.75) | 0건 |
+| 최대 zone_dist_ratio | 4.92 | 1.21 |
+| avg outside_sec | 0.18 | 0.11 |
+
+---
+
 ## v0.9.0 — 2026-04-27
 
 **Combat Feedback — 봇 상태 아이콘, 히트 마커, 피해 숫자, 자기장 경고**

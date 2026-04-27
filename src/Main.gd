@@ -558,6 +558,21 @@ func generate_next_zone():
 	next_zone_center = current_zone_center + Vector2(cos(angle), sin(angle)) * dist
 
 func _on_bot_died(bot: Entity = null):
+	# Capture final-duel context BEFORE decrementing alive_count
+	if alive_count == 2 and bot and has_node("/root/Telemetry"):
+		var pos_2d = Vector2(bot.global_position.x, bot.global_position.z)
+		var zone_dist = pos_2d.distance_to(current_zone_center)
+		var outside_extra = _zone_outside_time.get(bot.get_instance_id(), 0.0)
+		get_node("/root/Telemetry").log_final_duel_death({
+			"cause":            bot.last_damage_source,
+			"state":            bot.State.keys()[bot.current_state],
+			"zone_dist_ratio":  snappedf(zone_dist / max(current_zone_radius, 0.1), 0.01),
+			"outside_sec":      outside_extra,
+			"was_stuck":        bot._stuck_override_timer > 0.0,
+			"stuck_sec":        snappedf(bot._stuck_timer, 0.01),
+			"stage":            zone_stage,
+			"bot_hp":           snappedf(bot.current_health, 0.1),
+		})
 	alive_count -= 1
 	if bot:
 		_zone_outside_time.erase(bot.get_instance_id())

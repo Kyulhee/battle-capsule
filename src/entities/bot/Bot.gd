@@ -44,6 +44,7 @@ var _stuck_override_timer: float = 0.0
 
 # Zone tracking
 var _zone_outside_timer: float = 0.0  # continuous seconds spent outside zone
+var _zone_thrash_cooldown: float = 0.0  # throttle random thrash bursts in ZONE_ESCAPE
 
 const DEBUG_PRINT = false
 
@@ -97,6 +98,7 @@ func _physics_process(delta):
 	if fire_cooldown > 0: fire_cooldown -= delta
 	if _disengage_cooldown > 0: _disengage_cooldown -= delta
 	if _reaction_timer > 0: _reaction_timer -= delta
+	if _zone_thrash_cooldown > 0: _zone_thrash_cooldown -= delta
 	state_timer += delta
 
 	if current_state == State.ATTACK:
@@ -348,7 +350,8 @@ func handle_attack_state(delta):
 	var main = get_tree().root.get_node_or_null("Main")
 	if main:
 		var zone_dist = Vector2(global_position.x, global_position.z).distance_to(main.current_zone_center)
-		if zone_dist > main.current_zone_radius * 0.9:
+		var atk_threshold = 0.9 - min(main.zone_stage - 1, 3) * 0.05  # 0.90 → 0.75
+		if zone_dist > main.current_zone_radius * atk_threshold:
 			change_state(State.ZONE_ESCAPE); return
 
 	var dir_to_target = (last_known_target_pos - global_position).normalized()
@@ -442,33 +445,28 @@ func handle_zone_escape_state(delta):
 	if self_2d.distance_to(zone_c) < main.current_zone_radius * 0.75:
 		change_state(State.IDLE)
 		return
-	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
-	# When standard unstick is active, try zone-directed angular sampling instead of
-	# perpendicular escape (perpendicular can push bot sideways along the wall, away from center)
-	var dir = to_center
+	# When the standard stuck override fires, replace its perpendicular dir with a
+	# zone-directed wall-slide so the bot drifts sideways AND toward center.
 	if _stuck_override_timer > 0.0:
-		dir = _sample_zone_escape_dir(zone_c)
-	_move_or_unstick(dir, delta, true)
+		_stuck_override_dir = _sample_zone_escape_dir(zone_c)
+	elif state_timer > 3.0 and _zone_thrash_cooldown <= 0.0:
+		# Escalation: still outside after 3 s → inject a random burst every ~4 s
+		# to break out of corner traps that angular sampling alone can't solve.
+		_stuck_override_dir = Vector3(randf_range(-1.0, 1.0), 0, randf_range(-1.0, 1.0)).normalized()
+		_stuck_override_timer = 2.0
+		_stuck_timer = 0.0
+		_zone_thrash_cooldown = 4.0
+	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
+	_move_or_unstick(to_center, delta, true)
 
 func _sample_zone_escape_dir(zone_c: Vector2) -> Vector3:
 	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
-	# Try 5 angles (−60°, −30°, 0°, +30°, +60°) relative to zone-center direction.
-	# Use instance-unique offset so nearby stuck bots fan out rather than all picking the same angle.
-	var base_offset = ((get_instance_id() % 5) - 2) * deg_to_rad(30.0)
-	var best_dir = to_center
-	var best_dot = -1.0
-	for i in range(5):
-		var angle = base_offset + (i - 2) * deg_to_rad(30.0)
-		var candidate = Vector3(
-			to_center.x * cos(angle) - to_center.z * sin(angle),
-			0,
-			to_center.x * sin(angle) + to_center.z * cos(angle)
-		).normalized()
-		var dot = candidate.dot(to_center)
-		if dot > best_dot:
-			best_dot = dot
-			best_dir = candidate
-	return best_dir
+	# Blend center direction with a perpendicular wall-slide component.
+	# Instance-unique sign ensures neighboring stuck bots slide to opposite sides
+	# rather than all piling against the same wall segment.
+	var perp = Vector3(-to_center.z, 0, to_center.x)
+	var sign = 1.0 if (get_instance_id() % 2 == 0) else -1.0
+	return (to_center + perp * sign * 0.6).normalized()
 
 func handle_disengage_state(delta):
 	# Return to action if threat count drops
@@ -681,7 +679,10 @@ func _check_state_overrides(delta):
 	var main = get_tree().root.get_node_or_null("Main")
 	if not main: return
 	var dist = Vector2(global_position.x, global_position.z).distance_to(main.current_zone_center)
-	if dist > main.current_zone_radius * 0.95:
+	# Shrink trigger threshold as zone stage rises: 0.95 → 0.80 over stages 1-4.
+	# At high stages zone damage is severe, so bots must react before reaching the edge.
+	var threshold = 0.95 - min(main.zone_stage - 1, 3) * 0.05
+	if dist > main.current_zone_radius * threshold:
 		_zone_outside_timer += delta
 		if current_state != State.ZONE_ESCAPE:
 			change_state(State.ZONE_ESCAPE)

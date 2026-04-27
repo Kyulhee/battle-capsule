@@ -10,8 +10,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v0.9.0 (봇 상태 아이콘, 히트 마커, 피해 숫자, 자기장 경고 오버레이) |
-| 다음 버전 | v0.9.1 — Hell Difficulty Prototype |
+| 완료 버전 | v0.9.1 (Zone escape stuck 버그 수정, 스테이지별 조기 진입 임계값) |
+| 다음 버전 | v0.9.2 — Hell Difficulty Prototype |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 
 ---

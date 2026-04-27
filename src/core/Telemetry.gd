@@ -100,6 +100,7 @@ func _reset_metrics():
 			"zone_deaths": 0,
 			"zone_deaths_by_state": {},
 			"max_outside_time": 0.0,
+			"final_duel_deaths": [],  # deaths when exactly 2 actors remained
 		},
 	}
 
@@ -148,6 +149,10 @@ func log_death(cause: String, _state: String = ""):
 	if cause == "RECOVER":
 		if _g("tactics"):
 			metrics.tactics.died_in_recover += 1
+
+func log_final_duel_death(context: Dictionary):
+	if not match_in_progress or not _g("zone"): return
+	metrics.zone.final_duel_deaths.append(context)
 
 func log_zone_death(state_at_death: String, time_outside: float):
 	if not match_in_progress or not _g("zone"): return
