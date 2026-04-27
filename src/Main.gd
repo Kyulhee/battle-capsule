@@ -27,6 +27,8 @@ const DIFF_DESCRIPTIONS = [
 ]
 
 # Hell events
+enum HellModifier { SHIELD_OFF, BARRAGE, ALL_AGGRESSIVE }
+var hell_modifier: HellModifier = HellModifier.SHIELD_OFF
 var _hell_blackout_timer: float = 0.0
 var _hell_blackout_active: bool = false
 var _hell_bomb_timer: float = 0.0
@@ -231,6 +233,7 @@ func start_game():
 	spawn_entities()
 	_spawn_initial_loot()
 	if difficulty == Difficulty.HELL and not is_simulation:
+		hell_modifier = randi() % 3 as HellModifier
 		_hell_blackout_timer = randf_range(12.0, 20.0)
 		_hell_bomb_timer = 20.0
 		_create_hell_overlay()
@@ -436,6 +439,10 @@ func spawn_entities():
 	if difficulty == Difficulty.HELL:
 		p.current_health = 1.0
 		p.health_changed.emit(1.0, p.stats.max_health)
+		if hell_modifier == HellModifier.SHIELD_OFF:
+			p.stats.max_shield = 0.0
+			p.current_shield = 0.0
+			p.shield_changed.emit(0.0, 0.0)
 
 	# Spawn Bots
 	var diff_params = DIFFICULTY_PARAMS[difficulty]
@@ -446,6 +453,8 @@ func spawn_entities():
 		b.global_position = _get_safe_spawn_pos()
 		b.died.connect(_on_bot_died.bind(b))
 		b.apply_difficulty(diff_params)
+		if difficulty == Difficulty.HELL and hell_modifier == HellModifier.ALL_AGGRESSIVE:
+			b._apply_personality(b.Personality.AGGRESSIVE)
 
 func _get_safe_spawn_pos() -> Vector3:
 	for _attempt in range(50):
@@ -1092,12 +1101,18 @@ func _show_hell_announcement():
 	vbox.add_theme_constant_override("separation", 8)
 	panel.add_child(vbox)
 
+	const MOD_INFO = {
+		0: ["★ ARMOR DISABLED",   Color(0.4, 0.8, 1.0)],
+		1: ["★ BARRAGE MODE",     Color(1.0, 0.5, 0.0)],
+		2: ["★ ALL BOTS HOSTILE", Color(1.0, 0.2, 0.2)],
+	}
+	var mod = MOD_INFO[hell_modifier as int]
 	for line_data in [
-		["HELL MODE",                  36, Color(0.85, 0.05, 1.0)],
-		["HP 1 START",                 20, Color(1.0,  0.3,  0.3)],
-		["HEALING REDUCED",            20, Color(1.0,  0.3,  0.3)],
-		["BLACKOUTS & BOMBARDMENTS",   18, Color(0.9,  0.5,  0.1)],
-		["SURVIVE IF YOU CAN",         18, Color(0.65, 0.65, 0.65)],
+		["HELL MODE",              36, Color(0.85, 0.05, 1.0)],
+		["HP 1 · HEALING REDUCED", 18, Color(1.0,  0.3,  0.3)],
+		[mod[0],                   22, mod[1]],
+		["BLACKOUTS & BOMBARDMENTS", 16, Color(0.9, 0.5, 0.1)],
+		["SURVIVE IF YOU CAN",     16, Color(0.55, 0.55, 0.55)],
 	]:
 		var lbl = Label.new()
 		lbl.text = line_data[0]
@@ -1139,51 +1154,89 @@ func _trigger_blackout():
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_hell_event("blackout")
 
+func _make_bomb_disc(radius: float, col: Color) -> MeshInstance3D:
+	var m = MeshInstance3D.new()
+	var cyl = CylinderMesh.new()
+	cyl.top_radius = radius; cyl.bottom_radius = radius; cyl.height = 0.12
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = col
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	mat.emission_enabled = true
+	mat.emission = Color(col.r, col.g * 0.4, 0.0)
+	mat.emission_energy_multiplier = 1.2
+	cyl.surface_set_material(0, mat)
+	m.mesh = cyl
+	return m
+
 func _start_bombardment():
-	const BOMB_RADIUS = 5.0
-	const BOMB_DAMAGE = 45.0
-	const BOMB_DELAY  = 1.5
+	_show_event_text("BOMBARDMENT INCOMING", Color(1.0, 0.35, 0.0))
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_hell_event("bombardment_warned")
 
 	var angle = randf() * TAU
 	var dist  = randf() * current_zone_radius * 0.85
-	var bomb_pos = Vector3(
+	var center = Vector3(
 		current_zone_center.x + cos(angle) * dist,
 		0.05,
 		current_zone_center.y + sin(angle) * dist
 	)
 
-	# Warning disc on ground
-	var mesh_inst = MeshInstance3D.new()
-	var cyl = CylinderMesh.new()
-	cyl.top_radius = BOMB_RADIUS; cyl.bottom_radius = BOMB_RADIUS; cyl.height = 0.12
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(1.0, 0.1, 0.1, 0.55)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.emission_enabled = true
-	mat.emission = Color(1.0, 0.3, 0.0)
-	mat.emission_energy_multiplier = 1.2
-	cyl.surface_set_material(0, mat)
-	mesh_inst.mesh = cyl
-	add_child(mesh_inst)
-	mesh_inst.global_position = bomb_pos
+	if hell_modifier == HellModifier.BARRAGE:
+		const OUTER_R       = 14.0
+		const PELLET_R      = 2.5
+		const PELLET_DAMAGE = 22.0
+		const PELLET_COUNT  = 10
+		const BASE_DELAY    = 0.7
 
-	_show_event_text("BOMBARDMENT INCOMING", Color(1.0, 0.35, 0.0))
-	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").log_hell_event("bombardment_warned")
+		var outer = _make_bomb_disc(OUTER_R, Color(1.0, 0.1, 0.1, 0.3))
+		add_child(outer)
+		outer.global_position = center
 
-	get_tree().create_timer(BOMB_DELAY).timeout.connect(func():
-		if is_instance_valid(mesh_inst): mesh_inst.queue_free()
-		for actor in get_tree().get_nodes_in_group("actors"):
-			if not is_instance_valid(actor): continue
-			if actor is Entity and actor.is_dead: continue
-			if actor.global_position.distance_to(bomb_pos) <= BOMB_RADIUS:
-				actor.take_damage(BOMB_DAMAGE, "zone")
-		if is_instance_valid(_hell_overlay):
-			_hell_overlay.color = Color(0.9, 0.3, 0.0, 0.4)
-			create_tween().tween_property(_hell_overlay, "color:a", 0.0, 0.25)
-		if has_node("/root/Telemetry"):
-			get_node("/root/Telemetry").log_hell_event("bombardment_hit")
-	)
+		for i in range(PELLET_COUNT):
+			var pa   = randf() * TAU
+			var pr   = randf() * OUTER_R
+			var pos  = Vector3(center.x + cos(pa) * pr, 0.05, center.z + sin(pa) * pr)
+			var disc = _make_bomb_disc(PELLET_R, Color(1.0, 0.45, 0.0, 0.75))
+			add_child(disc)
+			disc.global_position = pos
+			var delay = BASE_DELAY + i * 0.06
+			get_tree().create_timer(delay).timeout.connect(func():
+				if is_instance_valid(disc): disc.queue_free()
+				for actor in get_tree().get_nodes_in_group("actors"):
+					if not is_instance_valid(actor): continue
+					if actor is Entity and actor.is_dead: continue
+					if actor.global_position.distance_to(pos) <= PELLET_R:
+						actor.take_damage(PELLET_DAMAGE, "zone")
+			)
+
+		get_tree().create_timer(BASE_DELAY + PELLET_COUNT * 0.06).timeout.connect(func():
+			if is_instance_valid(outer): outer.queue_free()
+			if is_instance_valid(_hell_overlay):
+				_hell_overlay.color = Color(0.9, 0.3, 0.0, 0.5)
+				create_tween().tween_property(_hell_overlay, "color:a", 0.0, 0.3)
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_hell_event("bombardment_hit")
+		)
+	else:
+		const BOMB_RADIUS = 5.0
+		const BOMB_DAMAGE = 45.0
+		const BOMB_DELAY  = 1.5
+		var mesh_inst = _make_bomb_disc(BOMB_RADIUS, Color(1.0, 0.1, 0.1, 0.55))
+		add_child(mesh_inst)
+		mesh_inst.global_position = center
+		get_tree().create_timer(BOMB_DELAY).timeout.connect(func():
+			if is_instance_valid(mesh_inst): mesh_inst.queue_free()
+			for actor in get_tree().get_nodes_in_group("actors"):
+				if not is_instance_valid(actor): continue
+				if actor is Entity and actor.is_dead: continue
+				if actor.global_position.distance_to(center) <= BOMB_RADIUS:
+					actor.take_damage(BOMB_DAMAGE, "zone")
+			if is_instance_valid(_hell_overlay):
+				_hell_overlay.color = Color(0.9, 0.3, 0.0, 0.4)
+				create_tween().tween_property(_hell_overlay, "color:a", 0.0, 0.25)
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_hell_event("bombardment_hit")
+		)
 
 func _show_event_text(msg: String, col: Color):
 	var lbl = Label.new()
