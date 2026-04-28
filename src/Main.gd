@@ -23,16 +23,19 @@ const DIFF_DESCRIPTIONS = [
 	"봇 시야 75%  ·  반응 느림  ·  조준 부정확\n배틀로얄 첫 입문에 추천.",
 	"표준 봇 성능  ·  균형 잡힌 전투.",
 	"봇 시야 125%  ·  즉각 반응  ·  정밀 조준\n극한의 도전.",
-	"HP 1 시작  ·  힐 감소  ·  암전 + 폭격\n살아남을 수 있다면.",
+	"HP 1 시작  ·  힐 감소  ·  암전 + 폭격\n랜덤 모디파이어: 힐추가반감 / 탄막 / 전원적대",
 ]
 
 # Hell events
-enum HellModifier { SHIELD_OFF, BARRAGE, ALL_AGGRESSIVE }
-var hell_modifier: HellModifier = HellModifier.SHIELD_OFF
+enum HellModifier { SCARCITY, BARRAGE, ALL_AGGRESSIVE }
+var hell_modifier: HellModifier = HellModifier.SCARCITY
 var _hell_blackout_timer: float = 0.0
 var _hell_blackout_active: bool = false
 var _hell_bomb_timer: float = 0.0
 var _hell_overlay: ColorRect = null
+var _hell_announce_active: bool = false
+var _hell_announce_panel: Control = null
+var _pause_panel: Control = null
 
 @export_group("Loot")
 @export var railgun_item: ItemData = preload("res://src/items/weapon_railgun.tres")
@@ -93,6 +96,8 @@ var supply_pillar: MeshInstance3D = null
 var zone_ring: MeshInstance3D = null
 
 func _ready():
+	process_mode = Node.PROCESS_MODE_ALWAYS
+	_load_settings()
 	# Check for autostart
 	for arg in OS.get_cmdline_user_args():
 		if "autostart=true" in arg:
@@ -194,6 +199,15 @@ func _ready():
 		_diff_btns[i].mouse_entered.connect(_show_diff_tooltip.bind(i))
 		_diff_btns[i].mouse_exited.connect(func(): if _diff_tooltip: _diff_tooltip.visible = false)
 
+	var exit_idx = $CanvasLayer/Control/MainMenuPanel/VBoxContainer/ExitBtn.get_index()
+	var settings_btn = Button.new()
+	settings_btn.text = "SETTINGS"
+	settings_btn.add_theme_font_size_override("font_size", 24)
+	settings_btn.pressed.connect(_on_settings_pressed)
+	$CanvasLayer/Control/MainMenuPanel/VBoxContainer.add_child(settings_btn)
+	$CanvasLayer/Control/MainMenuPanel/VBoxContainer.move_child(settings_btn, exit_idx)
+	_apply_btn_style(settings_btn)
+
 	$CanvasLayer/Control/ResultPanel/Content/RestartBtn.pressed.connect(restart_game)
 	$CanvasLayer/Control/ResultPanel/Content/MenuBtn.pressed.connect(return_to_menu)
 	_apply_btn_style($CanvasLayer/Control/ResultPanel/Content/RestartBtn)
@@ -211,7 +225,16 @@ func _ready():
 
 	if is_simulation:
 		start_game()
-	
+		return
+
+	if has_node("/root/Telemetry"):
+		var tel = get_node("/root/Telemetry")
+		if tel.has_meta("_restart_difficulty"):
+			difficulty = tel.get_meta("_restart_difficulty") as Difficulty
+			tel.remove_meta("_restart_difficulty")
+			_update_diff_highlights()
+			start_game()
+
 func start_game():
 	current_state = GameState.PLAYING
 	game_over = false
@@ -332,14 +355,75 @@ func _add_icon_val(parent: HBoxContainer, tex: ImageTexture, val: String, col: C
 	parent.add_child(lbl)
 
 func restart_game():
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").set_meta("_restart_difficulty", difficulty as int)
+	get_tree().paused = false
 	get_tree().reload_current_scene()
 
 func return_to_menu():
-	get_tree().reload_current_scene() # Simply reload to menu state
+	get_tree().paused = false
+	get_tree().reload_current_scene()
+
+func _toggle_pause():
+	if is_instance_valid(_pause_panel):
+		_pause_panel.queue_free()
+		_pause_panel = null
+		get_tree().paused = false
+	else:
+		get_tree().paused = true
+		_pause_panel = _create_pause_panel()
+		$CanvasLayer/Control.add_child(_pause_panel)
+
+func _create_pause_panel() -> Control:
+	var panel = ColorRect.new()
+	panel.process_mode = Node.PROCESS_MODE_ALWAYS
+	panel.layout_mode = 1
+	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
+	panel.color = Color(0.0, 0.0, 0.0, 0.55)
+	panel.z_index = 15
+
+	var box = VBoxContainer.new()
+	box.process_mode = Node.PROCESS_MODE_ALWAYS
+	box.set_anchors_preset(Control.PRESET_CENTER)
+	box.offset_left = -110.0; box.offset_right = 110.0
+	box.offset_top  = -80.0;  box.offset_bottom = 80.0
+	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	box.grow_vertical   = Control.GROW_DIRECTION_BOTH
+	box.alignment = BoxContainer.ALIGNMENT_CENTER
+	box.add_theme_constant_override("separation", 10)
+	panel.add_child(box)
+
+	var title = Label.new()
+	title.text = "PAUSED"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 28)
+	title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
+	box.add_child(title)
+
+	for btn_data in [["RESUME", _toggle_pause], ["RESTART", restart_game], ["MAIN MENU", return_to_menu]]:
+		var btn = Button.new()
+		btn.process_mode = Node.PROCESS_MODE_ALWAYS
+		btn.text = btn_data[0]
+		btn.add_theme_font_size_override("font_size", 20)
+		btn.pressed.connect(btn_data[1])
+		_apply_btn_style(btn)
+		box.add_child(btn)
+
+	return panel
 
 func _input(event):
-	if event is InputEventKey and event.keycode == KEY_F12 and event.pressed:
-		_take_screenshot("debug_screenshot_manual.png")
+	if not (event is InputEventKey) or not event.pressed: return
+	match event.keycode:
+		KEY_F12:
+			_take_screenshot("debug_screenshot_manual.png")
+		KEY_ESCAPE:
+			if _hell_announce_active:
+				_dismiss_hell_announcement()
+			elif current_state == GameState.PLAYING:
+				_toggle_pause()
+		KEY_SPACE:
+			if _hell_announce_active:
+				_dismiss_hell_announcement()
 
 func _take_screenshot(file_name: String):
 	var viewport = get_viewport()
@@ -367,6 +451,7 @@ func _load_map_spec():
 		push_error("Main: mapSpec_example.json not found!")
 
 func _process(delta):
+	if get_tree().paused: return
 	if current_state != GameState.PLAYING: return
 	if game_over: return
 	
@@ -439,10 +524,6 @@ func spawn_entities():
 	if difficulty == Difficulty.HELL and not is_simulation:
 		p.current_health = 1.0
 		p.health_changed.emit(1.0, p.stats.max_health)
-		if hell_modifier == HellModifier.SHIELD_OFF:
-			p.stats.max_shield = 0.0
-			p.current_shield = 0.0
-			p.shield_changed.emit(0.0, 0.0)
 
 	# Spawn Bots
 	var diff_params = DIFFICULTY_PARAMS[difficulty]
@@ -663,8 +744,9 @@ func _end_match(final_rank: int = 1):
 
 	if stats_label:
 		var tel = get_node("/root/Telemetry")
-		stats_label.text = "RANK: #%d\nKILLS: %d\nASSISTS: %d\nTIME: %d sec" % [
-			final_rank, tel.metrics.session.kills, tel.metrics.session.assists, int(match_timer)
+		stats_label.text = "RANK: #%d\nKILLS: %d\nASSISTS: %d\nDAMAGE: %.0f\nTIME: %d sec" % [
+			final_rank, tel.metrics.session.kills, tel.metrics.session.assists,
+			tel.metrics.combat.total_damage_dealt, int(match_timer)
 		]
 	
 	if is_simulation:
@@ -1084,35 +1166,40 @@ func _create_hell_overlay():
 	$CanvasLayer/Control.add_child(_hell_overlay)
 
 func _show_hell_announcement():
+	_hell_announce_active = true
+	get_tree().paused = true
+
 	var panel = ColorRect.new()
+	panel.process_mode = Node.PROCESS_MODE_ALWAYS
 	panel.layout_mode = 1
 	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -220.0; panel.offset_right = 220.0
-	panel.offset_top  = -130.0; panel.offset_bottom = 130.0
+	panel.offset_left = -240.0; panel.offset_right = 240.0
+	panel.offset_top  = -155.0; panel.offset_bottom = 155.0
 	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	panel.grow_vertical   = Control.GROW_DIRECTION_BOTH
-	panel.color = Color(0.04, 0.0, 0.08, 0.92)
+	panel.color = Color(0.04, 0.0, 0.08, 0.95)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.z_index = 9
+	panel.z_index = 20
+	_hell_announce_panel = panel
 
 	var vbox = VBoxContainer.new()
 	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 8)
+	vbox.add_theme_constant_override("separation", 10)
 	panel.add_child(vbox)
 
 	const MOD_INFO = {
-		0: ["★ ARMOR DISABLED",   Color(0.4, 0.8, 1.0)],
-		1: ["★ BARRAGE MODE",     Color(1.0, 0.5, 0.0)],
-		2: ["★ ALL BOTS HOSTILE", Color(1.0, 0.2, 0.2)],
+		0: ["★ SCARCITY — HEALS ×0.5",  Color(0.4, 0.8, 1.0)],
+		1: ["★ BARRAGE MODE",            Color(1.0, 0.5, 0.0)],
+		2: ["★ ALL BOTS HOSTILE",        Color(1.0, 0.2, 0.2)],
 	}
 	var mod = MOD_INFO[hell_modifier as int]
 	for line_data in [
-		["HELL MODE",              36, Color(0.85, 0.05, 1.0)],
+		["HELL MODE",              38, Color(0.85, 0.05, 1.0)],
 		["HP 1 · HEALING REDUCED", 18, Color(1.0,  0.3,  0.3)],
 		[mod[0],                   22, mod[1]],
 		["BLACKOUTS & BOMBARDMENTS", 16, Color(0.9, 0.5, 0.1)],
-		["SURVIVE IF YOU CAN",     16, Color(0.55, 0.55, 0.55)],
+		["SURVIVE IF YOU CAN",     15, Color(0.55, 0.55, 0.55)],
 	]:
 		var lbl = Label.new()
 		lbl.text = line_data[0]
@@ -1121,11 +1208,25 @@ func _show_hell_announcement():
 		lbl.add_theme_color_override("font_color", line_data[2])
 		vbox.add_child(lbl)
 
+	var start_btn = Button.new()
+	start_btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	start_btn.text = "START  [SPACE / ESC]"
+	start_btn.add_theme_font_size_override("font_size", 18)
+	start_btn.pressed.connect(_dismiss_hell_announcement)
+	_apply_btn_style(start_btn)
+	vbox.add_child(start_btn)
+
 	$CanvasLayer/Control.add_child(panel)
-	var tw = create_tween()
-	tw.tween_interval(4.5)
-	tw.tween_property(panel, "modulate:a", 0.0, 0.5)
-	tw.tween_callback(panel.queue_free)
+
+func _dismiss_hell_announcement():
+	if not _hell_announce_active: return
+	_hell_announce_active = false
+	if is_instance_valid(_hell_announce_panel):
+		var tw = _hell_announce_panel.create_tween()
+		tw.tween_property(_hell_announce_panel, "modulate:a", 0.0, 0.3)
+		tw.tween_callback(_hell_announce_panel.queue_free)
+		_hell_announce_panel = null
+	get_tree().paused = false
 
 func _process_hell_events(delta):
 	if difficulty != Difficulty.HELL or game_over: return
@@ -1237,6 +1338,104 @@ func _start_bombardment():
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_hell_event("bombardment_hit")
 		)
+
+# ─── SETTINGS ────────────────────────────────────────────────────────────────
+
+func _load_settings():
+	var cfg = ConfigFile.new()
+	if cfg.load("user://settings.cfg") != OK: return
+	var vol: float = cfg.get_value("audio", "master_volume", 1.0)
+	AudioServer.set_bus_volume_db(0, linear_to_db(vol))
+	if cfg.get_value("display", "fullscreen", false):
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+func _save_settings(vol_linear: float, fullscreen: bool):
+	var cfg = ConfigFile.new()
+	cfg.set_value("audio", "master_volume", vol_linear)
+	cfg.set_value("display", "fullscreen", fullscreen)
+	cfg.save("user://settings.cfg")
+
+func _on_settings_pressed():
+	if get_node_or_null("CanvasLayer/Control/SettingsPanel"): return
+	var ctrl = $CanvasLayer/Control
+	var panel = PanelContainer.new()
+	panel.name = "SettingsPanel"
+	panel.layout_mode = 1
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.offset_left = -200.0; panel.offset_right = 200.0
+	panel.offset_top  = -160.0; panel.offset_bottom = 160.0
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical   = Control.GROW_DIRECTION_BOTH
+	var ps = StyleBoxFlat.new()
+	ps.bg_color = Color(0.04, 0.06, 0.10, 0.97)
+	ps.border_color = Color(0.25, 0.55, 0.35, 0.8)
+	ps.set_border_width_all(1); ps.set_corner_radius_all(6)
+	ps.content_margin_left = 20; ps.content_margin_right = 20
+	ps.content_margin_top = 16;  ps.content_margin_bottom = 16
+	panel.add_theme_stylebox_override("panel", ps)
+	ctrl.add_child(panel)
+
+	var vbox = VBoxContainer.new()
+	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_theme_constant_override("separation", 14)
+	panel.add_child(vbox)
+
+	var title = Label.new()
+	title.text = "SETTINGS"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_color_override("font_color", Color(0.88, 0.95, 0.9))
+	vbox.add_child(title)
+
+	# Volume row
+	var vol_lbl = Label.new()
+	vol_lbl.text = "VOLUME"
+	vol_lbl.add_theme_font_size_override("font_size", 15)
+	vol_lbl.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
+	vbox.add_child(vol_lbl)
+	var slider = HSlider.new()
+	slider.min_value = 0.0; slider.max_value = 1.0; slider.step = 0.01
+	var cur_vol = db_to_linear(AudioServer.get_bus_volume_db(0))
+	slider.value = cur_vol
+	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	vbox.add_child(slider)
+	var vol_val_lbl = Label.new()
+	vol_val_lbl.text = "%d%%" % int(cur_vol * 100)
+	vol_val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vol_val_lbl.add_theme_font_size_override("font_size", 13)
+	vol_val_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
+	vbox.add_child(vol_val_lbl)
+	slider.value_changed.connect(func(v: float):
+		AudioServer.set_bus_volume_db(0, linear_to_db(v))
+		vol_val_lbl.text = "%d%%" % int(v * 100)
+	)
+
+	# Fullscreen toggle
+	var fs_btn = Button.new()
+	var is_fs = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
+	fs_btn.text = "FULLSCREEN: ON" if is_fs else "FULLSCREEN: OFF"
+	fs_btn.add_theme_font_size_override("font_size", 18)
+	fs_btn.pressed.connect(func():
+		var new_fs = not (DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN)
+		if new_fs:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+		else:
+			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+		fs_btn.text = "FULLSCREEN: ON" if new_fs else "FULLSCREEN: OFF"
+	)
+	_apply_btn_style(fs_btn)
+	vbox.add_child(fs_btn)
+
+	# Close + save
+	var close_btn = Button.new()
+	close_btn.text = "CLOSE"
+	close_btn.add_theme_font_size_override("font_size", 20)
+	close_btn.pressed.connect(func():
+		_save_settings(slider.value, DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN)
+		panel.queue_free()
+	)
+	_apply_btn_style(close_btn)
+	vbox.add_child(close_btn)
 
 func _show_event_text(msg: String, col: Color):
 	var lbl = Label.new()

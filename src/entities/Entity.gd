@@ -159,17 +159,20 @@ func flash_hit():
 
 func _spawn_damage_number(amount: float, source: String = ""):
 	if amount <= 0: return
+	if not is_inside_tree(): return
 	var lbl = Label3D.new()
 	lbl.text = "-%d" % int(amount)
 	lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	lbl.double_sided = true
-	lbl.font_size = 44
+	lbl.font_size = 48
 	lbl.pixel_size = 0.005
-	lbl.outline_size = 8
-	lbl.modulate = Color(1.0, 0.25, 0.15) if source == "gun" else Color(1.0, 0.55, 0.1)
+	lbl.outline_size = 3
+	var col = Color(1.0, 0.28, 0.15) if source == "gun" else Color(1.0, 0.60, 0.1)
+	lbl.modulate = col
+	lbl.outline_modulate = Color(col.r * 0.3, col.g * 0.1, 0.0, 1.0)
 	lbl.global_position = global_position + Vector3(randf_range(-0.25, 0.25), 2.0, randf_range(-0.25, 0.25))
 	get_tree().root.add_child(lbl)
-	var tween = create_tween()
+	var tween = lbl.create_tween()
 	tween.tween_property(lbl, "position:y", lbl.position.y + 1.4, 0.85)
 	tween.parallel().tween_property(lbl, "modulate:a", 0.0, 0.85)
 	tween.tween_callback(lbl.queue_free)

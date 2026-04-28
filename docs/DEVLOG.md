@@ -5,6 +5,23 @@
 
 ---
 
+## v0.9.4 — 2026-04-28
+
+**UI 폴리시 — ESC 일시정지 메뉴, 직접 재시작, Hell 안내 개선, 설정 메뉴, 결과 화면 확장**
+
+**Main.gd**
+
+- `process_mode = PROCESS_MODE_ALWAYS` — 메인 노드 항상 처리, `_process()` 시작에 `if get_tree().paused: return` 가드 추가.
+- `_input()` 재작성: `KEY_ESCAPE` → Hell 안내 중이면 안내 닫기, 게임 중이면 일시정지 토글. `KEY_SPACE` → Hell 안내 닫기.
+- **ESC 일시정지 메뉴**: `_toggle_pause()` + `_create_pause_panel()` 추가. RESUME / RESTART / MAIN MENU 버튼. 패널 및 버튼 `PROCESS_MODE_ALWAYS`.
+- **직접 재시작**: `restart_game()`에서 `Telemetry.set_meta("_restart_difficulty", difficulty as int)` 저장 후 씬 리로드. `_ready()` 말미에 메타 확인 시 `start_game()` 자동 호출.
+- **Hell 안내 개선**: `_show_hell_announcement()` — `get_tree().paused = true`, 패널 `PROCESS_MODE_ALWAYS`, "START [SPACE / ESC]" 버튼 추가. 자동 fade-out 제거. `_dismiss_hell_announcement()` 추가 — 버튼/키 입력 시 fade + unpause.
+- **결과 화면**: `_end_match()` stats_label에 `DAMAGE: %.0f` 줄 추가 (텔레메트리 `combat.total_damage_dealt`).
+- **설정 메뉴**: 메인 메뉴에 "SETTINGS" 버튼 동적 삽입 (ExitBtn 위). `_on_settings_pressed()` — 볼륨 슬라이더 (linear 0–1 → dB), 풀스크린 토글 버튼, CLOSE 시 `_save_settings()` 호출.
+- `_load_settings()` + `_save_settings()` — `user://settings.cfg` (ConfigFile). `_ready()` 최초 호출로 이전 설정 복원.
+
+---
+
 ## v0.9.3 — 2026-04-28
 
 **Hell 랜덤 모디파이어 — 쉴드 꺼짐 / 탄막 폭격 / 전원 적대**

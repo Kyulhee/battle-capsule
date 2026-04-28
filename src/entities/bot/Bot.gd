@@ -72,6 +72,7 @@ var _peripheral_scan_timer: float = 0.0
 @onready var ray_cast = $RayCast3D
 
 func _ready():
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	super._ready()
 	add_to_group("bots")
 	_apply_personality([Personality.AGGRESSIVE, Personality.DEFENSIVE, Personality.SCAVENGER][randi() % 3])

@@ -64,6 +64,7 @@ var slot_icon_rects: Array = []
 var slot_ammo_labels: Array = []
 
 func _ready():
+	process_mode = Node.PROCESS_MODE_PAUSABLE
 	if stats:
 		stats = stats.duplicate()
 	super._ready()
@@ -436,9 +437,10 @@ func handle_healing():
 	if current_health >= stats.max_health: return
 	var main = get_tree().root.get_node_or_null("Main")
 	var is_hell = main != null and main.difficulty == 3
+	var scarcity_mult = 0.5 if (is_hell and main != null and main.hell_modifier == main.HellModifier.SCARCITY) else 1.0
 	if stats.advanced_heals > 0:
 		stats.advanced_heals -= 1
-		var amount = 60.0 * (0.55 if is_hell else 1.0)
+		var amount = 60.0 * (0.55 if is_hell else 1.0) * scarcity_mult
 		current_health = min(stats.max_health, current_health + amount)
 		health_changed.emit(current_health, stats.max_health)
 		if Sfx: Sfx.play("heal", global_position)
@@ -446,7 +448,7 @@ func handle_healing():
 		_refresh_slot_hud()
 	elif stats.heal_items > 0:
 		stats.heal_items -= 1
-		_heal_regen += 30.0 * (0.40 if is_hell else 1.0)
+		_heal_regen += 30.0 * (0.40 if is_hell else 1.0) * scarcity_mult
 		if Sfx: Sfx.play("heal", global_position)
 		if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 		_refresh_slot_hud()
