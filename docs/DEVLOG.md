@@ -5,6 +5,31 @@
 
 ---
 
+## v0.9.3 — 2026-04-28
+
+**Hell 랜덤 모디파이어 — 쉴드 꺼짐 / 탄막 폭격 / 전원 적대**
+
+**Main.gd**
+
+- `enum HellModifier { SHIELD_OFF, BARRAGE, ALL_AGGRESSIVE }` 추가.
+- `hell_modifier`: 매 Hell 매치 시작 시 `randi() % 3`으로 랜덤 결정.
+- `_show_hell_announcement()`: 5줄→4줄로 재구성, 활성 모디파이어 이름·색상 표시.
+- **SHIELD_OFF**: `spawn_entities()`에서 플레이어 `stats.max_shield = 0`, `current_shield = 0` 강제. 방어구 픽업 무효화.
+- **BARRAGE**: `_start_bombardment()` 분기 — 반경 14 외곽 경고 디스크 + 펠릿 10발(r=2.5, 22 dmg) 0.06s 스태거로 0.7s 후 착탄. 기존 단일 폭탄(r=5, 45 dmg, 1.5s)은 비BARRAGE 시 유지.
+- **ALL_AGGRESSIVE**: `spawn_entities()` 봇 루프에서 `b._apply_personality(b.Personality.AGGRESSIVE)` 호출.
+- `_make_bomb_disc(radius, col)` 헬퍼 추가 — CylinderMesh 경고 디스크 생성 공용화.
+
+**Bot.gd**
+
+- `_awareness_level: int` 추가 (0=없음, 1=주기 스캔, 2=능동+즉각 반응).
+- `apply_difficulty()`: `"awareness_level"` 파라미터 처리 추가.
+- `handle_attack_state()`: `_awareness_level >= 1`이면 주기적 `_peripheral_check()` 실행 (보통 3s, 어려움+ 1.5s).
+- `take_damage()`: `_awareness_level >= 2`이고 제3자에 의해 피격 시, 현재 타깃 HP ≥ 25%면 즉시 타깃 전환.
+- `_peripheral_check()`: 시야 내 제3자 탐색. 보통=현재 타깃보다 30% 가까울 때만 전환, 어려움+=HP 조건만.
+- `_switch_target(new_target)`: 타깃 교체 + `state_timer = 0` 리셋.
+
+---
+
 ## v0.9.2 — 2026-04-27
 
 **Hell Difficulty — HP 1 시작, 힐 감소, 암전 + 폭격 이벤트**
