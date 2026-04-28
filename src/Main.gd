@@ -436,7 +436,7 @@ func spawn_entities():
 	p.global_position = _get_safe_spawn_pos()
 	player_ref = p
 	p.died.connect(_on_player_died)
-	if difficulty == Difficulty.HELL:
+	if difficulty == Difficulty.HELL and not is_simulation:
 		p.current_health = 1.0
 		p.health_changed.emit(1.0, p.stats.max_health)
 		if hell_modifier == HellModifier.SHIELD_OFF:
