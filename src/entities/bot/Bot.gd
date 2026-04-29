@@ -521,10 +521,15 @@ func handle_disengage_state(delta):
 		if zone_dist > main.current_zone_radius:
 			change_state(State.ZONE_ESCAPE); return
 
-	# Find and move toward cover
 	var nearest_threat = _find_nearest_target()
 	if not nearest_threat: change_state(State.IDLE); return
 
+	# Heavily outnumbered (4+): scatter in unique directions rather than pile onto one cover spot
+	if _count_visible_enemies() >= 4:
+		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, true)
+		return
+
+	# Normal disengage: seek tall cover
 	if _disengage_cover == Vector3.ZERO or global_position.distance_to(_disengage_cover) < 2.0:
 		_disengage_cover = _find_cover_point(nearest_threat.global_position)
 
@@ -679,28 +684,50 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 	var best_pos = Vector3.ZERO
 	var best_score = INF
 	var my_dist_to_threat = global_position.distance_to(threat_pos)
+	# Per-bot angular sector so multiple bots spread around the same obstacle
+	var sector_angle = float(get_instance_id() % 8) * (TAU / 8.0)
 
 	for obs in obstacles:
 		if not is_instance_valid(obs): continue
+		# Skip obstacles too low to actually provide cover (log_pile, bush_patch, etc.)
+		if not _obs_provides_cover(obs): continue
+
 		var obs_pos = Vector3(obs.global_position.x, global_position.y, obs.global_position.z)
 		var dist_to_obs = global_position.distance_to(obs_pos)
 		if dist_to_obs > 20.0 or dist_to_obs < 0.5: continue
 
-		# Cover point is on the far side of the obstacle from the threat
 		var threat_to_obs = (obs_pos - threat_pos).normalized()
 		threat_to_obs.y = 0
-		var cover = obs_pos + threat_to_obs * 2.0
+		# Spread cover positions around the obstacle using a per-bot sector offset
+		var spread = Vector3(cos(sector_angle), 0, sin(sector_angle)) * 1.5
+		var cover = obs_pos + threat_to_obs * 2.0 + spread
 		cover.y = global_position.y
 
-		# Only useful if it puts more distance between us and threat
 		if cover.distance_to(threat_pos) <= my_dist_to_threat: continue
 
-		# Prefer obstacles closer to the bot (quicker to reach)
-		if dist_to_obs < best_score:
-			best_score = dist_to_obs
+		# Penalise cover spots already targeted by allied bots
+		var crowding = 0.0
+		for b in get_tree().get_nodes_in_group("bots"):
+			if b != self and is_instance_valid(b) and b.get("_disengage_cover") != Vector3.ZERO:
+				if (b._disengage_cover as Vector3).distance_to(cover) < 4.0:
+					crowding += 10.0
+
+		var score = dist_to_obs + crowding
+		if score < best_score:
+			best_score = score
 			best_pos = cover
 
 	return best_pos
+
+# True when the obstacle is tall enough (collision layer 8 = bullet-blocking height > 2.5m).
+func _obs_provides_cover(obs: Node3D) -> bool:
+	if obs is StaticBody3D:
+		return (obs.collision_layer & 8) != 0
+	# rock_cluster root is a Node3D — check immediate children
+	for child in obs.get_children():
+		if child is StaticBody3D and (child.collision_layer & 8) != 0:
+			return true
+	return false
 
 func _check_state_overrides(delta):
 	var main = get_tree().root.get_node_or_null("Main")

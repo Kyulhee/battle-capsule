@@ -5,6 +5,23 @@
 
 ---
 
+## v1.2 — 2026-04-29
+
+**봇 DISENGAGE 클러스터링 해소 — 커버 품질 필터 + 분산 후퇴**
+
+**Bot.gd**
+
+- `_obs_provides_cover(obs)` 헬퍼 추가: `collision_layer & 8` (높이 >2.5m 플래그) 기준으로 실제 엄폐 가능 장애물만 선별. `log_pile`(h=1.5m), `bush_patch`(h=1m) 등 낮은 구조물은 커버로 인정 안 함.
+- `_find_cover_point()` 재작성:
+  - `_obs_provides_cover` 필터 추가 (낮은 장애물 제외)
+  - 인스턴스별 섹터 오프셋(`get_instance_id() % 8 × TAU/8`)으로 커버 위치 분산 → 같은 장애물 뒤에 몰리지 않음
+  - 이미 아군이 목표 중인 커버는 거리 +10점 패널티 (크라우딩 억제)
+- `handle_disengage_state()`: `_count_visible_enemies() >= 4` 시 커버 탐색 대신 `_scatter_dir_from`으로 즉시 분산 후퇴 — 대인원 포위 시 한 지점에 뭉치는 현상 해소
+
+헤드리스 시뮬레이션 결과: stuck 3회(이전 13~18), avg_pairwise_dist 20.1m(넓은 분산), 에러 없음.
+
+---
+
 ## v1.1 — 2026-04-29
 
 **미니맵 타입별 표현 개선 + 맵 전략 배치 재설계 + WorldBuilder jitter**
