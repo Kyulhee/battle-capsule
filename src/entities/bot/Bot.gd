@@ -68,6 +68,7 @@ var _aim_spread_mult: float = 1.0  # multiplier for predictive-shot spread
 # 0=none 1=periodic scan(3s) 2=periodic scan(1.5s)+instant reaction on hit
 var _awareness_level: int = 0
 var _peripheral_scan_timer: float = 0.0
+var _combat_jump_timer: float = 0.0
 
 @onready var ray_cast = $RayCast3D
 
@@ -368,11 +369,19 @@ func handle_attack_state(delta):
 	var dir_to_target = (last_known_target_pos - global_position).normalized()
 	rotation.y = lerp_angle(rotation.y, atan2(dir_to_target.x, dir_to_target.z) + PI, stats.rotation_speed * delta)
 
+	# Hard+ (awareness 2): periodic combat hops and tighter strafe
+	if _awareness_level >= 2:
+		_combat_jump_timer -= delta
+		if _combat_jump_timer <= 0 and is_on_floor():
+			velocity.y = 5.0
+			_combat_jump_timer = randf_range(2.0, 4.0)
+
+	var strafe_scale = clamp(0.2 + _awareness_level * 0.2, 0.2, 0.6)
 	var strafe = Vector3(-dir_to_target.z, 0, dir_to_target.x) * sin(state_timer * 2.5)
 	if dist > pref_range * 1.2:
-		_move_or_unstick(dir_to_target + strafe * 0.4, delta, false)
+		_move_or_unstick(dir_to_target + strafe * strafe_scale, delta, false)
 	elif dist < pref_range * 0.5:
-		_move_or_unstick(-dir_to_target + strafe * 0.4, delta, false)
+		_move_or_unstick(-dir_to_target + strafe * strafe_scale, delta, false)
 	else:
 		_move_or_unstick(strafe, delta, false)
 
@@ -545,7 +554,7 @@ func _update_state_label_visibility():
 	var player = get_tree().get_first_node_in_group("players")
 	if not player or not player is Entity:
 		_state_label.visible = false; return
-	if not is_revealed_to(player) or global_position.distance_to(player.global_position) > 32.0:
+	if not player._can_i_see(self):
 		_state_label.visible = false
 
 # ─── PERSONALITY & DIFFICULTY ────────────────────────────────────────────────

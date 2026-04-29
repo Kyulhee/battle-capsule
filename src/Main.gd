@@ -19,6 +19,7 @@ const DIFFICULTY_PARAMS = {
 var _diff_btns: Array = []
 var _diff_tooltip: PanelContainer = null
 var _diff_tooltip_label: Label = null
+var _records_selected_diff: int = 1
 const DIFF_DESCRIPTIONS = [
 	"봇 시야 75%  ·  반응 느림  ·  조준 부정확\n배틀로얄 첫 입문에 추천.",
 	"표준 봇 성능  ·  균형 잡힌 전투.",
@@ -248,8 +249,10 @@ func start_game():
 	_show_panel("HUD")
 	
 	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").start_match()
-		get_node("/root/Telemetry").set_stage(1)
+		var tel = get_node("/root/Telemetry")
+		tel.current_difficulty = difficulty as int
+		tel.start_match()
+		tel.set_stage(1)
 		
 	alive_count = bot_count + 1
 	_categorize_templates()
@@ -280,6 +283,51 @@ func _show_panel(panel_name: String):
 
 func _on_records_pressed():
 	_show_panel("Records")
+	_setup_records_controls()
+	_populate_records_list()
+
+func _setup_records_controls():
+	var vbox = $CanvasLayer/Control/RecordsPanel/VBox
+	if vbox.get_node_or_null("DiffTabs"): return  # already built
+
+	var scroll_idx = $CanvasLayer/Control/RecordsPanel/VBox/Scroll.get_index()
+
+	# Difficulty tab row
+	var tabs = HBoxContainer.new()
+	tabs.name = "DiffTabs"
+	tabs.alignment = BoxContainer.ALIGNMENT_CENTER
+	tabs.add_theme_constant_override("separation", 6)
+	vbox.add_child(tabs)
+	vbox.move_child(tabs, scroll_idx)
+
+	const DIFF_LABELS = ["쉬움", "보통", "어려움", "지옥"]
+	for i in range(4):
+		var btn = Button.new()
+		btn.text = DIFF_LABELS[i]
+		btn.custom_minimum_size = Vector2(68, 0)
+		btn.add_theme_font_size_override("font_size", 13)
+		btn.pressed.connect(_on_records_diff_tab.bind(i))
+		_apply_btn_style(btn)
+		tabs.add_child(btn)
+
+	# CLEAR ALL button (before close button)
+	var close_idx = $CanvasLayer/Control/RecordsPanel/VBox/CloseRecordsBtn.get_index()
+	var clear_btn = Button.new()
+	clear_btn.name = "ClearBtn"
+	clear_btn.text = "CLEAR ALL"
+	clear_btn.add_theme_font_size_override("font_size", 14)
+	clear_btn.pressed.connect(_on_records_clear)
+	_apply_btn_style(clear_btn)
+	vbox.add_child(clear_btn)
+	vbox.move_child(clear_btn, close_idx)
+
+func _on_records_diff_tab(diff: int):
+	_records_selected_diff = diff
+	_populate_records_list()
+
+func _on_records_clear():
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").clear_history()
 	_populate_records_list()
 
 func _on_help_pressed():
@@ -288,48 +336,73 @@ func _on_help_pressed():
 func _populate_records_list():
 	var list = $CanvasLayer/Control/RecordsPanel/VBox/Scroll/List
 	for child in list.get_children(): child.queue_free()
+
+	# Update tab highlights
+	const DIFF_COLORS = [Color(0.3,1.0,0.45), Color(1.0,0.88,0.25), Color(1.0,0.35,0.35), Color(0.75,0.1,1.0)]
+	var tabs = $CanvasLayer/Control/RecordsPanel/VBox.get_node_or_null("DiffTabs")
+	if tabs:
+		for i in range(tabs.get_child_count()):
+			tabs.get_child(i).modulate = DIFF_COLORS[i] if i == _records_selected_diff else Color(0.55, 0.55, 0.55)
+
 	if not has_node("/root/Telemetry"): return
 	var tel = get_node("/root/Telemetry")
-	tel.load_history()
-	if tel.match_history.is_empty():
+	var history = tel.get_history_for_difficulty(_records_selected_diff)
+
+	if history.is_empty():
 		var empty_lbl = Label.new()
 		empty_lbl.text = "기록 없음"
 		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		empty_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
 		list.add_child(empty_lbl)
 		return
+
 	var skull_tex = _make_menu_icon("skull")
 	var hand_tex  = _make_menu_icon("hand")
-	for record in tel.match_history:
+	for record in history:
 		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
+		row.add_theme_constant_override("separation", 6)
 		list.add_child(row)
-		# Win/loss badge
+
+		# WIN / --- badge
 		var badge = Label.new()
 		badge.text = "WIN" if record.win else "---"
 		badge.add_theme_font_size_override("font_size", 12)
-		badge.custom_minimum_size = Vector2(36, 0)
+		badge.custom_minimum_size = Vector2(32, 0)
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		badge.add_theme_color_override("font_color", Color.GOLD if record.win else Color(0.5, 0.5, 0.5))
 		row.add_child(badge)
+
 		# Rank
 		var rank_lbl = Label.new()
 		rank_lbl.text = "#%d" % record.rank
 		rank_lbl.add_theme_font_size_override("font_size", 14)
-		rank_lbl.custom_minimum_size = Vector2(36, 0)
+		rank_lbl.custom_minimum_size = Vector2(32, 0)
 		rank_lbl.add_theme_color_override("font_color", Color.GOLD if record.win else Color(0.85, 0.85, 0.85))
 		row.add_child(rank_lbl)
-		# Kill icon + count
+
+		# Score (prominent)
+		var score_val = record.get("score", 0)
+		var score_lbl = Label.new()
+		score_lbl.text = "%d" % score_val
+		score_lbl.add_theme_font_size_override("font_size", 14)
+		score_lbl.custom_minimum_size = Vector2(54, 0)
+		score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		var score_col = Color.GOLD if record.win else Color(0.7, 0.85, 1.0)
+		score_lbl.add_theme_color_override("font_color", score_col)
+		row.add_child(score_lbl)
+
+		# Kills + Assists icons
 		_add_icon_val(row, skull_tex, str(record.kills), Color(1.0, 0.92, 0.15))
-		# Assist icon + count
 		_add_icon_val(row, hand_tex, str(record.assists), Color(1.0, 0.6, 0.2))
-		# Time
+
+		# Duration
 		var time_lbl = Label.new()
 		time_lbl.text = "%ds" % record.duration
-		time_lbl.add_theme_font_size_override("font_size", 13)
-		time_lbl.add_theme_color_override("font_color", Color(0.65, 0.65, 0.65))
+		time_lbl.add_theme_font_size_override("font_size", 12)
+		time_lbl.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6))
 		row.add_child(time_lbl)
-		# Date (right-aligned, smaller)
+
+		# Date (right-aligned)
 		var date_lbl = Label.new()
 		date_lbl.text = record.date
 		date_lbl.add_theme_font_size_override("font_size", 11)
@@ -744,9 +817,13 @@ func _end_match(final_rank: int = 1):
 
 	if stats_label:
 		var tel = get_node("/root/Telemetry")
-		stats_label.text = "RANK: #%d\nKILLS: %d\nASSISTS: %d\nDAMAGE: %.0f\nTIME: %d sec" % [
+		var score = tel.calculate_score(
+			final_rank, tel.metrics.session.kills,
+			tel.metrics.session.assists, is_victory, difficulty as int
+		)
+		stats_label.text = "RANK: #%d\nKILLS: %d\nASSISTS: %d\nDAMAGE: %.0f\nTIME: %d sec\nSCORE: %d" % [
 			final_rank, tel.metrics.session.kills, tel.metrics.session.assists,
-			tel.metrics.combat.total_damage_dealt, int(match_timer)
+			tel.metrics.combat.total_damage_dealt, int(match_timer), score
 		]
 	
 	if is_simulation:
@@ -759,6 +836,7 @@ func _print_bot_state_snapshot():
 	var positions: Array = []
 	var outside_zone = 0
 	for b in get_tree().get_nodes_in_group("actors"):
+		if not is_instance_valid(b): continue
 		if b.is_in_group("players") or not b.has_method("handle_idle_state"): continue
 		if b.is_dead: continue
 		var s = names[b.current_state] if b.current_state < names.size() else str(b.current_state)
@@ -785,6 +863,7 @@ func handle_damage_tick(delta):
 		damage_tick_timer = 0.0
 		var actors = get_tree().get_nodes_in_group("actors")
 		for a in actors:
+			if not is_instance_valid(a): continue
 			if a is Entity and not a.is_dead:
 				var pos_2d = Vector2(a.global_position.x, a.global_position.z)
 				var uid = a.get_instance_id()

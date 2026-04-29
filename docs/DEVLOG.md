@@ -5,6 +5,45 @@
 
 ---
 
+## v0.9.5 — 2026-04-29
+
+**점수 시스템 + 난이도별 매치 히스토리 + 버그 수정 + Hard+ 봇 전투 회피**
+
+**Telemetry.gd**
+
+- `match_history` 타입: `Array` → `Dictionary` (`str(difficulty)` 키, 하위는 기록 배열). 구포맷(Array) 로드 시 자동 폐기.
+- `current_difficulty: int` 변수 추가 — `start_game()` 호출 전 Main이 설정.
+- `DIFF_MULT = [1.0, 1.5, 2.5, 4.0]` 상수 추가.
+- `calculate_score(rank, kills, assists, win, diff) -> int`: 기본점 `1000 - (rank-1)×80` + 킬×100 + 어시스트×40 + 승리+300, 전체에 난이도 배율 곱.
+- `clear_history()`: `match_history = {}` 후 빈 `{}` 기록.
+- `get_history_for_difficulty(diff) -> Array`: 해당 난이도 기록 배열 반환.
+- `_save_history()`: 레코드에 `difficulty`, `score` 필드 추가; 딕셔너리 포맷으로 저장; score 내림차순 정렬.
+
+**Main.gd**
+
+- `_records_selected_diff: int = 1` 변수 추가.
+- `start_game()`: Telemetry `current_difficulty = difficulty` 설정 후 `start_match()`.
+- `_end_match()`: `calculate_score()` 호출 → stats_label에 `SCORE: N` 줄 추가.
+- `_on_records_pressed()` → `_setup_records_controls()` 호출로 분리: 난이도 탭 버튼(쉬움/보통/어려움/지옥) + CLEAR ALL 버튼을 Scroll 위에 한 번만 생성.
+- `_populate_records_list()` 재작성: `get_history_for_difficulty(_records_selected_diff)` 사용; 탭 하이라이트 갱신; 행에 Score 열(보라/골드) 추가.
+
+**Entity.gd**
+
+- `_spawn_damage_number()`: `get_tree().root.add_child(lbl)` 을 `lbl.global_position` 설정 전에 이동 — Label3D가 트리에 추가되기 전 `global_position` setter 호출로 발생하던 `!is_inside_tree()` 오류 수정.
+
+**Main.gd**
+
+- `_print_bot_state_snapshot()` / `handle_damage_tick()`: 그룹 멤버 순회 시 `is_instance_valid()` 가드 추가 — 삭제 대기 중인 노드에 `global_position` 접근 시 발생하던 동일 오류 수정.
+
+**Bot.gd**
+
+- `_update_state_label_visibility()`: `is_revealed_to(player)` (인식 게이지 기반, 시야 이탈 후 수 초 지속) → `player._can_i_see(self)` (실시간 LOS 판정)로 교체 — 시야 밖 봇의 `?`/`!` 아이콘이 보이던 문제 수정.
+- `_combat_jump_timer` 변수 추가.
+- `handle_attack_state()`: Hard+ (`_awareness_level >= 2`) 에서 2–4 초 주기로 전투 점프 (`velocity.y = 5.0`) 추가.
+- 스트레이프 amplitude를 `_awareness_level`에 따라 스케일: Easy=0.2, Normal=0.4, Hard/Hell=0.6 — 상위 난이도 봇이 교전 중 더 역동적으로 움직임. 크라우치는 충돌 형상 변경이 필요하여 v1.0으로 연기.
+
+---
+
 ## v0.9.4 — 2026-04-28
 
 **UI 폴리시 — ESC 일시정지 메뉴, 직접 재시작, Hell 안내 개선, 설정 메뉴, 결과 화면 확장**

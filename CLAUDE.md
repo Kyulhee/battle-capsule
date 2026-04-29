@@ -10,7 +10,7 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v0.9.4 (ESC 일시정지 메뉴, 직접 재시작, Hell 안내 개선, 설정 메뉴, 결과 DAMAGE) |
+| 완료 버전 | v0.9.5 (점수 시스템 + 난이도별 매치 히스토리 탭 + CLEAR ALL) |
 | 다음 버전 | v1.0 — pathfinding 분석/계획 |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 

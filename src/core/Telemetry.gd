@@ -35,9 +35,28 @@ func _g(group: String) -> bool:
 # ── Metric storage ────────────────────────────────────────────────────────────
 
 var metrics: Dictionary = {}
-var match_history: Array = []
+var match_history: Dictionary = {}  # key = str(difficulty 0-3) → Array of records
+var current_difficulty: int = 1
 const HISTORY_PATH = "user://match_history.json"
 const SIM_RESULT_PATH = "user://sim_result_latest.json"
+
+const DIFF_MULT: Array = [1.0, 1.5, 2.5, 4.0]
+
+func calculate_score(rank: int, kills: int, assists: int, win: bool, diff: int) -> int:
+	var base = max(0, 1000 - (rank - 1) * 80)
+	var raw  = base + kills * 100 + assists * 40 + (300 if win else 0)
+	return int(raw * DIFF_MULT[clamp(diff, 0, 3)])
+
+func clear_history():
+	match_history = {}
+	var file = FileAccess.open(HISTORY_PATH, FileAccess.WRITE)
+	if file:
+		file.store_string("{}")
+		file.close()
+
+func get_history_for_difficulty(diff: int) -> Array:
+	load_history()
+	return match_history.get(str(diff), [])
 
 var match_in_progress: bool = false
 var _start_tick: int = 0
@@ -267,21 +286,26 @@ func log_spawn_metrics(_avg_dist: float, _los_rate: float): pass
 # ── Persistence ───────────────────────────────────────────────────────────────
 
 func _save_history():
+	var score = calculate_score(
+		metrics.session.rank, metrics.session.kills,
+		metrics.session.assists, metrics.session.win, current_difficulty
+	)
 	var record = {
-		"date":        Time.get_datetime_string_from_system().split("T")[0],
-		"time_of_day": Time.get_time_string_from_system(),
-		"rank":        metrics.session.rank,
-		"kills":       metrics.session.kills,
-		"assists":     metrics.session.assists,
-		"duration":    int(metrics.core.duration),
-		"win":         metrics.session.win,
+		"date":       Time.get_datetime_string_from_system().split("T")[0],
+		"rank":       metrics.session.rank,
+		"kills":      metrics.session.kills,
+		"assists":    metrics.session.assists,
+		"duration":   int(metrics.core.duration),
+		"win":        metrics.session.win,
+		"difficulty": current_difficulty,
+		"score":      score,
 	}
 	load_history()
-	match_history.append(record)
-	match_history.sort_custom(func(a, b):
-		if a.rank != b.rank: return a.rank < b.rank
-		return a.kills > b.kills
-	)
+	var key = str(current_difficulty)
+	if not match_history.has(key):
+		match_history[key] = []
+	match_history[key].append(record)
+	match_history[key].sort_custom(func(a, b): return a.score > b.score)
 	var file = FileAccess.open(HISTORY_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(match_history, "\t"))
@@ -307,11 +331,14 @@ func _save_sim_result():
 
 func load_history():
 	if not FileAccess.file_exists(HISTORY_PATH):
-		match_history = []; return
+		match_history = {}; return
 	var file = FileAccess.open(HISTORY_PATH, FileAccess.READ)
 	var parsed = JSON.parse_string(file.get_as_text())
 	file.close()
-	match_history = parsed if parsed is Array else []
+	if parsed is Dictionary:
+		match_history = parsed
+	else:
+		match_history = {}  # old Array format — discard (incompatible)
 
 # ── Report ────────────────────────────────────────────────────────────────────
 
