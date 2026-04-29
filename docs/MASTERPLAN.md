@@ -1,11 +1,11 @@
 # 배틀캡슐 마스터 플랜
 
-> 마지막 업데이트: 2026-04-29 (v1.2 완료, v1.3~v3.0 로드맵 재편)  
+> 마지막 업데이트: 2026-04-30 (v1.3 완료)  
 > 이 문서는 AI 에이전트 간 인수인계 및 장기 방향 공유를 위해 작성되었습니다.
 
 ## 현재 상태
 
-**현재**: v1.2 완료 — 다음: v1.3 (Challenge Mission System)
+**현재**: v1.3 완료 — 다음: v1.4 (Artifact System 1차)
 
 **문서 구조** *(각 파일의 업데이트 시점 기준 → [CLAUDE.md](../CLAUDE.md))*
 
@@ -160,6 +160,7 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 | v1.0   | 2026-04-29 | NavigationRegion3D + NavigationAgent3D 봇 pathfinding 전환 |
 | v1.1   | 2026-04-29 | 미니맵 타입별 표현(rock→원, bush→반투명 연두), mapSpec v3.0(3링), WorldBuilder jitter |
 | v1.2   | 2026-04-29 | 봇 DISENGAGE 클러스터링 해소 — 커버 높이 필터, 섹터 분산, 4인↑ scatter |
+| v1.3   | 2026-04-30 | Challenge Mission System — 15미션, 미션선택UI, 배지저장, Telemetry mission 그룹 |
 
 ---
 
@@ -169,7 +170,7 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 
 ---
 
-### v1.3 — Challenge Mission System `M`
+### ~~v1.3 — Challenge Mission System~~ ✅ 2026-04-30
 
 **한 줄 요약**: 단순 생존 외의 플레이 목적을 만든다.
 
