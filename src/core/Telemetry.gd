@@ -10,7 +10,9 @@ extends Node
 #   "tactics" — RECOVER bouts, stuck, reserve_reload, patrol, weapon_drop
 #   "economy" — heals, shields, weapon pickups, first upgrade timing
 #   "supply"  — supply capsule events
+#   "zone"    — zone deaths, outside time, final duel deaths
 #   "hell"    — blackout/bombardment event counts (Hell difficulty only)
+#   "mission" — active mission id, result (success/fail/none)
 
 # ── Group toggles ─────────────────────────────────────────────────────────────
 
@@ -22,6 +24,7 @@ var enabled_groups: Dictionary = {
 	"supply":  true,
 	"zone":    true,
 	"hell":    true,
+	"mission": true,
 }
 
 func set_groups(overrides: Dictionary):
@@ -128,6 +131,12 @@ func _reset_metrics():
 			"blackout_count": 0,
 			"bombardment_warned_count": 0,
 			"bombardment_hit_count": 0,
+		},
+		# mission
+		"mission": {
+			"active_mission": "",
+			"mission_progress": {},
+			"mission_result": "none",  # "none" | "success" | "fail"
 		},
 	}
 
@@ -273,6 +282,19 @@ func log_hell_event(event: String):
 		"bombardment_warned":    metrics.hell.bombardment_warned_count += 1
 		"bombardment_hit":       metrics.hell.bombardment_hit_count += 1
 
+# ── Log functions — mission ───────────────────────────────────────────────────
+
+func log_mission_start(mission_id: String):
+	if not match_in_progress or not _g("mission"): return
+	metrics.mission.active_mission = mission_id
+	metrics.mission.mission_result = "none"
+	metrics.mission.mission_progress = {}
+
+func log_mission_result(success: bool, progress: Dictionary = {}):
+	if not _g("mission"): return
+	metrics.mission.mission_result = "success" if success else "fail"
+	metrics.mission.mission_progress = progress.duplicate()
+
 # Weapon drops can fire on the same frame as end_match, bypassing match_in_progress.
 func log_weapon_drop():
 	if _g("tactics") and metrics.has("tactics"):
@@ -322,8 +344,9 @@ func _save_sim_result():
 	if _g("tactics"): out["tactics"] = metrics.tactics.duplicate(true)
 	if _g("zone"):    out["zone"]    = metrics.zone.duplicate(true)
 	if _g("economy"): out["economy"] = metrics.economy.duplicate(true)
-	if _g("supply"):  out["supply"]  = metrics.supply.duplicate(true)
-	if _g("hell"):    out["hell"]    = metrics.hell.duplicate(true)
+	if _g("supply"):  out["supply"]   = metrics.supply.duplicate(true)
+	if _g("hell"):    out["hell"]     = metrics.hell.duplicate(true)
+	if _g("mission"): out["mission"]  = metrics.mission.duplicate(true)
 	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(out, "\t"))

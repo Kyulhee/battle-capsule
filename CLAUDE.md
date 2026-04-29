@@ -10,8 +10,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v1.2 (봇 DISENGAGE 클러스터링 해소 — 커버 품질 필터, 분산 후퇴) |
-| 다음 버전 | v1.3 — 미정 |
+| 완료 버전 | v1.3 (Challenge Mission System — 15미션, 미션 선택 UI, 배지 저장) |
+| 다음 버전 | v1.4 — Artifact System (1차: stat-delta 12개) |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 
 ---

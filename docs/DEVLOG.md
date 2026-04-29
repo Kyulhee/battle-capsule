@@ -5,6 +5,57 @@
 
 ---
 
+## v1.3 — 2026-04-30
+
+**Challenge Mission System — 미션 선택 UI, 인게임 추적, 배지 저장**
+
+**src/core/MissionData.gd** (신규)
+
+- `extends Resource`, `class_name MissionData`
+- 14종 `ConditionType` 열거형: FIRST_KILL / WIN_HIGH_HP / WIN_WITH_HEALS / COLLECT_WEAPONS / SURVIVE_NO_KILLS / WIN_PISTOL_ONLY / KILL_LAST_WITH_MELEE / KILLS_WITH_WEAPON / KILL_IN_BUSH / WIN_AFTER_ZONE_OUTSIDE / KILL_NEAR_SUPPLY / KILL_UNDETECTED / KILL_WHILE_DETECTED / WIN_ON_DIFFICULTY
+- `@export` 필드: id, title, description, condition_type, target_value, weapon_filter, badge_label, badge_color
+
+**src/core/MissionTracker.gd** (신규)
+
+- `extends RefCounted` — Main.gd가 인스턴스를 보유, 씬 리로드 시 자동 해제
+- `const MissionData = preload(...)` 패턴으로 class_name 파싱 순서 문제 해결
+- 인매치 추적 변수: `_used_non_pistol`, `_last_kill_weapon`, `_kills_in_bush`, `_kills_near_supply`, `_kills_undetected`, `_kills_while_detected`, `_player_max_outside_sec`
+- 훅: `on_player_fire()`, `on_player_kill(ctx)`, `on_player_zone_tick()`
+- `evaluate()`: 14 ConditionType 전부 구현 / `get_hud_text()`: 진행도 포맷
+- `save_badge()` / `has_badge()` / `load_achievements()`: `user://achievements.json`
+- `static func get_all_missions()`: 15개 미션 인라인 정의
+
+**15개 미션 (5카테고리)**
+
+Basic: first_blood(1킬), clean_win(HP50%+WIN), medic_run(치료3+WIN), scavenger(무기3종), survivor(킬0+90s)  
+Weapon: pistol_only(권총만+WIN), knife_finish(칼마지막킬+WIN), shotgun_rush(샷건3킬), railgun_moment(레일건1킬)  
+Tactical: bush_hunter(수풀2킬), zone_walker(자기장밖10s+WIN), supply_thief(보급12m내1킬), ambush(비감지1킬), outnumbered(2명감지1킬)  
+Hell: hell_champion(지옥+WIN)
+
+**src/core/Telemetry.gd**
+
+- `enabled_groups`에 `"mission": true` 추가
+- mission 그룹 초기화: `active_mission`, `mission_progress`, `mission_result`
+- `log_mission_start(id)`, `log_mission_result(success, progress)` 신규
+
+**src/Main.gd**
+
+- `const MissionTrackerScript = preload(...)` — GDScript class_name 파싱 순서 우회
+- StartBtn → `_on_start_btn_pressed()` → `_show_mission_select()` 플로우
+- 미션 선택 오버레이: 15개 목록, ★ 배지 획득 표시, [없음] 옵션
+- `_on_bot_died()`: 플레이어 킬 시 kill context(in_bush, near_supply, undetected, num_detecting) 전달
+- `handle_damage_tick()`: 플레이어 존 외부 여부 1초 단위 전달
+- `_end_match()`: evaluate → save_badge → 결과 화면 MISSION CLEAR/FAILED 표시
+
+**src/entities/player/Player.gd**
+
+- `_notify_mission_tracker_fire(weapon_type)` 헬퍼 + 칼/샷건/총기 슬롯 3곳에 삽입
+- `mission_hud_label`: 존 타이머 아래 미션 진행도 실시간 표시
+
+헤드리스 시뮬레이션: duration 97s, zone_stage 4, stuck 4, disengage 12, 스크립트 에러 없음. mission 그룹 sim_result 정상 포함.
+
+---
+
 ## v1.2 — 2026-04-29
 
 **봇 DISENGAGE 클러스터링 해소 — 커버 품질 필터 + 분산 후퇴**

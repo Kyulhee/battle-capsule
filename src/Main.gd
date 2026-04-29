@@ -79,8 +79,10 @@ var alive_count: int = 0
 var game_over: bool = false
 var player_ref: Entity = null
 var match_timer: float = 0.0
+var mission_tracker = null  # MissionTracker instance
 
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
+const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 
 # MapSpec & Builder
 const MapSpecScript = preload("res://src/core/MapSpec.gd")
@@ -145,7 +147,7 @@ func _ready():
 			loot_hotspots.append(Vector2(poi.pos[0], poi.pos[1]))
 			
 	# Connect Buttons
-	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/StartBtn.pressed.connect(start_game)
+	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/StartBtn.pressed.connect(_on_start_btn_pressed)
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/RecordsBtn.pressed.connect(_on_records_pressed)
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/HelpBtn.pressed.connect(_on_help_pressed)
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/ExitBtn.pressed.connect(get_tree().quit)
@@ -240,6 +242,120 @@ func _ready():
 			_update_diff_highlights()
 			start_game()
 
+func _on_start_btn_pressed():
+	_show_mission_select()
+
+func _show_mission_select():
+	var missions = MissionTrackerScript.get_all_missions()
+	var tracker_tmp = MissionTrackerScript.new()
+
+	var overlay = ColorRect.new()
+	overlay.name = "MissionSelectOverlay"
+	overlay.layout_mode = 1
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.0, 0.0, 0.0, 0.7)
+	overlay.z_index = 10
+	$CanvasLayer/Control.add_child(overlay)
+
+	var panel = PanelContainer.new()
+	var sb = StyleBoxFlat.new()
+	sb.bg_color = Color(0.05, 0.08, 0.12, 0.97)
+	sb.border_color = Color(0.3, 0.55, 0.4, 0.9); sb.set_border_width_all(1)
+	sb.set_corner_radius_all(6)
+	sb.content_margin_left = 18; sb.content_margin_right = 18
+	sb.content_margin_top = 14; sb.content_margin_bottom = 14
+	panel.add_theme_stylebox_override("panel", sb)
+	panel.layout_mode = 1
+	panel.set_anchors_preset(Control.PRESET_CENTER)
+	panel.offset_left = -240; panel.offset_right = 240
+	panel.offset_top = -260; panel.offset_bottom = 260
+	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	overlay.add_child(panel)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	panel.add_child(vbox)
+
+	var title = Label.new()
+	title.text = "MISSION SELECT"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", Color(0.55, 0.9, 0.65))
+	vbox.add_child(title)
+
+	var sub = Label.new()
+	sub.text = "미션을 선택하거나 [없음]으로 시작"
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_size_override("font_size", 12)
+	sub.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
+	vbox.add_child(sub)
+
+	var scroll = ScrollContainer.new()
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.custom_minimum_size = Vector2(0, 300)
+	vbox.add_child(scroll)
+
+	var list = VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 3)
+	scroll.add_child(list)
+
+	# [없음] option
+	var none_btn = Button.new()
+	none_btn.text = "[없음]  — 미션 없이 시작"
+	none_btn.add_theme_font_size_override("font_size", 13)
+	_apply_btn_style(none_btn)
+	none_btn.pressed.connect(func():
+		overlay.queue_free()
+		mission_tracker = null
+		start_game()
+	)
+	list.add_child(none_btn)
+
+	for m in missions:
+		var row = HBoxContainer.new()
+		row.add_theme_constant_override("separation", 6)
+		list.add_child(row)
+
+		var badge_done = tracker_tmp.has_badge(m.id)
+		var btn = Button.new()
+		var badge_mark = " ★" if badge_done else ""
+		btn.text = "%s%s" % [m.title, badge_mark]
+		btn.tooltip_text = m.description
+		btn.custom_minimum_size = Vector2(160, 0)
+		btn.add_theme_font_size_override("font_size", 13)
+		if badge_done:
+			btn.add_theme_color_override("font_color", Color.GOLD)
+		_apply_btn_style(btn)
+
+		var desc = Label.new()
+		desc.text = m.description
+		desc.add_theme_font_size_override("font_size", 11)
+		desc.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
+		desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_child(btn)
+		row.add_child(desc)
+
+		var captured_m = m
+		btn.pressed.connect(func():
+			overlay.queue_free()
+			mission_tracker = MissionTrackerScript.new()
+			mission_tracker.active_mission = captured_m
+			mission_tracker.reset()
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_mission_start(captured_m.id)
+			start_game()
+		)
+
+	var skip_btn = Button.new()
+	skip_btn.text = "BACK"
+	skip_btn.add_theme_font_size_override("font_size", 13)
+	_apply_btn_style(skip_btn)
+	skip_btn.pressed.connect(func(): overlay.queue_free())
+	vbox.add_child(skip_btn)
+
 func start_game():
 	current_state = GameState.PLAYING
 	game_over = false
@@ -252,6 +368,9 @@ func start_game():
 	
 	_show_panel("HUD")
 	
+	if mission_tracker:
+		mission_tracker.reset()
+
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
 		tel.current_difficulty = difficulty as int
@@ -777,6 +896,21 @@ func _on_bot_died(bot: Entity = null):
 	alive_count -= 1
 	if bot:
 		_zone_outside_time.erase(bot.get_instance_id())
+	# Mission tracker kill hook
+	if mission_tracker and bot and bot.last_killer == player_ref:
+		var num_detecting = 0
+		for b2 in get_tree().get_nodes_in_group("actors"):
+			if is_instance_valid(b2) and not b2.is_in_group("players") and not b2.is_dead:
+				if b2.perception_meters.get(player_ref, 0.0) >= 1.0:
+					num_detecting += 1
+		mission_tracker.on_player_kill({
+			"weapon_type":   bot.last_damage_weapon,
+			"in_bush":       player_ref.is_in_bush,
+			"near_supply":   supply_spawned and player_ref.global_position.distance_to(supply_pos) <= 12.0,
+			"undetected":    bot.perception_meters.get(player_ref, 0.0) < 1.0,
+			"num_detecting": num_detecting,
+		})
+
 	if is_instance_valid(player_ref) and not player_ref.is_dead and player_ref.has_method("add_kill_feed_entry"):
 		var killer_is_player = bot and (bot.last_killer == player_ref)
 		var _now_ms = Time.get_ticks_msec()
@@ -836,17 +970,33 @@ func _end_match(final_rank: int = 1):
 		header_label.text = "VICTORY!" if is_victory else "ELIMINATED"
 		header_label.modulate = Color.GOLD if is_victory else Color.CRIMSON
 
+	# Evaluate mission
+	var mission_result_text: String = ""
+	if mission_tracker and mission_tracker.active_mission:
+		var tel_node = get_node_or_null("/root/Telemetry")
+		var player_hp = player_ref.current_health if is_instance_valid(player_ref) else 0.0
+		var success = mission_tracker.evaluate(tel_node, final_rank, player_hp, difficulty as int)
+		var mid = mission_tracker.active_mission.id
+		if success:
+			mission_tracker.save_badge(mid)
+			mission_result_text = "★ MISSION CLEAR: %s" % mission_tracker.active_mission.title
+		else:
+			mission_result_text = "✗ MISSION FAILED: %s" % mission_tracker.active_mission.title
+		if tel_node:
+			tel_node.log_mission_result(success)
+
 	if stats_label:
 		var tel = get_node("/root/Telemetry")
 		var score = tel.calculate_score(
 			final_rank, tel.metrics.session.kills,
 			tel.metrics.session.assists, is_victory, difficulty as int
 		)
-		stats_label.text = "RANK: #%d\nKILLS: %d\nASSISTS: %d\nDAMAGE: %.0f\nTIME: %d sec\nSCORE: %d" % [
+		var base_text = "RANK: #%d\nKILLS: %d\nASSISTS: %d\nDAMAGE: %.0f\nTIME: %d sec\nSCORE: %d" % [
 			final_rank, tel.metrics.session.kills, tel.metrics.session.assists,
 			tel.metrics.combat.total_damage_dealt, int(match_timer), score
 		]
-	
+		stats_label.text = base_text + ("\n\n" + mission_result_text if mission_result_text != "" else "")
+
 	if is_simulation:
 		get_tree().quit()
 
@@ -888,13 +1038,16 @@ func handle_damage_tick(delta):
 			if a is Entity and not a.is_dead:
 				var pos_2d = Vector2(a.global_position.x, a.global_position.z)
 				var uid = a.get_instance_id()
-				if pos_2d.distance_to(current_zone_center) > current_zone_radius:
+				var is_outside = pos_2d.distance_to(current_zone_center) > current_zone_radius
+				if is_outside:
 					_zone_outside_time[uid] = _zone_outside_time.get(uid, 0.0) + 1.0
 					# Damage ramps up the longer you stay outside (caps at 2× after 10s)
 					var time_mult = 1.0 + min(_zone_outside_time[uid], 10.0) * 0.1
 					a.take_damage(zone_damage * time_mult, "zone")
 				else:
 					_zone_outside_time.erase(uid)
+				if mission_tracker and a == player_ref:
+					mission_tracker.on_player_zone_tick(is_outside)
 
 # ─── MENU VISUALS ────────────────────────────────────────────────────────────
 

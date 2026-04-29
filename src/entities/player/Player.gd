@@ -12,6 +12,7 @@ var _mesh_origin_y: float = 0.0
 
 @onready var interaction_area = $InteractionArea
 var zone_timer_label: Label = null
+var mission_hud_label: Label = null
 var kill_feed_container: VBoxContainer = null
 var kill_feed_entries: Array = []
 
@@ -87,6 +88,19 @@ func _ready():
 	ps.content_margin_top = 4;   ps.content_margin_bottom = 4
 	zone_panel.add_theme_stylebox_override("panel", ps)
 	zone_panel.add_child(zone_timer_label)
+
+	# Mission HUD (below zone timer)
+	mission_hud_label = Label.new()
+	mission_hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	mission_hud_label.add_theme_font_size_override("font_size", 13)
+	mission_hud_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.3))
+	mission_hud_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	mission_hud_label.add_theme_constant_override("outline_size", 6)
+	mission_hud_label.visible = false
+	$CanvasLayer/Control.add_child(mission_hud_label)
+	mission_hud_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	mission_hud_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	mission_hud_label.position.y += 46
 
 	# Kill feed (top-right)
 	kill_feed_container = VBoxContainer.new()
@@ -345,6 +359,7 @@ func _physics_process(delta):
 						fire_cooldown = wdata.fire_rate
 						if Sfx: Sfx.play("shoot")
 						_refresh_slot_hud()
+						_notify_mission_tracker_fire("shotgun")
 					else:
 						_shoot_with_slot(active_slot)
 				else:
@@ -391,6 +406,12 @@ func _process(delta):
 			var t = main.zone_timer
 			zone_timer_label.text = "ZONE  %ds" % int(max(0, t))
 			zone_timer_label.modulate = Color.CYAN if t > 10.0 else Color.YELLOW
+	if main and mission_hud_label and main.mission_tracker and main.mission_tracker.active_mission:
+		var tel = get_node_or_null("/root/Telemetry")
+		mission_hud_label.text = main.mission_tracker.get_hud_text(tel)
+		mission_hud_label.visible = true
+	elif mission_hud_label:
+		mission_hud_label.visible = false
 	_update_hud()
 
 	# Reload HUD progress (per-frame count-up animation)
@@ -699,8 +720,14 @@ func _get_reserve_max(wtype: String) -> int:
 		"railgun": return 6
 		_:         return 30
 
+func _notify_mission_tracker_fire(weapon_type: String):
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and main.mission_tracker:
+		main.mission_tracker.on_player_fire(weapon_type)
+
 func _melee_attack():
 	reveal()
+	_notify_mission_tracker_fire("knife")
 	fire_cooldown = MELEE_RATE
 	if Sfx: Sfx.play("melee")
 	ray_cast.target_position = Vector3(0, 0, -MELEE_RANGE)
@@ -1013,6 +1040,7 @@ func _shoot_with_slot(slot: int):
 	fire_cooldown = wdata.fire_rate
 	if Sfx: Sfx.play("shoot")
 	_refresh_slot_hud()
+	_notify_mission_tracker_fire(wdata.weapon_type)
 
 func _internal_shoot(target_vec: Vector3):
 	var flash = MUZZLE_FLASH_SCN.instantiate()
