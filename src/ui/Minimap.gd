@@ -87,18 +87,59 @@ func _draw():
 			"recovery_pocket": role_color = Color(0.2, 0.2, 1.0, 0.08)
 		draw_circle(mini_pos, mini_rad, role_color)
 
-	# 3. Draw Shaped Obstacles
+	# 3. Draw Obstacles — type-differentiated shape and colour
 	for obs in map_spec.obstacles:
-		var pos = Vector2(obs.pos[0], obs.pos[1])
-		var scale = Vector2(obs.scale[0], obs.scale[2])
-		var rot_rad = deg_to_rad(obs.get("rot", 0))
-		var corners = [Vector2(-scale.x/2, -scale.y/2), Vector2(scale.x/2, -scale.y/2), Vector2(scale.x/2, scale.y/2), Vector2(-scale.x/2, scale.y/2)]
-		var mini_corners = PackedVector2Array()
-		for c in corners:
-			var world_corner = c.rotated(rot_rad) + pos
-			mini_corners.append(world_to_minimap(world_corner))
-		var color = Color(0.35, 0.35, 0.4)
-		draw_colored_polygon(mini_corners, color)
+		var wpos   = Vector2(obs.pos[0], obs.pos[1])
+		var sx     = float(obs.scale[0])
+		var sz     = float(obs.scale[2])
+		var rot_rad = deg_to_rad(obs.get("rot", 0.0))
+		var obs_type: String = obs.get("type", "")
+		var mpos   = world_to_minimap(wpos)
+
+		match obs_type:
+			"rock_cluster":
+				# Radial cluster — circle whose radius matches the actual spread
+				var r = max(3.5, world_size_to_minimap(sx * 0.75))
+				draw_circle(mpos, r, Color(0.66, 0.62, 0.56, 0.88))
+				draw_arc(mpos, r, 0.0, TAU, 16, Color(0.45, 0.42, 0.38, 1.0), 1.0)
+			"bush_patch":
+				# Ground-level concealment — semi-transparent green, no hard border
+				var r = max(3.5, world_size_to_minimap((sx + sz) * 0.25))
+				draw_circle(mpos, r, Color(0.28, 0.62, 0.22, 0.38))
+			_:
+				# Rectangular obstacles: tree_cluster / canyon_wall / log_pile
+				var hx = sx * 0.5
+				var hz = sz * 0.5
+				var corners_local = [
+					Vector2(-hx, -hz),
+					Vector2( hx, -hz),
+					Vector2( hx,  hz),
+					Vector2(-hx,  hz),
+				]
+				var mc = PackedVector2Array()
+				for c in corners_local:
+					mc.append(world_to_minimap(c.rotated(rot_rad) + wpos))
+
+				var fill_col: Color
+				var border_col: Color
+				var bw := 1.0
+				match obs_type:
+					"tree_cluster":
+						fill_col   = Color(0.13, 0.36, 0.13, 0.88)
+						border_col = Color(0.08, 0.24, 0.08, 1.0)
+					"canyon_wall":
+						fill_col   = Color(0.50, 0.36, 0.22, 1.0)
+						border_col = Color(0.32, 0.22, 0.12, 1.0)
+						bw = 1.5
+					"log_pile":
+						fill_col   = Color(0.52, 0.38, 0.18, 0.88)
+						border_col = Color(0.36, 0.26, 0.10, 1.0)
+					_:
+						fill_col   = Color(0.35, 0.35, 0.40, 0.88)
+						border_col = Color(0.22, 0.22, 0.26, 1.0)
+
+				draw_colored_polygon(mc, fill_col)
+				draw_polyline(mc + PackedVector2Array([mc[0]]), border_col, bw)
 
 	# 4. Draw Supply Zones (Telegraphing/Active)
 	if supply_state != "none":

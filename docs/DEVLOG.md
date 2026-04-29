@@ -5,6 +5,36 @@
 
 ---
 
+## v1.1 — 2026-04-29
+
+**미니맵 타입별 표현 개선 + 맵 전략 배치 재설계 + WorldBuilder jitter**
+
+**Minimap.gd**
+
+- 장애물 드로잉을 타입별로 분기:
+  - `tree_cluster`: 어두운 녹색 채움 + 테두리
+  - `canyon_wall`: 갈색 채움 + 두꺼운 테두리 (1.5px)
+  - `log_pile`: 황갈색 채움 + 테두리
+  - `rock_cluster`: 직사각형 → **회색 원** (반경 = scale.x × 0.75), 실제 방사형 배치와 일치
+  - `bush_patch`: 동일 회색 박스 → **연두색 반투명 원** (α=0.38), 지상 엄폐물 시각화
+
+**WorldBuilder.gd**
+
+- `jitter: [dx, dz]` 필드 지원 추가: 결정론적 RNG(pos 기반 seed)로 ±dx/dz 범위 내 위치 변동
+- `rot_jitter` 필드 지원: ±rot_jitter 범위 내 회전 변동
+- `pos.duplicate()` 로 원본 spec 보호
+
+**data/mapSpec_example.json** (v3.0)
+
+- 3링 구조로 재설계: 외곽(r≈48~55) 수림 / 중간(r≈22~42) 전술 섬 / 내부(r≈0~20) 전투 구역
+- canyon_wall 2개 → 6개: 동서 2개씩 + 북서·북동 능선 구성, 4방향 회랑(X·Z ±4m) 열린 상태 유지
+- rock_cluster 9개 → 21개: 중심부 4방향 커버 4개 신규 + 전 POI별 근접 커버 2개 보장
+- bush_patch 7개 → 5개: concealment_field POI 집중 배치
+- log_pile 4개 → 8개: 회랑 측면 얕은 엄폐물 추가
+- 중간링 tree_cluster에 jitter/rot_jitter 적용 → 매 실행마다 소폭 변동, 외곽·벽 근접 고정 배치는 jitter 없음
+
+---
+
 ## v1.0 — 2026-04-29
 
 **NavigationRegion3D + NavigationAgent3D — 봇 Pathfinding 도입**

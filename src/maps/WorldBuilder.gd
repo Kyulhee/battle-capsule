@@ -19,10 +19,19 @@ func generate_world(spec: Resource):
 	
 	for o in spec.obstacles:
 		var type_str = o.get("type", "rock_cluster")
-		var pos = o.get("pos", [0, 0])
+		var pos = o.get("pos", [0, 0]).duplicate()
 		var scale_vec = o.get("scale", [1, 1, 1])
 		var rot_deg = o.get("rot", 0)
-		
+
+		# Deterministic jitter: seed from base position so result is stable per-map
+		var jitter = o.get("jitter", [0, 0])
+		if jitter[0] > 0 or jitter[1] > 0:
+			var rng = RandomNumberGenerator.new()
+			rng.seed = int(abs(pos[0]) * 3137 + abs(pos[1]) * 7919)
+			pos[0] += rng.randf_range(-jitter[0], jitter[0])
+			pos[1] += rng.randf_range(-jitter[1], jitter[1])
+			rot_deg += rng.randf_range(-o.get("rot_jitter", 0.0), o.get("rot_jitter", 0.0))
+
 		if type_str == "bush_patch":
 			var bush = bush_scene.instantiate()
 			obs_container.add_child(bush)

@@ -10,8 +10,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v1.0 (NavigationRegion3D + NavigationAgent3D 봇 pathfinding 도입) |
-| 다음 버전 | v1.1 — 커버 오브젝트 / 맵 확장 또는 기타 |
+| 완료 버전 | v1.1 (미니맵 타입별 표현, 맵 전략 재설계, WorldBuilder jitter) |
+| 다음 버전 | v1.2 — 미정 |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 
 ---
