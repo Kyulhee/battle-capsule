@@ -5,7 +5,7 @@
 
 ## 현재 상태
 
-**현재**: v0.9.5 완료 — 다음: v1.0 (pathfinding 분석/계획)
+**현재**: v1.0 완료 — 다음: v1.1 (커버 오브젝트 / 맵 확장)
 
 v0.8.1까지 메인 메뉴 난이도 UI, 봇 성격, 난이도 파라미터, 발소리 감지, 루팅 우선순위가 구현되었다.  
 다음 라운드는 신규 콘텐츠 확장보다 자기장/봇 이동 안정화, UI 가독성, 전투 로그 기반 정리를 우선한다.
@@ -148,6 +148,7 @@ data/
 | v0.9.3 | 2026-04-28 | Hell 랜덤 모디파이어 (SHIELD_OFF/BARRAGE/ALL_AGGRESSIVE) + 난이도별 봇 주변 인식 |
 | v0.9.4 | 2026-04-28 | ESC 일시정지 메뉴, 직접 재시작, Hell 안내 pause+dismiss, 설정 메뉴, 결과 DAMAGE |
 | v0.9.5 | 2026-04-29 | 점수 시스템 (난이도 배율×1/1.5/2.5/4), 난이도별 Records 탭, CLEAR ALL, Hard+ 봇 전투 점프/스트레이프, LOS 아이콘 수정, is_inside_tree 오류 해소 |
+| v1.0   | 2026-04-29 | NavigationRegion3D + NavigationAgent3D 봇 pathfinding — CHASE/ZONE_ESCAPE/RECOVER/DISENGAGE 전환 |
 
 ---
 

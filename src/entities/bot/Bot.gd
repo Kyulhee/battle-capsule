@@ -69,6 +69,7 @@ var _aim_spread_mult: float = 1.0  # multiplier for predictive-shot spread
 var _awareness_level: int = 0
 var _peripheral_scan_timer: float = 0.0
 var _combat_jump_timer: float = 0.0
+var _nav_agent: NavigationAgent3D = null
 
 @onready var ray_cast = $RayCast3D
 
@@ -87,6 +88,11 @@ func _ready():
 	_state_label.position = Vector3(0, 2.4, 0)
 	_state_label.visible = false
 	add_child(_state_label)
+	_nav_agent = NavigationAgent3D.new()
+	_nav_agent.path_desired_distance = 0.5
+	_nav_agent.target_desired_distance = 1.5
+	_nav_agent.avoidance_enabled = false
+	add_child(_nav_agent)
 	await get_tree().create_timer(randf_range(0.05, 0.2)).timeout
 	if ray_cast:
 		ray_cast.enabled = true
@@ -197,6 +203,22 @@ func _move_or_unstick(desired_dir: Vector3, delta: float, should_rotate: bool = 
 	else:
 		handle_movement(desired_dir, delta, should_rotate)
 
+# Navigate to target_pos via navmesh. Falls back to direct _move_or_unstick if no path.
+func _nav_move_toward(target_pos: Vector3, delta: float, should_rotate: bool = true):
+	var fallback = target_pos - global_position
+	fallback.y = 0
+	if fallback.length() < 0.05: return
+	if _nav_agent:
+		_nav_agent.set_target_position(target_pos)
+		if not _nav_agent.is_navigation_finished():
+			var next_pos = _nav_agent.get_next_path_position()
+			var nav_dir = next_pos - global_position
+			nav_dir.y = 0
+			if nav_dir.length() > 0.05:
+				handle_movement(nav_dir.normalized(), delta, should_rotate)
+				return
+	_move_or_unstick(fallback.normalized(), delta, should_rotate)
+
 # ─── PREFERRED ENGAGEMENT RANGE ──────────────────────────────────────────────
 func _get_preferred_range() -> float:
 	if stats.weapon_type == "shotgun":
@@ -285,7 +307,7 @@ func handle_chase_state(delta):
 				change_state(State.IDLE)
 			return
 		if dist > 2.5:
-			_move_or_unstick(dir, delta, false)
+			_nav_move_toward(target_actor.global_position, delta, false)
 		else:
 			if target_actor.has_method("collect"):
 				target_actor.collect(self)
@@ -294,7 +316,7 @@ func handle_chase_state(delta):
 					if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_tactics("recovery_success")
 			target_actor = null; is_targeting_loot = false; _recovering = false; change_state(State.IDLE)
 	else:
-		_move_or_unstick(dir, delta, false)
+		_nav_move_toward(target_actor.global_position, delta, false)
 
 func handle_attack_state(delta):
 	if not _is_target_valid(target_actor):
@@ -446,9 +468,7 @@ func handle_recover_state(delta):
 
 		var dist_to_patrol = global_position.distance_to(patrol_target)
 		if dist_to_patrol > 2.5:
-			var dir = (patrol_target - global_position).normalized()
-			dir.y = 0
-			_move_or_unstick(dir, delta, true)
+			_nav_move_toward(patrol_target, delta, true)
 		else:
 			patrol_target = _pick_patrol_target()
 
@@ -463,21 +483,9 @@ func handle_zone_escape_state(delta):
 	var zone_c = main.current_zone_center
 	var self_2d = Vector2(global_position.x, global_position.z)
 	if self_2d.distance_to(zone_c) < main.current_zone_radius * 0.75:
-		change_state(State.IDLE)
-		return
-	# When the standard stuck override fires, replace its perpendicular dir with a
-	# zone-directed wall-slide so the bot drifts sideways AND toward center.
-	if _stuck_override_timer > 0.0:
-		_stuck_override_dir = _sample_zone_escape_dir(zone_c)
-	elif state_timer > 3.0 and _zone_thrash_cooldown <= 0.0:
-		# Escalation: still outside after 3 s → inject a random burst every ~4 s
-		# to break out of corner traps that angular sampling alone can't solve.
-		_stuck_override_dir = Vector3(randf_range(-1.0, 1.0), 0, randf_range(-1.0, 1.0)).normalized()
-		_stuck_override_timer = 2.0
-		_stuck_timer = 0.0
-		_zone_thrash_cooldown = 4.0
-	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
-	_move_or_unstick(to_center, delta, true)
+		change_state(State.IDLE); return
+	var zone_center_3d = Vector3(zone_c.x, global_position.y, zone_c.y)
+	_nav_move_toward(zone_center_3d, delta, true)
 
 func _sample_zone_escape_dir(zone_c: Vector2) -> Vector3:
 	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
@@ -521,11 +529,8 @@ func handle_disengage_state(delta):
 		_disengage_cover = _find_cover_point(nearest_threat.global_position)
 
 	if _disengage_cover != Vector3.ZERO:
-		var dir = (_disengage_cover - global_position).normalized()
-		dir.y = 0
-		_move_or_unstick(dir, delta, true)
+		_nav_move_toward(_disengage_cover, delta, true)
 	else:
-		# No cover found — fall back on scatter direction
 		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, true)
 
 # ─── STATE INDICATOR ─────────────────────────────────────────────────────────

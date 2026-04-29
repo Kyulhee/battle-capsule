@@ -87,6 +87,9 @@ const MapSpecScript = preload("res://src/core/MapSpec.gd")
 var map_spec: Resource = null
 @onready var world_builder = $WorldBuilder
 
+# Navigation
+var _nav_region: NavigationRegion3D = null
+
 # Dynamic Supply
 var supply_telegraphed: bool = false
 var supply_spawned: bool = false
@@ -108,6 +111,7 @@ func _ready():
 			if map_spec:
 				for poi in map_spec.pois:
 					loot_hotspots.append(Vector2(poi.pos[0], poi.pos[1]))
+			_setup_navigation()
 			start_game()
 			return
 
@@ -135,7 +139,7 @@ func _ready():
 		if world_builder:
 			print("[MAIN] Generating world via WorldBuilder...")
 			world_builder.generate_world(map_spec)
-			
+		_setup_navigation()
 		loot_hotspots.clear()
 		for poi in map_spec.pois:
 			loot_hotspots.append(Vector2(poi.pos[0], poi.pos[1]))
@@ -514,6 +518,23 @@ func _take_screenshot(file_name: String):
 			# If res:// is read-only, try user://
 			img.save_png("user://" + file_name)
 			print("[MAIN] res:// write failed, saved to user://", file_name)
+
+func _setup_navigation():
+	var nav_mesh = NavigationMesh.new()
+	nav_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	nav_mesh.agent_height = 1.8
+	nav_mesh.agent_radius = 0.5
+	nav_mesh.agent_max_climb = 0.3
+	nav_mesh.agent_max_slope = 45.0
+	nav_mesh.cell_size = 0.3
+	nav_mesh.cell_height = 0.2
+	_nav_region = NavigationRegion3D.new()
+	_nav_region.name = "NavRegion"
+	_nav_region.navigation_mesh = nav_mesh
+	add_child(_nav_region)
+	_nav_region.bake_finished.connect(func(): print("[NAV] Bake complete"))
+	_nav_region.bake_navigation_mesh()
+	print("[NAV] Baking navigation mesh...")
 
 func _load_map_spec():
 	var file = FileAccess.open("res://data/mapSpec_example.json", FileAccess.READ)

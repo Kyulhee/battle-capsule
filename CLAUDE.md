@@ -10,8 +10,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v0.9.5 (점수 시스템, 난이도별 Records, Hard+ 봇 전투 회피, 버그 수정) |
-| 다음 버전 | v1.0 — pathfinding 분석/계획 |
+| 완료 버전 | v1.0 (NavigationRegion3D + NavigationAgent3D 봇 pathfinding 도입) |
+| 다음 버전 | v1.1 — 커버 오브젝트 / 맵 확장 또는 기타 |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 
 ---

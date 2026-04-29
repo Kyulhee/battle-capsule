@@ -5,6 +5,28 @@
 
 ---
 
+## v1.0 — 2026-04-29
+
+**NavigationRegion3D + NavigationAgent3D — 봇 Pathfinding 도입**
+
+**Main.gd**
+
+- `_nav_region: NavigationRegion3D` 변수 추가.
+- `_setup_navigation()` 추가: `NavigationMesh` 생성 (`geometry_parsed_geometry_type = PARSED_GEOMETRY_STATIC_COLLIDERS`, `cell_size=0.3`, `agent_radius=0.5`), `NavigationRegion3D`를 씬에 추가, `bake_navigation_mesh()` 비동기 베이크. `bake_finished` 신호로 완료 로그.
+- `_ready()` 양쪽 경로(autostart / 일반)에 `_setup_navigation()` 호출 추가 — 월드 생성 직후 베이크 시작.
+
+**Bot.gd**
+
+- `_nav_agent: NavigationAgent3D` 변수 추가.
+- `_ready()`: `NavigationAgent3D` 동적 생성 (`path_desired_distance=0.5`, `target_desired_distance=1.5`, `avoidance_enabled=false`), `add_child`.
+- `_nav_move_toward(target_pos, delta, should_rotate)` 헬퍼 추가: nav agent로 경로 추종; 경로 없을 시 `_move_or_unstick` fallback.
+- CHASE 이동 2곳, RECOVER patrol 이동, ZONE_ESCAPE 이동, DISENGAGE 커버 이동을 `_nav_move_toward`로 교체.
+- ZONE_ESCAPE: thrash escalation 로직 제거 — navmesh가 장애물 우회를 처리.
+
+헤드리스 시뮬레이션: navmesh 비어 있어 fallback 동작. 지표 정상(78s, zone_stage 3, recover 11).
+
+---
+
 ## v0.9.5 — 2026-04-29
 
 **점수 시스템 + 난이도별 매치 히스토리 + 버그 수정 + Hard+ 봇 전투 회피**
