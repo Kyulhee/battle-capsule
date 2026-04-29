@@ -147,7 +147,7 @@ data/
 | v0.9.2 | 2026-04-27 | Hell Difficulty — HP 1 시작, 힐 감소(×0.40/×0.55), 암전(15–28s), 폭격(18–28s, r=5, 45dmg) |
 | v0.9.3 | 2026-04-28 | Hell 랜덤 모디파이어 (SHIELD_OFF/BARRAGE/ALL_AGGRESSIVE) + 난이도별 봇 주변 인식 |
 | v0.9.4 | 2026-04-28 | ESC 일시정지 메뉴, 직접 재시작, Hell 안내 pause+dismiss, 설정 메뉴, 결과 DAMAGE |
-| v0.9.5 | 2026-04-29 | 점수 시스템 (난이도 배율×1/1.5/2.5/4), 난이도별 Records 탭, CLEAR ALL |
+| v0.9.5 | 2026-04-29 | 점수 시스템 (난이도 배율×1/1.5/2.5/4), 난이도별 Records 탭, CLEAR ALL, Hard+ 봇 전투 점프/스트레이프, LOS 아이콘 수정, is_inside_tree 오류 해소 |
 
 ---
 
