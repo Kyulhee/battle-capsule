@@ -5,6 +5,43 @@
 
 ---
 
+## v1.4.1 — 2026-04-30
+
+**Mission UI/UX 개선 — HUD 가시성, 보너스 미션 풀 재조정, 압박 미션 Flash 알림**
+
+**src/core/MissionData.gd**
+
+- `ConditionType.KILL_WITH_ALL_WEAPONS` 추가 — 피스톨·AR·샷건·레일건 각각 1킬 이상
+- `@export var score_bonus: int = 500` 필드 추가 — 미션별 차등 점수 지원
+
+**src/core/MissionTracker.gd**
+
+- `_medkits_used` 카운터 + `on_player_medkit_used()` 훅 추가
+- MEDIC RUN: 조건을 일반 치료 아이템 → MedKit(◆)만 카운트로 변경 (고난이도화)
+- SCAVENGER: `COLLECT_WEAPONS` → `KILL_WITH_ALL_WEAPONS` 변경, score_bonus=1000
+- HELL CHAMPION 제거 (14개 보너스 미션 풀로 축소, 1등 달성은 기본 점수로 처리)
+- `get_hud_text()` 전면 개선 — 두 줄 구성 (미션명 / 진행 상황 풀어쓰기), 줄임말 제거
+  - KNIFE FINISH: `"칼로 마지막 킬 달성 — 현재 어설트 라이플"` 형식
+  - PISTOL ONLY / SURVIVOR: 실패 확정 시 `"✗ ... — 실패 확정"` 텍스트 표시
+  - KILL_WITH_ALL_WEAPONS: 총기별 달성/미달성 분리 표시 (`✓ 피스톨  AR  /  ✗ 샷건  레일건`)
+- `get_early_fail_status(tel)` 신규 — Player.gd가 HUD 색상 전환에 활용
+
+**src/entities/player/Player.gd**
+
+- `_flash_panel` / `_flash_label` 신규 (반투명 배경 패널, PRESET_CENTER_TOP + y+110)
+- `show_pressure_flash(text, success)` 신규 — 성공 초록/실패 빨강, 0.12s 등장→2.2s 유지→0.45s 소멸
+- `handle_healing()` advanced_heals 분기에 `on_player_medkit_used()` 호출 추가
+- 미션 HUD: `get_early_fail_status()` 결과에 따라 실패 시 자동 빨간 색상 전환
+
+**src/Main.gd**
+
+- `_end_match()`: `mission_bonus_score = mission_tracker.active_mission.score_bonus` (하드코딩 500 제거)
+- `_process_pressure_mission()`: success/fail 결과 후 `player_ref.show_pressure_flash()` 호출
+
+헤드리스 시뮬레이션: duration 93s, zone_stage 3, SCRIPT ERROR 없음. active_mission/mission_result 정상 기록.
+
+---
+
 ## v1.3 — 2026-04-30
 
 **Challenge Mission System — 미션 선택 UI, 인게임 추적, 배지 저장**

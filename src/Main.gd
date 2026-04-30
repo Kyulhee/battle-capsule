@@ -17,6 +17,7 @@ const DIFFICULTY_PARAMS = {
 	3: { "vision_mult": 1.5,  "reaction_delay": 0.0, "aim_spread": 0.5,  "loot_break_mult": 2.0, "awareness_level": 2 },
 }
 var _diff_btns: Array = []
+var _pressure_opt_in_check: CheckButton = null
 var _diff_tooltip: PanelContainer = null
 var _diff_tooltip_label: Label = null
 var _records_selected_diff: int = 1
@@ -80,6 +81,11 @@ var game_over: bool = false
 var player_ref: Entity = null
 var match_timer: float = 0.0
 var mission_tracker = null  # MissionTracker instance
+var pressure_missions_enabled: bool = false
+var pressure_opt_in_hard: bool = false  # 어려움 난이도 압박 미션 opt-in
+var heal_pickup_banned: bool = false    # 다음 존까지 힐 픽업 불가
+var heal_ban_until_stage: int = -1
+var railgun_unlimited_until_stage: int = -1  # 레일건 무제한 (v1.4.1에서 Player 연동)
 
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
@@ -183,6 +189,16 @@ func _ready():
 		_apply_btn_style(btn)
 	_update_diff_highlights()
 
+	# 어려움 압박 미션 opt-in 체크버튼 (어려움 선택 시에만 표시)
+	_pressure_opt_in_check = CheckButton.new()
+	_pressure_opt_in_check.text = "압박 미션 활성화"
+	_pressure_opt_in_check.add_theme_font_size_override("font_size", 12)
+	_pressure_opt_in_check.button_pressed = false
+	_pressure_opt_in_check.visible = (difficulty == Difficulty.HARD)
+	_pressure_opt_in_check.toggled.connect(func(v: bool): pressure_opt_in_hard = v)
+	vbox.add_child(_pressure_opt_in_check)
+	vbox.move_child(_pressure_opt_in_check, start_idx + 2)
+
 	# Difficulty tooltip panel
 	_diff_tooltip = PanelContainer.new()
 	_diff_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -243,118 +259,7 @@ func _ready():
 			start_game()
 
 func _on_start_btn_pressed():
-	_show_mission_select()
-
-func _show_mission_select():
-	var missions = MissionTrackerScript.get_all_missions()
-	var tracker_tmp = MissionTrackerScript.new()
-
-	var overlay = ColorRect.new()
-	overlay.name = "MissionSelectOverlay"
-	overlay.layout_mode = 1
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0.0, 0.0, 0.0, 0.7)
-	overlay.z_index = 10
-	$CanvasLayer/Control.add_child(overlay)
-
-	var panel = PanelContainer.new()
-	var sb = StyleBoxFlat.new()
-	sb.bg_color = Color(0.05, 0.08, 0.12, 0.97)
-	sb.border_color = Color(0.3, 0.55, 0.4, 0.9); sb.set_border_width_all(1)
-	sb.set_corner_radius_all(6)
-	sb.content_margin_left = 18; sb.content_margin_right = 18
-	sb.content_margin_top = 14; sb.content_margin_bottom = 14
-	panel.add_theme_stylebox_override("panel", sb)
-	panel.layout_mode = 1
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -240; panel.offset_right = 240
-	panel.offset_top = -260; panel.offset_bottom = 260
-	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	panel.grow_vertical = Control.GROW_DIRECTION_BOTH
-	overlay.add_child(panel)
-
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
-	panel.add_child(vbox)
-
-	var title = Label.new()
-	title.text = "MISSION SELECT"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 18)
-	title.add_theme_color_override("font_color", Color(0.55, 0.9, 0.65))
-	vbox.add_child(title)
-
-	var sub = Label.new()
-	sub.text = "미션을 선택하거나 [없음]으로 시작"
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.add_theme_font_size_override("font_size", 12)
-	sub.add_theme_color_override("font_color", Color(0.5, 0.5, 0.5))
-	vbox.add_child(sub)
-
-	var scroll = ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.custom_minimum_size = Vector2(0, 300)
-	vbox.add_child(scroll)
-
-	var list = VBoxContainer.new()
-	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	list.add_theme_constant_override("separation", 3)
-	scroll.add_child(list)
-
-	# [없음] option
-	var none_btn = Button.new()
-	none_btn.text = "[없음]  — 미션 없이 시작"
-	none_btn.add_theme_font_size_override("font_size", 13)
-	_apply_btn_style(none_btn)
-	none_btn.pressed.connect(func():
-		overlay.queue_free()
-		mission_tracker = null
-		start_game()
-	)
-	list.add_child(none_btn)
-
-	for m in missions:
-		var row = HBoxContainer.new()
-		row.add_theme_constant_override("separation", 6)
-		list.add_child(row)
-
-		var badge_done = tracker_tmp.has_badge(m.id)
-		var btn = Button.new()
-		var badge_mark = " ★" if badge_done else ""
-		btn.text = "%s%s" % [m.title, badge_mark]
-		btn.tooltip_text = m.description
-		btn.custom_minimum_size = Vector2(160, 0)
-		btn.add_theme_font_size_override("font_size", 13)
-		if badge_done:
-			btn.add_theme_color_override("font_color", Color.GOLD)
-		_apply_btn_style(btn)
-
-		var desc = Label.new()
-		desc.text = m.description
-		desc.add_theme_font_size_override("font_size", 11)
-		desc.add_theme_color_override("font_color", Color(0.55, 0.55, 0.55))
-		desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		row.add_child(btn)
-		row.add_child(desc)
-
-		var captured_m = m
-		btn.pressed.connect(func():
-			overlay.queue_free()
-			mission_tracker = MissionTrackerScript.new()
-			mission_tracker.active_mission = captured_m
-			mission_tracker.reset()
-			if has_node("/root/Telemetry"):
-				get_node("/root/Telemetry").log_mission_start(captured_m.id)
-			start_game()
-		)
-
-	var skip_btn = Button.new()
-	skip_btn.text = "BACK"
-	skip_btn.add_theme_font_size_override("font_size", 13)
-	_apply_btn_style(skip_btn)
-	skip_btn.pressed.connect(func(): overlay.queue_free())
-	vbox.add_child(skip_btn)
+	start_game()
 
 func start_game():
 	current_state = GameState.PLAYING
@@ -367,15 +272,25 @@ func start_game():
 	generate_next_zone()
 	
 	_show_panel("HUD")
-	
-	if mission_tracker:
-		mission_tracker.reset()
+
+	# 랜덤 보너스 미션 자동 배정
+	mission_tracker = MissionTrackerScript.new()
+	var pool = MissionTrackerScript.get_all_missions()
+	mission_tracker.active_mission = pool[randi() % pool.size()]
+
+	# 압박 미션 활성화 여부
+	heal_pickup_banned = false
+	heal_ban_until_stage = -1
+	railgun_unlimited_until_stage = -1
+	pressure_missions_enabled = (difficulty == Difficulty.HELL) or \
+		(difficulty == Difficulty.HARD and pressure_opt_in_hard)
 
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
 		tel.current_difficulty = difficulty as int
 		tel.start_match()
 		tel.set_stage(1)
+		tel.log_mission_start(mission_tracker.active_mission.id)  # start_match 이후에 호출
 		
 	alive_count = bot_count + 1
 	_categorize_templates()
@@ -673,6 +588,7 @@ func _process(delta):
 	handle_damage_tick(delta)
 	_check_match_end()
 	_process_hell_events(delta)
+	_process_pressure_mission(delta)
 	
 	# Update Zone Visuals
 	if zone_ring:
@@ -708,6 +624,11 @@ func handle_zone_lifecycle(delta):
 			if has_node("/root/Telemetry"): get_node("/root/Telemetry").set_stage(zone_stage)
 			_print_bot_state_snapshot()
 			spawn_loot(0.1 + (zone_stage * 0.1), 10)
+			if heal_ban_until_stage > 0 and zone_stage > heal_ban_until_stage:
+				heal_pickup_banned = false
+				heal_ban_until_stage = -1
+			if pressure_missions_enabled and not game_over:
+				_trigger_pressure_mission()
 			match zone_stage:
 				2: zone_wait_time = 20.0; zone_shrink_time = 15.0; zone_damage = 5.0
 				3: zone_wait_time = 15.0; zone_shrink_time = 12.0; zone_damage = 10.0
@@ -910,6 +831,16 @@ func _on_bot_died(bot: Entity = null):
 			"undetected":    bot.perception_meters.get(player_ref, 0.0) < 1.0,
 			"num_detecting": num_detecting,
 		})
+		var player_hp_ratio = player_ref.current_health / player_ref.stats.max_health if is_instance_valid(player_ref) else 1.0
+		var player_pos_2d = Vector2(player_ref.global_position.x, player_ref.global_position.z) if is_instance_valid(player_ref) else Vector2.ZERO
+		var p_outside = player_pos_2d.distance_to(current_zone_center) > current_zone_radius
+		mission_tracker.on_pressure_kill(
+			bot.last_damage_weapon,
+			bot.perception_meters.get(player_ref, 0.0) < 1.0,
+			p_outside,
+			player_hp_ratio,
+			num_detecting
+		)
 
 	if is_instance_valid(player_ref) and not player_ref.is_dead and player_ref.has_method("add_kill_feed_entry"):
 		var killer_is_player = bot and (bot.last_killer == player_ref)
@@ -970,32 +901,52 @@ func _end_match(final_rank: int = 1):
 		header_label.text = "VICTORY!" if is_victory else "ELIMINATED"
 		header_label.modulate = Color.GOLD if is_victory else Color.CRIMSON
 
-	# Evaluate mission
+	# Evaluate bonus mission
+	var mission_success: bool = false
 	var mission_result_text: String = ""
+	var mission_bonus_score: int = 0
 	if mission_tracker and mission_tracker.active_mission:
 		var tel_node = get_node_or_null("/root/Telemetry")
 		var player_hp = player_ref.current_health if is_instance_valid(player_ref) else 0.0
-		var success = mission_tracker.evaluate(tel_node, final_rank, player_hp, difficulty as int)
+		mission_success = mission_tracker.evaluate(tel_node, final_rank, player_hp, difficulty as int)
 		var mid = mission_tracker.active_mission.id
-		if success:
+		if mission_success:
 			mission_tracker.save_badge(mid)
-			mission_result_text = "★ MISSION CLEAR: %s" % mission_tracker.active_mission.title
+			mission_bonus_score = mission_tracker.active_mission.score_bonus
+			mission_result_text = "★ MISSION CLEAR: %s  (+%d)" % [mission_tracker.active_mission.title, mission_bonus_score]
 		else:
 			mission_result_text = "✗ MISSION FAILED: %s" % mission_tracker.active_mission.title
 		if tel_node:
-			tel_node.log_mission_result(success)
+			tel_node.log_mission_result(mission_success)
 
 	if stats_label:
 		var tel = get_node("/root/Telemetry")
 		var score = tel.calculate_score(
 			final_rank, tel.metrics.session.kills,
 			tel.metrics.session.assists, is_victory, difficulty as int
-		)
-		var base_text = "RANK: #%d\nKILLS: %d\nASSISTS: %d\nDAMAGE: %.0f\nTIME: %d sec\nSCORE: %d" % [
+		) + mission_bonus_score
+		stats_label.text = "RANK: #%d\nKILLS: %d\nASSISTS: %d\nDAMAGE: %.0f\nTIME: %d sec\nSCORE: %d" % [
 			final_rank, tel.metrics.session.kills, tel.metrics.session.assists,
 			tel.metrics.combat.total_damage_dealt, int(match_timer), score
 		]
-		stats_label.text = base_text + ("\n\n" + mission_result_text if mission_result_text != "" else "")
+
+	# 미션 결과 — 별도 라벨로 분리 (클리핑 방지)
+	var content = $CanvasLayer/Control/ResultPanel/Content
+	if content:
+		var mlabel = content.get_node_or_null("MissionResultLabel")
+		if mission_result_text != "":
+			if not mlabel:
+				mlabel = Label.new()
+				mlabel.name = "MissionResultLabel"
+				mlabel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				mlabel.add_theme_font_size_override("font_size", 14)
+				mlabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				content.add_child(mlabel)
+			mlabel.text = mission_result_text
+			mlabel.modulate = Color.GOLD if mission_success else Color(0.9, 0.4, 0.4)
+			mlabel.visible = true
+		elif mlabel:
+			mlabel.visible = false
 
 	if is_simulation:
 		get_tree().quit()
@@ -1048,6 +999,109 @@ func handle_damage_tick(delta):
 					_zone_outside_time.erase(uid)
 				if mission_tracker and a == player_ref:
 					mission_tracker.on_player_zone_tick(is_outside)
+					mission_tracker.on_pressure_zone_tick(is_outside, 1.0)
+
+# ─── PRESSURE MISSION ────────────────────────────────────────────────────────
+
+func _trigger_pressure_mission():
+	if not mission_tracker: return
+	var pool: Array
+	if difficulty == Difficulty.HELL:
+		pool = MissionTrackerScript.get_hell_pool()
+	else:
+		pool = MissionTrackerScript.get_hard_pool()
+	if pool.is_empty(): return
+	var descriptor = pool[randi() % pool.size()]
+	mission_tracker.start_pressure(descriptor, zone_wait_time + zone_shrink_time)
+
+func _process_pressure_mission(delta: float):
+	if not mission_tracker or not mission_tracker.pressure_active: return
+	# 봇 감지 수 계산
+	var num_detecting: int = 0
+	if is_instance_valid(player_ref):
+		for b in get_tree().get_nodes_in_group("actors"):
+			if is_instance_valid(b) and not b.is_in_group("players") and not b.is_dead:
+				if b.perception_meters.get(player_ref, 0.0) >= 1.0:
+					num_detecting += 1
+	var result = mission_tracker.tick_pressure(delta, num_detecting)
+	if result == "success":
+		var _title = mission_tracker._active_pressure.get("title", "미션")
+		_apply_pressure_effects(mission_tracker._active_pressure.get("reward", []), true)
+		if is_instance_valid(player_ref) and player_ref.has_method("show_pressure_flash"):
+			player_ref.show_pressure_flash("⚡ %s 성공!" % _title, true)
+	elif result == "fail":
+		var _title = mission_tracker._active_pressure.get("title", "미션")
+		_apply_pressure_effects(mission_tracker._active_pressure.get("penalty", []), false)
+		if is_instance_valid(player_ref) and player_ref.has_method("show_pressure_flash"):
+			player_ref.show_pressure_flash("✖ %s 실패" % _title, false)
+
+func _apply_pressure_effects(effects: Array, is_reward: bool):
+	if not is_instance_valid(player_ref): return
+	for eff in effects:
+		match int(eff["type"]):
+			MissionTrackerScript.PressureEffect.AMMO_REFILL:
+				for i in range(1, 5):
+					if player_ref.weapon_slots[i] != null:
+						player_ref.slot_ammo[i] = player_ref.weapon_slots[i].max_ammo
+						player_ref.slot_reserve[i] = player_ref.weapon_slots[i].max_reserve_ammo if player_ref.weapon_slots[i].has("max_reserve_ammo") else 30
+				player_ref._refresh_slot_hud()
+			MissionTrackerScript.PressureEffect.AMMO_CLEAR:
+				for i in range(1, 5):
+					player_ref.slot_ammo[i] = 0
+					player_ref.slot_reserve[i] = 0
+				player_ref._refresh_slot_hud()
+			MissionTrackerScript.PressureEffect.AMMO_ACTIVE_CLEAR:
+				var s = player_ref.active_slot
+				if s >= 1:
+					player_ref.slot_ammo[s] = 0
+					player_ref.slot_reserve[s] = 0
+				player_ref._refresh_slot_hud()
+			MissionTrackerScript.PressureEffect.HP_RESTORE:
+				if eff.get("full", false):
+					player_ref.current_health = player_ref.stats.max_health
+				else:
+					player_ref.current_health = min(player_ref.stats.max_health, player_ref.current_health + float(eff.get("amount", 30.0)))
+				player_ref.health_changed.emit(player_ref.current_health, player_ref.stats.max_health)
+			MissionTrackerScript.PressureEffect.HP_DAMAGE:
+				var frac = eff.get("fraction", 0.0)
+				var amt = float(eff.get("amount", 20.0))
+				if frac > 0.0:
+					amt = player_ref.current_health * frac
+				player_ref.current_health = max(1.0, player_ref.current_health - amt)
+				player_ref.health_changed.emit(player_ref.current_health, player_ref.stats.max_health)
+			MissionTrackerScript.PressureEffect.SHIELD_ADD:
+				player_ref.current_shield = min(player_ref.stats.max_shield, player_ref.current_shield + float(eff.get("amount", 50.0)))
+				player_ref.shield_changed.emit(player_ref.current_shield, player_ref.stats.max_shield)
+			MissionTrackerScript.PressureEffect.HEAL_ADD:
+				player_ref.stats.heal_items += int(eff.get("count", 1))
+				player_ref._update_hud()
+			MissionTrackerScript.PressureEffect.HEAL_CLEAR:
+				player_ref.stats.heal_items = 0
+				player_ref.stats.advanced_heals = 0
+				player_ref._update_hud()
+			MissionTrackerScript.PressureEffect.HEAL_PICKUP_BAN:
+				heal_pickup_banned = true
+				heal_ban_until_stage = zone_stage + 1
+			MissionTrackerScript.PressureEffect.ALL_BOTS_DETECT:
+				for b in get_tree().get_nodes_in_group("actors"):
+					if is_instance_valid(b) and not b.is_in_group("players") and not b.is_dead:
+						b.perception_meters[player_ref] = 1.0
+			MissionTrackerScript.PressureEffect.BOT_AGGRO:
+				var nearest = null
+				var nearest_dist = INF
+				for b in get_tree().get_nodes_in_group("actors"):
+					if is_instance_valid(b) and not b.is_in_group("players") and not b.is_dead:
+						var d = b.global_position.distance_to(player_ref.global_position)
+						if d < nearest_dist:
+							nearest_dist = d
+							nearest = b
+				if nearest and nearest.has_method("handle_idle_state"):
+					nearest.current_state = nearest.State.CHASE
+					nearest.chase_target = player_ref
+			MissionTrackerScript.PressureEffect.ZONE_EXTEND:
+				zone_timer += zone_wait_time * (float(eff.get("mult", 1.0)) - 1.0)
+			MissionTrackerScript.PressureEffect.RAILGUN_UNLIMITED:
+				railgun_unlimited_until_stage = zone_stage + int(eff.get("stages", 1))
 
 # ─── MENU VISUALS ────────────────────────────────────────────────────────────
 
@@ -1396,6 +1450,8 @@ func _show_diff_tooltip(idx: int):
 func _on_difficulty_btn(idx: int):
 	difficulty = idx as Difficulty
 	_update_diff_highlights()
+	if _pressure_opt_in_check:
+		_pressure_opt_in_check.visible = (difficulty == Difficulty.HARD)
 
 func _update_diff_highlights():
 	const DIFF_COLORS = [

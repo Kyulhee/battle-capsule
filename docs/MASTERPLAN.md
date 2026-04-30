@@ -1,11 +1,11 @@
 # 배틀캡슐 마스터 플랜
 
-> 마지막 업데이트: 2026-04-30 (v1.3 완료)  
+> 마지막 업데이트: 2026-04-30 (v1.3 완료, v1.4 로드맵 확정)  
 > 이 문서는 AI 에이전트 간 인수인계 및 장기 방향 공유를 위해 작성되었습니다.
 
 ## 현재 상태
 
-**현재**: v1.3 완료 — 다음: v1.4 (Artifact System 1차)
+**현재**: v1.3 완료 — 다음: v1.4 (Pressure Mission Redesign)
 
 **문서 구조** *(각 파일의 업데이트 시점 기준 → [CLAUDE.md](../CLAUDE.md))*
 
@@ -95,7 +95,7 @@ data/
 
 **DISENGAGE 커버 품질**: `collision_layer & 8`(높이 >2.5m) 필터 + 인스턴스별 섹터 분산 + 크라우딩 패널티. 4인 이상 감지 시 scatter 후퇴.
 
-### 봇 성격 (현재 3종, v1.5에서 4종으로 확장 예정)
+### 봇 성격 (현재 3종, v1.6에서 4종으로 확장 예정)
 
 | 성격 | 특징 |
 |---|---|
@@ -219,7 +219,138 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 
 ---
 
-### v1.4 — Artifact System `M`
+### v1.4 — Pressure Mission Redesign `M`
+
+**한 줄 요약**: 매치 중 위험한 행동을 강요하거나 안전한 선택을 금지하는 압박 미션으로 긴장감을 높인다.
+
+**설계 원칙**
+- 나쁜 조건: "힐 사용하기" "자기장 안 있기" — 수동적으로 달성 가능
+- 좋은 조건: "힐 금지" "자기장 밖으로 나가기" — 위험 감수 필요
+
+**핵심 변경 파일**
+- `src/core/MissionTracker.gd` (압박 미션 pool, 추적 로직 대폭 확장)
+- `src/Main.gd` (미션 선택 UI 제거, 랜덤 배정, zone 단계 hook, 결과 적용)
+- `src/entities/player/Player.gd` (pressure HUD, railgun_unlimited 플래그, 힐 픽업 금지 플래그)
+
+**시스템 구조**
+
+| 요소 | 내용 |
+|---|---|
+| 보너스 미션 | 매치 시작 시 자동 랜덤 배정 1개 (기존 15개 pool), 성공 시 +500점 + 배지 |
+| 압박 미션 | zone_stage 증가마다 트리거, 달성 시 즉각 리워드, 실패 시 즉각 패널티 |
+| 어려움 | 보너스 미션 + HARD_POOL 압박 미션 (opt-in 토글) |
+| 지옥 | 보너스 미션 + HELL_POOL 압박 미션 (강제) |
+
+**HARD_POOL — 8종 (단일 조건)**
+
+| ID | 제목 | 조건 | 성공 리워드 | 실패 패널티 |
+|---|---|---|---|---|
+| h_kill | 계약 킬 | 킬 1 | 전 탄약 풀충전 | 전 탄약 전소 |
+| h_no_heal | 금욕 | 힐 사용 금지 *(위반→즉시 실패)* | 방어막 +50 | 다음 존 힐 픽업 불가 |
+| h_zone_dare | 존 도전자 | 자기장 밖 5초 이상 체류 | HP +40 | 즉시 존 피해 40 |
+| h_no_dmg | 무결 | 피해 0 *(존 피해 포함)* | 방어막 +50 | HP -30 |
+| h_stealth_kill | 은신 사냥 | 미탐지 킬 1 | 전 봇 awareness 초기화 | 1존 동안 전 봇 감지 상태 |
+| h_melee_kill | 칼잡이 | 칼로 킬 1 | 전 탄약 풀충전 | 활성 슬롯 탄약 전소 |
+| h_target_practice | 표적 생존 | 봇 2마리+ 감지 상태에서 10초 생존 | 힐 +1 + 방어막 +30 | HP -20 |
+| h_zone_kill | 경계선 | 자기장 밖에서 킬 1 | HP 전회복 | HP -40 즉시 |
+
+**HELL_POOL — 9종**
+
+Hell-A: 조건 강화
+
+| ID | 제목 | 조건 | 성공 리워드 | 실패 패널티 |
+|---|---|---|---|---|
+| ha_kill2 | 이중 계약 | 킬 2 | 레일건 무제한 (1 존) | 탄약 전소 + HP -20 |
+| ha_no_heal_nodmg | 완벽한 금욕 | 힐 금지 + 피해 0 | HP 전회복 | HP -50 |
+| ha_zone_dare_long | 지옥 존 | 자기장 밖 10초 + 킬 1 | HP 전회복 + 방어막 +50 | HP -50 |
+
+Hell-B: 콤보 조건 (AND)
+
+| ID | 제목 | 조건 | 성공 리워드 | 실패 패널티 |
+|---|---|---|---|---|
+| hb_stealth_clean | 완벽한 암살 | 미탐지 킬 1 + 피해 0 | 레일건 무제한 + 힐 +2 | 전 봇 감지 + HP -30 |
+| hb_no_heal_2kill | 금욕 학살 | 힐 금지 + 킬 2 | 레일건 무제한 + 힐 +3 | 힐 전소 + HP -30 |
+| hb_melee_nodmg | 무적 칼잡이 | 칼 킬 1 + 피해 0 | HP 전회복 + 방어막 +50 | HP -40 |
+
+Hell-C: 특수 조건
+
+| ID | 제목 | 조건 | 성공 리워드 | 실패 패널티 |
+|---|---|---|---|---|
+| hc_blood_pact | 피의 계약 | HP 30% 이하에서 킬 1 | 레일건 무제한 + HP 전회복 | 현재 HP 절반 |
+| hc_berserker | 광전사 | 봇 3마리+ 감지 상태에서 킬 1 | 레일건 무제한 + HP 전회복 | HP -50 |
+| hc_zone_massacre | 존 바깥의 학살 | 자기장 밖에서 킬 2 | HP 전회복 + 방어막 +50 + 힐 +1 | HP -50 즉시 |
+
+**신규 조건 타입**: `NO_HEAL` / `ZONE_OUTSIDE_SEC` / `KILL_MELEE` / `SURVIVE_DETECTED_SEC` / `KILL_WHILE_ZONE_OUTSIDE` / `KILL_LOW_HP`
+
+**신규 리워드/패널티 타입**: `AMMO_REFILL` / `AMMO_CLEAR` / `HP_RESTORE` / `HP_DAMAGE` / `SHIELD_ADD` / `HEAL_ADD` / `HEAL_CLEAR` / `RAILGUN_UNLIMITED` / `ALL_BOTS_DETECT` / `HEAL_PICKUP_BAN` / `BOT_AGGRO` / `ZONE_EXTEND`
+
+**구현 마일스톤**
+- v1.4.0: 미션 선택 UI 제거, 랜덤 보너스, HARD_POOL 8종 + 기본 리워드 7종, 결과 화면 클리핑 버그 수정
+- v1.4.1: HELL_POOL 9종, RAILGUN_UNLIMITED, 콤보 AND 평가, 특수 조건 추적 (KILL_LOW_HP, KILL_WHILE_ZONE_OUTSIDE)
+- v1.4.2: 밸런스 조정, Telemetry pressure 그룹, TESTING.md 갱신, 릴리즈
+
+**헤드리스 검증 기준**
+- 랜덤 보너스 미션이 매치마다 다른 ID로 배정됨 (로그 확인)
+- zone_stage >= 2 매치에서 `pressure_triggered >= 1` (지옥 모드)
+- `pressure_cleared + pressure_failed == pressure_triggered` (누락 없음)
+- 기존 봇 AI, 존 수축, 보급 동작 변화 없음
+
+---
+
+### v1.4.3 — Weapon Depth `S`
+
+**한 줄 요약**: 각 무기의 역할을 명확히 구분해 전투 선택지에 깊이를 더한다.
+
+**핵심 변경 파일**
+- `src/core/StatsData.gd` (knockback_force 필드 추가)
+- `src/entities/Entity.gd` (take_damage 시 knockback impulse 적용)
+- `src/core/railgun_stats.tres` (스탯 조정)
+
+**레일건 밸런스 조정**
+
+현재 레일건은 탄창 3발 + AR과 사거리 차이 미미로 사용 이유가 약함.
+
+| 스탯 | 현재 | 목표 |
+|---|---|---|
+| `attack_range` | ~20m | 60m (화면 거의 전체) |
+| `attack_damage` | ~35 | 95 (2발 처치, 원샷 불가) |
+| `max_ammo` (탄창) | 3 | 2 |
+| `fire_rate` (쿨다운) | 1.0s | 2.8s |
+| 리저브 최대 | 6 | 4 |
+
+장기 옵션: 레일건 관통 샷 — raycast를 한 번의 hit에서 멈추지 않고 계속 진행, 같은 직선 봇 2마리 동시 적중. 쿼터뷰 포지셔닝 가치 극대화.
+
+**저지력(Knockback) 시스템**
+
+피격 시 무기별 힘으로 피격자 이동 (CharacterBody3D velocity 즉시 추가).
+
+| 무기 | knockback_force | 방향 |
+|---|---|---|
+| 피스톨 | 0 (없음) | — |
+| AR | 4 (너프 대신 저지력 부여) | 공격자→피격자 방향 |
+| 샷건 | 거리에 반비례, 최대 18 (근거리 강타 효과) | 공격자→피격자 방향 |
+| 레일건 | 8 (고관통 충격) | 공격자→피격자 방향 |
+| 칼 | 6 (근접 밀치기) | 위와 같음 |
+
+AR은 attack_damage -15% 너프 대신 저지력으로 보상. 샷건은 근거리 `min(distance, 8) / 8` 역비례 계수 적용.
+
+**무기슬롯 제한 미션 (PISTOL ONLY 변형)**
+
+보너스 미션 풀에 추가할 고난이도 미션:
+
+| 미션 | 조건 | 성공 점수 |
+|---|---|---|
+| ONE SLOT RUN | 칼 + 한 가지 총기만으로 1등 (다른 총기 픽업 금지) | +1500 |
+
+구현: 새 `ConditionType.WIN_ONE_SLOT` 추가, 픽업 시 2번째 총기 슬롯 이후 습득 여부 추적.
+
+**헤드리스 검증 기준**
+- 레일건 스탯 변경 후 10회 시뮬에서 railgun 킬 비율 > 0 확인
+- 저지력 적용 후 SCRIPT ERR 없음, 봇 이동 동작 변화 없음
+
+---
+
+### v1.5 — Artifact System `M`
 
 **한 줄 요약**: 매 판의 조건을 다르게 만드는 핵심 로그라이트 메커닉.
 
@@ -254,7 +385,7 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 | 자기장 | Blue Lung | 자기장 피해 -25% |
 | 자기장 | Panic Sprint | 자기장 밖 이동속도 +30%, 자기장 밖 사격 정확도 -25% |
 
-**2차 아티팩트 (v1.6에서 추가)**: Emergency Shell, Ghost Grass, Pulse Scanner, Marked King, Glass Capsule — 별도 능력 로직 필요.
+**2차 아티팩트 (v1.7에서 추가)**: Emergency Shell, Ghost Grass, Pulse Scanner, Marked King, Glass Capsule — 별도 능력 로직 필요.
 
 > Ricochet Core(탄 반사), False Signal(가짜 소음), Second Capsule(부활), Zone Debt(피해 누적 정산)는 구현 난도 높아 v2.x 이후 검토.
 
@@ -265,7 +396,7 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 
 ---
 
-### v1.5 — Bot Archetypes `S`
+### v1.6 — Bot Archetypes `S`
 
 **한 줄 요약**: 봇 11명이 각기 다른 전술 성향으로 행동해 전장이 살아있는 느낌을 만든다.
 
@@ -293,7 +424,7 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 
 ---
 
-### v1.6 — Complex Artifacts + Director Lite `M`
+### v1.7 — Complex Artifacts + Director Lite `M`
 
 **한 줄 요약**: 2차 아티팩트(능력 로직 포함) 추가 + 전장 페이싱 자동 조절.
 
@@ -327,7 +458,7 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 
 ---
 
-### v1.7 — Meta Progression `S`
+### v1.8 — Meta Progression `S`
 
 **한 줄 요약**: 장기 목표를 만든다. 단, 영구 스탯 강화는 없음.
 
@@ -355,7 +486,7 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 
 ---
 
-### v1.8 — Public Alpha Polish `S`
+### v1.9 — Public Alpha Polish `S`
 
 **한 줄 요약**: 외부에 공개할 수 있는 상태로 다듬는다.
 
@@ -372,8 +503,8 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 | 조건 | 상태 |
 |---|---|
 | 맵 2개 이상 | ❌ (v2.2 이후) |
-| 아티팩트 20개 이상 | ❌ (v1.4+v1.6 합산 약 18개) |
-| 미션 20개 이상 | ❌ (v1.3 15개, v1.7 추가 후 가능) |
+| 아티팩트 20개 이상 | ❌ (v1.5+v1.7 합산 약 18개) |
+| 미션 20개 이상 | ❌ (v1.4 보너스 15종 + 압박 17종은 성격 상이, v1.8 추가 후 재검토) |
 | 난이도 4종 | ✅ |
 | 1시간 반복 플레이 지루하지 않음 | 검증 필요 |
 | itch.io 긍정 피드백 | 미배포 |

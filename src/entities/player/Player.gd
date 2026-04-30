@@ -13,6 +13,10 @@ var _mesh_origin_y: float = 0.0
 @onready var interaction_area = $InteractionArea
 var zone_timer_label: Label = null
 var mission_hud_label: Label = null
+var pressure_hud_label: Label = null
+var _flash_panel: PanelContainer = null
+var _flash_label: Label = null
+var _flash_tween: Tween = null
 var kill_feed_container: VBoxContainer = null
 var kill_feed_entries: Array = []
 
@@ -101,6 +105,40 @@ func _ready():
 	mission_hud_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	mission_hud_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	mission_hud_label.position.y += 46
+
+	# Pressure Mission HUD (center-top, urgent style)
+	pressure_hud_label = Label.new()
+	pressure_hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pressure_hud_label.add_theme_font_size_override("font_size", 15)
+	pressure_hud_label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.1))
+	pressure_hud_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	pressure_hud_label.add_theme_constant_override("outline_size", 8)
+	pressure_hud_label.visible = false
+	$CanvasLayer/Control.add_child(pressure_hud_label)
+	pressure_hud_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	pressure_hud_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	pressure_hud_label.position.y += 68
+
+	# Pressure / mission flash message (center screen)
+	_flash_panel = PanelContainer.new()
+	_flash_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
+	_flash_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_flash_panel.grow_vertical = Control.GROW_DIRECTION_END
+	_flash_panel.position.y += 110
+	var flash_style = StyleBoxFlat.new()
+	flash_style.bg_color = Color(0.05, 0.05, 0.05, 0.78)
+	flash_style.set_corner_radius_all(6)
+	flash_style.content_margin_left = 18; flash_style.content_margin_right = 18
+	flash_style.content_margin_top = 7;   flash_style.content_margin_bottom = 7
+	_flash_panel.add_theme_stylebox_override("panel", flash_style)
+	_flash_label = Label.new()
+	_flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_flash_label.add_theme_font_size_override("font_size", 16)
+	_flash_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_flash_label.add_theme_constant_override("outline_size", 6)
+	_flash_panel.add_child(_flash_label)
+	_flash_panel.modulate.a = 0.0
+	$CanvasLayer/Control.add_child(_flash_panel)
 
 	# Kill feed (top-right)
 	kill_feed_container = VBoxContainer.new()
@@ -291,6 +329,9 @@ func set_in_bush(value: bool):
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
 	super.take_damage(amount, source, weapon_type, source_node)
 	if Sfx: Sfx.play("hurt")
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and main.mission_tracker:
+		main.mission_tracker.on_pressure_damage(amount)
 	var overlay = $CanvasLayer/Control/DamageOverlay
 	if overlay:
 		var tween = create_tween()
@@ -410,8 +451,17 @@ func _process(delta):
 		var tel = get_node_or_null("/root/Telemetry")
 		mission_hud_label.text = main.mission_tracker.get_hud_text(tel)
 		mission_hud_label.visible = true
+		var failed = main.mission_tracker.get_early_fail_status(tel)
+		mission_hud_label.modulate = Color(1.0, 0.32, 0.32) if failed else Color(1.0, 0.88, 0.3)
 	elif mission_hud_label:
 		mission_hud_label.visible = false
+	if main and pressure_hud_label and main.mission_tracker and main.mission_tracker.pressure_active:
+		pressure_hud_label.text = main.mission_tracker.get_pressure_hud_text()
+		var deadline = main.mission_tracker.pressure_deadline
+		pressure_hud_label.modulate = Color(1.0, 0.3, 0.1) if deadline <= 5.0 else Color(1.0, 0.65, 0.1)
+		pressure_hud_label.visible = true
+	elif pressure_hud_label:
+		pressure_hud_label.visible = false
 	_update_hud()
 
 	# Reload HUD progress (per-frame count-up animation)
@@ -466,12 +516,16 @@ func handle_healing():
 		health_changed.emit(current_health, stats.max_health)
 		if Sfx: Sfx.play("heal", global_position)
 		if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
+		if main and main.mission_tracker:
+			main.mission_tracker.on_pressure_heal_used()
+			main.mission_tracker.on_player_medkit_used()
 		_refresh_slot_hud()
 	elif stats.heal_items > 0:
 		stats.heal_items -= 1
 		_heal_regen += 30.0 * (0.40 if is_hell else 1.0) * scarcity_mult
 		if Sfx: Sfx.play("heal", global_position)
 		if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
+		if main and main.mission_tracker: main.mission_tracker.on_pressure_heal_used()
 		_refresh_slot_hud()
 
 func handle_aiming(delta):
@@ -950,6 +1004,16 @@ func add_kill_feed_entry(killer_is_player: bool, player_assisted: bool, killer_n
 	if kill_feed_entries.size() > 6:
 		kill_feed_entries[0]["label"].queue_free()
 		kill_feed_entries.pop_front()
+
+func show_pressure_flash(text: String, success: bool):
+	if not _flash_label or not _flash_panel: return
+	_flash_label.text = text
+	_flash_label.modulate = Color(0.3, 1.0, 0.45) if success else Color(1.0, 0.32, 0.32)
+	if _flash_tween: _flash_tween.kill()
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(_flash_panel, "modulate:a", 0.88, 0.12)
+	_flash_tween.tween_interval(2.2)
+	_flash_tween.tween_property(_flash_panel, "modulate:a", 0.0, 0.45)
 
 func die(killer: Node3D = null):
 	_drop_on_death()
