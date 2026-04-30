@@ -296,7 +296,9 @@ func start_game():
 	spawn_entities()
 	_spawn_initial_loot()
 	if difficulty == Difficulty.HELL and not is_simulation:
-		hell_modifier = randi() % 3 as HellModifier
+		var _rng = RandomNumberGenerator.new()
+		_rng.seed = Time.get_ticks_usec() ^ (Time.get_ticks_msec() << 16)
+		hell_modifier = _rng.randi_range(0, 2) as HellModifier
 		_hell_blackout_timer = randf_range(12.0, 20.0)
 		_hell_bomb_timer = 20.0
 		_create_hell_overlay()
@@ -1576,54 +1578,124 @@ func _show_hell_announcement():
 	_hell_announce_active = true
 	get_tree().paused = true
 
-	var panel = ColorRect.new()
-	panel.process_mode = Node.PROCESS_MODE_ALWAYS
-	panel.layout_mode = 1
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -240.0; panel.offset_right = 240.0
-	panel.offset_top  = -155.0; panel.offset_bottom = 155.0
-	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	panel.grow_vertical   = Control.GROW_DIRECTION_BOTH
-	panel.color = Color(0.04, 0.0, 0.08, 0.95)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.z_index = 20
-	_hell_announce_panel = panel
+	# Root node — dismiss frees everything at once
+	var root = Control.new()
+	root.process_mode = Node.PROCESS_MODE_ALWAYS
+	root.layout_mode = 1
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.z_index = 20
+	_hell_announce_panel = root
+
+	# Semi-transparent overlay
+	var overlay = ColorRect.new()
+	overlay.layout_mode = 1
+	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.0, 0.0, 0.0, 0.72)
+	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(overlay)
+
+	# Centered card
+	var center = CenterContainer.new()
+	center.layout_mode = 1
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.process_mode = Node.PROCESS_MODE_ALWAYS
+	root.add_child(center)
+
+	var card = PanelContainer.new()
+	var cs = StyleBoxFlat.new()
+	cs.bg_color = Color(0.05, 0.03, 0.07)
+	cs.border_color = Color(0.50, 0.08, 0.12)
+	cs.set_border_width_all(2)
+	cs.set_corner_radius_all(8)
+	cs.content_margin_left = 44; cs.content_margin_right = 44
+	cs.content_margin_top = 36;  cs.content_margin_bottom = 38
+	card.add_theme_stylebox_override("panel", cs)
+	card.custom_minimum_size = Vector2(640, 0)
+	center.add_child(card)
 
 	var vbox = VBoxContainer.new()
-	vbox.set_anchors_preset(Control.PRESET_FULL_RECT)
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 10)
-	panel.add_child(vbox)
+	vbox.add_theme_constant_override("separation", 6)
+	card.add_child(vbox)
 
-	const MOD_INFO = {
-		0: ["★ SCARCITY — HEALS ×0.5",  Color(0.4, 0.8, 1.0)],
-		1: ["★ BARRAGE MODE",            Color(1.0, 0.5, 0.0)],
-		2: ["★ ALL BOTS HOSTILE",        Color(1.0, 0.2, 0.2)],
+	# ── 제목 ──
+	var title_lbl = Label.new()
+	title_lbl.text = "지옥 모드"
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 42)
+	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.20, 0.20))
+	title_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	title_lbl.add_theme_constant_override("outline_size", 6)
+	vbox.add_child(title_lbl)
+
+	vbox.add_child(_hell_sep())
+
+	# ── 기본 패널티 ──
+	vbox.add_child(_hell_section("기본 패널티"))
+	_hell_row(vbox, "시작 체력 1",   "아이템 없이 한 번 맞으면 즉사합니다")
+	_hell_row(vbox, "치료 효율 50%", "힐 아이템 회복량이 절반입니다")
+	_hell_row(vbox, "압박 미션",     "존 전환마다 제한 시간 미션이 발동됩니다")
+
+	vbox.add_child(_hell_sep())
+
+	# ── 이번 매치 이벤트 ──
+	vbox.add_child(_hell_section("이번 매치 이벤트"))
+	const MOD_DESC = {
+		0: ["아이템 희귀화", "힐·장비 드롭 확률이 크게 낮아집니다"],
+		1: ["포격 강화",     "포격 범위와 폭탄 수가 크게 늘어납니다"],
+		2: ["전원 경계",     "모든 봇이 처음부터 당신을 추적합니다"],
 	}
-	var mod = MOD_INFO[hell_modifier as int]
-	for line_data in [
-		["HELL MODE",              38, Color(0.85, 0.05, 1.0)],
-		["HP 1 · HEALING REDUCED", 18, Color(1.0,  0.3,  0.3)],
-		[mod[0],                   22, mod[1]],
-		["BLACKOUTS & BOMBARDMENTS", 16, Color(0.9, 0.5, 0.1)],
-		["SURVIVE IF YOU CAN",     15, Color(0.55, 0.55, 0.55)],
-	]:
-		var lbl = Label.new()
-		lbl.text = line_data[0]
-		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl.add_theme_font_size_override("font_size", line_data[1])
-		lbl.add_theme_color_override("font_color", line_data[2])
-		vbox.add_child(lbl)
+	var md = MOD_DESC[hell_modifier as int]
+	_hell_row(vbox, md[0], md[1])
+	_hell_row(vbox, "정전", "주기적으로 화면이 어두워지며 미니맵이 차단됩니다")
+	_hell_row(vbox, "포격", "경고 후 지정 범위에 폭탄이 쏟아집니다")
 
-	var start_btn = Button.new()
-	start_btn.process_mode = Node.PROCESS_MODE_ALWAYS
-	start_btn.text = "START  [SPACE / ESC]"
-	start_btn.add_theme_font_size_override("font_size", 18)
-	start_btn.pressed.connect(_dismiss_hell_announcement)
-	_apply_btn_style(start_btn)
-	vbox.add_child(start_btn)
+	vbox.add_child(_hell_sep())
 
-	$CanvasLayer/Control.add_child(panel)
+	# ── 버튼 ──
+	var btn = Button.new()
+	btn.process_mode = Node.PROCESS_MODE_ALWAYS
+	btn.text = "시작하기  [SPACE / ESC]"
+	btn.add_theme_font_size_override("font_size", 18)
+	btn.pressed.connect(_dismiss_hell_announcement)
+	_apply_btn_style(btn)
+	vbox.add_child(btn)
+
+	$CanvasLayer/Control.add_child(root)
+
+func _hell_sep() -> HSeparator:
+	var s = HSeparator.new()
+	s.add_theme_constant_override("separation", 4)
+	return s
+
+func _hell_section(text: String) -> Label:
+	var lbl = Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", 12)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.78, 0.28))
+	return lbl
+
+func _hell_row(parent: Control, key: String, desc: String):
+	var hbox = HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 10)
+	parent.add_child(hbox)
+	var key_lbl = Label.new()
+	key_lbl.text = key
+	key_lbl.add_theme_font_size_override("font_size", 14)
+	key_lbl.add_theme_color_override("font_color", Color(0.92, 0.90, 0.92))
+	key_lbl.custom_minimum_size = Vector2(108, 0)
+	hbox.add_child(key_lbl)
+	var dash = Label.new()
+	dash.text = "—"
+	dash.add_theme_font_size_override("font_size", 14)
+	dash.add_theme_color_override("font_color", Color(0.42, 0.40, 0.44))
+	hbox.add_child(dash)
+	var desc_lbl = Label.new()
+	desc_lbl.text = desc
+	desc_lbl.add_theme_font_size_override("font_size", 14)
+	desc_lbl.add_theme_color_override("font_color", Color(0.66, 0.64, 0.70))
+	desc_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hbox.add_child(desc_lbl)
 
 func _dismiss_hell_announcement():
 	if not _hell_announce_active: return
@@ -1726,22 +1798,37 @@ func _start_bombardment():
 				get_node("/root/Telemetry").log_hell_event("bombardment_hit")
 		)
 	else:
-		const BOMB_RADIUS = 5.0
-		const BOMB_DAMAGE = 45.0
-		const BOMB_DELAY  = 1.5
-		var mesh_inst = _make_bomb_disc(BOMB_RADIUS, Color(1.0, 0.1, 0.1, 0.55))
-		add_child(mesh_inst)
-		mesh_inst.global_position = center
-		get_tree().create_timer(BOMB_DELAY).timeout.connect(func():
-			if is_instance_valid(mesh_inst): mesh_inst.queue_free()
-			for actor in get_tree().get_nodes_in_group("actors"):
-				if not is_instance_valid(actor): continue
-				if actor is Entity and actor.is_dead: continue
-				if actor.global_position.distance_to(center) <= BOMB_RADIUS:
-					actor.take_damage(BOMB_DAMAGE, "zone")
-			if is_instance_valid(_hell_overlay):
-				_hell_overlay.color = Color(0.9, 0.3, 0.0, 0.4)
-				create_tween().tween_property(_hell_overlay, "color:a", 0.0, 0.25)
+		const BOMB_RADIUS  = 3.0
+		const BOMB_DAMAGE  = 30.0
+		const WARN_DELAY   = 1.5
+		const PELLET_COUNT = 3
+		const PELLET_GAP   = 0.4  # seconds between each drop
+
+		for i in PELLET_COUNT:
+			var spread_a = randf() * TAU
+			var spread_r = randf_range(0.0, 4.0) if i > 0 else 0.0
+			var pos = Vector3(
+				center.x + cos(spread_a) * spread_r,
+				0.05,
+				center.z + sin(spread_a) * spread_r
+			)
+			var disc = _make_bomb_disc(BOMB_RADIUS, Color(1.0, 0.1, 0.1, 0.55))
+			add_child(disc)
+			disc.global_position = pos
+			var fire_at = WARN_DELAY + i * PELLET_GAP
+			get_tree().create_timer(fire_at).timeout.connect(func():
+				if is_instance_valid(disc): disc.queue_free()
+				for actor in get_tree().get_nodes_in_group("actors"):
+					if not is_instance_valid(actor): continue
+					if actor is Entity and actor.is_dead: continue
+					if actor.global_position.distance_to(pos) <= BOMB_RADIUS:
+						actor.take_damage(BOMB_DAMAGE, "zone")
+				if is_instance_valid(_hell_overlay):
+					_hell_overlay.color = Color(0.9, 0.3, 0.0, 0.4)
+					create_tween().tween_property(_hell_overlay, "color:a", 0.0, 0.25)
+			)
+		# single telemetry hit log after last pellet lands
+		get_tree().create_timer(WARN_DELAY + (PELLET_COUNT - 1) * PELLET_GAP + 0.05).timeout.connect(func():
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_hell_event("bombardment_hit")
 		)
