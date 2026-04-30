@@ -163,6 +163,7 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 | v1.3   | 2026-04-30 | Challenge Mission System — 15미션, 미션선택UI, 배지저장, Telemetry mission 그룹 |
 | v1.4.0 | 2026-04-30 | Pressure Mission Redesign — HARD/HELL pool 17종, 압박 미션 시스템, 랜덤 보너스 배정 |
 | v1.4.1 | 2026-04-30 | Mission UI/UX — HUD 두 줄, 실패 확정 빨간 표시, Flash 알림, SCAVENGER/MEDIC 재조정 |
+| v1.4.2 | 2026-04-30 | Telemetry pressure 그룹, 결과화면 UI 재설계 (클리핑 수정), 압박 HUD 2줄 + 가독성 |
 
 ---
 
