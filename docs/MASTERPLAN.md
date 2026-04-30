@@ -161,6 +161,8 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 | v1.1   | 2026-04-29 | 미니맵 타입별 표현(rock→원, bush→반투명 연두), mapSpec v3.0(3링), WorldBuilder jitter |
 | v1.2   | 2026-04-29 | 봇 DISENGAGE 클러스터링 해소 — 커버 높이 필터, 섹터 분산, 4인↑ scatter |
 | v1.3   | 2026-04-30 | Challenge Mission System — 15미션, 미션선택UI, 배지저장, Telemetry mission 그룹 |
+| v1.4.0 | 2026-04-30 | Pressure Mission Redesign — HARD/HELL pool 17종, 압박 미션 시스템, 랜덤 보너스 배정 |
+| v1.4.1 | 2026-04-30 | Mission UI/UX — HUD 두 줄, 실패 확정 빨간 표시, Flash 알림, SCAVENGER/MEDIC 재조정 |
 
 ---
 
@@ -285,8 +287,8 @@ Hell-C: 특수 조건
 **신규 리워드/패널티 타입**: `AMMO_REFILL` / `AMMO_CLEAR` / `HP_RESTORE` / `HP_DAMAGE` / `SHIELD_ADD` / `HEAL_ADD` / `HEAL_CLEAR` / `RAILGUN_UNLIMITED` / `ALL_BOTS_DETECT` / `HEAL_PICKUP_BAN` / `BOT_AGGRO` / `ZONE_EXTEND`
 
 **구현 마일스톤**
-- v1.4.0: 미션 선택 UI 제거, 랜덤 보너스, HARD_POOL 8종 + 기본 리워드 7종, 결과 화면 클리핑 버그 수정
-- v1.4.1: HELL_POOL 9종, RAILGUN_UNLIMITED, 콤보 AND 평가, 특수 조건 추적 (KILL_LOW_HP, KILL_WHILE_ZONE_OUTSIDE)
+- ~~v1.4.0~~: 미션 선택 UI 제거, 랜덤 보너스, HARD_POOL 8종 + 기본 리워드 7종, 결과 화면 클리핑 버그 수정 ✅
+- ~~v1.4.1~~: Mission UI/UX 개선 — HUD 두 줄, 실패 확정 표시, Flash 알림, SCAVENGER/MEDIC 풀 재조정 ✅
 - v1.4.2: 밸런스 조정, Telemetry pressure 그룹, TESTING.md 갱신, 릴리즈
 
 **헤드리스 검증 기준**

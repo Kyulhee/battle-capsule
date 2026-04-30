@@ -10,8 +10,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v1.3 (Challenge Mission System — 15미션, 미션 선택 UI, 배지 저장) |
-| 다음 버전 | v1.4 — Artifact System (1차: stat-delta 12개) |
+| 완료 버전 | v1.4.1 (Mission UI/UX — HUD 두 줄, 실패 확정 표시, Flash 알림, 미션 풀 재조정) |
+| 다음 버전 | v1.4.2 — 밸런스 조정 + Telemetry pressure 그룹 + 릴리즈 |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 
 ---
