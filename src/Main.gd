@@ -12,9 +12,9 @@ enum Difficulty { EASY, NORMAL, HARD, HELL }
 var difficulty: Difficulty = Difficulty.NORMAL
 const DIFFICULTY_PARAMS = {
 	0: { "vision_mult": 0.75, "reaction_delay": 1.2,  "aim_spread": 1.8,  "loot_break_mult": 0.0, "awareness_level": 0 },
-	1: { "vision_mult": 1.0,  "reaction_delay": 0.35, "aim_spread": 1.0,  "loot_break_mult": 1.0, "awareness_level": 1, "combat_loot_floor": 0.20 },
-	2: { "vision_mult": 1.25, "reaction_delay": 0.0,  "aim_spread": 0.65, "loot_break_mult": 1.5, "awareness_level": 2, "combat_loot_floor": 0.35, "combat_loot_radius": 22.0 },
-	3: { "vision_mult": 1.5,  "reaction_delay": 0.0,  "aim_spread": 0.5,  "loot_break_mult": 2.0, "awareness_level": 2, "combat_loot_floor": 0.40, "combat_loot_radius": 25.0 },
+	1: { "vision_mult": 1.0,  "reaction_delay": 0.35, "aim_spread": 1.0,  "loot_break_mult": 1.0, "awareness_level": 1, "combat_loot_floor": 0.20, "idle_scan_interval_max": 1.8 },
+	2: { "vision_mult": 1.25, "reaction_delay": 0.0,  "aim_spread": 0.65, "loot_break_mult": 1.5, "awareness_level": 2, "combat_loot_floor": 0.35, "combat_loot_radius": 22.0, "idle_scan_interval_max": 1.2 },
+	3: { "vision_mult": 1.5,  "reaction_delay": 0.0,  "aim_spread": 0.5,  "loot_break_mult": 2.0, "awareness_level": 2, "combat_loot_floor": 0.40, "combat_loot_radius": 25.0, "idle_scan_interval_max": 0.9 },
 }
 var _diff_btns: Array = []
 var _pressure_opt_in_check: CheckButton = null

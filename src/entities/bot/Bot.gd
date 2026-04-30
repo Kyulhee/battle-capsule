@@ -37,6 +37,8 @@ var _disengage_cover: Vector3 = Vector3.ZERO
 # Cooldown after leaving DISENGAGE — prevents re-entry cascade
 var _disengage_cooldown: float = 0.0
 var _combat_loot_radius: float = 15.0
+var _scan_interval_max: float = 3.0  # idle scan max interval — difficulty-scaled
+var _scan_phase: int = 0             # cycles: right flank → left flank → random
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -231,8 +233,14 @@ func _get_preferred_range() -> float:
 func handle_idle_state(delta):
 	scan_timer -= delta
 	if scan_timer <= 0:
-		scan_timer = randf_range(1.0, 3.0)
-		scan_target_rotation = rotation.y + randf_range(-PI, PI)
+		scan_timer = randf_range(_scan_interval_max * 0.4, _scan_interval_max)
+		# Cycle: right flank → left flank → random
+		# Systematically covers sides instead of uniform random which can cluster forward.
+		_scan_phase = (_scan_phase + 1) % 3
+		match _scan_phase:
+			0: scan_target_rotation = rotation.y + randf_range(PI * 0.3, PI * 0.8)
+			1: scan_target_rotation = rotation.y - randf_range(PI * 0.3, PI * 0.8)
+			_: scan_target_rotation = rotation.y + randf_range(-PI, PI)
 	rotation.y = lerp_angle(rotation.y, scan_target_rotation, stats.rotation_speed * 0.5 * delta)
 
 	var nearest_enemy = _find_nearest_target()
@@ -608,6 +616,8 @@ func apply_difficulty(params: Dictionary):
 		_combat_loot_threshold = max(_combat_loot_threshold, params.combat_loot_floor)
 	if params.has("combat_loot_radius"):
 		_combat_loot_radius = params.combat_loot_radius
+	if params.has("idle_scan_interval_max"):
+		_scan_interval_max = params.idle_scan_interval_max
 	if params.has("awareness_level"):
 		_awareness_level = params.awareness_level
 
