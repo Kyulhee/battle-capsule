@@ -100,6 +100,9 @@ func collect(collector: Entity) -> bool:
 				collector.stats.current_ammo = min(collector.stats.max_ammo, collector.stats.current_ammo + item.amount)
 			print("Collected Ammo: ", item.amount, " (", item.ammo_weapon_type, ")")
 		ItemData.Type.HEAL:
+			var _main = collector.get_tree().root.get_node_or_null("Main")
+			if _main and _main.heal_pickup_banned and collector.is_in_group("players"):
+				return false  # 힐 픽업 금지 패널티 중
 			if item.rarity == ItemData.Rarity.RARE:
 				collector.stats.advanced_heals += item.amount
 				print("Collected MedKit: ", item.amount)

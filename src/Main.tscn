@@ -167,47 +167,7 @@ grow_vertical = 2
 	anchor_bottom = 1.0
 	grow_horizontal = 2
 	grow_vertical = 2
-	color = Color(0.1, 0.1, 0.1, 0.95)
-
-	[node name="Content" type="VBoxContainer" parent="CanvasLayer/Control/ResultPanel"]
-	layout_mode = 1
-	anchors_preset = 8
-	anchor_left = 0.5
-	anchor_top = 0.5
-	anchor_right = 0.5
-	anchor_bottom = 0.5
-	offset_left = -200.0
-	offset_top = -250.0
-	offset_right = 200.0
-	offset_bottom = 250.0
-	grow_horizontal = 2
-	grow_vertical = 2
-	theme_override_constants/separation = 40
-
-	[node name="HeaderLabel" type="Label" parent="CanvasLayer/Control/ResultPanel/Content"]
-	layout_mode = 2
-	theme_override_font_sizes/font_size = 64
-	text = "VICTORY!"
-	horizontal_alignment = 1
-
-	[node name="StatsLabel" type="Label" parent="CanvasLayer/Control/ResultPanel/Content"]
-	layout_mode = 2
-	theme_override_font_sizes/font_size = 32
-	text = "RANK: #0
-KILLS: 0
-ASSISTS: 0
-TIME: 0 sec"
-	horizontal_alignment = 1
-
-	[node name="RestartBtn" type="Button" parent="CanvasLayer/Control/ResultPanel/Content"]
-	layout_mode = 2
-	theme_override_font_sizes/font_size = 32
-	text = "RESTART"
-
-	[node name="MenuBtn" type="Button" parent="CanvasLayer/Control/ResultPanel/Content"]
-	layout_mode = 2
-	theme_override_font_sizes/font_size = 24
-	text = "RETURN TO MENU"
+	color = Color(0.04, 0.04, 0.08, 0.92)
 
 	[node name="RecordsPanel" type="ColorRect" parent="CanvasLayer/Control"]
 	visible = false

@@ -10,8 +10,8 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v1.4.1 (Mission UI/UX — HUD 두 줄, 실패 확정 표시, Flash 알림, 미션 풀 재조정) |
-| 다음 버전 | v1.4.2 — 밸런스 조정 + Telemetry pressure 그룹 + 릴리즈 |
+| 완료 버전 | v1.4.2 (Telemetry pressure 그룹, 결과화면 UI 재설계, 압박 HUD 2줄 + 가독성) |
+| 다음 버전 | v1.4.3 — 미정 |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 
 ---

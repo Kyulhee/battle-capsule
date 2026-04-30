@@ -87,6 +87,14 @@ var heal_pickup_banned: bool = false    # 다음 존까지 힐 픽업 불가
 var heal_ban_until_stage: int = -1
 var railgun_unlimited_until_stage: int = -1  # 레일건 무제한 (v1.4.1에서 Player 연동)
 
+# Result screen UI nodes (built in _setup_result_panel)
+var _result_header_label: Label = null
+var _result_rank_label: Label = null
+var _result_stats_label: Label = null
+var _result_score_label: Label = null
+var _result_mission_label: Label = null
+var _result_sep_mission: HSeparator = null
+
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 
@@ -231,17 +239,8 @@ func _ready():
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer.move_child(settings_btn, exit_idx)
 	_apply_btn_style(settings_btn)
 
-	$CanvasLayer/Control/ResultPanel/Content/RestartBtn.pressed.connect(restart_game)
-	$CanvasLayer/Control/ResultPanel/Content/MenuBtn.pressed.connect(return_to_menu)
-	_apply_btn_style($CanvasLayer/Control/ResultPanel/Content/RestartBtn)
-	_apply_btn_style($CanvasLayer/Control/ResultPanel/Content/MenuBtn)
-	var result_records_btn = Button.new()
-	result_records_btn.text = "RECORDS"
-	result_records_btn.add_theme_font_size_override("font_size", 24)
-	result_records_btn.pressed.connect(_on_records_pressed)
-	$CanvasLayer/Control/ResultPanel/Content.add_child(result_records_btn)
-	_apply_btn_style(result_records_btn)
-	
+	_setup_result_panel()
+
 	$CanvasLayer/Control/RecordsPanel/VBox/CloseRecordsBtn.pressed.connect(func(): _show_panel("MainMenu"))
 	$CanvasLayer/Control/HelpPanel/VBox/CloseHelpBtn.pressed.connect(func(): _show_panel("MainMenu"))
 	_setup_secondary_panels()
@@ -892,15 +891,6 @@ func _end_match(final_rank: int = 1):
 		var p_canvas = player_ref.get_node_or_null("CanvasLayer")
 		if p_canvas: p_canvas.visible = false
 
-	# Show Result Panel
-	_show_panel("Result")
-	var stats_label = $CanvasLayer/Control/ResultPanel/Content/StatsLabel
-	var header_label = $CanvasLayer/Control/ResultPanel/Content/HeaderLabel
-	
-	if header_label:
-		header_label.text = "VICTORY!" if is_victory else "ELIMINATED"
-		header_label.modulate = Color.GOLD if is_victory else Color.CRIMSON
-
 	# Evaluate bonus mission
 	var mission_success: bool = false
 	var mission_result_text: String = ""
@@ -913,40 +903,43 @@ func _end_match(final_rank: int = 1):
 		if mission_success:
 			mission_tracker.save_badge(mid)
 			mission_bonus_score = mission_tracker.active_mission.score_bonus
-			mission_result_text = "★ MISSION CLEAR: %s  (+%d)" % [mission_tracker.active_mission.title, mission_bonus_score]
+			mission_result_text = "★ MISSION CLEAR  %s  (+%d pt)" % [mission_tracker.active_mission.title, mission_bonus_score]
 		else:
-			mission_result_text = "✗ MISSION FAILED: %s" % mission_tracker.active_mission.title
+			mission_result_text = "✗ MISSION FAILED  %s" % mission_tracker.active_mission.title
 		if tel_node:
 			tel_node.log_mission_result(mission_success)
 
-	if stats_label:
+	# Show Result Panel and populate UI
+	_show_panel("Result")
+	var result_color = Color.GOLD if is_victory else Color(1.0, 0.28, 0.28)
+	if _result_header_label:
+		_result_header_label.text = "VICTORY!" if is_victory else "ELIMINATED"
+		_result_header_label.add_theme_color_override("font_color", result_color)
+	if _result_rank_label:
+		_result_rank_label.text = "RANK  #%d" % final_rank
+	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
 		var score = tel.calculate_score(
 			final_rank, tel.metrics.session.kills,
 			tel.metrics.session.assists, is_victory, difficulty as int
 		) + mission_bonus_score
-		stats_label.text = "RANK: #%d\nKILLS: %d\nASSISTS: %d\nDAMAGE: %.0f\nTIME: %d sec\nSCORE: %d" % [
-			final_rank, tel.metrics.session.kills, tel.metrics.session.assists,
-			tel.metrics.combat.total_damage_dealt, int(match_timer), score
-		]
-
-	# 미션 결과 — 별도 라벨로 분리 (클리핑 방지)
-	var content = $CanvasLayer/Control/ResultPanel/Content
-	if content:
-		var mlabel = content.get_node_or_null("MissionResultLabel")
+		if _result_stats_label:
+			_result_stats_label.text = "KILLS  %d    ASSISTS  %d    DAMAGE  %.0f    TIME  %ds" % [
+				tel.metrics.session.kills, tel.metrics.session.assists,
+				tel.metrics.combat.total_damage_dealt, int(match_timer)
+			]
+		if _result_score_label:
+			_result_score_label.text = "SCORE  %d" % score
+	if _result_mission_label:
 		if mission_result_text != "":
-			if not mlabel:
-				mlabel = Label.new()
-				mlabel.name = "MissionResultLabel"
-				mlabel.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-				mlabel.add_theme_font_size_override("font_size", 14)
-				mlabel.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-				content.add_child(mlabel)
-			mlabel.text = mission_result_text
-			mlabel.modulate = Color.GOLD if mission_success else Color(0.9, 0.4, 0.4)
-			mlabel.visible = true
-		elif mlabel:
-			mlabel.visible = false
+			_result_mission_label.text = mission_result_text
+			_result_mission_label.add_theme_color_override("font_color",
+				Color.GOLD if mission_success else Color(0.92, 0.38, 0.38))
+			_result_mission_label.visible = true
+			if _result_sep_mission: _result_sep_mission.visible = true
+		else:
+			_result_mission_label.visible = false
+			if _result_sep_mission: _result_sep_mission.visible = false
 
 	if is_simulation:
 		get_tree().quit()
@@ -1013,6 +1006,8 @@ func _trigger_pressure_mission():
 	if pool.is_empty(): return
 	var descriptor = pool[randi() % pool.size()]
 	mission_tracker.start_pressure(descriptor, zone_wait_time + zone_shrink_time)
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_pressure_event("triggered", descriptor.get("id", ""))
 
 func _process_pressure_mission(delta: float):
 	if not mission_tracker or not mission_tracker.pressure_active: return
@@ -1029,11 +1024,15 @@ func _process_pressure_mission(delta: float):
 		_apply_pressure_effects(mission_tracker._active_pressure.get("reward", []), true)
 		if is_instance_valid(player_ref) and player_ref.has_method("show_pressure_flash"):
 			player_ref.show_pressure_flash("⚡ %s 성공!" % _title, true)
+		if has_node("/root/Telemetry"):
+			get_node("/root/Telemetry").log_pressure_event("cleared")
 	elif result == "fail":
 		var _title = mission_tracker._active_pressure.get("title", "미션")
 		_apply_pressure_effects(mission_tracker._active_pressure.get("penalty", []), false)
 		if is_instance_valid(player_ref) and player_ref.has_method("show_pressure_flash"):
 			player_ref.show_pressure_flash("✖ %s 실패" % _title, false)
+		if has_node("/root/Telemetry"):
+			get_node("/root/Telemetry").log_pressure_event("failed")
 
 func _apply_pressure_effects(effects: Array, is_reward: bool):
 	if not is_instance_valid(player_ref): return
@@ -1104,6 +1103,105 @@ func _apply_pressure_effects(effects: Array, is_reward: bool):
 				railgun_unlimited_until_stage = zone_stage + int(eff.get("stages", 1))
 
 # ─── MENU VISUALS ────────────────────────────────────────────────────────────
+
+func _setup_result_panel():
+	var result_panel = $CanvasLayer/Control/ResultPanel
+
+	var center = CenterContainer.new()
+	center.layout_mode = 1
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	result_panel.add_child(center)
+
+	var card = PanelContainer.new()
+	var card_style = StyleBoxFlat.new()
+	card_style.bg_color = Color(0.07, 0.08, 0.13)
+	card_style.border_color = Color(0.28, 0.30, 0.44)
+	card_style.set_border_width_all(2)
+	card_style.set_corner_radius_all(10)
+	card_style.content_margin_left = 52
+	card_style.content_margin_right = 52
+	card_style.content_margin_top = 40
+	card_style.content_margin_bottom = 44
+	card.add_theme_stylebox_override("panel", card_style)
+	card.custom_minimum_size = Vector2(540, 0)
+	center.add_child(card)
+
+	var vbox = VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 10)
+	card.add_child(vbox)
+
+	_result_header_label = Label.new()
+	_result_header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_result_header_label.add_theme_font_size_override("font_size", 52)
+	_result_header_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_result_header_label.add_theme_constant_override("outline_size", 8)
+	_result_header_label.text = "VICTORY!"
+	vbox.add_child(_result_header_label)
+
+	_result_rank_label = Label.new()
+	_result_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_result_rank_label.add_theme_font_size_override("font_size", 28)
+	_result_rank_label.add_theme_color_override("font_color", Color(0.80, 0.82, 0.90))
+	_result_rank_label.text = "RANK  #1"
+	vbox.add_child(_result_rank_label)
+
+	var sep1 = HSeparator.new()
+	vbox.add_child(sep1)
+
+	_result_stats_label = Label.new()
+	_result_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_result_stats_label.add_theme_font_size_override("font_size", 17)
+	_result_stats_label.add_theme_color_override("font_color", Color(0.72, 0.74, 0.84))
+	vbox.add_child(_result_stats_label)
+
+	_result_score_label = Label.new()
+	_result_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_result_score_label.add_theme_font_size_override("font_size", 24)
+	_result_score_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.3))
+	vbox.add_child(_result_score_label)
+
+	_result_sep_mission = HSeparator.new()
+	_result_sep_mission.visible = false
+	vbox.add_child(_result_sep_mission)
+
+	_result_mission_label = Label.new()
+	_result_mission_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_result_mission_label.add_theme_font_size_override("font_size", 16)
+	_result_mission_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_result_mission_label.visible = false
+	vbox.add_child(_result_mission_label)
+
+	var sep_btns = HSeparator.new()
+	vbox.add_child(sep_btns)
+
+	var btn_row = HBoxContainer.new()
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	btn_row.add_theme_constant_override("separation", 14)
+	vbox.add_child(btn_row)
+
+	var restart_btn = Button.new()
+	restart_btn.text = "RESTART"
+	restart_btn.add_theme_font_size_override("font_size", 20)
+	restart_btn.custom_minimum_size = Vector2(130, 42)
+	restart_btn.pressed.connect(restart_game)
+	btn_row.add_child(restart_btn)
+	_apply_btn_style(restart_btn)
+
+	var records_btn = Button.new()
+	records_btn.text = "RECORDS"
+	records_btn.add_theme_font_size_override("font_size", 20)
+	records_btn.custom_minimum_size = Vector2(130, 42)
+	records_btn.pressed.connect(_on_records_pressed)
+	btn_row.add_child(records_btn)
+	_apply_btn_style(records_btn)
+
+	var menu_btn = Button.new()
+	menu_btn.text = "MENU"
+	menu_btn.add_theme_font_size_override("font_size", 20)
+	menu_btn.custom_minimum_size = Vector2(130, 42)
+	menu_btn.pressed.connect(return_to_menu)
+	btn_row.add_child(menu_btn)
+	_apply_btn_style(menu_btn)
 
 func _setup_menu_visuals():
 	var panel = $CanvasLayer/Control/MainMenuPanel

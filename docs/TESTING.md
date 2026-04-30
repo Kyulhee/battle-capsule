@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-04-26 (v0.6.1 기준)
+> 마지막 업데이트: 2026-04-30 (v1.4.2 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -88,6 +88,15 @@ Godot 헤드리스 모드로 게임을 자동 실행하면 `Telemetry.gd`가 지
 | `preannounce_interest` | 예고 중 봇이 이동 관심 표시 횟수 |
 | `contests` | 보급 경합 횟수 |
 
+### `pressure` (Hard opt-in / Hell 전용)
+
+| 지표 | 설명 | 이상 판단 기준 |
+|---|---|---|
+| `pressure_triggered` | 존 전환마다 압박 미션이 발동된 횟수 | 0이면 트리거 로직 오류 |
+| `pressure_cleared` | 미션 기한 내 성공한 횟수 | `triggered` 대비 30%+ 목표 (Hell은 낮아도 정상) |
+| `pressure_failed` | 시간 초과 또는 즉시 실패 횟수 | `cleared + failed ≈ triggered` 이어야 함 |
+| `triggered_ids` | 발동된 미션 ID 목록 | 다양한 ID가 섞이는지 확인 (편향 감지) |
+
 ---
 
 ## 테스팅 시나리오별 그룹 설정
@@ -149,6 +158,22 @@ Telemetry.set_groups({
 - [ ] `weapon_pickups` 전 무기 종류에 고르게 분포
 - [ ] `rare_pickups` > 0 → 보급 캡슐 정상 작동
 - [ ] `duration` > 60s → 게임이 너무 빨리 끝나지 않음
+
+### 압박 미션 검증 (Hard opt-in / Hell)
+
+```gdscript
+Telemetry.set_groups({
+    "core":     true,
+    "mission":  true,
+    "pressure": true,
+})
+```
+
+**체크리스트** (Hard opt-in 또는 Hell 난이도 실행 시)
+- [ ] `pressure_triggered` > 0 → 압박 미션 트리거 작동
+- [ ] `pressure_cleared + pressure_failed` == `pressure_triggered` → 미해결 미션 없음
+- [ ] `triggered_ids` 목록에 2개 이상의 서로 다른 미션 ID 포함 → 풀 무작위화 작동
+- [ ] Hell 모드: `pressure_cleared` ≥ 1 → 극단적 난이도에서도 달성 가능
 
 > 체크리스트를 모두 통과하면 **DEVLOG.md** 업데이트 후 릴리즈를 진행합니다.  
 > 단계 전체 기준 → [CLAUDE.md](../CLAUDE.md)

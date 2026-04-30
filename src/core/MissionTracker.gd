@@ -323,11 +323,11 @@ func get_pressure_hud_text() -> String:
 	if not pressure_active or _active_pressure.is_empty():
 		return ""
 	var title = _active_pressure.get("title", "")
+	var desc = _active_pressure.get("description", "")
 	var sec = int(ceil(pressure_deadline))
 	var progress = _get_pressure_progress_text()
-	if progress != "":
-		return "⚡ %s  %s  |  %ds" % [title, progress, sec]
-	return "⚡ %s  |  %ds" % [title, sec]
+	var line2 = desc if progress == "" else "%s  [%s]" % [desc, progress]
+	return "⚡ %s  |  %ds\n%s" % [title, sec, line2]
 
 func _get_pressure_progress_text() -> String:
 	var conditions = _active_pressure.get("conditions", [])
@@ -340,21 +340,21 @@ func _get_pressure_progress_text() -> String:
 			PressureCondition.KILL:
 				var cur = _p_kills_undetected if mod == "undetected" \
 					else (_p_kills_heavily_detected if mod == "heavily_detected" else _p_kills_total)
-				parts.append("%d/%d킬" % [cur, t])
+				parts.append("킬 %d/%d" % [cur, t])
 			PressureCondition.NO_DAMAGE:
-				parts.append("피해0" if _p_damage_taken == 0.0 else "FAIL")
+				parts.append("무피해 ✓" if _p_damage_taken == 0.0 else "피해 발생 ✗")
 			PressureCondition.NO_HEAL:
-				parts.append("힐OK" if not _p_heals_violated else "위반!")
+				parts.append("힐 미사용 ✓" if not _p_heals_violated else "힐 사용 ✗")
 			PressureCondition.ZONE_OUTSIDE_SEC:
-				parts.append("%.0f/%ds존외" % [_p_outside_zone_sec, t])
+				parts.append("존 밖 %.0f/%ds" % [_p_outside_zone_sec, t])
 			PressureCondition.KILL_MELEE:
-				parts.append("%d/%d칼킬" % [_p_kills_melee, t])
+				parts.append("칼 킬 %d/%d" % [_p_kills_melee, t])
 			PressureCondition.SURVIVE_DETECTED_SEC:
-				parts.append("%.0f/%ds감지" % [_p_detected_sec, t])
+				parts.append("감지 생존 %.0f/%ds" % [_p_detected_sec, t])
 			PressureCondition.KILL_WHILE_ZONE_OUTSIDE:
-				parts.append("%d/%d존외킬" % [_p_kills_outside_zone, t])
+				parts.append("존 밖 킬 %d/%d" % [_p_kills_outside_zone, t])
 			PressureCondition.KILL_LOW_HP:
-				parts.append("%d/%d저체력킬" % [_p_kills_low_hp, t])
+				parts.append("저HP 킬 %d/%d" % [_p_kills_low_hp, t])
 	return "  ".join(parts)
 
 # ── 보너스 미션 훅 (기존 유지) ────────────────────────────────────────────

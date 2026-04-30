@@ -5,26 +5,28 @@ extends Node
 # to enable only what you need for a given test session.
 #
 # Groups:
-#   "core"    — duration, zone_stage, rank, kills, assists, win, deaths_by_stage
-#   "combat"  — shots_fired, damage, kill_distances, attack_max_continuous
-#   "tactics" — RECOVER bouts, stuck, reserve_reload, patrol, weapon_drop
-#   "economy" — heals, shields, weapon pickups, first upgrade timing
-#   "supply"  — supply capsule events
-#   "zone"    — zone deaths, outside time, final duel deaths
-#   "hell"    — blackout/bombardment event counts (Hell difficulty only)
-#   "mission" — active mission id, result (success/fail/none)
+#   "core"     — duration, zone_stage, rank, kills, assists, win, deaths_by_stage
+#   "combat"   — shots_fired, damage, kill_distances, attack_max_continuous
+#   "tactics"  — RECOVER bouts, stuck, reserve_reload, patrol, weapon_drop
+#   "economy"  — heals, shields, weapon pickups, first upgrade timing
+#   "supply"   — supply capsule events
+#   "zone"     — zone deaths, outside time, final duel deaths
+#   "hell"     — blackout/bombardment event counts (Hell difficulty only)
+#   "mission"  — active mission id, result (success/fail/none)
+#   "pressure" — pressure mission triggered/cleared/failed counts (Hard opt-in / Hell)
 
 # ── Group toggles ─────────────────────────────────────────────────────────────
 
 var enabled_groups: Dictionary = {
-	"core":    true,
-	"combat":  true,
-	"tactics": true,
-	"economy": true,
-	"supply":  true,
-	"zone":    true,
-	"hell":    true,
-	"mission": true,
+	"core":     true,
+	"combat":   true,
+	"tactics":  true,
+	"economy":  true,
+	"supply":   true,
+	"zone":     true,
+	"hell":     true,
+	"mission":  true,
+	"pressure": true,
 }
 
 func set_groups(overrides: Dictionary):
@@ -137,6 +139,12 @@ func _reset_metrics():
 			"active_mission": "",
 			"mission_progress": {},
 			"mission_result": "none",  # "none" | "success" | "fail"
+		},
+		# pressure
+		"pressure": {
+			"pressure_triggered": 0,
+			"pressure_cleared":   0,
+			"pressure_failed":    0,
 		},
 	}
 
@@ -295,6 +303,22 @@ func log_mission_result(success: bool, progress: Dictionary = {}):
 	metrics.mission.mission_result = "success" if success else "fail"
 	metrics.mission.mission_progress = progress.duplicate()
 
+# ── Log functions — pressure ──────────────────────────────────────────────────
+
+func log_pressure_event(event: String, mission_id: String = ""):
+	if not match_in_progress or not _g("pressure"): return
+	match event:
+		"triggered":
+			metrics.pressure.pressure_triggered += 1
+			if mission_id != "" and not metrics.pressure.has("triggered_ids"):
+				metrics.pressure["triggered_ids"] = []
+			if mission_id != "":
+				metrics.pressure["triggered_ids"].append(mission_id)
+		"cleared":
+			metrics.pressure.pressure_cleared += 1
+		"failed":
+			metrics.pressure.pressure_failed += 1
+
 # Weapon drops can fire on the same frame as end_match, bypassing match_in_progress.
 func log_weapon_drop():
 	if _g("tactics") and metrics.has("tactics"):
@@ -346,7 +370,8 @@ func _save_sim_result():
 	if _g("economy"): out["economy"] = metrics.economy.duplicate(true)
 	if _g("supply"):  out["supply"]   = metrics.supply.duplicate(true)
 	if _g("hell"):    out["hell"]     = metrics.hell.duplicate(true)
-	if _g("mission"): out["mission"]  = metrics.mission.duplicate(true)
+	if _g("mission"):   out["mission"]   = metrics.mission.duplicate(true)
+	if _g("pressure"):  out["pressure"]  = metrics.pressure.duplicate(true)
 	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(out, "\t"))
@@ -426,6 +451,15 @@ func _print_report():
 			metrics.hell.bombardment_warned_count,
 			metrics.hell.bombardment_hit_count,
 		])
+	if _g("pressure") and metrics.pressure.pressure_triggered > 0:
+		print("── Pressure ────────────────────────────────")
+		print("  Triggered: %d  Cleared: %d  Failed: %d" % [
+			metrics.pressure.pressure_triggered,
+			metrics.pressure.pressure_cleared,
+			metrics.pressure.pressure_failed,
+		])
+		if metrics.pressure.has("triggered_ids"):
+			print("  IDs: %s" % str(metrics.pressure["triggered_ids"]))
 	print("=".repeat(44) + "\n")
 
 # ── Internal helpers ──────────────────────────────────────────────────────────

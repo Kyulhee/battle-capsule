@@ -5,6 +5,51 @@
 
 ---
 
+## v1.4.2 — 2026-04-30
+
+**밸런스 조정 + Telemetry pressure 그룹 + 결과화면 UI 재설계**
+
+**src/core/Telemetry.gd**
+
+- `pressure` 그룹 JSON 출력 추가 — `_save_sim_result()`에서 누락되어 있던 항목 추가
+- `log_pressure_event(event, mission_id)` 신규 — triggered/cleared/failed 카운터 + triggered_ids 목록
+- `_print_report()` pressure 섹션 추가 — `Triggered / Cleared / Failed` 수치 + ID 목록 출력
+
+**src/Main.gd**
+
+- `_trigger_pressure_mission()`: 미션 발동 시 `tel.log_pressure_event("triggered", id)` 호출
+- `_process_pressure_mission()`: success → `log_pressure_event("cleared")`, fail → `log_pressure_event("failed")`
+- 결과화면 완전 재설계 (`_setup_result_panel()` 신규):
+  - 고정 크기 VBoxContainer(400×500, 클리핑 발생) 제거 → CenterContainer + PanelContainer 자동 사이즈
+  - 카드 레이아웃: 다크 네이비 배경, 2px 테두리, corner radius 10
+  - 헤더(52px) + 랭크(28px) + 통계(17px) + 점수(24px) + 미션결과(16px) + 버튼 가로 행
+  - 버튼 RESTART | RECORDS | MENU 수평 배치, 미션 결과 없을 때 관련 separator 자동 숨김
+- `_result_header_label`, `_result_rank_label`, `_result_stats_label`, `_result_score_label`, `_result_mission_label` 멤버 변수로 관리
+
+**src/Main.tscn**
+
+- ResultPanel 하위 Content VBoxContainer + 모든 자식 노드 제거 (코드로 빌드)
+- ResultPanel `color` → `Color(0.04, 0.04, 0.08, 0.92)` (진한 다크 오버레이)
+
+**src/core/MissionTracker.gd**
+
+- `get_pressure_hud_text()` 2줄 포맷: `"⚡ title | Xs\ndescription  [progress]"`
+- `_get_pressure_progress_text()` 가독성 개선: `0/1킬` → `킬 0/1`, `피해0` → `무피해 ✓`, `힐OK` → `힐 미사용 ✓` 등
+
+**src/entities/player/Player.gd**
+
+- 보너스 미션 HUD font_size 13 → 15
+- 압박 미션 HUD y 오프셋 68 → 96 (2줄 보너스 HUD와 겹침 방지)
+
+**docs/TESTING.md**
+
+- `pressure` 그룹 지표표 추가
+- 압박 미션 검증 시나리오 + 체크리스트 추가
+
+헤드리스 시뮬레이션: duration 92s, zone_stage 3, pressure 그룹 JSON 정상 출력. SCRIPT ERROR 없음.
+
+---
+
 ## v1.4.1 — 2026-04-30
 
 **Mission UI/UX 개선 — HUD 가시성, 보너스 미션 풀 재조정, 압박 미션 Flash 알림**

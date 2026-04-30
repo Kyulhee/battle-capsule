@@ -96,7 +96,7 @@ func _ready():
 	# Mission HUD (below zone timer)
 	mission_hud_label = Label.new()
 	mission_hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mission_hud_label.add_theme_font_size_override("font_size", 13)
+	mission_hud_label.add_theme_font_size_override("font_size", 15)
 	mission_hud_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.3))
 	mission_hud_label.add_theme_color_override("font_outline_color", Color.BLACK)
 	mission_hud_label.add_theme_constant_override("outline_size", 6)
@@ -117,7 +117,7 @@ func _ready():
 	$CanvasLayer/Control.add_child(pressure_hud_label)
 	pressure_hud_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
 	pressure_hud_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	pressure_hud_label.position.y += 68
+	pressure_hud_label.position.y += 96
 
 	# Pressure / mission flash message (center screen)
 	_flash_panel = PanelContainer.new()
