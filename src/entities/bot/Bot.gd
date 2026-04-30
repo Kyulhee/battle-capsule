@@ -986,19 +986,35 @@ func _weapon_color(wtype: String) -> Color:
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
 	super.take_damage(amount, source, weapon_type, source_node)
 	if is_dead: return
+
+	# Instantly reveal attacker so _find_nearest_target picks them up
+	if source_node is Entity and is_instance_valid(source_node) and not source_node.is_dead:
+		perception_meters[source_node] = 1.0
+		last_known_target_pos = source_node.global_position
+
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
 		if current_state != State.RECOVER and current_state != State.ZONE_ESCAPE:
 			change_state(State.RECOVER)
 		return
-	# HARD+: instantly react when hit by a third party during combat
-	if _awareness_level >= 2 and current_state == State.ATTACK \
-			and source_node is Entity and is_instance_valid(source_node) and not source_node.is_dead \
-			and source_node != target_actor:
-		var cur_hp_ratio = 1.0
-		if target_actor != null and is_instance_valid(target_actor) and target_actor is Entity:
-			cur_hp_ratio = target_actor.current_health / target_actor.stats.max_health
-		if cur_hp_ratio >= 0.25:
-			_switch_target(source_node)
+
+	if source_node is Entity and is_instance_valid(source_node) and not source_node.is_dead:
+		# Passive states: immediately engage the attacker
+		var passive = current_state == State.IDLE \
+			or (current_state == State.CHASE and is_targeting_loot) \
+			or current_state == State.DISENGAGE
+		if passive:
+			target_actor = source_node
+			is_targeting_loot = false
+			_pending_target = null
+			change_state(State.CHASE)
+		# HARD+: switch targets mid-combat when hit by a third party
+		elif _awareness_level >= 2 and current_state == State.ATTACK \
+				and source_node != target_actor:
+			var cur_hp_ratio = 1.0
+			if target_actor != null and is_instance_valid(target_actor) and target_actor is Entity:
+				cur_hp_ratio = target_actor.current_health / target_actor.stats.max_health
+			if cur_hp_ratio >= 0.25:
+				_switch_target(source_node)
 
 # ─── COMBAT ──────────────────────────────────────────────────────────────────
 
