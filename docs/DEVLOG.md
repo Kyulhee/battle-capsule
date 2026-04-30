@@ -5,6 +5,23 @@
 
 ---
 
+## v1.4.3 — 2026-05-01
+
+**봇 AI 수정 + 포격 클러스터 개편**
+
+**src/entities/bot/Bot.gd**
+
+- `take_damage()` 재작성 — 칼/근접 공격 시 봇이 반격하지 않는 버그 수정
+  - 어떤 공격으로 피해를 받아도 즉시 `perception_meters[source] = 1.0` → 시야 확보
+  - IDLE / CHASE-loot / DISENGAGE 상태에서 공격자를 즉시 target으로 설정 후 CHASE 전환
+
+**src/Main.gd**
+
+- 비-BARRAGE 포격 1발(5m, 45dmg) → 10발 클러스터(3m, 18dmg/발, 15m 존, 0.18s 간격)
+  - 봇 회피 로직 부재로 데미지를 낮게 유지; 튜닝 파라미터에 주석 추가
+
+---
+
 ## v1.4.2 — 2026-04-30
 
 **밸런스 조정 + Telemetry pressure 그룹 + 결과화면 UI 재설계**

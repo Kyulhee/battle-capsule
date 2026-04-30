@@ -1,0 +1,105 @@
+{
+	"combat": {
+		"attack_disengage_count": 0,
+		"attack_max_continuous": 14.1666666666667,
+		"damage_by_weapon": {
+			"assault_rifle": 105.0,
+			"pistol": 590.0,
+			"railgun": 180.0,
+			"shotgun": 396.0
+		},
+		"kill_distances": {
+
+		},
+		"kills_by_weapon": {
+			"assault_rifle": 0,
+			"pistol": 0,
+			"railgun": 0,
+			"shotgun": 0
+		},
+		"shots_fired": 111,
+		"total_damage_dealt": 1271.0
+	},
+	"core": {
+		"deaths_by_stage": {
+			"1": 7,
+			"2": 2,
+			"3": 1,
+			"8": 1
+		},
+		"duration": 192.625,
+		"heals_by_stage": {
+			"1": 1,
+			"2": 5,
+			"3": 6,
+			"4": 5,
+			"7": 1,
+			"8": 1
+		},
+		"zone_stage_reached": 8
+	},
+	"economy": {
+		"first_upgrade_time": 0.067,
+		"first_upgrade_weapon": "shotgun",
+		"heals_used": 19,
+		"rare_pickups": 39,
+		"shields_picked": 0,
+		"weapon_pickups": {
+			"assault_rifle": 11,
+			"pistol": 7,
+			"railgun": 4,
+			"shotgun": 10
+		}
+	},
+	"enabled_groups": {
+		"combat": true,
+		"core": true,
+		"economy": true,
+		"supply": true,
+		"tactics": true,
+		"zone": true
+	},
+	"session": {
+		"assists": 0,
+		"kills": 0,
+		"rank": 1,
+		"win": true
+	},
+	"supply": {
+		"contests": 5,
+		"preannounce_interest": 0,
+		"telegraphed": true,
+		"visits": 0
+	},
+	"tactics": {
+		"ammo_empty_enter": 0,
+		"died_in_recover": 0,
+		"disengage_triggered": 23,
+		"patrol_entered": 0,
+		"patrol_timeout": 0,
+		"recover_bouts": 1,
+		"recover_success": 16,
+		"reserve_reload": 0,
+		"stuck_triggered": 14,
+		"weapon_drop_spawned": 10
+	},
+	"zone": {
+		"final_duel_deaths": [
+			{
+				"bot_hp": -2.5,
+				"cause": "zone",
+				"outside_sec": 1.0,
+				"stage": 8,
+				"state": "ZONE_ESCAPE",
+				"stuck_sec": 0.0,
+				"was_stuck": true,
+				"zone_dist_ratio": 1.75
+			}
+		],
+		"max_outside_time": 0.0,
+		"zone_deaths": 0,
+		"zone_deaths_by_state": {
+
+		}
+	}
+}
