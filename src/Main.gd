@@ -1801,12 +1801,12 @@ func _start_bombardment():
 		# ── 비-BARRAGE 포격 튜닝 파라미터 ────────────────────────────────────────
 		# 봇에게 회피 로직이 없으므로 데미지를 낮게 유지.
 		# 봇 회피 AI 추가 시 BOMB_DAMAGE를 30~45 수준으로 상향 고려.
-		const ZONE_RADIUS  = 12.0  # 폭탄이 퍼지는 전체 반경 (m) — 넓힐수록 긴장감↑
+		const ZONE_RADIUS  = 15.0  # 폭탄이 퍼지는 전체 반경 (m) — 넓힐수록 긴장감↑
 		const BOMB_RADIUS  = 3.0   # 개별 폭탄 폭발 반경 (m)
 		const BOMB_DAMAGE  = 18.0  # 개별 폭탄 데미지 — 봇 회피 추가 시 상향
 		const WARN_DELAY   = 1.5   # 첫 폭탄까지 경고 시간 (s) — 너무 짧으면 불공평
-		const PELLET_COUNT = 7     # 투하 개수 — 늘릴수록 화면이 정신없어짐
-		const PELLET_GAP   = 0.22  # 폭탄 간 간격 (s) — 줄일수록 밀집·혼란스러움
+		const PELLET_COUNT = 10    # 투하 개수 — 늘릴수록 화면이 정신없어짐
+		const PELLET_GAP   = 0.18  # 폭탄 간 간격 (s) — 줄일수록 밀집·혼란스러움
 		# ─────────────────────────────────────────────────────────────────────────
 
 		for i in PELLET_COUNT:
