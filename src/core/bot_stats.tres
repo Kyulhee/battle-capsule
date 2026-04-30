@@ -13,3 +13,4 @@ attack_damage = 10.0
 fire_rate = 1.0
 attack_range = 10.0
 vision_range = 20.0
+dwell_time_open = 0.2
