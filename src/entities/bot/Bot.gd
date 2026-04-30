@@ -36,6 +36,7 @@ var _knife_mode: bool = false
 var _disengage_cover: Vector3 = Vector3.ZERO
 # Cooldown after leaving DISENGAGE — prevents re-entry cascade
 var _disengage_cooldown: float = 0.0
+var _combat_loot_radius: float = 15.0
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -351,7 +352,7 @@ func handle_attack_state(delta):
 	# Proactive combat looting: break off when nearly out of ammo AND a pickup is close
 	if _combat_loot_threshold > 0 and stats.max_ammo > 0 and \
 			float(stats.current_ammo) / float(stats.max_ammo) <= _combat_loot_threshold:
-		var nearby = _find_best_pickup(15.0)
+		var nearby = _find_best_pickup(_combat_loot_radius)
 		if nearby:
 			target_actor = nearby; is_targeting_loot = true; _recovering = true
 			change_state(State.CHASE); return
@@ -603,6 +604,10 @@ func apply_difficulty(params: Dictionary):
 		_aim_spread_mult = params.aim_spread
 	if params.has("loot_break_mult"):
 		_combat_loot_threshold *= params.loot_break_mult
+	if params.has("combat_loot_floor"):
+		_combat_loot_threshold = max(_combat_loot_threshold, params.combat_loot_floor)
+	if params.has("combat_loot_radius"):
+		_combat_loot_radius = params.combat_loot_radius
 	if params.has("awareness_level"):
 		_awareness_level = params.awareness_level
 
@@ -624,6 +629,10 @@ func _check_footstep_sounds():
 		if not perception_meters.has(actor): perception_meters[actor] = 0.0
 		perception_meters[actor] = min(perception_meters[actor] + 0.4, 0.85)
 		last_known_target_pos = actor.global_position
+		# Turn idle bots toward the sound source so perception can build naturally
+		if current_state == State.IDLE:
+			var dir_to = (actor.global_position - global_position).normalized()
+			scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
 
 # ─── LOOT PRIORITY ────────────────────────────────────────────────────────────
 # Scores each pickup by distance, then adjusts priority based on current need.
