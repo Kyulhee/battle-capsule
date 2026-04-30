@@ -5,6 +5,30 @@
 
 ---
 
+## v1.4.4 — 2026-05-01
+
+**봇 AI 감지·전략 반응성 강화**
+
+**src/entities/bot/Bot.gd**
+
+- IDLE 스캔 패턴 개편: 완전 랜덤 → 우측→좌측→랜덤 3단계 사이클로 옆 커버
+- 스캔 간격 난이도별 축소: NORMAL 최대 1.8s / HARD 1.2s / HELL 0.9s (기존 3s)
+- `_scan_alert` 플래그 추가: 발소리 감지 시 전속 회전, 일반 스캔은 0.5× 유지
+- `_combat_loot_radius` 파라미터: HARD 22m, HELL 25m (기존 15m 고정)
+- `combat_loot_floor`: AGGRESSIVE 봇도 탄약 부족 시 전투 이탈해 아이템 수집
+  (NORMAL 20%, HARD 35%, HELL 40% 잔탄 임계치)
+
+**src/core/bot_stats.tres**
+
+- `dwell_time_open` 0.3 → 0.2s (시야 내 인식 충전 시간 단축)
+
+**src/Main.gd**
+
+- NORMAL `reaction_delay` 0.5 → 0.2s
+- DIFFICULTY_PARAMS에 `combat_loot_floor`, `combat_loot_radius`, `idle_scan_interval_max` 추가
+
+---
+
 ## v1.4.3 — 2026-05-01
 
 **봇 AI 수정 + 포격 클러스터 개편**
