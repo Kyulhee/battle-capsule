@@ -39,6 +39,7 @@ var _disengage_cooldown: float = 0.0
 var _combat_loot_radius: float = 15.0
 var _scan_interval_max: float = 3.0  # idle scan max interval — difficulty-scaled
 var _scan_phase: int = 0             # cycles: right flank → left flank → random
+var _scan_alert: bool = false        # true when sound/event set scan_target; use full rotation speed
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -241,7 +242,12 @@ func handle_idle_state(delta):
 			0: scan_target_rotation = rotation.y + randf_range(PI * 0.3, PI * 0.8)
 			1: scan_target_rotation = rotation.y - randf_range(PI * 0.3, PI * 0.8)
 			_: scan_target_rotation = rotation.y + randf_range(-PI, PI)
-	rotation.y = lerp_angle(rotation.y, scan_target_rotation, stats.rotation_speed * 0.5 * delta)
+	# Alert rotation (sound-triggered): full speed. Normal scan: half speed.
+	var rot_speed = stats.rotation_speed if _scan_alert else stats.rotation_speed * 0.5
+	rotation.y = lerp_angle(rotation.y, scan_target_rotation, rot_speed * delta)
+	# Clear alert once roughly facing the target direction
+	if _scan_alert and abs(angle_difference(rotation.y, scan_target_rotation)) < 0.15:
+		_scan_alert = false
 
 	var nearest_enemy = _find_nearest_target()
 	if nearest_enemy:
@@ -639,10 +645,11 @@ func _check_footstep_sounds():
 		if not perception_meters.has(actor): perception_meters[actor] = 0.0
 		perception_meters[actor] = min(perception_meters[actor] + 0.4, 0.85)
 		last_known_target_pos = actor.global_position
-		# Turn idle bots toward the sound source so perception can build naturally
+		# Snap idle bots toward sound source at full rotation speed
 		if current_state == State.IDLE:
 			var dir_to = (actor.global_position - global_position).normalized()
 			scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
+			_scan_alert = true
 
 # ─── LOOT PRIORITY ────────────────────────────────────────────────────────────
 # Scores each pickup by distance, then adjusts priority based on current need.
