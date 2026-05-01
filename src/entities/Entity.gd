@@ -138,6 +138,19 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 		health_changed.emit(current_health, stats.max_health)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_damage(amount, source, weapon_type, dist)
+	# Knockback impulse (applied even when shielded — feel the hit)
+	if source_node and is_instance_valid(source_node) and source_node != self:
+		var kb := 0.0
+		match weapon_type:
+			"ar":      kb = 4.0
+			"railgun": kb = 8.0
+			"knife":   kb = 6.0
+			"shotgun": kb = 18.0 * max(0.0, 1.0 - min(dist if dist >= 0 else 0.0, 8.0) / 8.0)
+		if kb > 0.0:
+			var kb_dir = global_position - source_node.global_position
+			kb_dir.y = 0.0
+			if kb_dir.length() > 0.05:
+				velocity += kb_dir.normalized() * kb
 	flash_hit()
 	_spawn_damage_number(amount, source)
 	if current_health <= 0:

@@ -17,6 +17,7 @@ enum ConditionType {
 	KILL_WHILE_DETECTED,    # 봇 2명 이상 감지 상태에서 킬 >= target_value
 	WIN_ON_DIFFICULTY,      # 승리 + difficulty == target_value
 	KILL_WITH_ALL_WEAPONS,  # pistol/ar/shotgun/railgun 각각 1킬 이상
+	WIN_ONE_SLOT,           # 승리 + 총기 슬롯 1개 이하만 사용
 }
 
 @export var id: String = ""

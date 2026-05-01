@@ -628,8 +628,6 @@ func handle_zone_lifecycle(delta):
 			if heal_ban_until_stage > 0 and zone_stage > heal_ban_until_stage:
 				heal_pickup_banned = false
 				heal_ban_until_stage = -1
-			if pressure_missions_enabled and not game_over:
-				_trigger_pressure_mission()
 			match zone_stage:
 				2: zone_wait_time = 20.0; zone_shrink_time = 15.0; zone_damage = 5.0
 				3: zone_wait_time = 15.0; zone_shrink_time = 12.0; zone_damage = 10.0
@@ -637,6 +635,9 @@ func handle_zone_lifecycle(delta):
 			generate_next_zone()
 			is_shrinking = false
 			zone_timer = zone_wait_time
+			# Trigger after time values are updated so deadline = real next-cycle duration
+			if pressure_missions_enabled and not game_over:
+				_trigger_pressure_mission()
 			_zone_warning_played = false
 	if not is_shrinking and zone_timer <= 10.0 and not _zone_warning_played:
 		_zone_warning_played = true
@@ -1005,11 +1006,30 @@ func _trigger_pressure_mission():
 		pool = MissionTrackerScript.get_hell_pool()
 	else:
 		pool = MissionTrackerScript.get_hard_pool()
+	# Filter out missions that are impossible given current game state
+	var bot_alive = max(0, alive_count - 1)
+	pool = pool.filter(func(d): return _is_pressure_feasible(d, bot_alive))
 	if pool.is_empty(): return
 	var descriptor = pool[randi() % pool.size()]
 	mission_tracker.start_pressure(descriptor, zone_wait_time + zone_shrink_time)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_pressure_event("triggered", descriptor.get("id", ""))
+
+func _is_pressure_feasible(descriptor: Dictionary, bot_alive: int) -> bool:
+	for cond in descriptor.get("conditions", []):
+		var target: int = int(cond.get("target", 1))
+		match int(cond["type"]):
+			MissionTrackerScript.PressureCondition.KILL, \
+			MissionTrackerScript.PressureCondition.KILL_MELEE, \
+			MissionTrackerScript.PressureCondition.KILL_WHILE_ZONE_OUTSIDE, \
+			MissionTrackerScript.PressureCondition.KILL_LOW_HP:
+				if bot_alive < target: return false
+			MissionTrackerScript.PressureCondition.SURVIVE_DETECTED_SEC:
+				if bot_alive < 2: return false  # need 2+ bots to detect
+			MissionTrackerScript.PressureCondition.ZONE_OUTSIDE_SEC:
+				# At stage 3+ zone deals 10dmg/s — 10s outside = 100dmg, lethal
+				if zone_stage >= 3 and target >= 10: return false
+	return true
 
 func _process_pressure_mission(delta: float):
 	if not mission_tracker or not mission_tracker.pressure_active: return

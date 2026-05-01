@@ -41,7 +41,7 @@ const PICKUP_SCN = preload("res://src/entities/pickup/Pickup.tscn")
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
 # slot 0 = knife (melee, always available), slots 1-4 = ranged weapons
 const MELEE_RANGE: float = 1.8
-const MELEE_DAMAGE: float = 20.0
+const MELEE_DAMAGE: float = 14.0
 const MELEE_RATE: float = 0.55
 
 var _hp_bar:        ProgressBar  = null
@@ -247,7 +247,7 @@ func _ready():
 	slot_bar.position.x -= 165
 	slot_bar.add_theme_constant_override("separation", 6)
 
-	var slot_labels = ["K", "1", "2", "3", "4"]
+	var slot_labels = ["`", "1", "2", "3", "4"]
 	for i in range(5):
 		var panel = PanelContainer.new()
 		panel.custom_minimum_size = Vector2(60, 68)
@@ -308,7 +308,7 @@ func _input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_C: is_crouching = not is_crouching
-			KEY_0: switch_to_slot(0)
+			KEY_QUOTELEFT: switch_to_slot(0)
 			KEY_1: switch_to_slot(1)
 			KEY_2: switch_to_slot(2)
 			KEY_3: switch_to_slot(3)
@@ -697,6 +697,7 @@ func receive_weapon(wstats: StatsData) -> bool:
 			slot_ammo[i] = wstats.current_ammo  # starts at 1/3 magazine (set in .tres)
 			slot_reserve[i] = 0
 			switch_to_slot(i)
+			_notify_gun_slot_count()
 			return true
 	# All slots full — replace active weapon slot
 	if active_slot >= 1:
@@ -704,8 +705,17 @@ func receive_weapon(wstats: StatsData) -> bool:
 		slot_ammo[active_slot] = wstats.current_ammo
 		slot_reserve[active_slot] = 0
 		switch_to_slot(active_slot)
+		_notify_gun_slot_count()
 		return true
 	return false
+
+func _notify_gun_slot_count():
+	var count = 0
+	for i in range(1, 5):
+		if weapon_slots[i] != null: count += 1
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and main.mission_tracker:
+		main.mission_tracker.on_weapon_slot_used(count)
 
 func receive_ammo(weapon_type: String, amount: int):
 	for i in range(1, 5):
@@ -771,7 +781,7 @@ func _get_reserve_max(wtype: String) -> int:
 		"pistol":  return 30
 		"ar":      return 60
 		"shotgun": return 12
-		"railgun": return 6
+		"railgun": return 4
 		_:         return 30
 
 func _notify_mission_tracker_fire(weapon_type: String):

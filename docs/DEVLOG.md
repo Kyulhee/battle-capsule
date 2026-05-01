@@ -5,6 +5,47 @@
 
 ---
 
+## v1.4.5 — 2026-05-01
+
+**레일건 리워크 + 넉백 + ONE SLOT RUN + 압박 미션 수정 + 리워드/패널티 HUD**
+
+**src/entities/player/Player.gd**
+
+- 칼 단축키 `K` → `` ` `` (백틱), 슬롯 라벨 동일 변경
+- `MELEE_DAMAGE` 20 → 14 (칼 데미지 소폭 하향)
+- 레일건 예비탄 최대 6 → 4
+- `_notify_gun_slot_count()` 추가 — `receive_weapon()` 후 비(非)null 총기 슬롯 수를 미션 트래커에 전달
+
+**src/core/super_weapon_stats.tres**
+
+- `attack_damage` 50 → 95, `fire_rate` 0.2 → 2.8, `attack_range` 40 → 60, `max_ammo` 3 → 2
+- (사실상 1발 확정 강타 → 고딜·저속 저격 스타일로 전환)
+
+**src/entities/Entity.gd**
+
+- `take_damage()` 내 넉백 임펄스 추가
+  - AR +4, 레일건 +8, 칼 +6, 샷건 거리 기반 최대 +18 (8m 이내 감쇠)
+
+**src/core/MissionData.gd**
+
+- `WIN_ONE_SLOT` 조건 타입 추가
+
+**src/core/MissionTracker.gd**
+
+- `_max_gun_slots_used` 추적 + `on_weapon_slot_used(n)` 훅
+- `get_all_missions()`에 **ONE SLOT RUN** 미션 추가 (총기 슬롯 1개 이하 + 1등, 배지: 미니멀)
+- `WIN_ONE_SLOT`: evaluate / get_hud_text / get_early_fail_status 지원
+- 압박 미션 리워드/패널티 HUD 3번째 줄 추가 (`✓ 탄약 충전   ✗ 탄약 전소` 형식)
+- `_format_pressure_effects()` 헬퍼 추가
+
+**src/Main.gd**
+
+- `_trigger_pressure_mission()` 호출 순서를 `zone_timer = zone_wait_time` **이후**로 이동
+  → 데드라인 계산이 정확한 다음 존 사이클 시간 기반으로 설정됨
+- `_is_pressure_feasible()` 추가 — 생존 봇 수 / 존 단계 기준 불가능 미션 필터링
+
+---
+
 ## v1.4.4 — 2026-05-01
 
 **봇 AI 감지·전략 반응성 강화**

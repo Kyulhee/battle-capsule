@@ -16,6 +16,7 @@ var _kills_while_detected: int = 0
 var _player_max_outside_sec: float = 0.0
 var _player_current_outside_sec: float = 0.0
 var _medkits_used: int = 0
+var _max_gun_slots_used: int = 0  # peak simultaneous gun slots (1-4) held at once
 
 # ── 압박 미션 조건 타입 ────────────────────────────────────────────────────
 enum PressureCondition {
@@ -327,7 +328,30 @@ func get_pressure_hud_text() -> String:
 	var sec = int(ceil(pressure_deadline))
 	var progress = _get_pressure_progress_text()
 	var line2 = desc if progress == "" else "%s  [%s]" % [desc, progress]
-	return "⚡ %s  |  %ds\n%s" % [title, sec, line2]
+	var reward_txt = _format_pressure_effects(_active_pressure.get("reward", []))
+	var penalty_txt = _format_pressure_effects(_active_pressure.get("penalty", []))
+	return "⚡ %s  |  %ds\n%s\n✓ %s   ✗ %s" % [title, sec, line2, reward_txt, penalty_txt]
+
+func _format_pressure_effects(effects: Array) -> String:
+	var parts: Array = []
+	for eff in effects:
+		match int(eff["type"]):
+			PressureEffect.AMMO_REFILL:       parts.append("탄약 충전")
+			PressureEffect.AMMO_CLEAR:        parts.append("탄약 전소")
+			PressureEffect.AMMO_ACTIVE_CLEAR: parts.append("현 탄약 전소")
+			PressureEffect.HP_RESTORE:
+				if eff.get("full", false): parts.append("HP 풀회복")
+				else: parts.append("HP+%d" % int(eff.get("amount", 0)))
+			PressureEffect.HP_DAMAGE:
+				if eff.has("fraction"): parts.append("HP -%d%%" % int(eff["fraction"] * 100))
+				else: parts.append("HP-%d" % int(eff.get("amount", 0)))
+			PressureEffect.SHIELD_ADD:        parts.append("방어막+%d" % int(eff.get("amount", 0)))
+			PressureEffect.HEAL_ADD:          parts.append("힐+%d" % int(eff.get("count", 1)))
+			PressureEffect.HEAL_CLEAR:        parts.append("힐 전소")
+			PressureEffect.HEAL_PICKUP_BAN:   parts.append("힐픽업 금지")
+			PressureEffect.ALL_BOTS_DETECT:   parts.append("전봇 탐지")
+			PressureEffect.RAILGUN_UNLIMITED: parts.append("레일건 무제한")
+	return "  ".join(parts) if not parts.is_empty() else "없음"
 
 func _get_pressure_progress_text() -> String:
 	var conditions = _active_pressure.get("conditions", [])
@@ -360,6 +384,10 @@ func _get_pressure_progress_text() -> String:
 # ── 보너스 미션 훅 (기존 유지) ────────────────────────────────────────────
 func on_player_medkit_used():
 	_medkits_used += 1
+
+func on_weapon_slot_used(gun_slot_count: int):
+	if gun_slot_count > _max_gun_slots_used:
+		_max_gun_slots_used = gun_slot_count
 
 func on_player_fire(weapon_type: String):
 	if weapon_type != "pistol":
@@ -427,6 +455,8 @@ func evaluate(tel: Node, final_rank: int, player_hp: float, difficulty: int) -> 
 			var wk: Dictionary = tel.metrics.combat.kills_by_weapon
 			return wk.get("pistol", 0) >= 1 and wk.get("ar", 0) >= 1 \
 				and wk.get("shotgun", 0) >= 1 and wk.get("railgun", 0) >= 1
+		MissionData.ConditionType.WIN_ONE_SLOT:
+			return won and _max_gun_slots_used <= 1
 	return false
 
 func get_hud_text(tel: Node) -> String:
@@ -493,6 +523,10 @@ func get_hud_text(tel: Node) -> String:
 				if status != "": status += "   /   "
 				status += "✗ " + "  ".join(todo)
 			return "%s\n%s" % [m.title, status]
+		MissionData.ConditionType.WIN_ONE_SLOT:
+			if _max_gun_slots_used > 1:
+				return "%s\n✗ 총기 2종 이상 소지 — 실패 확정" % m.title
+			return "%s\n총기 슬롯 %d/1 사용 중 ✓" % [m.title, _max_gun_slots_used]
 	return m.title
 
 func get_early_fail_status(tel: Node) -> bool:
@@ -502,6 +536,8 @@ func get_early_fail_status(tel: Node) -> bool:
 			return _used_non_pistol
 		MissionData.ConditionType.SURVIVE_NO_KILLS:
 			return tel != null and tel.metrics.session.kills >= 1
+		MissionData.ConditionType.WIN_ONE_SLOT:
+			return _max_gun_slots_used > 1
 	return false
 
 # ── 배지 저장 ─────────────────────────────────────────────────────────────
@@ -633,6 +669,13 @@ static func get_all_missions() -> Array:
 	m.description = "봇 2명 이상 감지 상태에서 1킬 이상"
 	m.condition_type = MissionData.ConditionType.KILL_WHILE_DETECTED
 	m.target_value = 1; m.badge_label = "다굴"; m.badge_color = Color(0.9, 0.3, 0.2)
+	list.append(m)
+
+	m = MissionData.new()
+	m.id = "one_slot_run"; m.title = "ONE SLOT RUN"
+	m.description = "총기 슬롯 1개 이하만 사용하고 1등"
+	m.condition_type = MissionData.ConditionType.WIN_ONE_SLOT
+	m.score_bonus = 800; m.badge_label = "미니멀"; m.badge_color = Color(0.85, 0.85, 0.85)
 	list.append(m)
 
 	return list
