@@ -86,6 +86,8 @@ var pressure_opt_in_hard: bool = false  # 어려움 난이도 압박 미션 opt-
 var heal_pickup_banned: bool = false    # 다음 존까지 힐 픽업 불가
 var heal_ban_until_stage: int = -1
 var railgun_unlimited_until_stage: int = -1  # 레일건 무제한 (v1.4.1에서 Player 연동)
+var _artifact_panel: Control = null
+var _pending_artifact: Dictionary = {}
 
 # Result screen UI nodes (built in _setup_result_panel)
 var _result_header_label: Label = null
@@ -258,7 +260,145 @@ func _ready():
 			start_game()
 
 func _on_start_btn_pressed():
-	start_game()
+	_show_artifact_select()
+
+func _show_artifact_select():
+	if _artifact_panel:
+		_artifact_panel.queue_free()
+		_artifact_panel = null
+
+	var catalog = [
+		{
+			"id": "red_trigger", "label": "Red Trigger",
+			"color": Color(1.0, 0.30, 0.30),
+			"line1": "공격력 +25%", "line2": "탄퍼짐 +20%",
+			"mods": {"damage_mult": 1.25, "spread_mult": 1.2},
+		},
+		{
+			"id": "armor_sponge", "label": "Armor Sponge",
+			"color": Color(0.35, 0.60, 1.0),
+			"line1": "방어구 획득량 +50%", "line2": "회복량 -20%",
+			"mods": {"shield_recv_mult": 1.5, "heal_mult": 0.8},
+		},
+		{
+			"id": "silent_core", "label": "Silent Core",
+			"color": Color(0.40, 0.95, 0.55),
+			"line1": "발소리 감지 반경 -50%", "line2": "이동속도 -10%",
+			"mods": {"footstep_radius_mult": 0.5, "move_speed_mult": 0.9},
+		},
+		{
+			"id": "zone_skin", "label": "Zone Skin",
+			"color": Color(0.20, 0.78, 1.0),
+			"line1": "자기장 피해 -40%", "line2": "회복량 -30%",
+			"mods": {"zone_dmg_mult": 0.6, "heal_mult": 0.7},
+		},
+	]
+
+	# Dim overlay
+	var overlay = ColorRect.new()
+	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	overlay.color = Color(0.0, 0.0, 0.0, 0.72)
+	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	$CanvasLayer/Control.add_child(overlay)
+	_artifact_panel = overlay
+
+	var center = VBoxContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	center.grow_vertical = Control.GROW_DIRECTION_BOTH
+	center.add_theme_constant_override("separation", 18)
+	overlay.add_child(center)
+
+	var title = Label.new()
+	title.text = "아티팩트 선택"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 24)
+	title.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
+	title.add_theme_color_override("font_outline_color", Color.BLACK)
+	title.add_theme_constant_override("outline_size", 6)
+	center.add_child(title)
+
+	var sub = Label.new()
+	sub.text = "이번 매치에 하나를 선택하세요  (없이 시작도 가능)"
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.add_theme_font_size_override("font_size", 13)
+	sub.add_theme_color_override("font_color", Color(0.60, 0.60, 0.60))
+	center.add_child(sub)
+
+	var card_row = HBoxContainer.new()
+	card_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	card_row.add_theme_constant_override("separation", 14)
+	center.add_child(card_row)
+
+	for artifact in catalog:
+		card_row.add_child(_make_artifact_card(artifact))
+
+	var skip_btn = Button.new()
+	skip_btn.text = "없이 시작"
+	skip_btn.add_theme_font_size_override("font_size", 14)
+	skip_btn.custom_minimum_size = Vector2(150, 36)
+	_apply_btn_style(skip_btn)
+	skip_btn.pressed.connect(func():
+		_artifact_panel.queue_free(); _artifact_panel = null
+		_pending_artifact = {}
+		start_game()
+	)
+	center.add_child(skip_btn)
+
+func _make_artifact_card(artifact: Dictionary) -> Control:
+	var panel = PanelContainer.new()
+	panel.custom_minimum_size = Vector2(148, 168)
+	var ps = StyleBoxFlat.new()
+	ps.bg_color = Color(0.10, 0.12, 0.16, 0.96)
+	ps.border_color = artifact.get("color", Color.WHITE) * 0.75
+	ps.set_border_width_all(2)
+	ps.set_corner_radius_all(6)
+	ps.content_margin_left = 12; ps.content_margin_right = 12
+	ps.content_margin_top = 14;  ps.content_margin_bottom = 14
+	panel.add_theme_stylebox_override("panel", ps)
+
+	var vb = VBoxContainer.new()
+	vb.add_theme_constant_override("separation", 8)
+	panel.add_child(vb)
+
+	var name_lbl = Label.new()
+	name_lbl.text = artifact.get("label", "")
+	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_lbl.add_theme_font_size_override("font_size", 15)
+	name_lbl.add_theme_color_override("font_color", artifact.get("color", Color.WHITE))
+	name_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
+	name_lbl.add_theme_constant_override("outline_size", 5)
+	vb.add_child(name_lbl)
+
+	var sep = HSeparator.new()
+	vb.add_child(sep)
+
+	for key in ["line1", "line2"]:
+		if artifact.has(key):
+			var lbl = Label.new()
+			lbl.text = artifact[key]
+			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			lbl.add_theme_font_size_override("font_size", 13)
+			lbl.add_theme_color_override("font_color", Color(0.82, 0.82, 0.82))
+			lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			vb.add_child(lbl)
+
+	var spacer = Control.new()
+	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	vb.add_child(spacer)
+
+	var pick_btn = Button.new()
+	pick_btn.text = "선택"
+	pick_btn.add_theme_font_size_override("font_size", 14)
+	_apply_btn_style(pick_btn)
+	pick_btn.pressed.connect(func():
+		_artifact_panel.queue_free(); _artifact_panel = null
+		_pending_artifact = artifact
+		start_game()
+	)
+	vb.add_child(pick_btn)
+
+	return panel
 
 func start_game():
 	current_state = GameState.PLAYING
@@ -308,9 +448,11 @@ func start_game():
 	var minimap = get_node_or_null("CanvasLayer/Control/HUD/Minimap")
 	if minimap and minimap.has_method("set_map_spec"):
 		minimap.set_map_spec(map_spec)
-	
-	# Auto-screenshot for debug after 5 seconds (ONLY in simulation mode)
-	pass
+
+	# Apply artifact to player (skipped in simulation)
+	if player_ref and player_ref.has_method("apply_artifact") and not is_simulation:
+		player_ref.apply_artifact(_pending_artifact)
+		_pending_artifact = {}
 
 func _show_panel(panel_name: String):
 	var control = $CanvasLayer/Control

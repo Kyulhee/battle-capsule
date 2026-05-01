@@ -110,8 +110,11 @@ func collect(collector: Entity) -> bool:
 				collector.stats.heal_items += item.amount
 				print("Collected Heal: ", item.amount)
 		ItemData.Type.ARMOR:
-			collector.current_shield = min(collector.stats.max_shield, collector.current_shield + item.amount)
-			collector.shield_changed.emit(collector.current_shield, collector.stats.max_shield)
+			if collector.has_method("receive_shield"):
+				collector.receive_shield(item.amount)
+			else:
+				collector.current_shield = min(collector.stats.max_shield, collector.current_shield + item.amount)
+				collector.shield_changed.emit(collector.current_shield, collector.stats.max_shield)
 			print("Collected Armor: ", item.amount)
 		ItemData.Type.WEAPON:
 			if item.weapon_stats:

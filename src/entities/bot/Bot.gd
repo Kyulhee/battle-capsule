@@ -641,7 +641,10 @@ func _check_footstep_sounds():
 		var spd = Vector2(actor.velocity.x, actor.velocity.z).length()
 		if spd < actor.stats.move_speed * 0.5: continue
 		var dist = global_position.distance_to(actor.global_position)
-		if dist > _footstep_range: continue
+		var eff_range = _footstep_range
+		if actor.has_method("get_footstep_radius_mult"):
+			eff_range *= actor.get_footstep_radius_mult()
+		if dist > eff_range: continue
 		if not perception_meters.has(actor): perception_meters[actor] = 0.0
 		perception_meters[actor] = min(perception_meters[actor] + 0.4, 0.85)
 		last_known_target_pos = actor.global_position

@@ -31,6 +31,15 @@ var _fade_mat_cache: Dictionary = {}
 var _heal_regen: float = 0.0
 const HEAL_REGEN_RATE: float = 10.0
 
+# ── Artifact System ──────────────────────────────────────────────────────────
+var active_artifact: Dictionary = {}
+var _artifact_mods: Dictionary = {
+	"damage_mult": 1.0, "spread_mult": 1.0, "move_speed_mult": 1.0,
+	"heal_mult": 1.0, "shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
+	"footstep_radius_mult": 1.0,
+}
+var _artifact_label: Label = null
+
 const MUZZLE_FLASH_SCN = preload("res://src/fx/MuzzleFlash.tscn")
 const IMPACT_EFFECT_SCN = preload("res://src/fx/ImpactEffect.tscn")
 const BULLET_TRAIL_SCN = preload("res://src/fx/BulletTrail.tscn")
@@ -229,6 +238,14 @@ func _ready():
 	var stat_row = HBoxContainer.new()
 	stat_row.add_theme_constant_override("separation", 4)
 	hud_a.add_child(stat_row)
+
+	_artifact_label = Label.new()
+	_artifact_label.add_theme_font_size_override("font_size", 12)
+	_artifact_label.add_theme_color_override("font_outline_color", Color.BLACK)
+	_artifact_label.add_theme_constant_override("outline_size", 5)
+	_artifact_label.visible = false
+	hud_a.add_child(_artifact_label)
+
 	_stat_heal_val  = _stat_pair(stat_row, "♥", Color(0.95, 0.25, 0.25))
 	_stat_mk_val    = _stat_pair(stat_row, "◆", Color(1.0,  0.85, 0.1 ))
 	var sp1 = Label.new(); sp1.text = "  "; stat_row.add_child(sp1)
@@ -327,6 +344,8 @@ func set_in_bush(value: bool):
 	super.set_in_bush(value)
 
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
+	if source == "zone":
+		amount *= _artifact_mods.get("zone_dmg_mult", 1.0)
 	super.take_damage(amount, source, weapon_type, source_node)
 	if Sfx: Sfx.play("hurt")
 	var main = get_tree().root.get_node_or_null("Main")
@@ -354,7 +373,7 @@ func _physics_process(delta):
 		if reload_timer <= 0:
 			_finish_reload()
 	handle_aiming(delta)
-	var effective_speed = stats.move_speed * (0.45 if is_crouching else 1.0)
+	var effective_speed = stats.move_speed * (0.45 if is_crouching else 1.0) * _artifact_mods.get("move_speed_mult", 1.0)
 
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	if input_dir == Vector2.ZERO:
@@ -511,7 +530,7 @@ func handle_healing():
 	var scarcity_mult = 0.5 if (is_hell and main != null and main.hell_modifier == main.HellModifier.SCARCITY) else 1.0
 	if stats.advanced_heals > 0:
 		stats.advanced_heals -= 1
-		var amount = 60.0 * (0.55 if is_hell else 1.0) * scarcity_mult
+		var amount = 60.0 * (0.55 if is_hell else 1.0) * scarcity_mult * _artifact_mods.get("heal_mult", 1.0)
 		current_health = min(stats.max_health, current_health + amount)
 		health_changed.emit(current_health, stats.max_health)
 		if Sfx: Sfx.play("heal", global_position)
@@ -522,7 +541,7 @@ func handle_healing():
 		_refresh_slot_hud()
 	elif stats.heal_items > 0:
 		stats.heal_items -= 1
-		_heal_regen += 30.0 * (0.40 if is_hell else 1.0) * scarcity_mult
+		_heal_regen += 30.0 * (0.40 if is_hell else 1.0) * scarcity_mult * _artifact_mods.get("heal_mult", 1.0)
 		if Sfx: Sfx.play("heal", global_position)
 		if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 		if main and main.mission_tracker: main.mission_tracker.on_pressure_heal_used()
@@ -803,7 +822,7 @@ func _melee_attack():
 		impact.global_position = hit_pos
 		var target = ray_cast.get_collider()
 		if target.has_method("take_damage"):
-			target.take_damage(MELEE_DAMAGE, "melee", "knife", self)
+			target.take_damage(MELEE_DAMAGE * _artifact_mods.get("damage_mult", 1.0), "melee", "knife", self)
 			if Sfx: Sfx.play("hit", hit_pos)
 
 func _refresh_slot_hud():
@@ -1101,7 +1120,8 @@ func shoot_pellet(_idx: int):
 	reveal()
 	var wdata = weapon_slots[active_slot]
 	if not wdata: return
-	var pellet_target = Vector3(randf_range(-2, 2), randf_range(-0.5, 0.5), -wdata.attack_range)
+	var spread = 2.0 * _artifact_mods.get("spread_mult", 1.0)
+	var pellet_target = Vector3(randf_range(-spread, spread), randf_range(-0.5, 0.5), -wdata.attack_range)
 	_internal_shoot(pellet_target)
 
 func _shoot_with_slot(slot: int):
@@ -1134,7 +1154,7 @@ func _internal_shoot(target_vec: Vector3):
 		get_tree().root.add_child(impact)
 		impact.global_position = impact_pos
 		if target.has_method("take_damage"):
-			var dmg = wdata.attack_damage if wdata else stats.attack_damage
+			var dmg = (wdata.attack_damage if wdata else stats.attack_damage) * _artifact_mods.get("damage_mult", 1.0)
 			var wtype = wdata.weapon_type if wdata else stats.weapon_type
 			target.take_damage(dmg, "gun", wtype, self)
 			if Sfx: Sfx.play("hit", impact_pos)
@@ -1150,3 +1170,28 @@ func shoot():
 	_internal_shoot(Vector3(0, 0, -stats.attack_range))
 	fire_cooldown = stats.fire_rate
 	if Sfx: Sfx.play("shoot")
+
+func apply_artifact(artifact: Dictionary):
+	active_artifact = artifact
+	_artifact_mods = {
+		"damage_mult": 1.0, "spread_mult": 1.0, "move_speed_mult": 1.0,
+		"heal_mult": 1.0, "shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
+		"footstep_radius_mult": 1.0,
+	}
+	for key in artifact.get("mods", {}):
+		_artifact_mods[key] = artifact["mods"][key]
+	if _artifact_label:
+		if artifact.is_empty():
+			_artifact_label.visible = false
+		else:
+			_artifact_label.text = "[%s]" % artifact.get("label", "")
+			_artifact_label.modulate = artifact.get("color", Color.WHITE)
+			_artifact_label.visible = true
+
+func receive_shield(amount: float):
+	var mult = _artifact_mods.get("shield_recv_mult", 1.0)
+	current_shield = min(stats.max_shield, current_shield + amount * mult)
+	shield_changed.emit(current_shield, stats.max_shield)
+
+func get_footstep_radius_mult() -> float:
+	return _artifact_mods.get("footstep_radius_mult", 1.0)
