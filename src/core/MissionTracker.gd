@@ -476,7 +476,7 @@ func get_hud_text(tel: Node) -> String:
 					cur_hp = main_node.player_ref.current_health
 			return "%s\n현재 HP %.0f — 우승 시 HP %.0f 이상 필요" % [m.title, cur_hp, m.target_value]
 		MissionData.ConditionType.WIN_WITH_HEALS:
-			return "%s\nMedKit(◆) 사용  %d / %d" % [m.title, _medkits_used, int(m.target_value)]
+			return "%s\n구급상자(◆) 사용  %d / %d" % [m.title, _medkits_used, int(m.target_value)]
 		MissionData.ConditionType.SURVIVE_NO_KILLS:
 			if kills >= 1:
 				return "%s\n✗ 킬 발생 — 실패 확정" % m.title
@@ -486,13 +486,13 @@ func get_hud_text(tel: Node) -> String:
 				return "%s\n✗ 다른 무기 사용됨 — 실패 확정" % m.title
 			return "%s\n권총만 사용 중 ✓" % m.title
 		MissionData.ConditionType.KILL_LAST_WITH_MELEE:
-			var wnames = {"knife": "칼 ✓", "pistol": "피스톨", "ar": "어설트 라이플", "shotgun": "샷건", "railgun": "레일건"}
+			var wnames = {"knife": "칼 ✓", "pistol": "피스톨", "ar": "돌격소총", "shotgun": "샷건", "railgun": "레일건"}
 			if _last_kill_weapon == "":
 				return "%s\n칼로 마지막 킬 달성 — 아직 킬 없음" % m.title
 			return "%s\n칼로 마지막 킬 달성 — 현재 %s" % [m.title, wnames.get(_last_kill_weapon, _last_kill_weapon)]
 		MissionData.ConditionType.KILLS_WITH_WEAPON:
 			var wkills: int = tel.metrics.combat.kills_by_weapon.get(m.weapon_filter, 0) if tel else 0
-			var wnames2 = {"pistol": "피스톨", "ar": "어설트 라이플", "shotgun": "샷건", "railgun": "레일건", "knife": "칼"}
+			var wnames2 = {"pistol": "피스톨", "ar": "돌격소총", "shotgun": "샷건", "railgun": "레일건", "knife": "칼"}
 			return "%s\n%s 킬  %d / %d" % [m.title, wnames2.get(m.weapon_filter, m.weapon_filter), wkills, int(m.target_value)]
 		MissionData.ConditionType.KILL_IN_BUSH:
 			return "%s\n수풀 안/근처 킬  %d / %d" % [m.title, _kills_in_bush, int(m.target_value)]
@@ -511,7 +511,7 @@ func get_hud_text(tel: Node) -> String:
 			if not tel:
 				return "%s\n모든 총으로 각각 1킬 이상 달성" % m.title
 			var wk: Dictionary = tel.metrics.combat.kills_by_weapon
-			var gun_labels = [["pistol", "피스톨"], ["ar", "AR"], ["shotgun", "샷건"], ["railgun", "레일건"]]
+			var gun_labels = [["pistol", "피스톨"], ["ar", "돌격소총"], ["shotgun", "샷건"], ["railgun", "레일건"]]
 			var done: Array = []
 			var todo: Array = []
 			for g in gun_labels:
@@ -587,7 +587,7 @@ static func get_all_missions() -> Array:
 
 	m = MissionData.new()
 	m.id = "medic_run"; m.title = "MEDIC RUN"
-	m.description = "MedKit(◆) 3회 이상 사용 후 1등"
+	m.description = "구급상자(◆) 3회 이상 사용 후 1등"
 	m.condition_type = MissionData.ConditionType.WIN_WITH_HEALS
 	m.target_value = 3; m.badge_label = "메딕"; m.badge_color = Color(0.9, 0.9, 0.2)
 	list.append(m)

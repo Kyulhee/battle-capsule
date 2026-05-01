@@ -22,10 +22,10 @@ var _diff_tooltip: PanelContainer = null
 var _diff_tooltip_label: Label = null
 var _records_selected_diff: int = 1
 const DIFF_DESCRIPTIONS = [
-	"봇 시야 75%  ·  반응 느림  ·  조준 부정확\n배틀로얄 첫 입문에 추천.",
-	"표준 봇 성능  ·  균형 잡힌 전투.",
+	"봇 시야 75%  ·  반응 느림  ·  조준 부정확\n입문용 난이도.",
+	"표준 난이도.",
 	"봇 시야 125%  ·  즉각 반응  ·  정밀 조준\n극한의 도전.",
-	"HP 1 시작  ·  힐 감소  ·  암전 + 폭격\n랜덤 모디파이어: 힐추가반감 / 탄막 / 전원적대",
+	"HP 1 시작  ·  힐 감소  ·  암전 + 폭격\n랜덤 이벤트: 힐추가반감 / 탄막 / 전원적대",
 ]
 
 # Hell events
@@ -275,20 +275,20 @@ func _show_artifact_select():
 			"id": "red_trigger", "label": "Red Trigger",
 			"color": Color(1.0, 0.25, 0.25),
 			"line1": "샷건 공격력 ×1.2  ·  근접 특화",
-			"line2": "비샷건 공격력 ×0.5\n비샷건 탄퍼짐 극단적 (거의 난사)",
+			"line2": "샷건 외 공격력 ×0.5\n샷건 외 탄퍼짐 극단적 (거의 난사)",
 			"mods": {"red_trigger": true, "spread_all_shots": true},
 		},
 		{
 			"id": "armor_sponge", "label": "Armor Sponge",
 			"color": Color(0.35, 0.60, 1.0),
-			"line1": "방어구 최대량 ×2.5  ·  힐→쉴드",
-			"line2": "이동속도 -25%  ·  HP 회복 완전 봉인\n(소힐 +10방어막 / 메딕킷 +20방어막)",
+			"line1": "방어구 최대량 ×2.5  ·  힐→방어막",
+			"line2": "이동 속도 -25%  ·  힐 사용 시 방어막 전환\n(붕대 +10 방어막 / 구급상자 +20 방어막)",
 			"mods": {"max_shield_mult": 2.5, "heal_to_shield": true, "move_speed_mult": 0.75},
 		},
 		{
 			"id": "silent_core", "label": "Silent Core",
 			"color": Color(0.40, 0.95, 0.55),
-			"line1": "달리기 소리 탐지 완전 차단",
+			"line1": "달리기 소음 탐지 차단",
 			"line2": "최대 HP / 방어막 -50%\n(들키면 즉시 위험)",
 			"mods": {"footstep_radius_mult": 0.0, "max_health_mult": 0.5, "max_shield_mult": 0.5},
 		},
@@ -296,7 +296,7 @@ func _show_artifact_select():
 			"id": "zone_battery", "label": "Zone Battery",
 			"color": Color(0.20, 0.85, 1.0),
 			"line1": "자기장 내벽 8m 근방\n→ 방어막 +10/초 자동 충전",
-			"line2": "힐 아이템 / 방어구 픽업 완전 봉인",
+			"line2": "힐·방어구 사용 불가",
 			"mods": {
 				"heal_mult": 0.0, "shield_recv_mult": 0.0,
 				"zone_battery": true, "zone_battery_regen": 10.0, "zone_battery_range": 8.0,
@@ -329,7 +329,7 @@ func _show_artifact_select():
 	center.add_child(title)
 
 	var sub = Label.new()
-	sub.text = "이번 매치에 하나를 선택하세요  (없이 시작도 가능)"
+	sub.text = "원하는 아티팩트를 골라 시작하세요"
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	sub.add_theme_font_size_override("font_size", 13)
 	sub.add_theme_color_override("font_color", Color(0.60, 0.60, 0.60))
@@ -344,7 +344,7 @@ func _show_artifact_select():
 		card_row.add_child(_make_artifact_card(artifact))
 
 	var skip_btn = Button.new()
-	skip_btn.text = "없이 시작"
+	skip_btn.text = "선택하지 않기"
 	skip_btn.add_theme_font_size_override("font_size", 14)
 	skip_btn.custom_minimum_size = Vector2(150, 36)
 	_apply_btn_style(skip_btn)
@@ -1515,8 +1515,8 @@ func _build_help_panel():
 	_make_key_row(content, ["W","A","S","D"], "이동")
 	_make_key_row(content, ["MOUSE"], "조준 (캐릭터가 커서 방향을 바라봄)")
 	_make_key_row(content, ["LMB"], "사격 / 근접 공격 (슬롯 0)")
-	_make_key_row(content, ["E"], "근처 아이템 줍기")
-	_make_key_row(content, ["Q"], "치료 아이템 사용 (+50 HP)")
+	_make_key_row(content, ["F"], "근처 아이템 줍기")
+	_make_key_row(content, ["Q"], "붕대/구급상자 사용 (HP 회복)")
 	_make_key_row(content, ["R"], "재장전")
 	_make_key_row(content, ["C"], "웅크리기 토글 (스텔스 증가)")
 	_make_key_row(content, ["SPACE"], "점프")
@@ -1528,8 +1528,8 @@ func _build_help_panel():
 	_make_icon_row(content, "skull", Color(1.0,0.92,0.15), "Kill 수")
 	_make_icon_row(content, "hand",  Color(1.0,0.6, 0.2 ), "Assist 수")
 	_make_icon_row(content, "person",Color(0.72,0.72,0.72), "현재 생존자 수")
-	_make_text_row(content, "♥", Color(0.95,0.25,0.25), "치료 아이템 보유 수")
-	_make_text_row(content, "◆", Color(1.0, 0.85,0.1 ), "고급 치료제 보유 수")
+	_make_text_row(content, "♥", Color(0.95,0.25,0.25), "붕대 보유 수")
+	_make_text_row(content, "◆", Color(1.0, 0.85,0.1 ), "구급상자 보유 수")
 
 	# ── SYSTEMS ──
 	_help_section(content, "SYSTEMS")
