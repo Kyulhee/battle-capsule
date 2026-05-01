@@ -72,6 +72,8 @@ var _aim_spread_mult: float = 1.0  # multiplier for predictive-shot spread
 # 0=none 1=periodic scan(3s) 2=periodic scan(1.5s)+instant reaction on hit
 var _awareness_level: int = 0
 var _peripheral_scan_timer: float = 0.0
+var _ambient_scan_timer: float = 0.0
+var _head_sweep_angle: float = 0.0  # continuously advances for Hard+ 360° sweep
 var _combat_jump_timer: float = 0.0
 var _nav_agent: NavigationAgent3D = null
 
@@ -130,6 +132,8 @@ func _physics_process(delta):
 	_check_survival_overrides()
 	_update_stuck(delta)
 	_check_footstep_sounds()
+	_check_close_range()
+	_check_ambient_awareness(delta)
 	_update_state_label_visibility()
 
 	match current_state:
@@ -232,22 +236,28 @@ func _get_preferred_range() -> float:
 # ─── STATE HANDLERS ──────────────────────────────────────────────────────────
 
 func handle_idle_state(delta):
-	scan_timer -= delta
-	if scan_timer <= 0:
-		scan_timer = randf_range(_scan_interval_max * 0.4, _scan_interval_max)
-		# Cycle: right flank → left flank → random
-		# Systematically covers sides instead of uniform random which can cluster forward.
-		_scan_phase = (_scan_phase + 1) % 3
-		match _scan_phase:
-			0: scan_target_rotation = rotation.y + randf_range(PI * 0.3, PI * 0.8)
-			1: scan_target_rotation = rotation.y - randf_range(PI * 0.3, PI * 0.8)
-			_: scan_target_rotation = rotation.y + randf_range(-PI, PI)
-	# Alert rotation (sound-triggered): full speed. Normal scan: half speed.
-	var rot_speed = stats.rotation_speed if _scan_alert else stats.rotation_speed * 0.5
-	rotation.y = lerp_angle(rotation.y, scan_target_rotation, rot_speed * delta)
-	# Clear alert once roughly facing the target direction
-	if _scan_alert and abs(angle_difference(rotation.y, scan_target_rotation)) < 0.15:
-		_scan_alert = false
+	if _awareness_level >= 2:
+		# Hard+: continuous 360° sweep — head turns at constant speed, fully independent of movement
+		_head_sweep_angle += 1.1 * delta  # ~1.75 rad/s ≈ full rotation every 3.6s
+		if not _scan_alert:
+			scan_target_rotation = _head_sweep_angle
+		var rot_speed = stats.rotation_speed if _scan_alert else stats.rotation_speed * 0.65
+		rotation.y = lerp_angle(rotation.y, scan_target_rotation, rot_speed * delta)
+		if _scan_alert and abs(angle_difference(rotation.y, scan_target_rotation)) < 0.15:
+			_scan_alert = false
+	else:
+		scan_timer -= delta
+		if scan_timer <= 0:
+			scan_timer = randf_range(_scan_interval_max * 0.4, _scan_interval_max)
+			_scan_phase = (_scan_phase + 1) % 3
+			match _scan_phase:
+				0: scan_target_rotation = rotation.y + randf_range(PI * 0.3, PI * 0.8)
+				1: scan_target_rotation = rotation.y - randf_range(PI * 0.3, PI * 0.8)
+				_: scan_target_rotation = rotation.y + randf_range(-PI, PI)
+		var rot_speed = stats.rotation_speed if _scan_alert else stats.rotation_speed * 0.5
+		rotation.y = lerp_angle(rotation.y, scan_target_rotation, rot_speed * delta)
+		if _scan_alert and abs(angle_difference(rotation.y, scan_target_rotation)) < 0.15:
+			_scan_alert = false
 
 	var nearest_enemy = _find_nearest_target()
 	if nearest_enemy:
@@ -483,7 +493,13 @@ func handle_recover_state(delta):
 
 		var dist_to_patrol = global_position.distance_to(patrol_target)
 		if dist_to_patrol > 2.5:
-			_nav_move_toward(patrol_target, delta, true)
+			if _awareness_level >= 2:
+				# Hard+: head sweeps independently while body walks to patrol target
+				_head_sweep_angle += 1.1 * delta
+				rotation.y = lerp_angle(rotation.y, _head_sweep_angle, stats.rotation_speed * 0.6 * delta)
+				_nav_move_toward(patrol_target, delta, false)
+			else:
+				_nav_move_toward(patrol_target, delta, true)
 		else:
 			patrol_target = _pick_patrol_target()
 
@@ -650,6 +666,57 @@ func _check_footstep_sounds():
 		last_known_target_pos = actor.global_position
 		# Snap idle bots toward sound source at full rotation speed
 		if current_state == State.IDLE:
+			var dir_to = (actor.global_position - global_position).normalized()
+			scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
+			_scan_alert = true
+
+# ─── CLOSE RANGE INSTANT DETECTION ─────────────────────────────────────────
+# Any actor within 2m is immediately fully detected — like bumping into someone.
+# Runs every physics frame in all states, regardless of awareness level.
+
+func _check_close_range():
+	var actors = get_tree().get_nodes_in_group("actors")
+	for actor in actors:
+		if actor == self or not actor is Entity or actor.is_dead: continue
+		if perception_meters.get(actor, 0.0) >= 1.0: continue
+		if global_position.distance_to(actor.global_position) > 2.0: continue
+		perception_meters[actor] = 1.0
+		last_known_target_pos = actor.global_position
+		var dir_to = (actor.global_position - global_position).normalized()
+		scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
+		_scan_alert = true
+
+# ─── AMBIENT AWARENESS (사주경계) ─────────────────────────────────────────────
+# Periodic 360° range scan in all states. No direction filter — truly omnidirectional.
+# Easy: disabled. Normal: running actors at 6m every 3s. Hard+: any actor at 10m every 1.5s.
+
+func _check_ambient_awareness(delta: float):
+	if _awareness_level == 0: return
+	_ambient_scan_timer -= delta
+	if _ambient_scan_timer > 0: return
+	_ambient_scan_timer = 3.0 if _awareness_level == 1 else 1.5
+
+	var actors = get_tree().get_nodes_in_group("actors")
+	for actor in actors:
+		if actor == self or not actor is Entity or actor.is_dead: continue
+		if perception_meters.get(actor, 0.0) >= 1.0: continue
+		var dist = global_position.distance_to(actor.global_position)
+		var spd = Vector2(actor.velocity.x, actor.velocity.z).length()
+
+		if _awareness_level == 1:
+			# Normal: running actors within 6m, full 360°
+			if dist > 6.0: continue
+			if spd < actor.stats.move_speed * 0.5: continue
+		else:
+			# Hard/Hell: any actor; running extends range
+			var range_limit = 10.0 if spd >= actor.stats.move_speed * 0.3 else 5.0
+			if dist > range_limit: continue
+
+		if not perception_meters.has(actor): perception_meters[actor] = 0.0
+		var boost = 0.2 if _awareness_level == 1 else 0.35
+		perception_meters[actor] = min(perception_meters[actor] + boost, 0.75)
+		last_known_target_pos = actor.global_position
+		if current_state == State.IDLE or current_state == State.RECOVER:
 			var dir_to = (actor.global_position - global_position).normalized()
 			scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
 			_scan_alert = true

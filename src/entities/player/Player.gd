@@ -34,7 +34,7 @@ const HEAL_REGEN_RATE: float = 10.0
 # ── Artifact System ──────────────────────────────────────────────────────────
 var active_artifact: Dictionary = {}
 var _artifact_mods: Dictionary = {
-	"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false,
+	"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false, "red_trigger": false,
 	"move_speed_mult": 1.0,
 	"heal_mult": 1.0, "heal_to_shield": false,
 	"shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
@@ -42,6 +42,15 @@ var _artifact_mods: Dictionary = {
 	"zone_battery": false, "zone_battery_regen": 0.0, "zone_battery_range": 0.0,
 }
 var _artifact_label: Label = null
+
+# ── Shot Heat (AR / Pistol spread heat-up) ──────────────────────────────────
+var _shot_heat: float = 0.0
+const HEAT_MAX: float = 1.0
+const HEAT_PER_SHOT_AR: float = 0.30
+const HEAT_PER_SHOT_PISTOL: float = 0.20
+const HEAT_DECAY: float = 0.55
+const BASE_SPREAD_AR: float = 0.5
+const BASE_SPREAD_PISTOL: float = 0.25
 
 const MUZZLE_FLASH_SCN = preload("res://src/fx/MuzzleFlash.tscn")
 const IMPACT_EFFECT_SCN = preload("res://src/fx/ImpactEffect.tscn")
@@ -363,6 +372,7 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 func _physics_process(delta):
 	if is_dead: return
 	if fire_cooldown > 0: fire_cooldown -= delta
+	if _shot_heat > 0.0: _shot_heat = maxf(0.0, _shot_heat - HEAT_DECAY * delta)
 	if _heal_regen > 0:
 		var tick = min(HEAL_REGEN_RATE * delta, min(_heal_regen, stats.max_health - current_health))
 		if tick > 0:
@@ -863,7 +873,8 @@ func _melee_attack():
 		impact.global_position = hit_pos
 		var target = ray_cast.get_collider()
 		if target.has_method("take_damage"):
-			target.take_damage(MELEE_DAMAGE * _artifact_mods.get("damage_mult", 1.0), "melee", "knife", self)
+			var melee_mult = 0.5 if _artifact_mods.get("red_trigger", false) else _artifact_mods.get("damage_mult", 1.0)
+			target.take_damage(MELEE_DAMAGE * melee_mult, "melee", "knife", self)
 			if Sfx: Sfx.play("hit", hit_pos)
 
 func _refresh_slot_hud():
@@ -1173,9 +1184,17 @@ func _shoot_with_slot(slot: int):
 	reveal()
 	var shot_vec = Vector3(0, 0, -wdata.attack_range)
 	if _artifact_mods.get("spread_all_shots", false):
-		var s = _artifact_mods.get("spread_mult", 1.0) * 1.0
+		# Red Trigger: extreme spray for non-shotgun (shotgun handled via shoot_pellet)
+		var s = 4.0 if _artifact_mods.get("red_trigger", false) else _artifact_mods.get("spread_mult", 1.0)
 		shot_vec.x = randf_range(-s, s)
 		shot_vec.y = randf_range(-s * 0.25, s * 0.25)
+	elif wdata.weapon_type == "ar" or wdata.weapon_type == "pistol":
+		var is_ar = wdata.weapon_type == "ar"
+		_shot_heat = minf(HEAT_MAX, _shot_heat + (HEAT_PER_SHOT_AR if is_ar else HEAT_PER_SHOT_PISTOL))
+		var base = BASE_SPREAD_AR if is_ar else BASE_SPREAD_PISTOL
+		var heat_spread = base + _shot_heat * (3.5 if is_ar else 2.3)
+		shot_vec.x = randf_range(-heat_spread, heat_spread)
+		shot_vec.y = randf_range(-heat_spread * 0.15, heat_spread * 0.15)
 	_internal_shoot(shot_vec)
 	fire_cooldown = wdata.fire_rate
 	if Sfx: Sfx.play("shoot")
@@ -1200,8 +1219,12 @@ func _internal_shoot(target_vec: Vector3):
 		get_tree().root.add_child(impact)
 		impact.global_position = impact_pos
 		if target.has_method("take_damage"):
-			var dmg = (wdata.attack_damage if wdata else stats.attack_damage) * _artifact_mods.get("damage_mult", 1.0)
 			var wtype = wdata.weapon_type if wdata else stats.weapon_type
+			var dmg: float
+			if _artifact_mods.get("red_trigger", false):
+				dmg = (wdata.attack_damage if wdata else stats.attack_damage) * (1.2 if wtype == "shotgun" else 0.5)
+			else:
+				dmg = (wdata.attack_damage if wdata else stats.attack_damage) * _artifact_mods.get("damage_mult", 1.0)
 			target.take_damage(dmg, "gun", wtype, self)
 			if Sfx: Sfx.play("hit", impact_pos)
 		else: if Sfx: Sfx.play("impact_wall", impact_pos)
@@ -1220,7 +1243,7 @@ func shoot():
 func apply_artifact(artifact: Dictionary):
 	active_artifact = artifact
 	_artifact_mods = {
-		"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false,
+		"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false, "red_trigger": false,
 		"move_speed_mult": 1.0,
 		"heal_mult": 1.0, "heal_to_shield": false,
 		"shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,

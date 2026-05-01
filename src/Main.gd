@@ -257,6 +257,9 @@ func _ready():
 			difficulty = tel.get_meta("_restart_difficulty") as Difficulty
 			tel.remove_meta("_restart_difficulty")
 			_update_diff_highlights()
+			if tel.has_meta("_restart_artifact"):
+				_pending_artifact = tel.get_meta("_restart_artifact")
+				tel.remove_meta("_restart_artifact")
 			start_game()
 
 func _on_start_btn_pressed():
@@ -271,9 +274,9 @@ func _show_artifact_select():
 		{
 			"id": "red_trigger", "label": "Red Trigger",
 			"color": Color(1.0, 0.25, 0.25),
-			"line1": "공격력 +40%  ·  근접 특화",
-			"line2": "모든 탄 퍼짐 심화\n(원거리 명중률 대폭 하락)",
-			"mods": {"damage_mult": 1.40, "spread_mult": 1.5, "spread_all_shots": true},
+			"line1": "샷건 공격력 ×1.2  ·  근접 특화",
+			"line2": "비샷건 공격력 ×0.5\n비샷건 탄퍼짐 극단적 (거의 난사)",
+			"mods": {"red_trigger": true, "spread_all_shots": true},
 		},
 		{
 			"id": "armor_sponge", "label": "Armor Sponge",
@@ -458,7 +461,12 @@ func start_game():
 
 	# Apply artifact to player (skipped in simulation)
 	if player_ref and player_ref.has_method("apply_artifact") and not is_simulation:
-		player_ref.apply_artifact(_pending_artifact)
+		var art = _pending_artifact
+		if art.get("id", "") == "zone_battery":
+			art = art.duplicate(true)
+			var regen_by_diff = [10.0, 10.0, 5.0, 2.0]
+			art.get("mods", {})["zone_battery_regen"] = regen_by_diff[clampi(difficulty as int, 0, 3)]
+		player_ref.apply_artifact(art)
 		_pending_artifact = {}
 
 func _show_panel(panel_name: String):
@@ -617,7 +625,12 @@ func _add_icon_val(parent: HBoxContainer, tex: ImageTexture, val: String, col: C
 
 func restart_game():
 	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").set_meta("_restart_difficulty", difficulty as int)
+		var tel = get_node("/root/Telemetry")
+		tel.set_meta("_restart_difficulty", difficulty as int)
+		var art = _pending_artifact
+		if art.is_empty() and player_ref != null and is_instance_valid(player_ref):
+			art = player_ref.get("active_artifact") if player_ref.get("active_artifact") != null else {}
+		tel.set_meta("_restart_artifact", art)
 	get_tree().paused = false
 	get_tree().reload_current_scene()
 

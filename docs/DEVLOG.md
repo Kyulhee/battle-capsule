@@ -5,6 +5,43 @@
 
 ---
 
+## v1.5.0 — 2026-05-01
+
+**아티팩트 시스템 + AR 열 퍼짐 + 봇 사주경계 개선**
+
+**src/Main.gd**
+
+- 아티팩트 선택 UI 오버레이 — 게임 시작 전 4종 카드 선택 또는 "없이 시작"
+- `_pending_artifact` → `start_game()` 시 플레이어에 적용, 이후 초기화
+- `restart_game()`: `active_artifact` / `_pending_artifact`를 Telemetry 메타에 저장 → 재시작 후 복원 (버그 수정)
+- Zone Battery 충전속도 난이도별 분기: Easy/Normal=10, Hard=5, Hell=2 (`start_game()` 내 적용)
+- Red Trigger 카탈로그 업데이트: 전체 공격력 배수 → 무기 타입별 분리
+
+**src/entities/player/Player.gd**
+
+- `_artifact_mods` 시스템: 7종 mod 키 (damage_mult, spread_mult, spread_all_shots, red_trigger, move_speed_mult, heal_mult, heal_to_shield, shield_recv_mult, zone_dmg_mult, footstep_radius_mult, zone_battery 계열)
+- `apply_artifact()`: 아티팩트 적용, max_health/max_shield 1회 배수 적용
+- **Red Trigger**: 샷건 데미지 ×1.2, 비샷건 ×0.5, 비샷건 탄퍼짐 극단적 (±4.0)
+- **Armor Sponge**: 방어막 최대 ×2.5, 이동속도 ×0.75, 힐 → 방어막 전환, HP 회복 금지
+- **Silent Core**: 발소리 탐지 반경 ×0.0, 최대 HP/방어막 ×0.5
+- **Zone Battery**: 자기장 내벽 8m 근방 방어막 자동 충전, 힐/방어구 픽업 금지
+- AR/권총 **열 퍼짐(heat) 시스템**: 연사할수록 탄퍼짐 심화, HEAT_DECAY=0.55/s
+  - AR: 기본 ±0.5, 연사 시 최대 ±4.0 / 권총: 기본 ±0.25, 최대 ±2.55
+- 픽업 키 `E` → `F` (E는 추후 특수 스킬 예약)
+
+**src/entities/bot/Bot.gd**
+
+- `_check_close_range()`: 2m 이내 즉시 탐지(perception=1.0), 전 상태 매 프레임 실행
+- `_check_ambient_awareness()`: 전방향 360° 범위 스캔 (방향 필터 제거), Normal=6m/3s, Hard+=10m/1.5s
+- Hard+ IDLE: 위상 기반 스캔 → 연속 360° 스윕 (1.1 rad/s, 이동과 독립적)
+- Hard+ RECOVER 순찰: 이동 방향과 독립적으로 시야 회전 스윕
+
+**src/items/weapon_ar.tres**
+
+- `attack_range` 30 → 20 (AR 사거리 너프)
+
+---
+
 ## v1.4.5 — 2026-05-01
 
 **레일건 리워크 + 넉백 + ONE SLOT RUN + 압박 미션 수정 + 리워드/패널티 HUD**
