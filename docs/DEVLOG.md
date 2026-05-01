@@ -5,6 +5,22 @@
 
 ---
 
+## v1.5.1 — 2026-05-01
+
+**봇 AI — 총소리 반응 + 웅크리기 전술**
+
+**src/entities/bot/Bot.gd**
+
+- `_check_gunshot_sounds()` 추가: `reveal_timer > 1.7` 인 액터(= 방금 발사) 탐지
+  - Normal: 15m 이내 / Hard+: 25m 이내에서 인식 +0.5 (최대 0.75), 즉시 사격 방향으로 고개 회전
+  - Silent Core 무시 — 총소리는 발소리 감지와 무관
+- `is_crouching` + `_mesh_origin_y` 추가: RECOVER / DISENGAGE / IDLE 정지 상태 자동 웅크리기
+  - `stealth_modifier = 0.45` — 플레이어 유효 시야 25m → 11.25m로 단축
+  - mesh scale.y = 0.62 (시각적 높이 감소)
+  - `reveal_timer > 0`(발사 직후)에는 스텔스 효과 없음
+
+---
+
 ## v1.5.0 — 2026-05-01
 
 **아티팩트 시스템 + AR 열 퍼짐 + 봇 사주경계 개선**

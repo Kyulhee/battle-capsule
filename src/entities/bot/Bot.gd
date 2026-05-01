@@ -74,6 +74,8 @@ var _awareness_level: int = 0
 var _peripheral_scan_timer: float = 0.0
 var _ambient_scan_timer: float = 0.0
 var _head_sweep_angle: float = 0.0  # continuously advances for Hard+ 360° sweep
+var is_crouching: bool = false
+var _mesh_origin_y: float = 0.0
 var _combat_jump_timer: float = 0.0
 var _nav_agent: NavigationAgent3D = null
 
@@ -99,6 +101,8 @@ func _ready():
 	_nav_agent.target_desired_distance = 1.5
 	_nav_agent.avoidance_enabled = false
 	add_child(_nav_agent)
+	if has_node("MeshInstance3D"):
+		_mesh_origin_y = $MeshInstance3D.position.y
 	await get_tree().create_timer(randf_range(0.05, 0.2)).timeout
 	if ray_cast:
 		ray_cast.enabled = true
@@ -133,6 +137,7 @@ func _physics_process(delta):
 	_update_stuck(delta)
 	_check_footstep_sounds()
 	_check_close_range()
+	_check_gunshot_sounds()
 	_check_ambient_awareness(delta)
 	_update_state_label_visibility()
 
@@ -145,6 +150,15 @@ func _physics_process(delta):
 		State.DISENGAGE:   handle_disengage_state(delta)
 
 	super._physics_process(delta)
+
+	# Crouch: RECOVER, DISENGAGE, or IDLE while stationary — reduces player visibility
+	is_crouching = current_state in [State.RECOVER, State.DISENGAGE] or \
+		(current_state == State.IDLE and Vector2(velocity.x, velocity.z).length() < 1.0)
+	if is_crouching and reveal_timer <= 0:
+		stealth_modifier = min(stealth_modifier, 0.45)
+	if has_node("MeshInstance3D"):
+		$MeshInstance3D.scale.y = 0.62 if is_crouching else 1.0
+		$MeshInstance3D.position.y = _mesh_origin_y - 0.19 if is_crouching else _mesh_origin_y
 
 func use_heal():
 	if stats.advanced_heals > 0:
@@ -669,6 +683,27 @@ func _check_footstep_sounds():
 			var dir_to = (actor.global_position - global_position).normalized()
 			scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
 			_scan_alert = true
+
+# ─── GUNSHOT SOUND DETECTION ─────────────────────────────────────────────────
+# Actors with reveal_timer > 1.7 fired a shot within the last 0.3s.
+# Nearby bots orient toward the shooter and gain partial perception.
+# Normal: 15m. Hard/Hell: 25m. Does NOT respect Silent Core (gunshots are loud).
+
+func _check_gunshot_sounds():
+	var actors = get_tree().get_nodes_in_group("actors")
+	for actor in actors:
+		if actor == self or not actor is Entity or actor.is_dead: continue
+		if actor.reveal_timer <= 1.7: continue  # didn't just fire
+		if perception_meters.get(actor, 0.0) >= 0.75: continue
+		var dist = global_position.distance_to(actor.global_position)
+		var range_limit = 25.0 if _awareness_level >= 2 else 15.0
+		if dist > range_limit: continue
+		if not perception_meters.has(actor): perception_meters[actor] = 0.0
+		perception_meters[actor] = min(perception_meters[actor] + 0.5, 0.75)
+		last_known_target_pos = actor.global_position
+		var dir_to = (actor.global_position - global_position).normalized()
+		scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
+		_scan_alert = true
 
 # ─── CLOSE RANGE INSTANT DETECTION ─────────────────────────────────────────
 # Any actor within 2m is immediately fully detected — like bumping into someone.
