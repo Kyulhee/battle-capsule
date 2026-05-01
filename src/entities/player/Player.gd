@@ -34,9 +34,12 @@ const HEAL_REGEN_RATE: float = 10.0
 # ── Artifact System ──────────────────────────────────────────────────────────
 var active_artifact: Dictionary = {}
 var _artifact_mods: Dictionary = {
-	"damage_mult": 1.0, "spread_mult": 1.0, "move_speed_mult": 1.0,
-	"heal_mult": 1.0, "shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
+	"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false,
+	"move_speed_mult": 1.0,
+	"heal_mult": 1.0, "heal_to_shield": false,
+	"shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
 	"footstep_radius_mult": 1.0,
+	"zone_battery": false, "zone_battery_regen": 0.0, "zone_battery_range": 0.0,
 }
 var _artifact_label: Label = null
 
@@ -430,7 +433,7 @@ func _physics_process(delta):
 	if Input.is_key_pressed(KEY_SPACE) and is_on_floor() and not is_crouching:
 		velocity.y = 7.0
 		footstep_timer = 0.0
-	if Input.is_key_pressed(KEY_E): handle_interaction()
+	if Input.is_key_pressed(KEY_F): handle_interaction()
 	if Input.is_key_pressed(KEY_Q): handle_healing()
 	super._physics_process(delta)
 	# Crouch stealth
@@ -494,6 +497,19 @@ func _process(delta):
 		slot_ammo_labels[active_slot].text = "%d/%d+%d" % [disp_ammo, max_a_r, disp_res]
 		slot_ammo_labels[active_slot].modulate = Color.YELLOW
 
+	# Zone Battery: 자기장 경계 내측 근방에서 쉴드 자동 충전
+	# shield_recv_mult를 우회해 직접 더함 (존 배터리 고유 충전 경로)
+	if _artifact_mods.get("zone_battery", false) and not is_dead and current_shield < stats.max_shield:
+		var _zbmain = get_tree().root.get_node_or_null("Main")
+		if _zbmain:
+			var pos2d = Vector2(global_position.x, global_position.z)
+			var dist_from_center = pos2d.distance_to(_zbmain.current_zone_center)
+			var dist_inside_edge = _zbmain.current_zone_radius - dist_from_center
+			var rng = _artifact_mods.get("zone_battery_range", 0.0)
+			if dist_inside_edge >= 0.0 and dist_inside_edge <= rng:
+				current_shield = min(stats.max_shield, current_shield + _artifact_mods.get("zone_battery_regen", 0.0) * delta)
+				shield_changed.emit(current_shield, stats.max_shield)
+
 	# Zone warning pulse
 	_update_zone_warning(delta)
 
@@ -524,10 +540,35 @@ func handle_interaction():
 	if closest: closest.collect(self)
 
 func handle_healing():
-	if current_health >= stats.max_health: return
 	var main = get_tree().root.get_node_or_null("Main")
 	var is_hell = main != null and main.difficulty == 3
 	var scarcity_mult = 0.5 if (is_hell and main != null and main.hell_modifier == main.HellModifier.SCARCITY) else 1.0
+
+	# Armor Sponge: 힐 → 쉴드 전환 모드 (HP 회복 없음)
+	if _artifact_mods.get("heal_to_shield", false):
+		if current_shield >= stats.max_shield: return
+		if stats.advanced_heals > 0:
+			stats.advanced_heals -= 1
+			receive_shield(20.0 * scarcity_mult)
+			if Sfx: Sfx.play("heal", global_position)
+			if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
+			if main and main.mission_tracker:
+				main.mission_tracker.on_pressure_heal_used()
+				main.mission_tracker.on_player_medkit_used()
+			_refresh_slot_hud()
+		elif stats.heal_items > 0:
+			stats.heal_items -= 1
+			receive_shield(10.0 * scarcity_mult)
+			if Sfx: Sfx.play("heal", global_position)
+			if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
+			if main and main.mission_tracker: main.mission_tracker.on_pressure_heal_used()
+			_refresh_slot_hud()
+		return
+
+	# Zone Battery: 힐 완전 봉인
+	if _artifact_mods.get("heal_mult", 1.0) == 0.0: return
+
+	if current_health >= stats.max_health: return
 	if stats.advanced_heals > 0:
 		stats.advanced_heals -= 1
 		var amount = 60.0 * (0.55 if is_hell else 1.0) * scarcity_mult * _artifact_mods.get("heal_mult", 1.0)
@@ -1130,7 +1171,12 @@ func _shoot_with_slot(slot: int):
 	slot_ammo[slot] -= 1
 	_sync_slot_ammo()
 	reveal()
-	_internal_shoot(Vector3(0, 0, -wdata.attack_range))
+	var shot_vec = Vector3(0, 0, -wdata.attack_range)
+	if _artifact_mods.get("spread_all_shots", false):
+		var s = _artifact_mods.get("spread_mult", 1.0) * 1.0
+		shot_vec.x = randf_range(-s, s)
+		shot_vec.y = randf_range(-s * 0.25, s * 0.25)
+	_internal_shoot(shot_vec)
 	fire_cooldown = wdata.fire_rate
 	if Sfx: Sfx.play("shoot")
 	_refresh_slot_hud()
@@ -1174,12 +1220,25 @@ func shoot():
 func apply_artifact(artifact: Dictionary):
 	active_artifact = artifact
 	_artifact_mods = {
-		"damage_mult": 1.0, "spread_mult": 1.0, "move_speed_mult": 1.0,
-		"heal_mult": 1.0, "shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
+		"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false,
+		"move_speed_mult": 1.0,
+		"heal_mult": 1.0, "heal_to_shield": false,
+		"shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
 		"footstep_radius_mult": 1.0,
+		"zone_battery": false, "zone_battery_regen": 0.0, "zone_battery_range": 0.0,
 	}
 	for key in artifact.get("mods", {}):
 		_artifact_mods[key] = artifact["mods"][key]
+	# One-time stat multipliers (applied to already-duplicated stats resource)
+	var mods = artifact.get("mods", {})
+	if mods.has("max_health_mult"):
+		stats.max_health = int(stats.max_health * mods["max_health_mult"])
+		current_health = min(current_health, stats.max_health)
+		health_changed.emit(current_health, stats.max_health)
+	if mods.has("max_shield_mult"):
+		stats.max_shield = int(stats.max_shield * mods["max_shield_mult"])
+		current_shield = min(current_shield, stats.max_shield)
+		shield_changed.emit(current_shield, stats.max_shield)
 	if _artifact_label:
 		if artifact.is_empty():
 			_artifact_label.visible = false

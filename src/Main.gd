@@ -270,27 +270,34 @@ func _show_artifact_select():
 	var catalog = [
 		{
 			"id": "red_trigger", "label": "Red Trigger",
-			"color": Color(1.0, 0.30, 0.30),
-			"line1": "공격력 +25%", "line2": "탄퍼짐 +20%",
-			"mods": {"damage_mult": 1.25, "spread_mult": 1.2},
+			"color": Color(1.0, 0.25, 0.25),
+			"line1": "공격력 +40%  ·  근접 특화",
+			"line2": "모든 탄 퍼짐 심화\n(원거리 명중률 대폭 하락)",
+			"mods": {"damage_mult": 1.40, "spread_mult": 1.5, "spread_all_shots": true},
 		},
 		{
 			"id": "armor_sponge", "label": "Armor Sponge",
 			"color": Color(0.35, 0.60, 1.0),
-			"line1": "방어구 획득량 +50%", "line2": "회복량 -20%",
-			"mods": {"shield_recv_mult": 1.5, "heal_mult": 0.8},
+			"line1": "방어구 최대량 ×2.5  ·  힐→쉴드",
+			"line2": "이동속도 -25%  ·  HP 회복 완전 봉인\n(소힐 +10방어막 / 메딕킷 +20방어막)",
+			"mods": {"max_shield_mult": 2.5, "heal_to_shield": true, "move_speed_mult": 0.75},
 		},
 		{
 			"id": "silent_core", "label": "Silent Core",
 			"color": Color(0.40, 0.95, 0.55),
-			"line1": "발소리 감지 반경 -50%", "line2": "이동속도 -10%",
-			"mods": {"footstep_radius_mult": 0.5, "move_speed_mult": 0.9},
+			"line1": "달리기 소리 탐지 완전 차단",
+			"line2": "최대 HP / 방어막 -50%\n(들키면 즉시 위험)",
+			"mods": {"footstep_radius_mult": 0.0, "max_health_mult": 0.5, "max_shield_mult": 0.5},
 		},
 		{
-			"id": "zone_skin", "label": "Zone Skin",
-			"color": Color(0.20, 0.78, 1.0),
-			"line1": "자기장 피해 -40%", "line2": "회복량 -30%",
-			"mods": {"zone_dmg_mult": 0.6, "heal_mult": 0.7},
+			"id": "zone_battery", "label": "Zone Battery",
+			"color": Color(0.20, 0.85, 1.0),
+			"line1": "자기장 내벽 8m 근방\n→ 방어막 +10/초 자동 충전",
+			"line2": "힐 아이템 / 방어구 픽업 완전 봉인",
+			"mods": {
+				"heal_mult": 0.0, "shield_recv_mult": 0.0,
+				"zone_battery": true, "zone_battery_regen": 10.0, "zone_battery_range": 8.0,
+			},
 		},
 	]
 
