@@ -5,6 +5,21 @@
 
 ---
 
+## v1.5.3 — 2026-05-02
+
+**봇 AI — 전술 심화 (교전 판단, 후반부, 재장전 후퇴, 킬 후 스캔)**
+
+**src/entities/bot/Bot.gd**
+
+- **교전 후 스캔** (`_post_kill_scan_timer`): 킬 확인 시 2.5s 동안 빠른 360° 스윕 + 8m 이내 즉시 루팅 시도. 감지 봇이 ≤1이면 루팅 후 복귀, 적 발견 시 즉시 CHASE 전환.
+- **후반부 행동 변화** (`_check_late_game()`): `alive_count ≤ 3` 시 1회 적용 — `_awareness_level +1(max 2)`, `_disengage_threshold +1`, 스캔 간격 50% 단축, `_flee_hp_ratio -0.05`. IDLE 중 `last_known_target_pos`로 적극 수렴 이동.
+- **재장전 후퇴** (`_retreating_to_reload`): 교전 중 탄창 ≤25%이고 예비탄 있으면 DISENGAGE 전환. 1.5s 후 커버에서 즉시 재장전 → 적 탐색 후 CHASE 재진입.
+- **장애물 끼임 수정**: `handle_zone_escape_state`에서 stuck 시 랜덤 방향 대신 `_sample_zone_escape_dir()` (wall-slide) 사용.
+- **힐 즉시 사용**: 힐 트리거 임계값 60.0(절대값) → `max_health * 0.82`(82% 비율)로 변경, 더 빠른 힐 사용.
+- **교전 판단 — 교환비 추정** (`_engagement_dmg_dealt/taken`): ATTACK 진입 시 리셋. `shoot()` 호출마다 `attack_damage * 0.55` 누적 (55% 명중률 가정), 근접은 100%. HP가 `_flee_hp_ratio + 0.22` 이하이고 피해 수신 > 10 시, 예상 적 HP > 내 HP + 15%면 DISENGAGE. `log_tactics("disengage_losing_fight")` / `"reload_retreat"`.
+
+---
+
 ## v1.5.2 — 2026-05-02
 
 **한국어 UI 텍스트 정리 + 아이템 명칭 통일**

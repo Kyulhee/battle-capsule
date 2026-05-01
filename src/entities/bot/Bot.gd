@@ -79,6 +79,17 @@ var _mesh_origin_y: float = 0.0
 var _combat_jump_timer: float = 0.0
 var _nav_agent: NavigationAgent3D = null
 
+# Post-kill scan & opportunistic looting
+var _post_kill_scan_timer: float = 0.0
+var _post_kill_loot_attempted: bool = false
+# Reload retreat (low ammo → cover → reload → re-engage)
+var _retreating_to_reload: bool = false
+# Fight-or-flight: estimated damage exchange this engagement
+var _engagement_dmg_dealt: float = 0.0
+var _engagement_dmg_taken: float = 0.0
+# Late-game shift (alive ≤ 3) — applied once
+var _late_game_applied: bool = false
+
 @onready var ray_cast = $RayCast3D
 
 func _ready():
@@ -129,9 +140,10 @@ func _physics_process(delta):
 			get_node("/root/Telemetry").log_combat_audit("attack_max_continuous", attack_bout_timer)
 		attack_bout_timer = 0.0
 
-	if current_health < 60.0 and (stats.heal_items > 0 or stats.advanced_heals > 0):
+	if current_health < stats.max_health * 0.82 and (stats.heal_items > 0 or stats.advanced_heals > 0):
 		use_heal()
 
+	_check_late_game()
 	_check_state_overrides(delta)
 	_check_survival_overrides()
 	_update_stuck(delta)
@@ -250,6 +262,24 @@ func _get_preferred_range() -> float:
 # ─── STATE HANDLERS ──────────────────────────────────────────────────────────
 
 func handle_idle_state(delta):
+	# Post-kill scan: fast 360° sweep + nearby loot grab before resuming normal IDLE
+	if _post_kill_scan_timer > 0.0:
+		_post_kill_scan_timer -= delta
+		_head_sweep_angle += 2.2 * delta
+		scan_target_rotation = _head_sweep_angle
+		rotation.y = lerp_angle(rotation.y, scan_target_rotation, stats.rotation_speed * delta)
+		if not _post_kill_loot_attempted:
+			_post_kill_loot_attempted = true
+			var nearby = _find_best_pickup(8.0)
+			if nearby and _count_visible_enemies() <= 1:
+				target_actor = nearby; is_targeting_loot = true; _recovering = false
+				change_state(State.CHASE); return
+		var kill_scan_enemy = _find_nearest_target()
+		if kill_scan_enemy:
+			target_actor = kill_scan_enemy
+			change_state(State.CHASE)
+		return
+
 	if _awareness_level >= 2:
 		# Hard+: continuous 360° sweep — head turns at constant speed, fully independent of movement
 		_head_sweep_angle += 1.1 * delta  # ~1.75 rad/s ≈ full rotation every 3.6s
@@ -315,6 +345,12 @@ func handle_idle_state(delta):
 			_move_or_unstick(dir, delta, true)
 			if has_node("/root/Telemetry") and state_timer < 0.1:
 				get_node("/root/Telemetry").log_supply_event("preannounce_interest")
+			return
+
+	# Late game: actively close on last known player position when no other target
+	if _late_game_applied and last_known_target_pos != Vector3.ZERO:
+		if global_position.distance_to(last_known_target_pos) > 6.0:
+			_nav_move_toward(last_known_target_pos, delta, true)
 
 func handle_chase_state(delta):
 	if not _is_target_valid(target_actor):
@@ -359,6 +395,11 @@ func handle_chase_state(delta):
 
 func handle_attack_state(delta):
 	if not _is_target_valid(target_actor):
+		# Detect kill vs target-lost for post-kill scan
+		var was_killed = target_actor != null and target_actor is Entity and target_actor.is_dead
+		if was_killed:
+			_post_kill_scan_timer = 2.5
+			_post_kill_loot_attempted = false
 		_knife_mode = false; target_actor = null; change_state(State.IDLE); return
 
 	# Peripheral awareness: periodic scan for third-party threats
@@ -384,6 +425,30 @@ func handle_attack_state(delta):
 	if not _knife_mode and _disengage_cooldown <= 0 and _count_visible_enemies() >= _disengage_threshold:
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_tactics("disengage_triggered")
+		change_state(State.DISENGAGE)
+		return
+
+	# Fight-or-flight: when HP is marginal but above flee threshold,
+	# estimate exchange ratio to decide whether to disengage
+	if not _knife_mode and _disengage_cooldown <= 0 and _engagement_dmg_taken > 10.0:
+		var hp_ratio = current_health / stats.max_health
+		if hp_ratio < _flee_hp_ratio + 0.22 and target_actor is Entity:
+			# Bot estimates enemy HP from shots fired (55% assumed hit rate = imprecise estimate)
+			var est_enemy_remaining = maxf(0.0, target_actor.stats.max_health - _engagement_dmg_dealt)
+			var est_enemy_ratio = est_enemy_remaining / target_actor.stats.max_health
+			if est_enemy_ratio > hp_ratio + 0.15:
+				if has_node("/root/Telemetry"):
+					get_node("/root/Telemetry").log_tactics("disengage_losing_fight")
+				change_state(State.DISENGAGE)
+				return
+
+	# Low ammo retreat: ≤25% mag left but reserve available → duck to cover and reload
+	if not _retreating_to_reload and _disengage_cooldown <= 0 and reserve_ammo > 0 \
+			and stats.max_ammo > 0 \
+			and float(stats.current_ammo) / float(stats.max_ammo) <= 0.25:
+		_retreating_to_reload = true
+		if has_node("/root/Telemetry"):
+			get_node("/root/Telemetry").log_tactics("reload_retreat")
 		change_state(State.DISENGAGE)
 		return
 
@@ -530,7 +595,11 @@ func handle_zone_escape_state(delta):
 	if self_2d.distance_to(zone_c) < main.current_zone_radius * 0.75:
 		change_state(State.IDLE); return
 	var zone_center_3d = Vector3(zone_c.x, global_position.y, zone_c.y)
-	_nav_move_toward(zone_center_3d, delta, true)
+	# When stuck, use wall-slide escape direction rather than random stuck override
+	if _stuck_override_timer > 0:
+		handle_movement(_sample_zone_escape_dir(zone_c), delta, true)
+	else:
+		_nav_move_toward(zone_center_3d, delta, true)
 
 func _sample_zone_escape_dir(zone_c: Vector2) -> Vector3:
 	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
@@ -542,6 +611,19 @@ func _sample_zone_escape_dir(zone_c: Vector2) -> Vector3:
 	return (to_center + perp * sign * 0.6).normalized()
 
 func handle_disengage_state(delta):
+	# Reload retreat: once behind cover long enough, reload and re-engage
+	if _retreating_to_reload and state_timer > 1.5:
+		_try_reload()
+		_retreating_to_reload = false
+		if stats.current_ammo > 0:
+			var reload_enemy = _find_nearest_target()
+			if reload_enemy:
+				target_actor = reload_enemy
+				change_state(State.CHASE)
+				return
+		change_state(State.IDLE)
+		return
+
 	# Return to action if threat count drops
 	if _count_visible_enemies() <= 1 and state_timer > 2.0:
 		target_actor = _find_nearest_target()
@@ -656,6 +738,20 @@ func apply_difficulty(params: Dictionary):
 		_scan_interval_max = params.idle_scan_interval_max
 	if params.has("awareness_level"):
 		_awareness_level = params.awareness_level
+
+# ─── LATE GAME SHIFT ─────────────────────────────────────────────────────────
+# When alive_count ≤ 3, bots escalate: tighter scans, harder to disengage,
+# and actively close on the last known player position when idle.
+
+func _check_late_game():
+	if _late_game_applied: return
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main or main.alive_count > 3: return
+	_late_game_applied = true
+	_awareness_level    = mini(_awareness_level + 1, 2)
+	_disengage_threshold = mini(_disengage_threshold + 1, 4)
+	_scan_interval_max  = maxf(_scan_interval_max * 0.5, 0.8)
+	_flee_hp_ratio      = maxf(_flee_hp_ratio - 0.05, 0.10)
 
 # ─── FOOTSTEP DETECTION ───────────────────────────────────────────────────────
 # Running actors (velocity > 50% of move_speed) emit audible footsteps.
@@ -1022,6 +1118,7 @@ func _bot_melee():
 	if not _is_target_valid(target_actor): return
 	if global_position.distance_to(target_actor.global_position) > MELEE_RANGE: return
 	target_actor.take_damage(MELEE_DAMAGE, "melee", "knife", self)
+	_engagement_dmg_dealt += MELEE_DAMAGE  # melee is guaranteed on hit
 	var impact = IMPACT_EFFECT_SCN.instantiate()
 	get_tree().root.add_child(impact)
 	impact.global_position = target_actor.global_position + Vector3(0, 0.8, 0)
@@ -1118,6 +1215,9 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 	super.take_damage(amount, source, weapon_type, source_node)
 	if is_dead: return
 
+	# Track incoming damage for fight-or-flight estimation
+	_engagement_dmg_taken += amount
+
 	# Instantly reveal attacker so _find_nearest_target picks them up
 	if source_node is Entity and is_instance_valid(source_node) and not source_node.is_dead:
 		perception_meters[source_node] = 1.0
@@ -1160,6 +1260,10 @@ func shoot():
 		fire_cooldown = stats.fire_rate
 	else:
 		_internal_single_shot()
+	# Estimate damage dealt (55% assumed hit rate — intentionally imprecise)
+	if current_state == State.ATTACK and is_instance_valid(target_actor) and target_actor is Entity:
+		var pellets = stats.pellet_count if stats.weapon_type == "shotgun" else 1
+		_engagement_dmg_dealt += stats.attack_damage * pellets * 0.55
 
 func _internal_single_shot():
 	stats.current_ammo -= 1
@@ -1221,6 +1325,9 @@ func change_state(new_state: State):
 	if current_state == State.DISENGAGE and new_state != State.DISENGAGE:
 		_disengage_cooldown = 10.0
 	if new_state != State.ATTACK: _knife_mode = false
+	if new_state == State.ATTACK:
+		_engagement_dmg_dealt = 0.0
+		_engagement_dmg_taken = 0.0
 	if DEBUG_PRINT:
 		print("[BOT] %s → %s (ammo=%d reserve=%d hp=%.0f)" % [
 			State.keys()[current_state], State.keys()[new_state],
