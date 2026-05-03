@@ -6,6 +6,6 @@
 script = ExtResource("1_script")
 type = 2
 rarity = 1
-item_name = "MedKit"
+item_name = "구급상자"
 amount = 1
 color = Color(1, 0.88, 0.1, 1)

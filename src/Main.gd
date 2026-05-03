@@ -422,10 +422,13 @@ func start_game():
 	
 	_show_panel("HUD")
 
-	# 랜덤 보너스 미션 자동 배정
+	# 랜덤 보너스 미션 자동 배정 (아티팩트와 불가능한 조합 제외)
 	mission_tracker = MissionTrackerScript.new()
-	var pool = MissionTrackerScript.get_all_missions()
-	mission_tracker.active_mission = pool[randi() % pool.size()]
+	var _bm_pool = MissionTrackerScript.get_all_missions()
+	var _bm_art_mods = _pending_artifact.get("mods", {})
+	_bm_pool = _bm_pool.filter(func(m): return _is_bonus_mission_feasible(m, _bm_art_mods))
+	if _bm_pool.is_empty(): _bm_pool = MissionTrackerScript.get_all_missions()
+	mission_tracker.active_mission = _bm_pool[randi() % _bm_pool.size()]
 
 	# 압박 미션 활성화 여부
 	heal_pickup_banned = false
@@ -1176,6 +1179,14 @@ func _trigger_pressure_mission():
 	mission_tracker.start_pressure(descriptor, zone_wait_time + zone_shrink_time)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_pressure_event("triggered", descriptor.get("id", ""))
+
+func _is_bonus_mission_feasible(m, art_mods: Dictionary) -> bool:
+	# zone_battery (heal_mult=0): 힐 완전 봉인 → 구급상자 사용 미션 불가
+	if art_mods.get("heal_mult", 1.0) == 0.0 and m.id == "medic_run":
+		return false
+	# armor_sponge (heal_to_shield): 힐→방어막 전환이지만 on_player_medkit_used()는 정상 호출되므로 호환
+	# silent_core (max_health_mult 0.5): WIN_HIGH_HP(50) 목표값이 최대HP와 동일해 어렵지만 가능
+	return true
 
 func _is_pressure_feasible(descriptor: Dictionary, bot_alive: int) -> bool:
 	for cond in descriptor.get("conditions", []):

@@ -5,6 +5,6 @@
 script = ExtResource("1_item")
 type = 3
 rarity = 1
-item_name = "Body Armor"
+item_name = "방어구"
 amount = 20
 color = Color(0, 0.8, 1, 1)

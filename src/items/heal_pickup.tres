@@ -5,6 +5,6 @@
 [resource]
 script = ExtResource("1_script")
 type = 2
-item_name = "Health Potion"
+item_name = "붕대"
 amount = 1
 color = Color(0.2, 1, 0.4, 1)

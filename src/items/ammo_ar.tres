@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_script")
 type = 1
-item_name = "AR Ammo"
+item_name = "소총 탄"
 amount = 15
 ammo_weapon_type = "ar"
 color = Color(1, 0.8, 0.2, 1)

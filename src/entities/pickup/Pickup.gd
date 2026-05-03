@@ -3,9 +3,29 @@ class_name Pickup
 
 @export var item: ItemData
 
+var _label: Label3D = null
+var _los_timer: float = 0.0
+
 func _ready():
 	add_to_group("pickups")
 	_update_visuals()
+
+func _process(delta: float):
+	if not _label: return
+	_los_timer -= delta
+	if _los_timer > 0.0: return
+	_los_timer = 0.1
+	var player = get_tree().get_first_node_in_group("players") as Node3D
+	if not player:
+		_label.visible = false
+		return
+	var space = get_world_3d().direct_space_state
+	var from = player.global_position + Vector3(0, 0.8, 0)
+	var to   = global_position + Vector3(0, 0.5, 0)
+	var query = PhysicsRayQueryParameters3D.create(from, to, 1)
+	query.exclude = [player.get_rid()]
+	var hit = space.intersect_ray(query)
+	_label.visible = hit.is_empty()
 
 func init(data: ItemData):
 	item = data
@@ -45,17 +65,20 @@ func _update_visuals():
 			$OmniLight3D.light_color = item.color
 
 	var existing = get_node_or_null("PickupLabel")
-	if existing: existing.queue_free()
+	if existing:
+		existing.queue_free()
+		_label = null
 	if not item: return
 
 	var label = Label3D.new()
 	label.name = "PickupLabel"
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	label.no_depth_test = true
+	label.no_depth_test = false
 	label.font_size = 26
 	label.pixel_size = 0.005
 	label.position = Vector3(0, 1.1, 0)
 	label.outline_size = 6
+	label.visible = false  # hidden until LOS confirmed
 
 	# Unicode prefix makes type immediately clear without adding a separate node
 	var prefix = ""
@@ -78,6 +101,7 @@ func _update_visuals():
 	label.text = display_text
 	label.modulate = Color.GOLD if item.rarity == ItemData.Rarity.RARE else Color.WHITE
 	add_child(label)
+	_label = label
 
 func collect(collector: Entity) -> bool:
 	if not item: return false

@@ -1158,7 +1158,7 @@ func _drop_ammo():
 	var item = ItemData.new()
 	item.type = ItemData.Type.AMMO
 	item.rarity = ItemData.Rarity.COMMON
-	item.item_name = _weapon_display_name(stats.weapon_type) + " Ammo"
+	item.item_name = _ammo_display_name(stats.weapon_type)
 	item.ammo_weapon_type = stats.weapon_type
 	item.amount = total
 	item.color = _weapon_color(stats.weapon_type)
@@ -1172,7 +1172,7 @@ func _drop_heals():
 		var item = ItemData.new()
 		item.type = ItemData.Type.HEAL
 		item.rarity = ItemData.Rarity.COMMON
-		item.item_name = "Health Potion"
+		item.item_name = "붕대"
 		item.amount = stats.heal_items
 		item.color = Color(0.2, 1.0, 0.4)
 		var pickup = PICKUP_SCN.instantiate()
@@ -1183,7 +1183,7 @@ func _drop_heals():
 		var item = ItemData.new()
 		item.type = ItemData.Type.HEAL
 		item.rarity = ItemData.Rarity.RARE
-		item.item_name = "MedKit"
+		item.item_name = "구급상자"
 		item.amount = stats.advanced_heals
 		item.color = Color(1.0, 0.88, 0.1)
 		var pickup = PICKUP_SCN.instantiate()
@@ -1193,11 +1193,19 @@ func _drop_heals():
 
 func _weapon_display_name(wtype: String) -> String:
 	match wtype:
-		"pistol":  return "Pistol"
-		"ar":      return "Assault Rifle"
-		"shotgun": return "Shotgun"
-		"railgun": return "Railgun"
+		"pistol":  return "피스톨"
+		"ar":      return "돌격소총"
+		"shotgun": return "샷건"
+		"railgun": return "레일건"
 	return wtype.capitalize()
+
+func _ammo_display_name(wtype: String) -> String:
+	match wtype:
+		"ar":      return "소총 탄"
+		"shotgun": return "샷건 탄"
+		"railgun": return "레일 탄"
+		"pistol":  return "피스톨 탄"
+	return wtype.capitalize() + " 탄"
 
 func _weapon_color(wtype: String) -> Color:
 	match wtype:

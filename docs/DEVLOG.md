@@ -5,6 +5,37 @@
 
 ---
 
+## v1.5.4 — 2026-05-03
+
+**아이템 한글화 + LOS 라벨 시야 + 미션 호환성 버그 수정**
+
+**src/items/\*.tres**
+
+- 전 아이템 `item_name` 한글화: Assault Rifle→돌격소총, Shotgun→샷건, Railgun→레일건, AR Ammo→소총 탄, Shotgun Shells→샷건 탄, Rail Cells→레일 탄, Health Potion→붕대, MedKit→구급상자, Body Armor→방어구
+
+**src/entities/bot/Bot.gd**
+
+- `_weapon_display_name()`: Pistol→피스톨, Assault Rifle→돌격소총 등 한글 통일
+- `_ammo_display_name()` 추가: 봇 사망 시 드롭하는 탄약 이름 한글화 (소총 탄, 샷건 탄, 레일 탄)
+- `_drop_heals()`: "Health Potion"→"붕대", "MedKit"→"구급상자"
+
+**src/entities/pickup/Pickup.gd**
+
+- **LOS 기반 라벨 가시성**: `no_depth_test = false` 전환, 0.1초마다 플레이어→아이템 raycast (collision_mask=1 static geometry). 벽/장애물에 가려진 아이템 라벨 자동 숨김. 시야에 직접 보이는 아이템만 이름 표시.
+- `_label` 참조 변수 + `_los_timer` throttle 추가
+
+**src/Main.gd**
+
+- `_is_bonus_mission_feasible()` 추가: `zone_battery`(heal_mult=0) + `MEDIC_RUN`(WIN_WITH_HEALS) 조합 필터링 — 힐이 완전 봉인된 상태에서 구급상자 3회 사용 미션이 배정되지 않도록 수정
+- 보너스 미션 풀 생성 시 아티팩트 호환성 사전 필터 적용
+- HP_DAMAGE 패널티: 기존 `max(1.0, HP - amt)` 보호 유지 확인 (즉사 없음)
+
+**src/Main.tscn**
+
+- `VersionLabel` 텍스트: `"v1.0"` → `"v1.5.4"` (하드코딩 버전 표기 수정)
+
+---
+
 ## v1.5.3 — 2026-05-02
 
 **봇 AI — 전술 심화 (교전 판단, 후반부, 재장전 후퇴, 킬 후 스캔)**

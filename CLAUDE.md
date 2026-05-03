@@ -10,7 +10,7 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v1.5.3 (봇 전술 심화 — 교전 판단·후반부·재장전 후퇴·킬 후 스캔) |
+| 완료 버전 | v1.5.4 (아이템 한글화 · LOS 라벨 시야 · 미션 호환성 버그 수정) |
 | 다음 버전 | v1.6 — 봇 아키타입 4종 (AGGRESSIVE/DEFENSIVE/SNIPER/OPPORTUNIST) |
 | 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
 

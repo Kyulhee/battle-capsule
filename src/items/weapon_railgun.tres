@@ -7,7 +7,7 @@
 script = ExtResource("1_script")
 type = 0
 rarity = 1
-item_name = "Railgun"
+item_name = "레일건"
 amount = 1
 weapon_stats = ExtResource("2_stats")
 color = Color(1, 0.2, 1, 1)
