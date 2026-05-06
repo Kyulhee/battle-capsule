@@ -9,6 +9,7 @@ const MELEE_RANGE: float  = 1.8
 const MELEE_DAMAGE: float = 20.0
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
+enum CombatPlan { STRAFE, ADVANCE, KITE, PEEK_COVER, REPOSITION, HOLD_ANGLE }
 var current_state: State = State.IDLE
 var target_actor: Node3D = null
 
@@ -19,6 +20,17 @@ var scan_timer: float = 0.0
 var scan_target_rotation: float = 0.0
 var fire_cooldown: float = 0.0
 var last_known_target_pos: Vector3 = Vector3.ZERO
+
+# Individual combat doctrine. Bots periodically pick a plan instead of
+# sliding in a constant pattern while shooting.
+var _combat_plan: CombatPlan = CombatPlan.STRAFE
+var _combat_plan_timer: float = 0.0
+var _combat_move_target: Vector3 = Vector3.ZERO
+var _combat_cover: Vector3 = Vector3.ZERO
+var _strafe_dir: float = 1.0
+var _strafe_timer: float = 0.0
+var _peek_side: float = 1.0
+var _recover_cover: Vector3 = Vector3.ZERO
 
 # Recovery
 var recovery_substate: String = "seek_cover"
@@ -54,15 +66,16 @@ const DEBUG_PRINT = false
 
 var _state_label: Label3D = null
 
-# ─── PERSONALITY ─────────────────────────────────────────────────────────────
-enum Personality { AGGRESSIVE, DEFENSIVE, SCAVENGER }
-var personality: Personality = Personality.AGGRESSIVE
+# ─── ARCHETYPE ───────────────────────────────────────────────────────────────
+enum BotArchetype { AGGRESSIVE, DEFENSIVE, SNIPER, OPPORTUNIST }
+var archetype: BotArchetype = BotArchetype.AGGRESSIVE
 var _disengage_threshold: int = 2  # visible enemies needed to trigger DISENGAGE
 var _fire_rate_mult: float = 1.0   # multiplier applied to fire_cooldown post-shot when allies attack same target
 var _footstep_range: float = 12.0  # radius to hear running actors
 var _loot_radius: float = 70.0     # pickup search radius in RECOVER
 var _combat_loot_threshold: float = 0.0  # ammo ratio below which bot breaks combat to grab nearby loot
 var _flee_hp_ratio: float = 0.25         # HP ratio below which bot exits combat to RECOVER
+var _sniper_min_engage_range: float = 0.0  # SNIPER: retreat if target closes within this distance
 
 # ─── DIFFICULTY ──────────────────────────────────────────────────────────────
 var _reaction_delay: float = 0.0   # seconds between spotting and reacting
@@ -87,6 +100,7 @@ var _retreating_to_reload: bool = false
 # Fight-or-flight: estimated damage exchange this engagement
 var _engagement_dmg_dealt: float = 0.0
 var _engagement_dmg_taken: float = 0.0
+var _last_damage_tick: int = 0
 # Late-game shift (alive ≤ 3) — applied once
 var _late_game_applied: bool = false
 
@@ -96,7 +110,7 @@ func _ready():
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	super._ready()
 	add_to_group("bots")
-	_apply_personality([Personality.AGGRESSIVE, Personality.DEFENSIVE, Personality.SCAVENGER][randi() % 3])
+	# 아키타입은 Main.gd에서 스폰 후 배정. 여기서는 기본값만 유지.
 	died.connect(_on_died_zone_log)
 	_state_label = Label3D.new()
 	_state_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -339,7 +353,7 @@ func handle_idle_state(delta):
 
 	var main = get_tree().root.get_node_or_null("Main")
 	if main and (main.supply_telegraphed or main.supply_spawned):
-		var supply_range = 70.0 if personality == Personality.SCAVENGER else 50.0
+		var supply_range = 80.0 if archetype == BotArchetype.OPPORTUNIST else 50.0
 		if global_position.distance_to(main.supply_pos) < supply_range:
 			var dir = (main.supply_pos - global_position).normalized()
 			_move_or_unstick(dir, delta, true)
@@ -458,6 +472,8 @@ func handle_attack_state(delta):
 		var nearby = _find_best_pickup(_combat_loot_radius)
 		if nearby:
 			target_actor = nearby; is_targeting_loot = true; _recovering = true
+			if has_node("/root/Telemetry"):
+				get_node("/root/Telemetry").log_tactics("recovery_start")
 			change_state(State.CHASE); return
 
 	if stats.current_ammo <= 0:
@@ -487,31 +503,31 @@ func handle_attack_state(delta):
 
 	var main = get_tree().root.get_node_or_null("Main")
 	if main:
-		var zone_dist = Vector2(global_position.x, global_position.z).distance_to(main.current_zone_center)
-		var atk_threshold = 0.9 - min(main.zone_stage - 1, 3) * 0.05  # 0.90 → 0.75
-		if zone_dist > main.current_zone_radius * atk_threshold:
+		var zone_dist = Vector2(global_position.x, global_position.z).distance_to(main.zone.current_center)
+		var atk_threshold = 0.9 - min(main.zone.stage - 1, 3) * 0.05  # 0.90 → 0.75
+		if zone_dist > main.zone.current_radius * atk_threshold:
 			change_state(State.ZONE_ESCAPE); return
+
+	# SNIPER: retreat if target closes within minimum engage range
+	if _sniper_min_engage_range > 0.0 and _disengage_cooldown <= 0:
+		var cur_dist = global_position.distance_to(target_actor.global_position) if is_instance_valid(target_actor) else INF
+		if cur_dist < _sniper_min_engage_range:
+			change_state(State.DISENGAGE); return
 
 	var dir_to_target = (last_known_target_pos - global_position).normalized()
 	rotation.y = lerp_angle(rotation.y, atan2(dir_to_target.x, dir_to_target.z) + PI, stats.rotation_speed * delta)
 
-	# Hard+ (awareness 2): periodic combat hops and tighter strafe
+	# Hard+ (awareness 2): occasional combat hops when committing in the open.
 	if _awareness_level >= 2:
 		_combat_jump_timer -= delta
-		if _combat_jump_timer <= 0 and is_on_floor():
+		if _combat_jump_timer <= 0 and is_on_floor() and _combat_plan in [CombatPlan.ADVANCE, CombatPlan.STRAFE]:
 			velocity.y = 5.0
 			_combat_jump_timer = randf_range(2.0, 4.0)
 
-	var strafe_scale = clamp(0.2 + _awareness_level * 0.2, 0.2, 0.6)
-	var strafe = Vector3(-dir_to_target.z, 0, dir_to_target.x) * sin(state_timer * 2.5)
-	if dist > pref_range * 1.2:
-		_move_or_unstick(dir_to_target + strafe * strafe_scale, delta, false)
-	elif dist < pref_range * 0.5:
-		_move_or_unstick(-dir_to_target + strafe * strafe_scale, delta, false)
-	else:
-		_move_or_unstick(strafe, delta, false)
+	_update_combat_plan(delta, can_see, dist, pref_range)
+	_apply_combat_movement(delta, can_see, dist, pref_range, dir_to_target)
 
-	if fire_cooldown <= 0:
+	if fire_cooldown <= 0 and _should_fire_for_plan(can_see):
 		if not can_see:
 			shoot_predictive(last_known_target_pos)
 		else:
@@ -532,14 +548,36 @@ func handle_recover_state(delta):
 	var nearest_enemy = _find_nearest_target()
 
 	if recovery_substate == "seek_cover":
-		# Sprint away from threat using an instance-unique scatter direction.
-		# After 2.5 s (or immediately if no threat visible), widen search.
-		if not nearest_enemy or recovery_timer > 2.5:
+		# Break line-of-sight first, then loot. Running straight to ammo while
+		# wounded makes RECOVER deaths spike and looks less human.
+		if not nearest_enemy:
 			recovery_substate = "seek_loot"
 			recovery_timer = 0.0
 			return
-		var scatter = _scatter_dir_from(nearest_enemy.global_position)
-		_move_or_unstick(scatter, delta, true)
+
+		if _recover_cover == Vector3.ZERO:
+			_recover_cover = _find_cover_point(nearest_enemy.global_position)
+
+		var cover_time_limit = 4.2 if current_health / stats.max_health < 0.45 else 2.6
+		if _recover_cover != Vector3.ZERO:
+			var cover_dist = global_position.distance_to(_recover_cover)
+			if cover_dist > 2.0:
+				_nav_move_toward(_recover_cover, delta, true)
+			else:
+				handle_movement(Vector3.ZERO, delta, false)
+				if recovery_timer > 1.1:
+					recovery_substate = "seek_loot"
+					recovery_timer = 0.0
+					_recover_cover = Vector3.ZERO
+			if recovery_timer > cover_time_limit:
+				recovery_substate = "seek_loot"
+				recovery_timer = 0.0
+				_recover_cover = Vector3.ZERO
+		else:
+			_move_or_unstick(_scatter_dir_from(nearest_enemy.global_position), delta, true)
+			if recovery_timer > cover_time_limit:
+				recovery_substate = "seek_loot"
+				recovery_timer = 0.0
 
 	elif recovery_substate == "seek_loot":
 		# Wider search radius when actively looking for ammo
@@ -590,9 +628,9 @@ func handle_recover_state(delta):
 func handle_zone_escape_state(delta):
 	var main = get_tree().root.get_node_or_null("Main")
 	if not main: change_state(State.IDLE); return
-	var zone_c = main.current_zone_center
+	var zone_c = main.zone.current_center
 	var self_2d = Vector2(global_position.x, global_position.z)
-	if self_2d.distance_to(zone_c) < main.current_zone_radius * 0.75:
+	if self_2d.distance_to(zone_c) < main.zone.current_radius * 0.75:
 		change_state(State.IDLE); return
 	var zone_center_3d = Vector3(zone_c.x, global_position.y, zone_c.y)
 	# When stuck, use wall-slide escape direction rather than random stuck override
@@ -615,23 +653,27 @@ func handle_disengage_state(delta):
 	if _retreating_to_reload and state_timer > 1.5:
 		_try_reload()
 		_retreating_to_reload = false
-		if stats.current_ammo > 0:
-			var reload_enemy = _find_nearest_target()
-			if reload_enemy:
-				target_actor = reload_enemy
-				change_state(State.CHASE)
-				return
-		change_state(State.IDLE)
-		return
+		var still_fragile = current_health / stats.max_health < _flee_hp_ratio + 0.12 and state_timer < 4.5
+		if not still_fragile:
+			if stats.current_ammo > 0:
+				var reload_enemy = _find_nearest_target()
+				if reload_enemy:
+					target_actor = reload_enemy
+					change_state(State.CHASE)
+					return
+			change_state(State.IDLE)
+			return
 
 	# Return to action if threat count drops
 	if _count_visible_enemies() <= 1 and state_timer > 2.0:
-		target_actor = _find_nearest_target()
-		if target_actor:
-			change_state(State.CHASE)
-		else:
-			change_state(State.IDLE)
-		return
+		var still_fragile = current_health / stats.max_health < _flee_hp_ratio + 0.12 and state_timer < 4.5
+		if not still_fragile:
+			target_actor = _find_nearest_target()
+			if target_actor:
+				change_state(State.CHASE)
+			else:
+				change_state(State.IDLE)
+			return
 
 	# No ammo while disengaging — recover instead
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
@@ -644,8 +686,8 @@ func handle_disengage_state(delta):
 	# Zone override still applies
 	var main = get_tree().root.get_node_or_null("Main")
 	if main:
-		var zone_dist = Vector2(global_position.x, global_position.z).distance_to(main.current_zone_center)
-		if zone_dist > main.current_zone_radius:
+		var zone_dist = Vector2(global_position.x, global_position.z).distance_to(main.zone.current_center)
+		if zone_dist > main.zone.current_radius:
 			change_state(State.ZONE_ESCAPE); return
 
 	var nearest_threat = _find_nearest_target()
@@ -664,6 +706,148 @@ func handle_disengage_state(delta):
 		_nav_move_toward(_disengage_cover, delta, true)
 	else:
 		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, true)
+
+# ─── PERSONAL COMBAT DOCTRINE ────────────────────────────────────────────────
+
+func _update_combat_plan(delta: float, can_see: bool, dist: float, pref_range: float):
+	_combat_plan_timer -= delta
+	_strafe_timer -= delta
+	if _strafe_timer <= 0.0:
+		_strafe_dir = -_strafe_dir if randf() < 0.75 else (1.0 if randf() < 0.5 else -1.0)
+		_strafe_timer = randf_range(0.55, 1.35)
+	if _combat_plan_timer > 0.0:
+		return
+
+	var previous_plan = _combat_plan
+	_combat_plan_timer = randf_range(0.9, 1.8)
+	_combat_plan = CombatPlan.STRAFE
+	_combat_move_target = Vector3.ZERO
+	_combat_cover = Vector3.ZERO
+
+	var hp_ratio = current_health / maxf(1.0, stats.max_health)
+	var ammo_ratio = 1.0
+	if stats.max_ammo > 0:
+		ammo_ratio = float(stats.current_ammo) / float(stats.max_ammo)
+	var visible_enemies = _count_visible_enemies()
+	var target_pos = target_actor.global_position if is_instance_valid(target_actor) else last_known_target_pos
+	var losing_trade = _engagement_dmg_taken > _engagement_dmg_dealt + 15.0
+
+	if not can_see and last_known_target_pos != Vector3.ZERO:
+		_combat_plan = CombatPlan.REPOSITION
+		_combat_move_target = _pick_combat_reposition_point(last_known_target_pos, pref_range)
+	elif hp_ratio < _flee_hp_ratio + 0.18 or losing_trade or visible_enemies >= 2:
+		_combat_cover = _find_cover_point(target_pos)
+		_combat_plan = CombatPlan.PEEK_COVER if _combat_cover != Vector3.ZERO else CombatPlan.KITE
+	elif stats.weapon_type == "shotgun" and dist > pref_range * 0.75 and hp_ratio > 0.45:
+		_combat_plan = CombatPlan.ADVANCE
+	elif archetype == BotArchetype.SNIPER or stats.weapon_type == "railgun":
+		if dist < pref_range * 0.85:
+			_combat_plan = CombatPlan.KITE
+		else:
+			_combat_cover = _find_cover_point(target_pos)
+			_combat_plan = CombatPlan.PEEK_COVER if _combat_cover != Vector3.ZERO else CombatPlan.HOLD_ANGLE
+	elif ammo_ratio <= 0.35 and reserve_ammo > 0:
+		_combat_cover = _find_cover_point(target_pos)
+		_combat_plan = CombatPlan.PEEK_COVER if _combat_cover != Vector3.ZERO else CombatPlan.KITE
+	elif can_see and randf() < 0.28:
+		_combat_cover = _find_cover_point(target_pos)
+		if _combat_cover != Vector3.ZERO:
+			_combat_plan = CombatPlan.PEEK_COVER
+	elif can_see and hp_ratio > 0.55 and randf() < 0.22:
+		_combat_plan = CombatPlan.REPOSITION
+		_combat_move_target = _pick_combat_reposition_point(target_pos, pref_range)
+
+	if _combat_plan != previous_plan and has_node("/root/Telemetry"):
+		var tel = get_node("/root/Telemetry")
+		match _combat_plan:
+			CombatPlan.PEEK_COVER:
+				_peek_side = _strafe_dir
+				tel.log_tactics("cover_peek")
+			CombatPlan.REPOSITION:
+				tel.log_tactics("combat_reposition")
+			CombatPlan.KITE:
+				tel.log_tactics("combat_kite")
+
+func _apply_combat_movement(delta: float, _can_see: bool, dist: float, pref_range: float, dir_to_target: Vector3):
+	var strafe_scale = clamp(0.25 + _awareness_level * 0.16, 0.25, 0.55)
+	var strafe = Vector3(-dir_to_target.z, 0, dir_to_target.x) * _strafe_dir
+	match _combat_plan:
+		CombatPlan.ADVANCE:
+			_move_or_unstick((dir_to_target + strafe * 0.25).normalized(), delta, false)
+		CombatPlan.KITE:
+			_move_or_unstick((-dir_to_target + strafe * 0.45).normalized(), delta, false)
+		CombatPlan.PEEK_COVER:
+			if _combat_cover == Vector3.ZERO:
+				_move_or_unstick(strafe, delta, false)
+			elif global_position.distance_to(_combat_cover) > 2.0:
+				_nav_move_toward(_combat_cover, delta, true)
+			else:
+				var peek_dir = strafe * _peek_side
+				if _is_peeking_out():
+					_move_or_unstick((peek_dir * 0.8 + dir_to_target * 0.15).normalized(), delta, false)
+				else:
+					_move_or_unstick((-peek_dir * 0.5 - dir_to_target * 0.2).normalized(), delta, false)
+		CombatPlan.REPOSITION:
+			if _combat_move_target == Vector3.ZERO or global_position.distance_to(_combat_move_target) < 2.0:
+				_combat_plan_timer = 0.0
+				_move_or_unstick(strafe * strafe_scale, delta, false)
+			else:
+				_nav_move_toward(_combat_move_target, delta, false)
+		CombatPlan.HOLD_ANGLE:
+			if dist > pref_range * 1.25:
+				_move_or_unstick((dir_to_target + strafe * 0.2).normalized(), delta, false)
+			elif dist < pref_range * 0.65:
+				_move_or_unstick((-dir_to_target + strafe * 0.25).normalized(), delta, false)
+			else:
+				handle_movement(strafe * 0.2, delta, false)
+		_:
+			if dist > pref_range * 1.2:
+				_move_or_unstick((dir_to_target + strafe * strafe_scale).normalized(), delta, false)
+			elif dist < pref_range * 0.55:
+				_move_or_unstick((-dir_to_target + strafe * strafe_scale).normalized(), delta, false)
+			else:
+				_move_or_unstick(strafe * strafe_scale, delta, false)
+
+func _should_fire_for_plan(can_see: bool) -> bool:
+	if _combat_plan == CombatPlan.PEEK_COVER and not _is_peeking_out():
+		return false
+	if _combat_plan == CombatPlan.REPOSITION and _combat_move_target != Vector3.ZERO \
+			and global_position.distance_to(_combat_move_target) > 3.5:
+		return false
+	if not can_see and state_timer > 1.1:
+		return false
+	return true
+
+func _is_peeking_out() -> bool:
+	var offset = float(get_instance_id() % 17) * 0.047
+	return fmod(Time.get_ticks_msec() / 1000.0 + offset, 1.25) < 0.55
+
+func _pick_combat_reposition_point(anchor: Vector3, pref_range: float) -> Vector3:
+	var to_target = anchor - global_position
+	to_target.y = 0
+	if to_target.length() < 0.1:
+		to_target = -global_transform.basis.z
+	to_target = to_target.normalized()
+	var side = Vector3(-to_target.z, 0, to_target.x) * _strafe_dir * randf_range(5.0, 8.0)
+	var range_adjust = Vector3.ZERO
+	if stats.weapon_type == "shotgun" or archetype == BotArchetype.AGGRESSIVE:
+		range_adjust = to_target * randf_range(1.5, 3.5)
+	elif global_position.distance_to(anchor) < pref_range:
+		range_adjust = -to_target * randf_range(2.0, 4.0)
+	var candidate = global_position + side + range_adjust
+	return _clamp_to_safe_zone(candidate)
+
+func _clamp_to_safe_zone(pos: Vector3) -> Vector3:
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		return pos
+	var center = main.zone.current_center
+	var radius = main.zone.current_radius * 0.85
+	var p2 = Vector2(pos.x, pos.z)
+	var offset = p2 - center
+	if offset.length() > radius:
+		p2 = center + offset.normalized() * radius
+	return Vector3(p2.x, global_position.y, p2.y)
 
 # ─── STATE INDICATOR ─────────────────────────────────────────────────────────
 
@@ -696,30 +880,43 @@ func _update_state_label_visibility():
 
 # ─── PERSONALITY & DIFFICULTY ────────────────────────────────────────────────
 
-func _apply_personality(p: Personality):
-	personality = p
+func _apply_archetype(p: BotArchetype):
+	archetype = p
+	_sniper_min_engage_range = 0.0
 	match p:
-		Personality.AGGRESSIVE:
+		BotArchetype.AGGRESSIVE:
 			_disengage_threshold = 3
 			_fire_rate_mult = 0.8
 			_footstep_range = 10.0
 			_loot_radius = 70.0
 			_combat_loot_threshold = 0.0
-			_flee_hp_ratio = 0.15  # fights until nearly dead
-		Personality.DEFENSIVE:
+			_flee_hp_ratio = 0.15
+			stats.attack_range *= 0.75  # 근접 선호
+		BotArchetype.DEFENSIVE:
 			_disengage_threshold = 1
 			_fire_rate_mult = 1.0
 			_footstep_range = 15.0
-			_loot_radius = 60.0
+			_loot_radius = 80.0
 			_combat_loot_threshold = 0.20
-			_flee_hp_ratio = 0.35  # retreats early, values survival
-		Personality.SCAVENGER:
+			_flee_hp_ratio = 0.35
+			stats.attack_range *= 1.2   # 원거리 유지
+		BotArchetype.SNIPER:
+			_disengage_threshold = 1
+			_fire_rate_mult = 1.3       # 신중한 단발
+			_footstep_range = 20.0
+			_loot_radius = 60.0
+			_combat_loot_threshold = 0.0
+			_flee_hp_ratio = 0.40       # 생존 최우선
+			_sniper_min_engage_range = 14.0  # 14m 이내 진입 시 후퇴
+			stats.vision_range *= 1.6
+			stats.attack_range *= 2.0
+		BotArchetype.OPPORTUNIST:
 			_disengage_threshold = 2
-			_fire_rate_mult = 1.15
+			_fire_rate_mult = 1.0
 			_footstep_range = 18.0
 			_loot_radius = 90.0
-			_combat_loot_threshold = 0.30
-			_flee_hp_ratio = 0.25  # balanced survival instinct
+			_combat_loot_threshold = 0.25
+			_flee_hp_ratio = 0.25
 
 func apply_difficulty(params: Dictionary):
 	if params.has("vision_mult"):
@@ -910,7 +1107,6 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 	var obstacles = get_tree().get_nodes_in_group("obstacles")
 	var best_pos = Vector3.ZERO
 	var best_score = INF
-	var my_dist_to_threat = global_position.distance_to(threat_pos)
 	# Per-bot angular sector so multiple bots spread around the same obstacle
 	var sector_angle = float(get_instance_id() % 8) * (TAU / 8.0)
 
@@ -921,7 +1117,7 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 
 		var obs_pos = Vector3(obs.global_position.x, global_position.y, obs.global_position.z)
 		var dist_to_obs = global_position.distance_to(obs_pos)
-		if dist_to_obs > 20.0 or dist_to_obs < 0.5: continue
+		if dist_to_obs > 40.0 or dist_to_obs < 0.5: continue
 
 		var threat_to_obs = (obs_pos - threat_pos).normalized()
 		threat_to_obs.y = 0
@@ -930,7 +1126,7 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 		var cover = obs_pos + threat_to_obs * 2.0 + spread
 		cover.y = global_position.y
 
-		if cover.distance_to(threat_pos) <= my_dist_to_threat: continue
+		if cover.distance_to(threat_pos) < 5.0: continue
 
 		# Penalise cover spots already targeted by allied bots
 		var crowding = 0.0
@@ -943,6 +1139,31 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 		if score < best_score:
 			best_score = score
 			best_pos = cover
+
+	if best_pos == Vector3.ZERO:
+		var main = get_tree().root.get_node_or_null("Main")
+		if main and main.map_spec:
+			for o in main.map_spec.obstacles:
+				var type_str = o.get("type", "")
+				if type_str == "bush_patch" or type_str == "log_pile": continue
+				var scale_vec = o.get("scale", [1, 1, 1])
+				if scale_vec[1] < 2.5 and type_str != "tree_cluster" and type_str != "canyon_wall": continue
+				var op = o.get("pos", [0, 0])
+				var spec_obs_pos = Vector3(op[0], global_position.y, op[1])
+				var spec_dist = global_position.distance_to(spec_obs_pos)
+				if spec_dist > 40.0 or spec_dist < 0.5: continue
+				var spec_threat_to_obs = spec_obs_pos - threat_pos
+				spec_threat_to_obs.y = 0
+				if spec_threat_to_obs.length() < 0.1: continue
+				spec_threat_to_obs = spec_threat_to_obs.normalized()
+				var spec_spread = Vector3(cos(sector_angle), 0, sin(sector_angle)) * 1.5
+				var spec_cover = spec_obs_pos + spec_threat_to_obs * 2.0 + spec_spread
+				spec_cover.y = global_position.y
+				if spec_cover.distance_to(threat_pos) < 5.0: continue
+				var spec_score = spec_dist + 3.0
+				if spec_score < best_score:
+					best_score = spec_score
+					best_pos = spec_cover
 
 	return best_pos
 
@@ -959,11 +1180,11 @@ func _obs_provides_cover(obs: Node3D) -> bool:
 func _check_state_overrides(delta):
 	var main = get_tree().root.get_node_or_null("Main")
 	if not main: return
-	var dist = Vector2(global_position.x, global_position.z).distance_to(main.current_zone_center)
+	var dist = Vector2(global_position.x, global_position.z).distance_to(main.zone.current_center)
 	# Shrink trigger threshold as zone stage rises: 0.95 → 0.80 over stages 1-4.
 	# At high stages zone damage is severe, so bots must react before reaching the edge.
-	var threshold = 0.95 - min(main.zone_stage - 1, 3) * 0.05
-	if dist > main.current_zone_radius * threshold:
+	var threshold = 0.95 - min(main.zone.stage - 1, 3) * 0.05
+	if dist > main.zone.current_radius * threshold:
 		_zone_outside_timer += delta
 		if current_state != State.ZONE_ESCAPE:
 			change_state(State.ZONE_ESCAPE)
@@ -976,16 +1197,28 @@ func _check_survival_overrides():
 	if current_state == State.ZONE_ESCAPE or current_state == State.RECOVER: return
 	var hp_ratio = current_health / stats.max_health
 	if hp_ratio > _flee_hp_ratio: return
+	var can_still_fight = stats.current_ammo > 0 or reserve_ammo > 0
 	match current_state:
 		State.ATTACK:
 			if not _knife_mode:  # knife rush is an intentional last stand, don't interrupt
-				change_state(State.RECOVER)
+				if can_still_fight:
+					_retreating_to_reload = reserve_ammo > 0 and stats.current_ammo < stats.max_ammo
+					if has_node("/root/Telemetry"):
+						get_node("/root/Telemetry").log_tactics("survival_break")
+					change_state(State.DISENGAGE)
+				else:
+					change_state(State.RECOVER)
 		State.CHASE:
 			if not is_targeting_loot:  # don't cancel a life-saving loot run
 				target_actor = null
-				change_state(State.RECOVER)
+				if can_still_fight:
+					if has_node("/root/Telemetry"):
+						get_node("/root/Telemetry").log_tactics("survival_break")
+					change_state(State.DISENGAGE)
+				else:
+					change_state(State.RECOVER)
 		State.DISENGAGE:
-			if state_timer > 1.5:  # give time to find cover first, then switch to full RECOVER
+			if not can_still_fight and state_timer > 1.5:
 				change_state(State.RECOVER)
 
 # ─── PERIPHERAL AWARENESS ────────────────────────────────────────────────────
@@ -1043,9 +1276,9 @@ func _random_zone_point() -> Vector3:
 	var cz: float = 0.0
 	var r: float = 30.0
 	if main:
-		cx = main.current_zone_center.x
-		cz = main.current_zone_center.y
-		r = main.current_zone_radius * 0.8
+		cx = main.zone.current_center.x
+		cz = main.zone.current_center.y
+		r = main.zone.current_radius * 0.8
 	var angle = randf() * TAU
 	var dist  = randf() * r
 	return Vector3(cx + cos(angle) * dist, global_position.y, cz + sin(angle) * dist)
@@ -1054,11 +1287,11 @@ func _pick_patrol_target() -> Vector3:
 	var main = get_tree().root.get_node_or_null("Main")
 	if main and (main.supply_telegraphed or main.supply_spawned):
 		return Vector3(main.supply_pos.x, global_position.y, main.supply_pos.z)
-	match personality:
-		Personality.DEFENSIVE:
+	match archetype:
+		BotArchetype.DEFENSIVE:
 			var bush = _find_nearest_bush()
 			if bush != Vector3.ZERO: return bush
-		Personality.SCAVENGER:
+		BotArchetype.OPPORTUNIST:
 			var hotspot = _find_nearest_hotspot()
 			if hotspot != Vector3.ZERO: return hotspot
 	return _random_zone_point()
@@ -1090,14 +1323,22 @@ func _find_nearest_hotspot() -> Vector3:
 
 func _find_nearest_target() -> Entity:
 	var actors = get_tree().get_nodes_in_group("actors")
-	var nearest: Entity = null
-	var min_dist = stats.vision_range
+	var best: Entity = null
+	var best_score = INF
 	for a in actors:
 		if a == self or not a is Entity or a.is_dead: continue
 		if a.is_revealed_to(self):
 			var d = global_position.distance_to(a.global_position)
-			if d < min_dist: min_dist = d; nearest = a
-	return nearest
+			if d >= stats.vision_range: continue
+			var score: float
+			if archetype == BotArchetype.OPPORTUNIST:
+				# 낮은 HP 적 우선: hp_ratio 낮을수록 score 낮아짐 (선호)
+				var hp_ratio = a.current_health / maxf(1.0, a.stats.max_health)
+				score = d * (0.4 + hp_ratio * 0.6)
+			else:
+				score = d
+			if score < best_score: best_score = score; best = a
+	return best
 
 func _find_nearest_pickup(search_radius: float = 35.0) -> Node3D:
 	var pickups = get_tree().get_nodes_in_group("pickups")
@@ -1133,6 +1374,9 @@ func die(killer: Node3D = null):
 	_drop_ammo()
 	_drop_heals()
 	super.die(killer)
+
+func get_telemetry_state() -> String:
+	return State.keys()[current_state]
 
 func _drop_weapon():
 	if stats.weapon_type == "" or stats.weapon_type == "knife": return
@@ -1225,6 +1469,7 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 
 	# Track incoming damage for fight-or-flight estimation
 	_engagement_dmg_taken += amount
+	_last_damage_tick = Time.get_ticks_msec()
 
 	# Instantly reveal attacker so _find_nearest_target picks them up
 	if source_node is Entity and is_instance_valid(source_node) and not source_node.is_dead:
@@ -1239,13 +1484,17 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 	if source_node is Entity and is_instance_valid(source_node) and not source_node.is_dead:
 		# Passive states: immediately engage the attacker
 		var passive = current_state == State.IDLE \
-			or (current_state == State.CHASE and is_targeting_loot) \
-			or current_state == State.DISENGAGE
+			or (current_state == State.CHASE and is_targeting_loot)
 		if passive:
 			target_actor = source_node
 			is_targeting_loot = false
 			_pending_target = null
 			change_state(State.CHASE)
+		elif current_state == State.DISENGAGE:
+			target_actor = source_node
+			last_known_target_pos = source_node.global_position
+			if current_health / stats.max_health > 0.55 and _count_visible_enemies() <= 1:
+				change_state(State.CHASE)
 		# HARD+: switch targets mid-combat when hit by a third party
 		elif _awareness_level >= 2 and current_state == State.ATTACK \
 				and source_node != target_actor:
@@ -1336,6 +1585,12 @@ func change_state(new_state: State):
 	if new_state == State.ATTACK:
 		_engagement_dmg_dealt = 0.0
 		_engagement_dmg_taken = 0.0
+		_combat_plan_timer = 0.0
+		_combat_move_target = Vector3.ZERO
+		_combat_cover = Vector3.ZERO
+		_strafe_timer = 0.0
+		_strafe_dir = 1.0 if randf() < 0.5 else -1.0
+		_peek_side = _strafe_dir
 	if DEBUG_PRINT:
 		print("[BOT] %s → %s (ammo=%d reserve=%d hp=%.0f)" % [
 			State.keys()[current_state], State.keys()[new_state],
@@ -1356,5 +1611,6 @@ func change_state(new_state: State):
 		recovery_substate = "seek_cover"
 		recovery_timer = 0.0
 		patrol_target = Vector3.ZERO
+		_recover_cover = Vector3.ZERO
 	if new_state == State.DISENGAGE:
 		_disengage_cover = Vector3.ZERO

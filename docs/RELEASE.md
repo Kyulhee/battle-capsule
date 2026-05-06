@@ -1,6 +1,7 @@
 # 릴리즈 가이드
 
 > 배틀캡슐 빌드 & GitHub 릴리즈 전체 절차
+> 현재 릴리즈 후보: `v1.6.1`
 
 ---
 
@@ -26,6 +27,8 @@
 ```bash
 # 헤드리스 시뮬레이션으로 AI/밸런스 이상 없는지 확인
 ./Godot_v4.6.2-stable_win64_console.exe --headless -- autostart=true
+python tools/simulate_matches.py 5
+python tools/analyze_results.py
 cat "$APPDATA/Godot/app_userdata/BattleRoyalePrototype/sim_result_latest.json"
 ```
 

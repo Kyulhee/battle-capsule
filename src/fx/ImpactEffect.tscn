@@ -31,8 +31,12 @@ size = Vector2(0.1, 0.1)
 script/source = "extends GPUParticles3D
 func _ready():
 	emitting = true
-	await get_tree().create_timer(lifetime + 0.1).timeout
-	queue_free()
+	var timer = Timer.new()
+	timer.one_shot = true
+	timer.wait_time = lifetime + 0.1
+	timer.timeout.connect(queue_free)
+	add_child(timer)
+	timer.start()
 "
 
 [node name="ImpactEffect" type="GPUParticles3D"]

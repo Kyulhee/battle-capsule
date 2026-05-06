@@ -5,10 +5,10 @@
 
 > Godot 4.6.2 · 개발: Kyulhee
 
-## 다운로드 (v1.5.4)
+## 다운로드 (v1.6.1)
 
-[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.5.4/BattleRoyalePrototype_v1.5.4_win64.zip)
-[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.5.4/BattleRoyalePrototype_mac.zip)
+[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.6.1/BattleRoyalePrototype_v1.6.1_win64.zip)
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.6.1/BattleRoyalePrototype_mac.zip)
 
 > macOS: 처음 실행 시 `시스템 설정 > 개인정보 보호 및 보안`에서 허용 필요 (공증 미적용 빌드)
 
@@ -88,11 +88,11 @@
 **칼**: 사거리는 짧지만 탄약이 필요 없고 즉시 공격됩니다. 탄약이 다 떨어졌을 때 유용합니다.  
 **돌격소총**: 탄창이 크고 연사가 빠릅니다. 범용으로 쓰기 좋습니다.  
 **샷건**: 한 발에 여러 탄환이 퍼집니다. 근거리에서 강력하지만 장전이 느립니다.  
-**레일건**: 단일 피해가 가장 높습니다. 탄창이 3발뿐이므로 조준해서 쏘세요.
+**레일건**: 단일 피해가 가장 높습니다. 탄창이 2발뿐이므로 조준해서 쏘세요.
 
 ### 중복 무기 제한
 
-같은 종류의 무기는 두 번 주울 수 없습니다. 이미 AR을 가지고 있으면 바닥의 AR은 E키를 눌러도 반응하지 않습니다.
+같은 종류의 무기는 두 번 주울 수 없습니다. 이미 AR을 가지고 있으면 바닥의 AR은 F키를 눌러도 반응하지 않습니다.
 
 ---
 
@@ -143,6 +143,6 @@
 
 ## 알려진 이슈
 
-- 봇이 탄약을 소진하면 같은 벽에 여러 마리가 몰리는 현상이 있습니다 (다음 버전에서 개선)
+- 봇 AI 전술은 v1.6.1에서 안정화됐지만, 다음 버전에서 Doctrine 계층 구조로 다시 정리할 예정입니다
 - 지형 일부에서 드물게 끼임 현상이 발생할 수 있습니다
 - 스크린샷·맵 이미지는 추후 추가 예정입니다

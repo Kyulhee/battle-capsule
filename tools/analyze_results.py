@@ -1,28 +1,96 @@
 import json
+import sys
+from collections import Counter
+from pathlib import Path
 
-with open("scratch/simulation_results.json", "r") as f:
-    results = json.load(f)
 
-num = len(results)
-if num == 0:
-    print("No results to analyze.")
-    exit()
+RUN_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("tools") / "sim_runs_current"
 
-avg_duration = sum(r["duration"] for r in results) / num
-total_recovery_bouts = sum(r["recovery_total_bouts"] for r in results)
-total_recovery_success = sum(r["recovery_success_count"] for r in results)
-total_died_recovering = sum(r["died_while_recovering"] for r in results)
-total_reengaged = sum(r["reengaged_after_recovery"] for r in results)
-total_supply_interest = sum(r["supply_interest"] for r in results)
 
-avg_dist_ar = sum(r["kill_distances"].get("assault_rifle", 0) for r in results if "assault_rifle" in r["kill_distances"]) / max(1, len([r for r in results if "assault_rifle" in r["kill_distances"]]))
-avg_dist_sg = sum(r["kill_distances"].get("shotgun", 0) for r in results if "shotgun" in r["kill_distances"]) / max(1, len([r for r in results if "shotgun" in r["kill_distances"]]))
+def load_runs(run_dir: Path) -> list[dict]:
+    if (run_dir / "summary.json").exists():
+        with (run_dir / "summary.json").open("r", encoding="utf-8") as f:
+            return json.load(f)
 
-print(f"--- 20-Match Simulation Analysis (AI Tactics Pass) ---")
-print(f"Avg Match Duration: {avg_duration:.2f}s")
-print(f"Total Supply Interest: {total_supply_interest}")
-print(f"Ammo Recovery Success Rate: {total_recovery_success/max(1, total_recovery_bouts)*100.0:.1f}% ({total_recovery_success}/{total_recovery_bouts})")
-print(f"Died While Recovering: {total_died_recovering}")
-print(f"Re-engaged After Recovery: {total_reengaged}")
-print(f"Avg Kill Dist (AR): {avg_dist_ar:.1f}m")
-print(f"Avg Kill Dist (Shotgun): {avg_dist_sg:.1f}m")
+    runs = []
+    for path in sorted(run_dir.glob("run_*.json")):
+        with path.open("r", encoding="utf-8") as f:
+            runs.append(json.load(f))
+    return runs
+
+
+def avg(values: list[float]) -> float:
+    return sum(values) / max(1, len(values))
+
+
+if __name__ == "__main__":
+    results = load_runs(RUN_DIR)
+    if not results:
+        print(f"No results found in {RUN_DIR}.")
+        raise SystemExit(1)
+
+    durations = [r.get("core", {}).get("duration", 0.0) for r in results]
+    stages = [r.get("core", {}).get("zone_stage_reached", 0) for r in results]
+    attack_bouts = [r.get("combat", {}).get("attack_max_continuous", 0.0) for r in results]
+    recover = [r.get("tactics", {}).get("recover_bouts", 0) for r in results]
+    recover_success = [r.get("tactics", {}).get("recover_success", 0) for r in results]
+    died_in_recover = [r.get("tactics", {}).get("died_in_recover", 0) for r in results]
+    disengage = [r.get("tactics", {}).get("disengage_triggered", 0) for r in results]
+    stuck = [r.get("tactics", {}).get("stuck_triggered", 0) for r in results]
+    cover_peek = [r.get("tactics", {}).get("cover_peek", 0) for r in results]
+    reposition = [r.get("tactics", {}).get("combat_reposition", 0) for r in results]
+    kite = [r.get("tactics", {}).get("combat_kite", 0) for r in results]
+    survival_break = [r.get("tactics", {}).get("survival_break", 0) for r in results]
+    first_upgrade = [
+        r.get("economy", {}).get("first_upgrade_time", -1.0)
+        for r in results
+        if r.get("economy", {}).get("first_upgrade_time", -1.0) >= 0
+    ]
+
+    total_recover = sum(recover)
+    total_recover_success = sum(recover_success)
+    total_recover_deaths = sum(died_in_recover)
+    weapon_pickups = Counter()
+    first_upgrade_weapons = Counter()
+    for r in results:
+        economy = r.get("economy", {})
+        weapon_pickups.update(economy.get("weapon_pickups", {}))
+        first_weapon = economy.get("first_upgrade_weapon", "none")
+        if first_weapon != "none":
+            first_upgrade_weapons[first_weapon] += 1
+    pressure = [r.get("pressure", {}) for r in results]
+    pressure_triggered = sum(p.get("pressure_triggered", 0) for p in pressure)
+    pressure_resolved = sum(p.get("pressure_cleared", 0) + p.get("pressure_failed", 0) for p in pressure)
+
+    print("--- Simulation Analysis ---")
+    print(f"Runs: {len(results)}")
+    print(f"Avg duration: {avg(durations):.1f}s")
+    print(f"Min/Max duration: {min(durations):.1f}s / {max(durations):.1f}s")
+    print(f"Avg zone stage: {avg(stages):.2f}")
+    print(f"Runs under 60s: {sum(1 for d in durations if d < 60.0)}")
+    print(f"Avg/Max longest attack bout: {avg(attack_bouts):.1f}s / {max(attack_bouts):.1f}s")
+    print(f"Recover success: {total_recover_success}/{total_recover} ({100.0 * total_recover_success / max(1, total_recover):.1f}%)")
+    print(
+        f"Died in RECOVER: {total_recover_deaths} "
+        f"({avg(died_in_recover):.1f}/run, {100.0 * total_recover_deaths / max(1, total_recover):.1f}% of bouts)"
+    )
+    print(f"Avg disengage triggers: {avg(disengage):.1f}")
+    print(f"Avg stuck triggers: {avg(stuck):.1f}")
+    print(
+        "Avg combat plans: cover={:.1f}, reposition={:.1f}, kite={:.1f}, survival={:.1f}".format(
+            avg(cover_peek),
+            avg(reposition),
+            avg(kite),
+            avg(survival_break),
+        )
+    )
+    if first_upgrade:
+        print(f"Avg first upgrade: {avg(first_upgrade):.1f}s")
+    if first_upgrade_weapons:
+        first_parts = [f"{weapon}={count}" for weapon, count in sorted(first_upgrade_weapons.items())]
+        print(f"First upgrade weapons: {', '.join(first_parts)}")
+    if weapon_pickups:
+        pickup_parts = [f"{weapon}={count}" for weapon, count in sorted(weapon_pickups.items())]
+        print(f"Weapon pickups: {', '.join(pickup_parts)}")
+    if pressure_triggered:
+        print(f"Pressure resolved: {pressure_resolved}/{pressure_triggered}")

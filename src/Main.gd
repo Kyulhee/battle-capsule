@@ -59,23 +59,11 @@ var consumable_templates: Array[ItemData] = []
 
 var loot_hotspots: Array[Vector2] = []
 var _spawn_positions: Array = []
-var _zone_outside_time: Dictionary = {}
 
-var current_zone_center: Vector2 = Vector2.ZERO
-var current_zone_radius: float = 50.0
-var current_zone_center_start: Vector2 = Vector2.ZERO
-var current_zone_radius_start: float = 50.0
-var next_zone_center: Vector2 = Vector2.ZERO
-var next_zone_radius: float = 25.0
-
-var zone_stage: int = 1
+var zone = null
 @export var zone_wait_time: float = 30.0
 @export var zone_shrink_time: float = 20.0
 @export var zone_damage: float = 2.0
-
-var zone_timer: float = 0.0
-var damage_tick_timer: float = 0.0
-var is_shrinking: bool = false
 var alive_count: int = 0
 var game_over: bool = false
 var player_ref: Entity = null
@@ -99,10 +87,11 @@ var _result_sep_mission: HSeparator = null
 
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
+const ZoneControllerScript = preload("res://src/core/ZoneController.gd")
 
 # MapSpec & Builder
 const MapSpecScript = preload("res://src/core/MapSpec.gd")
-var map_spec: Resource = null
+var map_spec = null
 @onready var world_builder = $WorldBuilder
 
 # Navigation
@@ -111,7 +100,6 @@ var _nav_region: NavigationRegion3D = null
 # Dynamic Supply
 var supply_telegraphed: bool = false
 var supply_spawned: bool = false
-var _zone_warning_played: bool = false
 var supply_pos: Vector3 = Vector3.ZERO
 var supply_timer: float = 0.0
 var supply_pillar: MeshInstance3D = null
@@ -414,11 +402,14 @@ func start_game():
 	current_state = GameState.PLAYING
 	game_over = false
 	match_timer = 0.0
-	current_zone_center = Vector2.ZERO
-	current_zone_radius = 50.0
-	zone_stage = 1
-	zone_timer = 15.0
-	generate_next_zone()
+	zone = ZoneControllerScript.new()
+	zone.wait_time = zone_wait_time
+	zone.shrink_time = zone_shrink_time
+	zone.damage_per_second = zone_damage
+	zone.timer = 15.0
+	zone.generate_next()
+	zone.stage_advanced.connect(_on_zone_stage_changed)
+	zone.zone_warning.connect(_on_zone_warning)
 	
 	_show_panel("HUD")
 
@@ -727,7 +718,7 @@ func _setup_navigation():
 	nav_mesh.agent_max_climb = 0.3
 	nav_mesh.agent_max_slope = 45.0
 	nav_mesh.cell_size = 0.3
-	nav_mesh.cell_height = 0.2
+	nav_mesh.cell_height = 0.25
 	_nav_region = NavigationRegion3D.new()
 	_nav_region.name = "NavRegion"
 	_nav_region.navigation_mesh = nav_mesh
@@ -758,11 +749,11 @@ func _process(delta):
 	
 	# Update Zone Visuals
 	if zone_ring:
-		zone_ring.scale = Vector3(current_zone_radius, 1, current_zone_radius)
-		zone_ring.position.x = current_zone_center.x
-		zone_ring.position.z = current_zone_center.y
-	
-	if zone_stage == 2 and not supply_telegraphed:
+		zone_ring.scale = Vector3(zone.current_radius, 1, zone.current_radius)
+		zone_ring.position.x = zone.current_center.x
+		zone_ring.position.z = zone.current_center.y
+
+	if zone.stage == 2 and not supply_telegraphed:
 		telegraph_supply_zone()
 		
 	if supply_telegraphed and not supply_spawned:
@@ -776,41 +767,28 @@ func _process(delta):
 			activate_supply_zone()
 
 func handle_zone_lifecycle(delta):
-	zone_timer -= delta
-	if zone_timer <= 0:
-		if not is_shrinking:
-			is_shrinking = true
-			zone_timer = zone_shrink_time
-			current_zone_radius_start = current_zone_radius
-			current_zone_center_start = current_zone_center
-		else:
-			current_zone_center = next_zone_center
-			current_zone_radius = next_zone_radius
-			zone_stage += 1
-			if has_node("/root/Telemetry"): get_node("/root/Telemetry").set_stage(zone_stage)
-			_print_bot_state_snapshot()
-			spawn_loot(0.1 + (zone_stage * 0.1), 10)
-			if heal_ban_until_stage > 0 and zone_stage > heal_ban_until_stage:
-				heal_pickup_banned = false
-				heal_ban_until_stage = -1
-			match zone_stage:
-				2: zone_wait_time = 20.0; zone_shrink_time = 15.0; zone_damage = 5.0
-				3: zone_wait_time = 15.0; zone_shrink_time = 12.0; zone_damage = 10.0
-				4, _: zone_wait_time = 10.0; zone_shrink_time = 10.0; zone_damage = 15.0
-			generate_next_zone()
-			is_shrinking = false
-			zone_timer = zone_wait_time
-			# Trigger after time values are updated so deadline = real next-cycle duration
-			if pressure_missions_enabled and not game_over:
-				_trigger_pressure_mission()
-			_zone_warning_played = false
-	if not is_shrinking and zone_timer <= 10.0 and not _zone_warning_played:
-		_zone_warning_played = true
-		if has_node("/root/Sfx"): get_node("/root/Sfx").play("zone_warning")
-	if is_shrinking:
-		var t = 1.0 - (zone_timer / zone_shrink_time)
-		current_zone_radius = lerp(current_zone_radius_start, next_zone_radius, t)
-		current_zone_center = current_zone_center_start.lerp(next_zone_center, t)
+	zone.tick_lifecycle(delta)
+
+func _on_zone_stage_changed(new_stage: int):
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").set_stage(new_stage)
+		if new_stage == 2:
+			var dist: Dictionary = {}
+			for b in get_tree().get_nodes_in_group("actors"):
+				if is_instance_valid(b) and not b.is_in_group("players") and not b.is_dead:
+					var aname = b.BotArchetype.keys()[b.archetype]
+					dist[aname] = dist.get(aname, 0) + 1
+			get_node("/root/Telemetry").log_archetype_alive_at_zone2(dist)
+	_print_bot_state_snapshot()
+	spawn_loot(0.1 + (new_stage * 0.1), 10)
+	if heal_ban_until_stage > 0 and new_stage > heal_ban_until_stage:
+		heal_pickup_banned = false
+		heal_ban_until_stage = -1
+	if pressure_missions_enabled and not game_over:
+		_trigger_pressure_mission()
+
+func _on_zone_warning():
+	if has_node("/root/Sfx"): get_node("/root/Sfx").play("zone_warning")
 
 func spawn_entities():
 	_spawn_positions = []
@@ -826,8 +804,14 @@ func spawn_entities():
 		p.current_health = 1.0
 		p.health_changed.emit(1.0, p.stats.max_health)
 
-	# Spawn Bots
+	# Spawn Bots — 아키타입 배정 3:3:2:3 (AGGRESSIVE/DEFENSIVE/SNIPER/OPPORTUNIST)
 	var diff_params = DIFFICULTY_PARAMS[difficulty]
+	var _archetype_pool: Array = []
+	for _ai in range(3): _archetype_pool.append(0)  # AGGRESSIVE
+	for _ai in range(3): _archetype_pool.append(1)  # DEFENSIVE
+	for _ai in range(2): _archetype_pool.append(2)  # SNIPER
+	for _ai in range(3): _archetype_pool.append(3)  # OPPORTUNIST
+	_archetype_pool.shuffle()
 	for i in range(bot_count):
 		var b = bot_scene.instantiate()
 		$Entities.add_child(b)
@@ -835,8 +819,13 @@ func spawn_entities():
 		b.global_position = _get_safe_spawn_pos()
 		b.died.connect(_on_bot_died.bind(b))
 		b.apply_difficulty(diff_params)
+		var atype = _archetype_pool[i] if i < _archetype_pool.size() else 0
+		b._apply_archetype(atype)
 		if difficulty == Difficulty.HELL and hell_modifier == HellModifier.ALL_AGGRESSIVE:
-			b._apply_personality(b.Personality.AGGRESSIVE)
+			b._apply_archetype(b.BotArchetype.AGGRESSIVE)
+		if has_node("/root/Telemetry"):
+			var aname = b.BotArchetype.keys()[b.archetype]
+			get_node("/root/Telemetry").log_archetype_spawn(aname)
 
 func _get_safe_spawn_pos() -> Vector3:
 	for _attempt in range(50):
@@ -958,32 +947,28 @@ func activate_supply_zone():
 		
 	if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_supply_event("contest")
 
-func generate_next_zone():
-	next_zone_radius = current_zone_radius * 0.6
-	var max_offset = current_zone_radius - next_zone_radius
-	var angle = randf() * TAU
-	var dist = randf() * max_offset
-	next_zone_center = current_zone_center + Vector2(cos(angle), sin(angle)) * dist
-
 func _on_bot_died(bot: Entity = null):
 	# Capture final-duel context BEFORE decrementing alive_count
 	if alive_count == 2 and bot and has_node("/root/Telemetry"):
 		var pos_2d = Vector2(bot.global_position.x, bot.global_position.z)
-		var zone_dist = pos_2d.distance_to(current_zone_center)
-		var outside_extra = _zone_outside_time.get(bot.get_instance_id(), 0.0)
+		var zone_dist = pos_2d.distance_to(zone.current_center)
+		var outside_extra = zone.get_outside_time(bot.get_instance_id())
 		get_node("/root/Telemetry").log_final_duel_death({
 			"cause":            bot.last_damage_source,
 			"state":            bot.State.keys()[bot.current_state],
-			"zone_dist_ratio":  snappedf(zone_dist / max(current_zone_radius, 0.1), 0.01),
+			"zone_dist_ratio":  snappedf(zone_dist / max(zone.current_radius, 0.1), 0.01),
 			"outside_sec":      outside_extra,
 			"was_stuck":        bot._stuck_override_timer > 0.0,
 			"stuck_sec":        snappedf(bot._stuck_timer, 0.01),
-			"stage":            zone_stage,
+			"stage":            zone.stage,
 			"bot_hp":           snappedf(bot.current_health, 0.1),
 		})
 	alive_count -= 1
 	if bot:
-		_zone_outside_time.erase(bot.get_instance_id())
+		zone.on_entity_died(bot.get_instance_id())
+		if has_node("/root/Telemetry"):
+			var aname = bot.BotArchetype.keys()[bot.archetype]
+			get_node("/root/Telemetry").log_archetype_death(aname)
 	# Mission tracker kill hook
 	if mission_tracker and bot and bot.last_killer == player_ref:
 		var num_detecting = 0
@@ -1000,7 +985,7 @@ func _on_bot_died(bot: Entity = null):
 		})
 		var player_hp_ratio = player_ref.current_health / player_ref.stats.max_health if is_instance_valid(player_ref) else 1.0
 		var player_pos_2d = Vector2(player_ref.global_position.x, player_ref.global_position.z) if is_instance_valid(player_ref) else Vector2.ZERO
-		var p_outside = player_pos_2d.distance_to(current_zone_center) > current_zone_radius
+		var p_outside = zone.is_outside(player_pos_2d)
 		mission_tracker.on_pressure_kill(
 			bot.last_damage_weapon,
 			bot.perception_meters.get(player_ref, 0.0) < 1.0,
@@ -1052,7 +1037,7 @@ func _end_match(final_rank: int = 1):
 		final_rank = 1
 	
 	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").end_match(final_rank, "Player" if is_victory else "Bot", zone_stage)
+		get_node("/root/Telemetry").end_match(final_rank, "Player" if is_victory else "Bot", zone.stage)
 		
 	# Hide Player HUD
 	if is_instance_valid(player_ref):
@@ -1126,7 +1111,7 @@ func _print_bot_state_snapshot():
 		counts[s] = counts.get(s, 0) + 1
 		positions.append(Vector2(b.global_position.x, b.global_position.z))
 		var b2d = Vector2(b.global_position.x, b.global_position.z)
-		if b2d.distance_to(current_zone_center) > current_zone_radius:
+		if zone.is_outside(b2d):
 			outside_zone += 1
 	# Compute pairwise distance average to measure clustering
 	var avg_dist = 0.0
@@ -1137,30 +1122,11 @@ func _print_bot_state_snapshot():
 			pairs += 1
 	if pairs > 0: avg_dist /= pairs
 	print("[BOT_SNAPSHOT] zone_stage=%d  states=%s  outside_zone=%d  avg_pairwise_dist=%.1fm  alive=%d" % [
-		zone_stage, str(counts), outside_zone, avg_dist, positions.size()
+		zone.stage, str(counts), outside_zone, avg_dist, positions.size()
 	])
 
 func handle_damage_tick(delta):
-	damage_tick_timer += delta
-	if damage_tick_timer >= 1.0:
-		damage_tick_timer = 0.0
-		var actors = get_tree().get_nodes_in_group("actors")
-		for a in actors:
-			if not is_instance_valid(a): continue
-			if a is Entity and not a.is_dead:
-				var pos_2d = Vector2(a.global_position.x, a.global_position.z)
-				var uid = a.get_instance_id()
-				var is_outside = pos_2d.distance_to(current_zone_center) > current_zone_radius
-				if is_outside:
-					_zone_outside_time[uid] = _zone_outside_time.get(uid, 0.0) + 1.0
-					# Damage ramps up the longer you stay outside (caps at 2× after 10s)
-					var time_mult = 1.0 + min(_zone_outside_time[uid], 10.0) * 0.1
-					a.take_damage(zone_damage * time_mult, "zone")
-				else:
-					_zone_outside_time.erase(uid)
-				if mission_tracker and a == player_ref:
-					mission_tracker.on_player_zone_tick(is_outside)
-					mission_tracker.on_pressure_zone_tick(is_outside, 1.0)
+	zone.tick_damage(delta, get_tree().get_nodes_in_group("actors"), mission_tracker, player_ref)
 
 # ─── PRESSURE MISSION ────────────────────────────────────────────────────────
 
@@ -1173,10 +1139,10 @@ func _trigger_pressure_mission():
 		pool = MissionTrackerScript.get_hard_pool()
 	# Filter out missions that are impossible given current game state
 	var bot_alive = max(0, alive_count - 1)
-	pool = pool.filter(func(d): return _is_pressure_feasible(d, bot_alive))
+	pool = MissionTrackerScript.filter_feasible(pool, zone.stage, bot_alive)
 	if pool.is_empty(): return
 	var descriptor = pool[randi() % pool.size()]
-	mission_tracker.start_pressure(descriptor, zone_wait_time + zone_shrink_time)
+	mission_tracker.start_pressure(descriptor, zone.wait_time + zone.shrink_time)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_pressure_event("triggered", descriptor.get("id", ""))
 
@@ -1186,22 +1152,6 @@ func _is_bonus_mission_feasible(m, art_mods: Dictionary) -> bool:
 		return false
 	# armor_sponge (heal_to_shield): 힐→방어막 전환이지만 on_player_medkit_used()는 정상 호출되므로 호환
 	# silent_core (max_health_mult 0.5): WIN_HIGH_HP(50) 목표값이 최대HP와 동일해 어렵지만 가능
-	return true
-
-func _is_pressure_feasible(descriptor: Dictionary, bot_alive: int) -> bool:
-	for cond in descriptor.get("conditions", []):
-		var target: int = int(cond.get("target", 1))
-		match int(cond["type"]):
-			MissionTrackerScript.PressureCondition.KILL, \
-			MissionTrackerScript.PressureCondition.KILL_MELEE, \
-			MissionTrackerScript.PressureCondition.KILL_WHILE_ZONE_OUTSIDE, \
-			MissionTrackerScript.PressureCondition.KILL_LOW_HP:
-				if bot_alive < target: return false
-			MissionTrackerScript.PressureCondition.SURVIVE_DETECTED_SEC:
-				if bot_alive < 2: return false  # need 2+ bots to detect
-			MissionTrackerScript.PressureCondition.ZONE_OUTSIDE_SEC:
-				# At stage 3+ zone deals 10dmg/s — 10s outside = 100dmg, lethal
-				if zone_stage >= 3 and target >= 10: return false
 	return true
 
 func _process_pressure_mission(delta: float):
@@ -1234,22 +1184,11 @@ func _apply_pressure_effects(effects: Array, is_reward: bool):
 	for eff in effects:
 		match int(eff["type"]):
 			MissionTrackerScript.PressureEffect.AMMO_REFILL:
-				for i in range(1, 5):
-					if player_ref.weapon_slots[i] != null:
-						player_ref.slot_ammo[i] = player_ref.weapon_slots[i].max_ammo
-						player_ref.slot_reserve[i] = player_ref.weapon_slots[i].max_reserve_ammo if player_ref.weapon_slots[i].has("max_reserve_ammo") else 30
-				player_ref._refresh_slot_hud()
+				player_ref.slots.fill_all_ammo()
 			MissionTrackerScript.PressureEffect.AMMO_CLEAR:
-				for i in range(1, 5):
-					player_ref.slot_ammo[i] = 0
-					player_ref.slot_reserve[i] = 0
-				player_ref._refresh_slot_hud()
+				player_ref.slots.clear_all_ammo()
 			MissionTrackerScript.PressureEffect.AMMO_ACTIVE_CLEAR:
-				var s = player_ref.active_slot
-				if s >= 1:
-					player_ref.slot_ammo[s] = 0
-					player_ref.slot_reserve[s] = 0
-				player_ref._refresh_slot_hud()
+				player_ref.slots.clear_active_ammo()
 			MissionTrackerScript.PressureEffect.HP_RESTORE:
 				if eff.get("full", false):
 					player_ref.current_health = player_ref.stats.max_health
@@ -1275,7 +1214,7 @@ func _apply_pressure_effects(effects: Array, is_reward: bool):
 				player_ref._update_hud()
 			MissionTrackerScript.PressureEffect.HEAL_PICKUP_BAN:
 				heal_pickup_banned = true
-				heal_ban_until_stage = zone_stage + 1
+				heal_ban_until_stage = zone.stage + 1
 			MissionTrackerScript.PressureEffect.ALL_BOTS_DETECT:
 				for b in get_tree().get_nodes_in_group("actors"):
 					if is_instance_valid(b) and not b.is_in_group("players") and not b.is_dead:
@@ -1290,12 +1229,14 @@ func _apply_pressure_effects(effects: Array, is_reward: bool):
 							nearest_dist = d
 							nearest = b
 				if nearest and nearest.has_method("handle_idle_state"):
+					nearest.target_actor = player_ref
+					nearest.is_targeting_loot = false
+					nearest.last_known_target_pos = player_ref.global_position
 					nearest.current_state = nearest.State.CHASE
-					nearest.chase_target = player_ref
 			MissionTrackerScript.PressureEffect.ZONE_EXTEND:
-				zone_timer += zone_wait_time * (float(eff.get("mult", 1.0)) - 1.0)
+				zone.timer += zone.wait_time * (float(eff.get("mult", 1.0)) - 1.0)
 			MissionTrackerScript.PressureEffect.RAILGUN_UNLIMITED:
-				railgun_unlimited_until_stage = zone_stage + int(eff.get("stages", 1))
+				railgun_unlimited_until_stage = zone.stage + int(eff.get("stages", 1))
 
 # ─── MENU VISUALS ────────────────────────────────────────────────────────────
 
@@ -1947,11 +1888,11 @@ func _start_bombardment():
 		get_node("/root/Telemetry").log_hell_event("bombardment_warned")
 
 	var angle = randf() * TAU
-	var dist  = randf() * current_zone_radius * 0.85
+	var dist  = randf() * zone.current_radius * 0.85
 	var center = Vector3(
-		current_zone_center.x + cos(angle) * dist,
+		zone.current_center.x + cos(angle) * dist,
 		0.05,
-		current_zone_center.y + sin(angle) * dist
+		zone.current_center.y + sin(angle) * dist
 	)
 
 	if hell_modifier == HellModifier.BARRAGE:

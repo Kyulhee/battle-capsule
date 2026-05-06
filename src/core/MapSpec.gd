@@ -1,3 +1,4 @@
+class_name MapSpec
 extends Resource
 
 @export var metadata: Dictionary = {}
@@ -13,7 +14,7 @@ static func from_json(json_text: String) -> Resource:
 		return null
 		
 	var data = json.get_data()
-	var spec = (load("res://src/core/MapSpec.gd") as GDScript).new()
+	var spec = MapSpec.new()
 	spec.metadata = data.get("metadata", {})
 	
 	for p in data.get("pois", []):

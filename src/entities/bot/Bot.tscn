@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://c6j2x7n2v7m4v"]
 
 [ext_resource type="Script" path="res://src/entities/bot/Bot.gd" id="1_script"]
-[ext_resource type="Resource" uid="uid://dx7n2v7m4v8c" path="res://src/core/bot_stats.tres" id="2_stats"]
+[ext_resource type="Resource" path="res://src/core/bot_stats.tres" id="2_stats"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
 radius = 0.5

@@ -10,9 +10,9 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v1.5.4 (아이템 한글화 · LOS 라벨 시야 · 미션 호환성 버그 수정) |
-| 다음 버전 | v1.6 — 봇 아키타입 4종 (AGGRESSIVE/DEFENSIVE/SNIPER/OPPORTUNIST) |
-| 미해결 | ShotPing/ImpactEffect UID 충돌 경고 (무해) |
+| 완료 버전 | v1.6.1 (봇 아키타입 안정화 + 개인 교전 수칙 + Telemetry 정리) |
+| 다음 버전 | v1.7 — AI Doctrine Hierarchy Refactor |
+| 미해결 | 릴리즈 전 ObjectDB leak 간헐 경고 재현 시 `--verbose`로 상세 확인 |
 
 ---
 
@@ -22,6 +22,8 @@
 |---|---|
 | [MASTERPLAN.md](docs/MASTERPLAN.md) | 전체 로드맵 (v0.1~v1.0), 코드 구조, 설계 원칙 |
 | [DEVLOG.md](docs/DEVLOG.md) | 버전별 구현 상세 기록 (가장 최근 항목부터) |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 레이어 구조, 의존성 맵, 시그널 흐름, 설계 원칙 상세 |
+| [IMPACT_MAP.md](docs/IMPACT_MAP.md) | **코드 수정 전 필독** — 모듈 소유 관계, 양방향 참조, 변경→연쇄 영향 |
 | [TESTING.md](docs/TESTING.md) | 헤드리스 시뮬레이션 실행법 + 지표별 판단 기준 |
 | [RELEASE.md](docs/RELEASE.md) | Godot 빌드 → GitHub 릴리즈 → README 업데이트 전 절차 |
 | [UI_DESIGN.md](docs/UI_DESIGN.md) | HUD 디자인 프로세스 (ASCII 스케치 → 목업 → 구현) |
@@ -30,6 +32,7 @@
 
 | 단계 | 업데이트할 파일 |
 |---|---|
+| **코드 수정 전** | **[IMPACT_MAP.md](docs/IMPACT_MAP.md) 확인** — 변경 대상의 연쇄 영향 파악. 내용이 실제 코드와 다르면 즉시 사용자에게 보고 후 수정. |
 | 구현 후 검증 | *(없음)* — TESTING.md 체크리스트만 실행 |
 | 검증 통과 | **DEVLOG.md** 상단에 새 버전 섹션 추가 |
 | 검증 통과 | **CLAUDE.md** 현재 상태 표 갱신 |
@@ -42,12 +45,15 @@
 ## 핵심 파일
 
 ```
-src/entities/bot/Bot.gd      — AI 상태 머신 (IDLE/CHASE/ATTACK/RECOVER/ZONE_ESCAPE)
-src/entities/player/Player.gd — 무기 슬롯, 재장전, HUD
-src/entities/Entity.gd        — 공통 베이스 (이동, 피해, 인식)
-src/core/Telemetry.gd         — 매치 통계 (그룹 토글, JSON 출력)
-src/Main.gd                   — 게임 루프, 존, 스폰, 보급 캡슐
-src/core/StatsData.gd         — 무기/캐릭터 스탯 Resource
+src/entities/bot/Bot.gd        — AI 상태 머신 + CombatPlan 개인 교전 수칙
+src/entities/player/Player.gd  — 무기 슬롯, 재장전, HUD
+src/entities/Entity.gd         — 공통 베이스 (이동, 피해, 인식)
+src/core/ZoneController.gd     — 자기장 상태 머신 (수축, 피해, 외부 추적)
+src/core/WeaponSlotManager.gd  — 무기 슬롯 5개, 탄약, 재장전 로직
+src/core/MissionTracker.gd     — 보너스·압박 미션 상태, 풀 정의, 필터
+src/core/Telemetry.gd          — 매치 통계 (그룹 토글, JSON 출력)
+src/Main.gd                    — 게임 루프, 스폰, 보급 캡슐, UI 오케스트레이션
+src/core/StatsData.gd          — 무기/캐릭터 스탯 Resource
 ```
 
 빌드 아티팩트 → `builds/`  
@@ -61,6 +67,7 @@ Godot 실행 파일 → 프로젝트 루트 (`Godot_v4.6.2-stable_win64*.exe`)
 - `grow_vertical = GROW_DIRECTION_BEGIN` 없으면 bottom anchor가 화면 밖으로 나감
 - macOS export key: `application/bundle_identifier` (not `application/identifier`)
 - 헤드리스 빌드 시 `textures/vram_compression/import_etc2_astc=true` 필요 (project.godot)
+- 에디터 밖에서 새 `class_name` 스크립트를 만들 때는 헤드리스 안정성을 위해 직접 타입 의존보다 `preload()`를 우선한다.
 
 ---
 
@@ -71,5 +78,5 @@ Godot 실행 파일 → 프로젝트 루트 (`Godot_v4.6.2-stable_win64*.exe`)
 # 결과: %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
 ```
 
-정상 기준: `duration > 60s`, `zone_stage_reached >= 2`, `recover_bouts > 0`  
+정상 기준: `duration > 60s`, `zone_stage_reached >= 2`, `recover_bouts > 0`, combat plan 카운트가 0에 고정되지 않음
 상세 판단 기준 → [TESTING.md](docs/TESTING.md)

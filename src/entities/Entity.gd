@@ -156,6 +156,9 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 	if current_health <= 0:
 		die(source_node)
 
+func get_telemetry_state() -> String:
+	return ""
+
 func flash_hit():
 	if is_dead: return
 	if has_node("MeshInstance3D"):
@@ -203,7 +206,7 @@ func die(killer: Node3D = null):
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
 		# Log Death
-		tel.log_death(last_damage_source, "match_end")
+		tel.log_death(last_damage_source, get_telemetry_state())
 		
 		# Kill — log only when killer is confirmed to be the player
 		if killer and killer.is_in_group("players"):

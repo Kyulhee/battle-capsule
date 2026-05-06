@@ -58,6 +58,7 @@ const BULLET_TRAIL_SCN = preload("res://src/fx/BulletTrail.tscn")
 const SHOT_PING_SCN = preload("res://src/fx/ShotPing.tscn")
 const PISTOL_STATS = preload("res://src/core/pistol_stats.tres")
 const PICKUP_SCN = preload("res://src/entities/pickup/Pickup.tscn")
+const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
 # slot 0 = knife (melee, always available), slots 1-4 = ranged weapons
@@ -76,14 +77,7 @@ var _stat_kill_val: Label        = null
 var _stat_asst_val: Label        = null
 var _stat_alive_val: Label       = null
 
-var weapon_slots: Array = [null, null, null, null, null]  # [0]=knife placeholder, [1-4]=StatsData
-var slot_ammo: Array = [0, 0, 0, 0, 0]     # loaded magazine
-var slot_reserve: Array = [0, 0, 0, 0, 0]  # reserve / backpack ammo
-var active_slot: int = 0
-var reload_timer: float = 0.0
-var reload_total_time: float = 0.0
-var reload_ammo_start: int = 0
-var reload_ammo_target: int = 0
+var slots = WeaponSlotManagerScript.new()
 
 var slot_panels: Array = []
 var slot_icon_rects: Array = []
@@ -318,8 +312,13 @@ func _ready():
 		ray_cast.add_exception(self)
 		ray_cast.collision_mask = 2 | 8
 	_on_health_changed(current_health, stats.max_health)
-	switch_to_slot(0)
-	receive_weapon(PISTOL_STATS.duplicate())
+	slots.slot_switched.connect(_on_slot_switched)
+	slots.reload_started.connect(func(): if Sfx: Sfx.play("reload"))
+	slots.reload_done.connect(_on_reload_done)
+	slots.inventory_changed.connect(_refresh_slot_hud)
+	slots.gun_count_changed.connect(_on_gun_count_changed)
+	slots.switch_to(0)
+	slots.receive_weapon(PISTOL_STATS.duplicate())
 
 	# Zone warning — pulsing red border when outside zone
 	var zone_warn_panel = Panel.new()
@@ -337,12 +336,12 @@ func _input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_C: is_crouching = not is_crouching
-			KEY_QUOTELEFT: switch_to_slot(0)
-			KEY_1: switch_to_slot(1)
-			KEY_2: switch_to_slot(2)
-			KEY_3: switch_to_slot(3)
-			KEY_4: switch_to_slot(4)
-			KEY_R: _start_reload()
+			KEY_QUOTELEFT: slots.switch_to(0)
+			KEY_1: slots.switch_to(1)
+			KEY_2: slots.switch_to(2)
+			KEY_3: slots.switch_to(3)
+			KEY_4: slots.switch_to(4)
+			KEY_R: slots.start_reload()
 
 func reveal(duration: float = 2.0):
 	super.reveal(duration)
@@ -381,10 +380,7 @@ func _physics_process(delta):
 			health_changed.emit(current_health, stats.max_health)
 		else:
 			_heal_regen = 0.0
-	if reload_timer > 0:
-		reload_timer -= delta
-		if reload_timer <= 0:
-			_finish_reload()
+	slots.tick(delta)
 	handle_aiming(delta)
 	var effective_speed = stats.move_speed * (0.45 if is_crouching else 1.0) * _artifact_mods.get("move_speed_mult", 1.0)
 
@@ -419,31 +415,31 @@ func _physics_process(delta):
 
 	# Fire / melee
 	if Input.is_action_pressed("click") or Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		if fire_cooldown <= 0 and reload_timer <= 0:
-			if active_slot == 0:
+		if fire_cooldown <= 0 and slots.reload_timer <= 0:
+			if slots.active_slot == 0:
 				_melee_attack()
 			else:
-				var wdata = weapon_slots[active_slot]
-				if wdata and slot_ammo[active_slot] > 0:
+				var wdata = slots.weapon_slots[slots.active_slot]
+				if wdata and slots.slot_ammo[slots.active_slot] > 0:
 					if wdata.weapon_type == "shotgun":
-						slot_ammo[active_slot] -= 1
-						_sync_slot_ammo()
+						slots.consume_ammo()
+						_sync_stats_ammo()
 						for i in range(wdata.pellet_count): shoot_pellet(i)
 						fire_cooldown = wdata.fire_rate
 						if Sfx: Sfx.play("shoot")
 						_refresh_slot_hud()
 						_notify_mission_tracker_fire("shotgun")
 					else:
-						_shoot_with_slot(active_slot)
+						_shoot_with_slot(slots.active_slot)
 				else:
 					if Sfx: Sfx.play("dry_fire")
 					fire_cooldown = 0.5
-					_try_auto_switch()
+					slots.try_auto_switch()
 
 	if Input.is_key_pressed(KEY_SPACE) and is_on_floor() and not is_crouching:
 		velocity.y = 7.0
 		footstep_timer = 0.0
-	if Input.is_key_pressed(KEY_F): handle_interaction()
+	if Input.is_action_just_pressed("interact"): handle_interaction()
 	if Input.is_key_pressed(KEY_Q): handle_healing()
 	super._physics_process(delta)
 	# Crouch stealth
@@ -472,11 +468,11 @@ func _process(delta):
 	# Zone timer label + alive count HUD sync
 	var main = get_tree().root.get_node_or_null("Main")
 	if main and zone_timer_label:
-		if main.is_shrinking:
+		if main.zone.shrinking:
 			zone_timer_label.text = "ZONE CLOSING"
 			zone_timer_label.modulate = Color(1.0, 0.3, 0.3)
 		else:
-			var t = main.zone_timer
+			var t = main.zone.timer
 			zone_timer_label.text = "ZONE  %ds" % int(max(0, t))
 			zone_timer_label.modulate = Color.CYAN if t > 10.0 else Color.YELLOW
 	if main and mission_hud_label and main.mission_tracker and main.mission_tracker.active_mission:
@@ -497,15 +493,15 @@ func _process(delta):
 	_update_hud()
 
 	# Reload HUD progress (per-frame count-up animation)
-	if reload_timer > 0 and not slot_ammo_labels.is_empty() and active_slot > 0 and reload_total_time > 0:
-		var progress = 1.0 - reload_timer / reload_total_time
-		var disp_ammo = int(lerp(float(reload_ammo_start), float(reload_ammo_target), progress))
-		var wdata_r = weapon_slots[active_slot]
+	if slots.reload_timer > 0 and not slot_ammo_labels.is_empty() and slots.active_slot > 0 and slots.reload_total_time > 0:
+		var progress = 1.0 - slots.reload_timer / slots.reload_total_time
+		var disp_ammo = int(lerp(float(slots.reload_ammo_start), float(slots.reload_ammo_target), progress))
+		var wdata_r = slots.weapon_slots[slots.active_slot]
 		var max_a_r = wdata_r.max_ammo if wdata_r else 0
-		var transferred = disp_ammo - reload_ammo_start
-		var disp_res = max(0, slot_reserve[active_slot] - transferred)
-		slot_ammo_labels[active_slot].text = "%d/%d+%d" % [disp_ammo, max_a_r, disp_res]
-		slot_ammo_labels[active_slot].modulate = Color.YELLOW
+		var transferred = disp_ammo - slots.reload_ammo_start
+		var disp_res = max(0, slots.slot_reserve[slots.active_slot] - transferred)
+		slot_ammo_labels[slots.active_slot].text = "%d/%d+%d" % [disp_ammo, max_a_r, disp_res]
+		slot_ammo_labels[slots.active_slot].modulate = Color.YELLOW
 
 	# Zone Battery: 자기장 경계 내측 근방에서 쉴드 자동 충전
 	# shield_recv_mult를 우회해 직접 더함 (존 배터리 고유 충전 경로)
@@ -513,8 +509,8 @@ func _process(delta):
 		var _zbmain = get_tree().root.get_node_or_null("Main")
 		if _zbmain:
 			var pos2d = Vector2(global_position.x, global_position.z)
-			var dist_from_center = pos2d.distance_to(_zbmain.current_zone_center)
-			var dist_inside_edge = _zbmain.current_zone_radius - dist_from_center
+			var dist_from_center = pos2d.distance_to(_zbmain.zone.current_center)
+			var dist_inside_edge = _zbmain.zone.current_radius - dist_from_center
 			var rng = _artifact_mods.get("zone_battery_range", 0.0)
 			if dist_inside_edge >= 0.0 and dist_inside_edge <= rng:
 				current_shield = min(stats.max_shield, current_shield + _artifact_mods.get("zone_battery_regen", 0.0) * delta)
@@ -738,121 +734,36 @@ static func _make_hud_icon(shape: String) -> ImageTexture:
 				img.set_pixel(x, y, Color.WHITE)
 	return ImageTexture.create_from_image(img)
 
-# ── Slot system ──────────────────────────────────────────────────────────
-
-func switch_to_slot(slot: int):
-	if slot < 0 or slot > 4: return
-	reload_timer = 0.0
-	active_slot = slot
-	if slot >= 1:
-		var wdata = weapon_slots[slot]
-		if wdata:
-			stats.weapon_type   = wdata.weapon_type
-			stats.pellet_count  = wdata.pellet_count
-			stats.attack_damage = wdata.attack_damage
-			stats.fire_rate     = wdata.fire_rate
-			stats.attack_range  = wdata.attack_range
-			stats.current_ammo  = slot_ammo[slot]
-	_refresh_slot_hud()
+# ── Slot system — public API (delegates to WeaponSlotManager) ────────────
 
 func receive_weapon(wstats: StatsData) -> bool:
-	# Reject duplicate weapon type
-	for i in range(1, 5):
-		if weapon_slots[i] != null and weapon_slots[i].weapon_type == wstats.weapon_type:
-			return false
-	# Fill first empty slot 1-4
-	for i in range(1, 5):
-		if weapon_slots[i] == null:
-			weapon_slots[i] = wstats
-			slot_ammo[i] = wstats.current_ammo  # starts at 1/3 magazine (set in .tres)
-			slot_reserve[i] = 0
-			switch_to_slot(i)
-			_notify_gun_slot_count()
-			return true
-	# All slots full — replace active weapon slot
-	if active_slot >= 1:
-		weapon_slots[active_slot] = wstats
-		slot_ammo[active_slot] = wstats.current_ammo
-		slot_reserve[active_slot] = 0
-		switch_to_slot(active_slot)
-		_notify_gun_slot_count()
-		return true
-	return false
+	return slots.receive_weapon(wstats)
 
-func _notify_gun_slot_count():
-	var count = 0
-	for i in range(1, 5):
-		if weapon_slots[i] != null: count += 1
+func receive_ammo(weapon_type: String, amount: int):
+	slots.receive_ammo(weapon_type, amount)
+
+func _on_slot_switched(slot: int, wdata, ammo: int):
+	if slot >= 1 and wdata:
+		stats.weapon_type   = wdata.weapon_type
+		stats.pellet_count  = wdata.pellet_count
+		stats.attack_damage = wdata.attack_damage
+		stats.fire_rate     = wdata.fire_rate
+		stats.attack_range  = wdata.attack_range
+		stats.current_ammo  = ammo
+	_refresh_slot_hud()
+
+func _on_reload_done():
+	_sync_stats_ammo()
+	_refresh_slot_hud()
+
+func _on_gun_count_changed(count: int):
 	var main = get_tree().root.get_node_or_null("Main")
 	if main and main.mission_tracker:
 		main.mission_tracker.on_weapon_slot_used(count)
 
-func receive_ammo(weapon_type: String, amount: int):
-	for i in range(1, 5):
-		var wdata = weapon_slots[i]
-		if wdata and wdata.weapon_type == weapon_type:
-			var res_max = _get_reserve_max(weapon_type)
-			slot_reserve[i] = min(res_max, slot_reserve[i] + amount)
-			_refresh_slot_hud()
-			return
-
-func _try_auto_switch():
-	# Prefer slots with ammo already loaded
-	for i in range(1, 5):
-		if weapon_slots[i] != null and slot_ammo[i] > 0:
-			switch_to_slot(i)
-			return
-	# Then slots with reserve (auto-reload)
-	for i in range(1, 5):
-		if weapon_slots[i] != null and slot_reserve[i] > 0:
-			switch_to_slot(i)
-			_start_reload()
-			return
-	switch_to_slot(0)
-
-func _sync_slot_ammo():
-	if active_slot >= 1:
-		stats.current_ammo = slot_ammo[active_slot]
-
-func _start_reload():
-	if active_slot == 0: return
-	var wdata = weapon_slots[active_slot]
-	if not wdata: return
-	if slot_reserve[active_slot] <= 0: return  # no reserve
-	if slot_ammo[active_slot] >= wdata.max_ammo: return  # magazine full
-	if reload_timer > 0: return
-	var transfer = min(slot_reserve[active_slot], wdata.max_ammo - slot_ammo[active_slot])
-	reload_ammo_start  = slot_ammo[active_slot]
-	reload_ammo_target = slot_ammo[active_slot] + transfer
-	reload_total_time  = _get_reload_time()
-	reload_timer       = reload_total_time
-	if Sfx: Sfx.play("reload")
-
-func _finish_reload():
-	var wdata = weapon_slots[active_slot]
-	if wdata:
-		var transferred = reload_ammo_target - reload_ammo_start
-		slot_ammo[active_slot]    = reload_ammo_target
-		slot_reserve[active_slot] = max(0, slot_reserve[active_slot] - transferred)
-		_sync_slot_ammo()
-	_refresh_slot_hud()
-
-func _get_reload_time() -> float:
-	var wdata = weapon_slots[active_slot]
-	if not wdata: return 1.5
-	match wdata.weapon_type:
-		"shotgun": return 2.8
-		"railgun": return 4.5
-		"ar":      return 2.0
-		_:         return 1.3  # pistol
-
-func _get_reserve_max(wtype: String) -> int:
-	match wtype:
-		"pistol":  return 30
-		"ar":      return 60
-		"shotgun": return 12
-		"railgun": return 4
-		_:         return 30
+func _sync_stats_ammo():
+	if slots.active_slot >= 1:
+		stats.current_ammo = slots.slot_ammo[slots.active_slot]
 
 func _notify_mission_tracker_fire(weapon_type: String):
 	var main = get_tree().root.get_node_or_null("Main")
@@ -895,9 +806,9 @@ func _refresh_slot_hud():
 
 	for i in range(5):
 		var panel = slot_panels[i]
-		var out_of_ammo = (i >= 1) and weapon_slots[i] != null and slot_ammo[i] <= 0 and slot_reserve[i] <= 0
+		var out_of_ammo = (i >= 1) and slots.weapon_slots[i] != null and slots.slot_ammo[i] <= 0 and slots.slot_reserve[i] <= 0
 
-		if i == active_slot:
+		if i == slots.active_slot:
 			panel.add_theme_stylebox_override("panel", active_style)
 		elif out_of_ammo:
 			panel.add_theme_stylebox_override("panel", empty_style)
@@ -907,19 +818,19 @@ func _refresh_slot_hud():
 		if not slot_icon_rects.is_empty():
 			if i == 0:
 				slot_icon_rects[i].texture = _make_weapon_icon("knife")
-			elif weapon_slots[i] == null:
+			elif slots.weapon_slots[i] == null:
 				slot_icon_rects[i].texture = _make_weapon_icon("")
 			else:
-				slot_icon_rects[i].texture = _make_weapon_icon(weapon_slots[i].weapon_type)
+				slot_icon_rects[i].texture = _make_weapon_icon(slots.weapon_slots[i].weapon_type)
 		if i == 0:
 			slot_ammo_labels[i].text = ""
 			slot_ammo_labels[i].modulate = Color.WHITE
-		elif weapon_slots[i] == null:
+		elif slots.weapon_slots[i] == null:
 			slot_ammo_labels[i].text = ""
 		else:
-			var ammo = slot_ammo[i]
-			var max_a = weapon_slots[i].max_ammo
-			var res   = slot_reserve[i]
+			var ammo  = slots.slot_ammo[i]
+			var max_a = slots.weapon_slots[i].max_ammo
+			var res   = slots.slot_reserve[i]
 			slot_ammo_labels[i].text = "%d/%d+%d" % [ammo, max_a, res]
 			if ammo <= 0 and res <= 0:
 				slot_ammo_labels[i].modulate = Color.RED
@@ -1037,7 +948,7 @@ func _update_zone_warning(delta: float):
 	if not main:
 		_zone_warning_style.border_color.a = 0.0; return
 	var self_2d = Vector2(global_position.x, global_position.z)
-	if self_2d.distance_to(main.current_zone_center) > main.current_zone_radius:
+	if main.zone.is_outside(self_2d):
 		_zone_warning_pulse += delta * 3.5
 		_zone_warning_style.border_color.a = (sin(_zone_warning_pulse) * 0.5 + 0.5) * 0.58
 	else:
@@ -1102,7 +1013,7 @@ func die(killer: Node3D = null):
 
 func _drop_on_death():
 	for i in range(1, 5):
-		var wdata = weapon_slots[i]
+		var wdata = slots.weapon_slots[i]
 		if wdata == null: continue
 		var item = ItemData.new()
 		item.type = ItemData.Type.WEAPON
@@ -1116,7 +1027,7 @@ func _drop_on_death():
 		get_tree().root.add_child(wp)
 		wp.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
 		wp.init(item)
-		var total_ammo = slot_ammo[i] + slot_reserve[i]
+		var total_ammo = slots.slot_ammo[i] + slots.slot_reserve[i]
 		if total_ammo > 0:
 			var ammo_item = ItemData.new()
 			ammo_item.type = ItemData.Type.AMMO
@@ -1170,17 +1081,17 @@ func _drop_weapon_color(wtype: String) -> Color:
 
 func shoot_pellet(_idx: int):
 	reveal()
-	var wdata = weapon_slots[active_slot]
+	var wdata = slots.weapon_slots[slots.active_slot]
 	if not wdata: return
 	var spread = 2.0 * _artifact_mods.get("spread_mult", 1.0)
 	var pellet_target = Vector3(randf_range(-spread, spread), randf_range(-0.5, 0.5), -wdata.attack_range)
 	_internal_shoot(pellet_target)
 
 func _shoot_with_slot(slot: int):
-	var wdata = weapon_slots[slot]
-	if not wdata or slot_ammo[slot] <= 0: return
-	slot_ammo[slot] -= 1
-	_sync_slot_ammo()
+	var wdata = slots.weapon_slots[slot]
+	if not wdata or slots.slot_ammo[slot] <= 0: return
+	slots.consume_ammo()
+	_sync_stats_ammo()
 	reveal()
 	var shot_vec = Vector3(0, 0, -wdata.attack_range)
 	if _artifact_mods.get("spread_all_shots", false):
@@ -1204,7 +1115,7 @@ func _shoot_with_slot(slot: int):
 func _internal_shoot(target_vec: Vector3):
 	var flash = MUZZLE_FLASH_SCN.instantiate()
 	add_child(flash); flash.position = Vector3(0, 0.5, -0.5)
-	var wdata = weapon_slots[active_slot] if active_slot >= 1 else null
+	var wdata = slots.weapon_slots[slots.active_slot] if slots.active_slot >= 1 else null
 	var is_shotgun = wdata and wdata.weapon_type == "shotgun"
 	var recoil_dir = global_transform.basis.z
 	velocity += recoil_dir * (6.0 if is_shotgun else 2.0)

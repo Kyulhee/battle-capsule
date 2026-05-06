@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-04-30 (v1.4.2 기준)
+> 마지막 업데이트: 2026-05-06 (v1.6.1 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -21,7 +21,11 @@ Godot 헤드리스 모드로 게임을 자동 실행하면 `Telemetry.gd`가 지
 
 ```bash
 # 헤드리스로 1판 실행 (5배속, 자동 종료)
-./Godot_v4.6.2-stable_win64.exe --headless -- autostart=true
+./Godot_v4.6.2-stable_win64_console.exe --headless -- autostart=true
+
+# 반복 시뮬레이션 + 요약
+python tools/simulate_matches.py 5
+python tools/analyze_results.py
 
 # 결과 파일 위치 (Windows)
 # %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
@@ -57,17 +61,21 @@ Godot 헤드리스 모드로 게임을 자동 실행하면 `Telemetry.gd`가 지
 
 ### `tactics` (봇 AI 검증 핵심)
 
-| 지표 | 설명 | v0.4 기대값 |
+| 지표 | 설명 | v1.6.1 기대값 |
 |---|---|---|
 | `ammo_empty_enter` | 탄약 소진 후 RECOVER 진입 횟수 | > 0 (정상 작동 확인) |
 | `reserve_reload` | reserve 있어서 RECOVER 스킵한 횟수 | 탄약 픽업 후 증가해야 함 |
-| `recover_bouts` | 실제 RECOVER 상태 진입 횟수 | ammo_empty_enter보다 적어야 정상 |
-| `recover_success` | RECOVER 중 루팅 성공 횟수 | bouts 대비 50%+ 목표 |
-| `died_in_recover` | RECOVER 중 사망 횟수 | 높으면 도주 로직 부족 |
+| `recover_bouts` | 실제 RECOVER/전투 루팅 시도 횟수 | > 0, 과도한 급증은 루팅/교전 루프 의심 |
+| `recover_success` | RECOVER 중 루팅 성공 횟수 | bouts 대비 20%+ 목표, 50%+면 양호 |
+| `died_in_recover` | RECOVER 중 사망 횟수 | `died_in_recover / recover_bouts < 0.5` |
 | `stuck_triggered` | stuck 우회 발동 횟수 | > 0이지만 과도하면 맵/이동 문제 |
 | `patrol_entered` | 루팅 못 찾고 patrol로 전환된 횟수 | 아이템이 충분하면 낮아야 함 |
 | `weapon_drop_spawned` | 봇 사망 시 무기 드롭 생성 수 | 봇 사망 수와 유사해야 함 |
 | `disengage_triggered` | 수적 열세(2+ 적) 감지 후 DISENGAGE 진입 횟수 | > 0이면 정상 동작, 0이면 outnumbered 감지 실패 |
+| `cover_peek` | 엄폐 피킹 전술 선택 횟수 | 5회 시뮬 평균 0 고정이면 엄폐 탐색 오류 |
+| `combat_reposition` | 교전 중 측면 재배치 횟수 | 5회 시뮬 평균 0 고정이면 CombatPlan 선택 오류 |
+| `combat_kite` | 거리 벌리기/카이팅 횟수 | 무기/상황에 따라 낮을 수 있으나 키가 존재해야 함 |
+| `survival_break` | 저체력 생존 이탈 횟수 | 0 고정이면 HP override 훅 확인 |
 
 ### `economy`
 
@@ -101,7 +109,7 @@ Godot 헤드리스 모드로 게임을 자동 실행하면 `Telemetry.gd`가 지
 
 ## 테스팅 시나리오별 그룹 설정
 
-### 봇 AI 행동 검증 (v0.4)
+### 봇 AI 행동 검증 (v1.6.1)
 
 ```gdscript
 Telemetry.set_groups({
@@ -122,6 +130,8 @@ Telemetry.set_groups({
 - [ ] `attack_max_continuous` < 20.0 → 봇이 ATTACK에 갇히지 않음
 - [ ] `weapon_drop_spawned` ≈ 봇 사망 수 (11 - alive_count) → 드롭 정상 작동
 - [ ] `disengage_triggered` > 0 → 수적 열세 감지 및 DISENGAGE 상태 작동
+- [ ] `cover_peek + combat_reposition + combat_kite` > 0 → 개인 교전 수칙 선택이 발동
+- [ ] `python tools/analyze_results.py` 출력에서 `Avg combat plans`가 표시됨
 
 ### 무기 밸런스 검증
 

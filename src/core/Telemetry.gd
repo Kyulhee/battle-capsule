@@ -18,15 +18,16 @@ extends Node
 # ── Group toggles ─────────────────────────────────────────────────────────────
 
 var enabled_groups: Dictionary = {
-	"core":     true,
-	"combat":   true,
-	"tactics":  true,
-	"economy":  true,
-	"supply":   true,
-	"zone":     true,
-	"hell":     true,
-	"mission":  true,
-	"pressure": true,
+	"core":      true,
+	"combat":    true,
+	"tactics":   true,
+	"economy":   true,
+	"supply":    true,
+	"zone":      true,
+	"hell":      true,
+	"mission":   true,
+	"pressure":  true,
+	"archetype": true,
 }
 
 func set_groups(overrides: Dictionary):
@@ -104,6 +105,10 @@ func _reset_metrics():
 			"patrol_timeout": 0,
 			"weapon_drop_spawned": 0,
 			"disengage_triggered": 0,
+			"cover_peek": 0,
+			"combat_reposition": 0,
+			"combat_kite": 0,
+			"survival_break": 0,
 		},
 		# economy
 		"economy": {
@@ -146,6 +151,12 @@ func _reset_metrics():
 			"pressure_cleared":   0,
 			"pressure_failed":    0,
 		},
+		# archetype
+		"archetype": {
+			"archetype_distribution":   {},  # 스폰 수 {AGGRESSIVE:3, DEFENSIVE:3, ...}
+			"archetype_alive_at_zone2": {},  # 존 2단계 생존 수
+			"archetype_deaths":         {},  # 아키타입별 사망 수
+		},
 	}
 
 # ── Lifecycle ─────────────────────────────────────────────────────────────────
@@ -186,11 +197,11 @@ func log_kill(source_type: String, weapon_type: String = "", distance: float = -
 			metrics.combat.kill_distances[w] = []
 		metrics.combat.kill_distances[w].append(distance)
 
-func log_death(cause: String, _state: String = ""):
+func log_death(cause: String, state: String = ""):
 	if not match_in_progress or not _g("core"): return
 	var key = str(_current_stage)
 	metrics.core.deaths_by_stage[key] = metrics.core.deaths_by_stage.get(key, 0) + 1
-	if cause == "RECOVER":
+	if cause == "RECOVER" or state == "RECOVER":
 		if _g("tactics"):
 			metrics.tactics.died_in_recover += 1
 
@@ -225,13 +236,19 @@ func log_tactics(event: String, _value: float = 0.0):
 	match event:
 		"ammo_empty":       metrics.tactics.ammo_empty_enter += 1
 		"recovery_start":   metrics.tactics.recover_bouts += 1
-		"recovery_success": metrics.tactics.recover_success += 1
+		"recovery_success":
+			if metrics.tactics.recover_success < metrics.tactics.recover_bouts:
+				metrics.tactics.recover_success += 1
 		"stuck_triggered":  metrics.tactics.stuck_triggered += 1
 		"reserve_reload":   metrics.tactics.reserve_reload += 1
 		"patrol_entered":      metrics.tactics.patrol_entered += 1
 		"patrol_timeout":      metrics.tactics.patrol_timeout += 1
 		"weapon_drop_spawned": metrics.tactics.weapon_drop_spawned += 1
 		"disengage_triggered": metrics.tactics.disengage_triggered += 1
+		"cover_peek":       metrics.tactics.cover_peek += 1
+		"combat_reposition": metrics.tactics.combat_reposition += 1
+		"combat_kite":      metrics.tactics.combat_kite += 1
+		"survival_break":   metrics.tactics.survival_break += 1
 
 func log_combat_audit(event: String, value: float = 0.0):
 	if not match_in_progress or not _g("combat"): return
@@ -319,6 +336,22 @@ func log_pressure_event(event: String, mission_id: String = ""):
 		"failed":
 			metrics.pressure.pressure_failed += 1
 
+# ── Log functions — archetype ─────────────────────────────────────────────────
+
+func log_archetype_spawn(archetype_name: String):
+	if not match_in_progress or not _g("archetype"): return
+	var d = metrics.archetype.archetype_distribution
+	d[archetype_name] = d.get(archetype_name, 0) + 1
+
+func log_archetype_death(archetype_name: String):
+	if not match_in_progress or not _g("archetype"): return
+	var d = metrics.archetype.archetype_deaths
+	d[archetype_name] = d.get(archetype_name, 0) + 1
+
+func log_archetype_alive_at_zone2(distribution: Dictionary):
+	if not match_in_progress or not _g("archetype"): return
+	metrics.archetype.archetype_alive_at_zone2 = distribution.duplicate()
+
 # Weapon drops can fire on the same frame as end_match, bypassing match_in_progress.
 func log_weapon_drop():
 	if _g("tactics") and metrics.has("tactics"):
@@ -370,8 +403,9 @@ func _save_sim_result():
 	if _g("economy"): out["economy"] = metrics.economy.duplicate(true)
 	if _g("supply"):  out["supply"]   = metrics.supply.duplicate(true)
 	if _g("hell"):    out["hell"]     = metrics.hell.duplicate(true)
-	if _g("mission"):   out["mission"]   = metrics.mission.duplicate(true)
-	if _g("pressure"):  out["pressure"]  = metrics.pressure.duplicate(true)
+	if _g("mission"):    out["mission"]    = metrics.mission.duplicate(true)
+	if _g("pressure"):   out["pressure"]   = metrics.pressure.duplicate(true)
+	if _g("archetype"):  out["archetype"]  = metrics.archetype.duplicate(true)
 	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(out, "\t"))
@@ -424,6 +458,12 @@ func _print_report():
 		print("  Died in RECOVER: %d" % metrics.tactics.died_in_recover)
 		print("  Stuck triggers: %d" % metrics.tactics.stuck_triggered)
 		print("  Disengage triggers: %d" % metrics.tactics.disengage_triggered)
+		print("  Combat plans: cover=%d  reposition=%d  kite=%d  survival=%d" % [
+			metrics.tactics.cover_peek,
+			metrics.tactics.combat_reposition,
+			metrics.tactics.combat_kite,
+			metrics.tactics.survival_break
+		])
 		print("  Reserve reloads: %d" % metrics.tactics.reserve_reload)
 		print("  Patrol entries: %d  timeouts: %d" % [metrics.tactics.patrol_entered, metrics.tactics.patrol_timeout])
 		print("  Weapon drops: %d" % metrics.tactics.weapon_drop_spawned)
@@ -460,6 +500,11 @@ func _print_report():
 		])
 		if metrics.pressure.has("triggered_ids"):
 			print("  IDs: %s" % str(metrics.pressure["triggered_ids"]))
+	if _g("archetype"):
+		print("── Archetypes ──────────────────────────────")
+		print("  Spawned:        %s" % str(metrics.archetype.archetype_distribution))
+		print("  Alive@zone2:    %s" % str(metrics.archetype.archetype_alive_at_zone2))
+		print("  Deaths:         %s" % str(metrics.archetype.archetype_deaths))
 	print("=".repeat(44) + "\n")
 
 # ── Internal helpers ──────────────────────────────────────────────────────────
@@ -467,7 +512,11 @@ func _print_report():
 func _norm_weapon(w: String) -> String:
 	var n = w.to_lower().strip_edges()
 	match n:
-		"ar", "assault rifle", "assault_rifle": return "assault_rifle"
+		"pistol", "피스톨": return "pistol"
+		"ar", "assault rifle", "assault_rifle", "돌격소총", "소총": return "ar"
+		"shotgun", "샷건": return "shotgun"
+		"railgun", "rail gun", "레일건": return "railgun"
+		"knife", "melee", "칼": return "knife"
 		_: return n
 
 func _ensure_combat_weapon(w: String):

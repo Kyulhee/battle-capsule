@@ -180,6 +180,25 @@ static func get_hell_pool() -> Array:
 		},
 	]
 
+# ── 압박 미션 필터링 ────────────────────────────────────────────────────────
+static func filter_feasible(pool: Array, zone_stage: int, bot_alive: int) -> Array:
+	return pool.filter(func(d): return _is_descriptor_feasible(d, zone_stage, bot_alive))
+
+static func _is_descriptor_feasible(descriptor: Dictionary, zone_stage: int, bot_alive: int) -> bool:
+	for cond in descriptor.get("conditions", []):
+		var target: int = int(cond.get("target", 1))
+		match int(cond["type"]):
+			PressureCondition.KILL, \
+			PressureCondition.KILL_MELEE, \
+			PressureCondition.KILL_WHILE_ZONE_OUTSIDE, \
+			PressureCondition.KILL_LOW_HP:
+				if bot_alive < target: return false
+			PressureCondition.SURVIVE_DETECTED_SEC:
+				if bot_alive < 2: return false
+			PressureCondition.ZONE_OUTSIDE_SEC:
+				if zone_stage >= 3 and target >= 10: return false
+	return true
+
 # ── 압박 미션 상태 ─────────────────────────────────────────────────────────
 var pressure_active: bool = false
 var _active_pressure: Dictionary = {}

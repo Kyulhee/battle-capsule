@@ -5,6 +5,142 @@
 
 ---
 
+## v1.6.1 — 2026-05-06
+
+**릴리즈 안정화 — 개인 교전 수칙, Telemetry 신뢰도, 반복 시뮬레이션 도구 정리**
+
+**src/entities/bot/Bot.gd**
+
+- `CombatPlan` 추가: `STRAFE / ADVANCE / KITE / PEEK_COVER / REPOSITION / HOLD_ANGLE`.
+- ATTACK 상태 이동을 단순 좌우 스트레이프에서 상황 기반 개인 전술 선택으로 변경.
+- RECOVER 진입 시 즉시 루팅으로 뛰지 않고 먼저 엄폐를 찾은 뒤 `seek_loot`으로 전환.
+- 저체력 생존 override: 탄약이 있으면 즉시 RECOVER 대신 DISENGAGE/엄폐/재장전을 우선.
+- DISENGAGE 중 피격 시 무조건 추격하지 않고 HP·위협 수를 보고 재교전.
+- `_find_cover_point()`에 MapSpec fallback 추가 — 런타임 obstacle 그룹 누락/거리 조건으로 엄폐 후보가 0이 되는 상황 완화.
+
+**src/core/Telemetry.gd**
+
+- `log_death(cause, state)`가 봇의 실제 상태를 받아 `died_in_recover`를 기록하도록 수정.
+- 무기명 정규화: `돌격소총/Pistol/샷건/레일건` 등 혼합 표기를 `ar/pistol/shotgun/railgun/knife`로 통일.
+- 전술 지표 추가: `cover_peek`, `combat_reposition`, `combat_kite`, `survival_break`.
+- `recover_success`가 `recover_bouts`를 초과하지 않도록 방어.
+
+**src/entities/Entity.gd**
+
+- `get_telemetry_state()` 추가. 기본 Entity는 빈 문자열, Bot은 현재 State 이름을 반환.
+
+**src/entities/player/Player.gd / src/core/WeaponSlotManager.gd / src/Main.gd**
+
+- `WeaponSlotManager`와 `ZoneController`를 preload 기반으로 생성해 헤드리스 class cache 의존도 완화.
+- `fill_all_ammo()`의 Resource `.has()` 사용 위험 제거.
+- BOT_AGGRO 압박 효과가 실제 Bot 필드인 `target_actor`를 설정하도록 수정.
+- 상호작용 입력을 `interact` 액션(F) 기준으로 통일.
+
+**src/fx/*.tscn**
+
+- `DeathEffect`, `ImpactEffect`, `MuzzleFlash`의 수명 관리를 `SceneTreeTimer` await에서 자식 `Timer` 노드 방식으로 변경해 종료 leak 가능성 완화.
+- `ShotPing.tscn` UID 충돌 경고 제거.
+
+**tools/**
+
+- `simulate_matches.py`: 현재 Telemetry JSON을 직접 수집하고 UTF-8 로그 디코딩 오류를 방지.
+- `analyze_results.py`: recover 사망, combat plan, 첫 업그레이드 무기, weapon pickup 집계 출력.
+
+**문서/릴리즈**
+
+- README, CLAUDE, TESTING, MASTERPLAN을 v1.6.1 및 v1.7 AI Doctrine 계획 기준으로 갱신.
+- `export_presets.cfg` 버전과 Main 메뉴 VersionLabel을 `1.6.1`로 갱신.
+- 릴리즈 export에서 `tools/**`, `src/tests/**`, 디버그 스크린샷을 제외하도록 정리.
+
+**헤드리스 검증 결과** (5회)
+
+- Avg duration=85.3s, min/max=75.0s/95.0s, zone_stage=3.00 ✓
+- Avg/Max longest attack bout=12.4s/16.9s (<20s) ✓
+- Recover success=55/129 (42.6%), Died in RECOVER=1 (0.8% of bouts) ✓
+- Combat plans avg: cover=45.6, reposition=37.8, kite=4.6, survival=17.2 ✓
+- Runs under 60s=0 ✓
+
+---
+
+## v1.6 — 2026-05-06
+
+**봇 아키타입 4종 (AGGRESSIVE / DEFENSIVE / SNIPER / OPPORTUNIST)**
+
+**src/entities/bot/Bot.gd**
+
+- `enum Personality` → `enum BotArchetype` (AGGRESSIVE / DEFENSIVE / SNIPER / OPPORTUNIST)
+- `var personality` → `var archetype`, `_apply_personality` → `_apply_archetype`
+- `var _sniper_min_engage_range: float` 추가 — SNIPER가 해당 거리 이내에 적이 진입하면 DISENGAGE 강제
+- 아키타입별 파라미터:
+
+| 아키타입 | attack_range | vision_range | _flee_hp_ratio | 특이사항 |
+|---|---|---|---|---|
+| AGGRESSIVE | ×0.75 | — | 0.15 | disengage_threshold=3, 근접 선호 |
+| DEFENSIVE | ×1.2 | — | 0.35 | disengage_threshold=1, 원거리 유지 |
+| SNIPER | ×2.0 | ×1.6 | 0.40 | min_engage_range=14m, 근접 회피 |
+| OPPORTUNIST | — | — | 0.25 | 낮은 HP 적 우선 타겟, supply_range=80 |
+
+- `_find_nearest_target()`: OPPORTUNIST는 거리×HP 가중 스코어로 낮은 HP 적 우선 선택
+- `_pick_patrol_target()`: SCAVENGER → OPPORTUNIST (핫스팟 순찰)
+- `_ready()`에서 랜덤 아키타입 배정 제거 → Main이 항상 명시적으로 배정
+
+**src/Main.gd**
+
+- 스폰 시 3:3:2:3 풀 생성 후 셔플 → 인덱스별 `_apply_archetype()` 호출
+- `_on_zone_stage_changed()`: stage==2 시 생존 봇 아키타입 분포 → `Telemetry.log_archetype_alive_at_zone2()`
+- `_on_bot_died()`: `Telemetry.log_archetype_death()` 호출
+
+**src/core/Telemetry.gd**
+
+- `"archetype"` 그룹 추가 (enabled_groups 기본값 true)
+- 메트릭: `archetype_distribution`, `archetype_alive_at_zone2`, `archetype_deaths`
+- `log_archetype_spawn()`, `log_archetype_death()`, `log_archetype_alive_at_zone2()` 추가
+- 리포트 출력 및 sim_result JSON 포함
+
+**.godot/global_script_class_cache.cfg**
+
+- `MapSpec`, `WeaponSlotManager`, `ZoneController` 수동 등록 — 에디터 밖에서 생성한 스크립트는 캐시에 자동 추가되지 않아 헤드리스 실행 시 Parse Error 발생. 등록 후 정상화.
+
+**헤드리스 검증 결과** (1회)
+
+- duration=77s, zone_stage=3 ✓
+- Spawned: AGGRESSIVE×3, DEFENSIVE×3, SNIPER×2, OPPORTUNIST×3 ✓
+- Alive@zone2: OPPORTUNIST×2, SNIPER×2 / AGGRESSIVE×0 — SNIPER 생존 우위 확인 ✓
+- recover_bouts=11, disengage_triggers=15 — 기존 전술 동작 정상 ✓
+
+---
+
+## v1.5.5 — 2026-05-04
+
+**코드 아키텍처 리팩터 — ZoneController · WeaponSlotManager 분리**
+
+**src/core/ZoneController.gd** *(신규)*
+
+- `class_name ZoneController extends RefCounted` — 자기장 상태 머신 전체 소유
+- 소유 상태: `current_center/radius`, `next_center/radius`, `stage`, `timer`, `shrinking`, `_outside_time`(Dict), `_damage_tick_timer`
+- 공개 API: `generate_next()`, `tick_lifecycle(delta)`, `tick_damage(delta, actors, mission_tracker, player_ref)`, `is_outside(pos_2d)`, `get_outside_time(uid)`, `on_entity_died(uid)`, `_apply_stage_config()`
+- 시그널: `stage_advanced(new_stage)`, `zone_warning()`
+- `Main.gd`에서 자기장 관련 변수 15개(current_zone_center, current_zone_radius, zone_stage 등) 제거 → `zone: ZoneController` 단일 참조로 대체
+- `Bot.gd`, `Player.gd`, `Minimap.gd` 내 자기장 참조 7곳 일괄 갱신 (`main.current_zone_center` → `main.zone.current_center` 등)
+
+**src/core/WeaponSlotManager.gd** *(신규)*
+
+- `class_name WeaponSlotManager extends RefCounted` — 무기 슬롯 5개, 탄약, 재장전 타이머 소유
+- 공개 API: `receive_weapon()`, `receive_ammo()`, `consume_ammo()`, `try_auto_switch()`, `start_reload()→bool`, `tick(delta)`, `fill_all_ammo()`, `clear_all_ammo()`, `clear_active_ammo()`, `static get_reserve_max()`
+- 시그널 5개: `slot_switched`, `reload_started`, `reload_done`, `inventory_changed`, `gun_count_changed`
+- `Player.gd`에서 슬롯 관련 변수 8개 제거 → `slots: WeaponSlotManager` 단일 참조
+- `Pickup.gd` 인터페이스 보존: `Player.receive_weapon()` / `receive_ammo()` 씬 API 래퍼 유지
+- `Main.gd` 압박 미션 효과: `player_ref.slot_ammo[i]` 직접 변조 제거 → `fill/clear_all/clear_active_ammo()` 의미적 메서드 호출
+- Sfx 재장전 사운드: `reload_started` 시그널로 분리 (WeaponSlotManager는 씬트리 무관)
+
+**src/core/MissionTracker.gd**
+
+- `filter_feasible(pool, zone_stage, bot_alive) → Array` static 메서드 추가
+- `_is_descriptor_feasible()` 내부 필터 로직 포함 — 풀 정의와 필터 조건이 같은 파일에 응집
+- `Main.gd`의 `_is_pressure_feasible()` 함수(15줄) 제거, 한 줄 호출로 대체
+
+---
+
 ## v1.5.4 — 2026-05-03
 
 **아이템 한글화 + LOS 라벨 시야 + 미션 호환성 버그 수정**
