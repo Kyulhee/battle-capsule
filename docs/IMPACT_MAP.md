@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.6.2 / 마지막 검증: 2026-05-07
+> 기준 버전: v1.6.3 / 마지막 검증: 2026-05-07
 
 ---
 
@@ -40,6 +40,7 @@
   - `died` → `Main.gd` (`_on_player_died`, `_on_bot_died`)
   - `health_changed` / `shield_changed` → `Player.gd` 자기 연결 (`_on_health_changed`, `_on_shield_changed`)
   - `health_changed` / `shield_changed` → `Main.gd` 에서도 직접 `.emit()` 호출 (압박 미션 효과 적용 시)
+- **인식 API**: `_can_i_see(target)`는 actor perception, `can_sense_item(world_pos)`는 아이템 표시/플레이어 상호작용/봇 루팅 후보 필터에 공통 사용.
 
 ### `src/entities/bot/Bot.gd`
 - **Main 참조 방법**: `get_tree().get_root().get_node("Main")` 런타임 조회 — 읽기 전용
@@ -48,6 +49,7 @@
 
 ### `src/entities/pickup/Pickup.gd`
 - **호출 대상**: `collector.receive_weapon(wstats)` / `collector.receive_ammo(type, amount)` — `has_method()` duck-typed, Player·Bot 동시 지원
+- **표시 조건**: 플레이어의 `Entity.can_sense_item()`을 통과한 경우에만 mesh/light/label 표시.
 
 ---
 

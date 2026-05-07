@@ -9,23 +9,20 @@ var _los_timer: float = 0.0
 func _ready():
 	add_to_group("pickups")
 	_update_visuals()
+	_update_visibility_for_player()
 
 func _process(delta: float):
-	if not _label: return
 	_los_timer -= delta
 	if _los_timer > 0.0: return
 	_los_timer = 0.1
-	var player = get_tree().get_first_node_in_group("players") as Node3D
-	if not player:
-		_label.visible = false
-		return
-	var space = get_world_3d().direct_space_state
-	var from = player.global_position + Vector3(0, 0.8, 0)
-	var to   = global_position + Vector3(0, 0.5, 0)
-	var query = PhysicsRayQueryParameters3D.create(from, to, 1)
-	query.exclude = [player.get_rid()]
-	var hit = space.intersect_ray(query)
-	_label.visible = hit.is_empty()
+	_update_visibility_for_player()
+
+func _update_visibility_for_player():
+	var player = get_tree().get_first_node_in_group("players")
+	var sensed = player != null and player.has_method("can_sense_item") and player.can_sense_item(global_position)
+	visible = sensed
+	if _label:
+		_label.visible = sensed
 
 func init(data: ItemData):
 	item = data

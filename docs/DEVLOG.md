@@ -5,6 +5,46 @@
 
 ---
 
+## v1.6.3 — 2026-05-07
+
+**AI/시야 안정화 — 후퇴 응전 + 아이템 시야 + 보급 군집 완화**
+
+**src/entities/bot/Bot.gd**
+
+- `ZONE_ESCAPE`와 `DISENGAGE` 중 가까운 위협을 감지하면 이동은 계속하면서 몸을 돌려 견제 사격/칼 반격을 수행.
+- 후퇴 응전은 10m 이내 위협에만 반응하고, 사격 쿨다운/산탄도를 높여 정면 교전이 아니라 탈출 보조 행동으로 제한.
+- 자기장 탈출 중 stuck 방향을 무작위 대신 자기장 중심 + 위협 반대 + 측면 회피 방향으로 점수화.
+- stuck 상태에서 가까운 위협이 있을 때 `stuck_while_threatened` Telemetry를 기록.
+- 자기장 피해 후 다른 원인으로 죽는 복합 사망을 `zone_assisted_death`로 분리 기록.
+- 보급 지점 이동은 OPPORTUNIST/저체력/저탄약/일부 근거리 봇으로 제한해 아이템 시야 제한 이후 모든 봇이 중앙 보급으로 몰리는 현상을 완화.
+- `_find_best_pickup()`과 `_find_nearest_pickup()`이 `can_sense_item()`을 통과한 아이템만 루팅 후보로 삼도록 제한.
+
+**src/entities/Entity.gd / src/entities/pickup/Pickup.gd / src/entities/player/Player.gd**
+
+- `Entity.can_sense_item()`/`can_sense_world_point()` 추가: 근거리 원형(`fov_near_range`) + 원거리 부채꼴(`vision_range`, `fov_angle`) + LOS 차단을 공통 판정으로 사용.
+- `Pickup.gd`는 플레이어가 감지한 아이템만 mesh/light/label을 표시하며, 첫 프레임 깜빡임을 줄이기 위해 `_ready()`에서도 표시 상태를 갱신.
+- `Player.gd`의 상호작용도 같은 시야 판정을 통과한 아이템만 수집하도록 변경해 보이지 않는 아이템 줍기를 방지.
+
+**src/core/Telemetry.gd / tools/analyze_results.py**
+
+- 신규 지표: `zone_escape_fire`, `retreat_counterfire`, `retreat_melee_counter`, `stuck_while_threatened`, `zone_assisted_death`.
+- analyzer에 후퇴 응전 평균, zone death 합계, max outside time 출력 추가.
+
+**문서/릴리즈**
+
+- Main 메뉴 VersionLabel과 export preset 버전을 `1.6.3`으로 갱신.
+- README 다운로드 링크를 `v1.6.3`으로 갱신.
+
+**검증 결과**
+
+- Godot headless 통과, parse/script error 없음.
+- `python tools\simulate_matches.py 5` 통과: duration 59.5s~93.9s, runs under 60s=1.
+- Analyzer: avg duration=78.0s, max attack bout=16.0s, died in RECOVER=2.9% of bouts, zone deaths=0, max outside time=0.0s, retreat combat counters 정상.
+- `python -m py_compile tools\simulate_matches.py tools\analyze_results.py` 통과.
+- `git diff --check` 통과.
+
+---
+
 ## v1.6.2 — 2026-05-07
 
 **시각 안정화 — 쿼터뷰 벽 가림 투명화 복구/점멸 수정**

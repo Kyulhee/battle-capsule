@@ -540,12 +540,10 @@ func handle_interaction():
 	var pickups = interaction_area.get_overlapping_areas()
 	var closest: Pickup = null
 	var min_dist = 999.0
-	var forward = (-global_transform.basis.z * Vector3(1, 0, 1)).normalized()
 	for area in pickups:
 		if area is Pickup:
-			var to_item = (area.global_position - global_position) * Vector3(1, 0, 1)
-			if to_item.length() > 0.3 and to_item.normalized().dot(forward) < 0.0:
-				continue  # item is behind player (>90° from facing)
+			if not can_sense_item(area.global_position):
+				continue
 			var d = global_position.distance_to(area.global_position)
 			if d < min_dist: min_dist = d; closest = area
 	if closest: closest.collect(self)

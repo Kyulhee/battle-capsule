@@ -109,6 +109,11 @@ func _reset_metrics():
 			"combat_reposition": 0,
 			"combat_kite": 0,
 			"survival_break": 0,
+			"zone_escape_fire": 0,
+			"retreat_counterfire": 0,
+			"retreat_melee_counter": 0,
+			"stuck_while_threatened": 0,
+			"zone_assisted_death": 0,
 		},
 		# economy
 		"economy": {
@@ -249,6 +254,11 @@ func log_tactics(event: String, _value: float = 0.0):
 		"combat_reposition": metrics.tactics.combat_reposition += 1
 		"combat_kite":      metrics.tactics.combat_kite += 1
 		"survival_break":   metrics.tactics.survival_break += 1
+		"zone_escape_fire": metrics.tactics.zone_escape_fire += 1
+		"retreat_counterfire": metrics.tactics.retreat_counterfire += 1
+		"retreat_melee_counter": metrics.tactics.retreat_melee_counter += 1
+		"stuck_while_threatened": metrics.tactics.stuck_while_threatened += 1
+		"zone_assisted_death": metrics.tactics.zone_assisted_death += 1
 
 func log_combat_audit(event: String, value: float = 0.0):
 	if not match_in_progress or not _g("combat"): return
@@ -463,6 +473,13 @@ func _print_report():
 			metrics.tactics.combat_reposition,
 			metrics.tactics.combat_kite,
 			metrics.tactics.survival_break
+		])
+		print("  Retreat combat: zone_fire=%d  counterfire=%d  melee=%d  stuck_threat=%d  zone_assist=%d" % [
+			metrics.tactics.zone_escape_fire,
+			metrics.tactics.retreat_counterfire,
+			metrics.tactics.retreat_melee_counter,
+			metrics.tactics.stuck_while_threatened,
+			metrics.tactics.zone_assisted_death
 		])
 		print("  Reserve reloads: %d" % metrics.tactics.reserve_reload)
 		print("  Patrol entries: %d  timeouts: %d" % [metrics.tactics.patrol_entered, metrics.tactics.patrol_timeout])

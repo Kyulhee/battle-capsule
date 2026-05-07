@@ -8,6 +8,7 @@ signal shield_changed(current: float, max: float)
 signal died
 
 const DEATH_EFFECT = preload("res://src/fx/DeathEffect.tscn")
+const ITEM_LOS_MASK: int = 1 | 8
 
 var display_name: String = ""
 var kill_streak: int = 0
@@ -97,6 +98,37 @@ func has_los_to(target: Node3D) -> bool:
 	ray.target_position = ray.to_local(target.global_position + Vector3(0, 1, 0))
 	ray.force_raycast_update()
 	return not ray.is_colliding() or ray.get_collider() == target
+
+func can_sense_item(world_pos: Vector3) -> bool:
+	if not stats:
+		return false
+	return can_sense_world_point(world_pos, stats.fov_near_range, stats.vision_range, stats.fov_angle)
+
+func can_sense_world_point(world_pos: Vector3, near_range: float, far_range: float, fov_angle_deg: float) -> bool:
+	var eye_pos = global_position + Vector3(0, 0.8, 0)
+	var item_pos = world_pos + Vector3(0, 0.35, 0)
+	var flat_to_item = item_pos - eye_pos
+	flat_to_item.y = 0.0
+	var dist = flat_to_item.length()
+	if dist > far_range:
+		return false
+	if dist > near_range:
+		var forward = -global_transform.basis.z
+		forward.y = 0.0
+		if forward.length_squared() < 0.001 or flat_to_item.length_squared() < 0.001:
+			return false
+		forward = forward.normalized()
+		var dir = flat_to_item.normalized()
+		var angle = rad_to_deg(acos(clamp(forward.dot(dir), -1.0, 1.0)))
+		if angle > fov_angle_deg * 0.5:
+			return false
+	return _has_los_to_point(eye_pos, item_pos)
+
+func _has_los_to_point(from: Vector3, to: Vector3) -> bool:
+	var query = PhysicsRayQueryParameters3D.create(from, to, ITEM_LOS_MASK)
+	query.exclude = [get_rid()]
+	var hit = get_world_3d().direct_space_state.intersect_ray(query)
+	return hit.is_empty()
 
 func reveal(duration: float = 2.0):
 	reveal_timer = duration

@@ -5,10 +5,10 @@
 
 > Godot 4.6.2 · 개발: Kyulhee
 
-## 다운로드 (v1.6.2)
+## 다운로드 (v1.6.3)
 
-[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.6.2/BattleRoyalePrototype_v1.6.2_win64.zip)
-[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.6.2/BattleRoyalePrototype_v1.6.2_mac.zip)
+[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.6.3/BattleRoyalePrototype_v1.6.3_win64.zip)
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.6.3/BattleRoyalePrototype_mac.zip)
 
 > macOS: 처음 실행 시 `시스템 설정 > 개인정보 보호 및 보안`에서 허용 필요 (공증 미적용 빌드)
 
@@ -143,6 +143,6 @@
 
 ## 알려진 이슈
 
-- 봇 AI 전술은 v1.6.1에서 안정화됐지만, 다음 버전에서 Doctrine 계층 구조로 다시 정리할 예정입니다
+- 봇 AI 전술은 v1.6.3에서 안정화됐지만, 다음 버전에서 Doctrine 계층 구조로 다시 정리할 예정입니다
 - 지형 일부에서 드물게 끼임 현상이 발생할 수 있습니다
 - 스크린샷·맵 이미지는 추후 추가 예정입니다

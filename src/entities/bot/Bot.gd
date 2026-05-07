@@ -8,6 +8,11 @@ const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
 const MELEE_RANGE: float  = 1.8
 const MELEE_DAMAGE: float = 20.0
 const ATTACK_BOUT_REPOSITION_LIMIT: float = 16.0
+const RETREAT_THREAT_SCAN_RANGE: float = 10.0
+const RETREAT_COUNTERFIRE_MAX_RANGE: float = 16.0
+const RETREAT_MELEE_COUNTER_RANGE: float = 2.35
+const RETREAT_COUNTERFIRE_SPREAD: float = 0.34
+const RETREAT_COUNTERFIRE_MIN_COOLDOWN: float = 0.85
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 enum CombatPlan { STRAFE, ADVANCE, KITE, PEEK_COVER, REPOSITION, HOLD_ANGLE }
@@ -136,9 +141,19 @@ func _ready():
 		ray_cast.collision_mask = 2 | 8
 
 func _on_died_zone_log():
-	if _zone_outside_timer > 0.5 and has_node("/root/Telemetry"):
-		var state_name = State.keys()[current_state]
-		get_node("/root/Telemetry").log_zone_death(state_name, _zone_outside_timer)
+	if _zone_outside_timer <= 0.5 or not has_node("/root/Telemetry"):
+		return
+	var main = get_tree().root.get_node_or_null("Main")
+	var actual_outside = false
+	if main and main.zone:
+		actual_outside = main.zone.is_outside(Vector2(global_position.x, global_position.z))
+	if last_damage_source != "zone" and not actual_outside:
+		return
+	var tel = get_node("/root/Telemetry")
+	var state_name = State.keys()[current_state]
+	tel.log_zone_death(state_name, _zone_outside_timer)
+	if last_damage_source != "zone":
+		tel.log_tactics("zone_assisted_death")
 
 func _physics_process(delta):
 	if is_dead: return
@@ -230,17 +245,15 @@ func _update_stuck(delta):
 	if Vector2(velocity.x, velocity.z).length() < 0.35:
 		_stuck_timer += delta
 		if _stuck_timer >= 1.0:
-			var fwd = Vector3(sin(rotation.y), 0, cos(rotation.y))
-			var angle = randf_range(-PI * 0.75, PI * 0.75)
-			_stuck_override_dir = Vector3(
-				fwd.x * cos(angle) - fwd.z * sin(angle),
-				0,
-				fwd.x * sin(angle) + fwd.z * cos(angle)
-			).normalized()
+			var threat = _find_retreat_threat(RETREAT_THREAT_SCAN_RANGE)
+			_stuck_override_dir = _pick_stuck_escape_dir(threat)
 			_stuck_override_timer = 1.2
 			_stuck_timer = 0.0
 			if has_node("/root/Telemetry"):
-				get_node("/root/Telemetry").log_tactics("stuck_triggered")
+				var tel = get_node("/root/Telemetry")
+				tel.log_tactics("stuck_triggered")
+				if threat:
+					tel.log_tactics("stuck_while_threatened")
 	else:
 		_stuck_timer = 0.0
 
@@ -354,8 +367,7 @@ func handle_idle_state(delta):
 
 	var main = get_tree().root.get_node_or_null("Main")
 	if main and (main.supply_telegraphed or main.supply_spawned):
-		var supply_range = 80.0 if archetype == BotArchetype.OPPORTUNIST else 50.0
-		if global_position.distance_to(main.supply_pos) < supply_range:
+		if _should_pursue_supply(main):
 			var dir = (main.supply_pos - global_position).normalized()
 			_move_or_unstick(dir, delta, true)
 			if has_node("/root/Telemetry") and state_timer < 0.1:
@@ -646,20 +658,166 @@ func handle_zone_escape_state(delta):
 	if self_2d.distance_to(zone_c) < main.zone.current_radius * 0.75:
 		change_state(State.IDLE); return
 	var zone_center_3d = Vector3(zone_c.x, global_position.y, zone_c.y)
+	var threat = _find_retreat_threat(RETREAT_THREAT_SCAN_RANGE)
+	var countering = threat != null
 	# When stuck, use wall-slide escape direction rather than random stuck override
 	if _stuck_override_timer > 0:
-		handle_movement(_sample_zone_escape_dir(zone_c), delta, true)
+		handle_movement(_sample_zone_escape_dir(zone_c, threat), delta, not countering)
 	else:
-		_nav_move_toward(zone_center_3d, delta, true)
+		_nav_move_toward(zone_center_3d, delta, not countering)
+	if countering:
+		_try_retreat_counteraction(threat, delta, "zone_escape_fire")
 
-func _sample_zone_escape_dir(zone_c: Vector2) -> Vector3:
+func _sample_zone_escape_dir(zone_c: Vector2, threat: Entity = null) -> Vector3:
 	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
 	# Blend center direction with a perpendicular wall-slide component.
 	# Instance-unique sign ensures neighboring stuck bots slide to opposite sides
 	# rather than all piling against the same wall segment.
 	var perp = Vector3(-to_center.z, 0, to_center.x)
 	var sign = 1.0 if (get_instance_id() % 2 == 0) else -1.0
-	return (to_center + perp * sign * 0.6).normalized()
+	var dir = to_center + perp * sign * 0.6
+	if _is_target_valid(threat):
+		var away = global_position - threat.global_position
+		away.y = 0
+		if away.length_squared() > 0.01:
+			dir += away.normalized() * 0.7
+	return dir.normalized()
+
+func _pick_stuck_escape_dir(threat: Entity = null) -> Vector3:
+	var dir = Vector3.ZERO
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and main.zone:
+		var zone_c = main.zone.current_center
+		var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z)
+		to_center.y = 0
+		if to_center.length_squared() > 0.01:
+			var pos_2d = Vector2(global_position.x, global_position.z)
+			var outside_or_escaping = current_state == State.ZONE_ESCAPE or main.zone.is_outside(pos_2d)
+			dir += to_center.normalized() * (1.2 if outside_or_escaping else 0.45)
+
+	if _is_target_valid(threat):
+		var away = global_position - threat.global_position
+		away.y = 0
+		if away.length_squared() > 0.01:
+			dir += away.normalized() * 0.9
+
+	var fwd = Vector3(sin(rotation.y), 0, cos(rotation.y))
+	if dir.length_squared() < 0.01:
+		var angle = randf_range(-PI * 0.75, PI * 0.75)
+		dir = Vector3(
+			fwd.x * cos(angle) - fwd.z * sin(angle),
+			0,
+			fwd.x * sin(angle) + fwd.z * cos(angle)
+		)
+	else:
+		var side = Vector3(-dir.z, 0, dir.x)
+		var sign = 1.0 if (get_instance_id() % 2 == 0) else -1.0
+		dir += side.normalized() * sign * 0.65
+	return dir.normalized()
+
+func _find_retreat_threat(max_range: float) -> Entity:
+	var best: Entity = null
+	var best_score = INF
+	for actor in get_tree().get_nodes_in_group("actors"):
+		if actor == self or not actor is Entity or actor.is_dead: continue
+		var dist = global_position.distance_to(actor.global_position)
+		if dist > max_range: continue
+		var perceived = perception_meters.get(actor, 0.0)
+		var close = dist <= RETREAT_MELEE_COUNTER_RANGE * 2.0
+		var visible = perceived >= 0.75 or close or _can_i_see(actor)
+		if not visible: continue
+		var score = dist - perceived * 2.0
+		if actor == target_actor:
+			score -= 1.0
+		if close:
+			score -= 3.0
+		if score < best_score:
+			best_score = score
+			best = actor
+	return best
+
+func _try_retreat_counteraction(threat: Entity, delta: float, gun_event: String) -> bool:
+	if not _is_target_valid(threat):
+		return false
+	var dist = global_position.distance_to(threat.global_position)
+	if dist > RETREAT_THREAT_SCAN_RANGE:
+		return false
+	target_actor = threat
+	last_known_target_pos = threat.global_position
+	_face_retreat_threat(threat, delta)
+
+	if fire_cooldown <= 0.0 and dist <= MELEE_RANGE * 1.05:
+		_bot_melee()
+		if has_node("/root/Telemetry"):
+			get_node("/root/Telemetry").log_tactics("retreat_melee_counter")
+		return true
+
+	if stats.current_ammo <= 0 and reserve_ammo > 0 and dist > MELEE_RANGE * 2.0:
+		var before = stats.current_ammo
+		_try_reload()
+		if stats.current_ammo > before and has_node("/root/Telemetry"):
+			get_node("/root/Telemetry").log_tactics("reserve_reload")
+
+	var fire_range = minf(stats.attack_range, RETREAT_COUNTERFIRE_MAX_RANGE)
+	if fire_cooldown <= 0.0 and stats.current_ammo > 0 and dist <= fire_range \
+			and stats.weapon_type != "" and stats.weapon_type != "knife" and has_los_to(threat):
+		_retreat_fire_at(threat, gun_event)
+		return true
+	return false
+
+func _face_retreat_threat(threat: Entity, delta: float):
+	var dir_to = threat.global_position - global_position
+	dir_to.y = 0
+	if dir_to.length_squared() < 0.01:
+		return
+	rotation.y = lerp_angle(rotation.y, atan2(dir_to.x, dir_to.z) + PI, stats.rotation_speed * 1.25 * delta)
+
+func _retreat_fire_at(threat: Entity, event: String):
+	if stats.current_ammo <= 0 or not ray_cast:
+		return
+	stats.current_ammo -= 1
+	fire_cooldown = maxf(stats.fire_rate * 1.85, RETREAT_COUNTERFIRE_MIN_COOLDOWN)
+	reveal()
+	if has_node("/root/Telemetry"):
+		var tel = get_node("/root/Telemetry")
+		tel.log_shot()
+		tel.log_tactics(event)
+	if MUZZLE_FLASH_SCN:
+		var flash = MUZZLE_FLASH_SCN.instantiate()
+		add_child(flash)
+		flash.position = Vector3(0, 0.5, -0.5)
+
+	var target_point = threat.global_position + Vector3(0, 1.0, 0)
+	var spread = RETREAT_COUNTERFIRE_SPREAD * _aim_spread_mult
+	if current_state == State.ZONE_ESCAPE:
+		spread *= 1.4
+	var pellets = max(1, stats.pellet_count) if stats.weapon_type == "shotgun" else 1
+	for _i in range(pellets):
+		var pellet_spread = spread + (0.18 if stats.weapon_type == "shotgun" else 0.0)
+		_cast_and_visualize(_retreat_local_aim(target_point, pellet_spread))
+
+func _retreat_local_aim(world_pos: Vector3, spread: float) -> Vector3:
+	var local = ray_cast.to_local(world_pos)
+	if local.length() > stats.attack_range:
+		local = local.normalized() * stats.attack_range
+	local.x += randf_range(-spread, spread)
+	local.y += randf_range(-spread * 0.35, spread * 0.35)
+	return local
+
+func _should_pursue_supply(main: Node) -> bool:
+	var dist = global_position.distance_to(main.supply_pos)
+	if main.supply_telegraphed:
+		return archetype == BotArchetype.OPPORTUNIST and dist < 70.0
+	if archetype == BotArchetype.OPPORTUNIST:
+		return dist < 80.0
+	var hp_ratio = current_health / maxf(1.0, stats.max_health)
+	var ammo_ratio = 1.0
+	if stats.max_ammo > 0:
+		ammo_ratio = float(stats.current_ammo) / float(stats.max_ammo)
+	if hp_ratio < 0.45 or ammo_ratio <= 0.25:
+		return dist < 40.0
+	var interest_bucket = get_instance_id() % 4
+	return interest_bucket == 0 and dist < 28.0
 
 func handle_disengage_state(delta):
 	# Reload retreat: once behind cover long enough, reload and re-engage
@@ -705,10 +863,16 @@ func handle_disengage_state(delta):
 
 	var nearest_threat = _find_nearest_target()
 	if not nearest_threat: change_state(State.IDLE); return
+	var counter_threat = _find_retreat_threat(RETREAT_THREAT_SCAN_RANGE)
+	if not counter_threat:
+		counter_threat = nearest_threat
+	var countering = counter_threat != null and global_position.distance_to(counter_threat.global_position) <= RETREAT_THREAT_SCAN_RANGE
 
 	# Heavily outnumbered (4+): scatter in unique directions rather than pile onto one cover spot
 	if _count_visible_enemies() >= 4:
-		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, true)
+		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, not countering)
+		if countering:
+			_try_retreat_counteraction(counter_threat, delta, "retreat_counterfire")
 		return
 
 	# Normal disengage: seek tall cover
@@ -716,9 +880,11 @@ func handle_disengage_state(delta):
 		_disengage_cover = _find_cover_point(nearest_threat.global_position)
 
 	if _disengage_cover != Vector3.ZERO:
-		_nav_move_toward(_disengage_cover, delta, true)
+		_nav_move_toward(_disengage_cover, delta, not countering)
 	else:
-		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, true)
+		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, not countering)
+	if countering:
+		_try_retreat_counteraction(counter_threat, delta, "retreat_counterfire")
 
 # ─── PERSONAL COMBAT DOCTRINE ────────────────────────────────────────────────
 
@@ -1074,6 +1240,7 @@ func _find_best_pickup(search_radius: float) -> Node3D:
 		if not is_instance_valid(p): continue
 		var d = global_position.distance_to(p.global_position)
 		if d > search_radius: continue
+		if not can_sense_item(p.global_position): continue
 		var score = d
 		var item = p.get("item")
 		if item:
@@ -1359,6 +1526,7 @@ func _find_nearest_pickup(search_radius: float = 35.0) -> Node3D:
 	var min_dist = search_radius
 	for p in pickups:
 		var d = global_position.distance_to(p.global_position)
+		if not can_sense_item(p.global_position): continue
 		if d < min_dist: min_dist = d; nearest = p
 	return nearest
 

@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-05-07 (v1.6.2 기준)
+> 마지막 업데이트: 2026-05-07 (v1.6.3 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -61,7 +61,7 @@ python tools/analyze_results.py
 
 ### `tactics` (봇 AI 검증 핵심)
 
-| 지표 | 설명 | v1.6.2 기대값 |
+| 지표 | 설명 | v1.6.3 기대값 |
 |---|---|---|
 | `ammo_empty_enter` | 탄약 소진 후 RECOVER 진입 횟수 | > 0 (정상 작동 확인) |
 | `reserve_reload` | reserve 있어서 RECOVER 스킵한 횟수 | 탄약 픽업 후 증가해야 함 |
@@ -109,7 +109,7 @@ python tools/analyze_results.py
 
 ## 테스팅 시나리오별 그룹 설정
 
-### 봇 AI 행동 검증 (v1.6.2)
+### 봇 AI 행동 검증 (v1.6.3)
 
 ```gdscript
 Telemetry.set_groups({

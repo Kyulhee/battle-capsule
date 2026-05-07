@@ -41,6 +41,13 @@ if __name__ == "__main__":
     reposition = [r.get("tactics", {}).get("combat_reposition", 0) for r in results]
     kite = [r.get("tactics", {}).get("combat_kite", 0) for r in results]
     survival_break = [r.get("tactics", {}).get("survival_break", 0) for r in results]
+    zone_escape_fire = [r.get("tactics", {}).get("zone_escape_fire", 0) for r in results]
+    retreat_counterfire = [r.get("tactics", {}).get("retreat_counterfire", 0) for r in results]
+    retreat_melee_counter = [r.get("tactics", {}).get("retreat_melee_counter", 0) for r in results]
+    stuck_while_threatened = [r.get("tactics", {}).get("stuck_while_threatened", 0) for r in results]
+    zone_assisted_death = [r.get("tactics", {}).get("zone_assisted_death", 0) for r in results]
+    zone_deaths = [r.get("zone", {}).get("zone_deaths", 0) for r in results]
+    max_outside_time = [r.get("zone", {}).get("max_outside_time", 0.0) for r in results]
     first_upgrade = [
         r.get("economy", {}).get("first_upgrade_time", -1.0)
         for r in results
@@ -84,6 +91,16 @@ if __name__ == "__main__":
             avg(survival_break),
         )
     )
+    print(
+        "Avg retreat combat: zone_fire={:.1f}, counterfire={:.1f}, melee={:.1f}, stuck_threat={:.1f}, zone_assist={:.1f}".format(
+            avg(zone_escape_fire),
+            avg(retreat_counterfire),
+            avg(retreat_melee_counter),
+            avg(stuck_while_threatened),
+            avg(zone_assisted_death),
+        )
+    )
+    print(f"Zone deaths: {sum(zone_deaths)} ({avg(zone_deaths):.1f}/run), max outside time: {max(max_outside_time):.1f}s")
     if first_upgrade:
         print(f"Avg first upgrade: {avg(first_upgrade):.1f}s")
     if first_upgrade_weapons:
