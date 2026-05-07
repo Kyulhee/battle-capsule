@@ -1,7 +1,7 @@
-# 배틀캡슐 아키텍처 보고서 (v1.6.1)
+# 배틀캡슐 아키텍처 보고서 (v1.6.2)
 
 > 최종 업데이트: 2026-05-04  
-> 이 문서는 v1.6.1 안정화(ZoneController·WeaponSlotManager 분리 + Bot CombatPlan) 이후 기준이다.
+> 이 문서는 v1.6.2 안정화(ZoneController·WeaponSlotManager 분리 + Bot CombatPlan + 벽 가림 투명화 수정) 이후 기준이다.
 
 ---
 

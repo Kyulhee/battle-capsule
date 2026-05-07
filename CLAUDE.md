@@ -10,7 +10,7 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v1.6.1 (봇 아키타입 안정화 + 개인 교전 수칙 + Telemetry 정리) |
+| 완료 버전 | v1.6.2 (쿼터뷰 벽 가림 투명화 안정화) |
 | 다음 버전 | v1.7 — AI Doctrine Hierarchy Refactor |
 | 미해결 | 릴리즈 전 ObjectDB leak 간헐 경고 재현 시 `--verbose`로 상세 확인 |
 

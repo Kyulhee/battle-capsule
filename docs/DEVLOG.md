@@ -5,6 +5,41 @@
 
 ---
 
+## v1.6.2 — 2026-05-07
+
+**시각 안정화 — 쿼터뷰 벽 가림 투명화 복구/점멸 수정**
+
+**src/entities/player/Player.gd**
+
+- 카메라와 플레이어 사이를 가리는 `occluder` mesh fade 로직을 mesh별 상태 캐시 방식으로 재작성.
+- `surface_override_material`이 있던 장애물은 fade 후 원래 override material로 복구되도록 수정해 흰색 material 점멸을 제거.
+- override가 없던 mesh는 fade 후 `null` override로 복구해 기존 mesh surface material을 유지.
+- raycast 샘플을 머리/몸통/좌우/하단 5개로 늘려 캐릭터가 벽에 부분적으로 가려지는 상황을 더 안정적으로 감지.
+- fade out linger와 alpha lerp를 추가해 벽 모서리에서 투명/불투명 전환이 프레임 단위로 튀는 현상을 완화.
+- Player 제거 시 fade 중인 occluder material을 모두 복구하도록 `_exit_tree()` 정리 루틴 추가.
+
+**src/entities/bot/Bot.gd**
+
+- 장기 ATTACK 교전이 20초 기준을 넘지 않도록 16초 이상 지속된 정면 교전은 짧은 DISENGAGE/재배치로 끊는 안전밸브 추가.
+
+**src/maps/TestMap.tscn**
+
+- 고정 테스트맵 경계벽 `Wall_N/S/E/W`에 `occluder` 그룹을 추가해 절차 생성 맵과 동일한 가림 처리 적용.
+
+**문서/릴리즈**
+
+- README 다운로드 링크, `export_presets.cfg`, Main 메뉴 VersionLabel, 온보딩/마스터 문서를 `v1.6.2` 기준으로 갱신.
+
+**검증 결과**
+
+- Godot headless 1회 통과, parse/script error 없음.
+- `python tools\simulate_matches.py 5` 통과: duration 75.0s~109.8s, runs under 60s=0.
+- Analyzer: max longest attack bout=16.0s, died in RECOVER=0.0% of bouts, combat plan counters 정상.
+- `python -m py_compile tools\simulate_matches.py tools\analyze_results.py` 통과.
+- `git diff --check` 통과.
+
+---
+
 ## v1.6.1 — 2026-05-06
 
 **릴리즈 안정화 — 개인 교전 수칙, Telemetry 신뢰도, 반복 시뮬레이션 도구 정리**

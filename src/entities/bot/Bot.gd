@@ -7,6 +7,7 @@ const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
 
 const MELEE_RANGE: float  = 1.8
 const MELEE_DAMAGE: float = 20.0
+const ATTACK_BOUT_REPOSITION_LIMIT: float = 16.0
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 enum CombatPlan { STRAFE, ADVANCE, KITE, PEEK_COVER, REPOSITION, HOLD_ANGLE }
@@ -513,6 +514,18 @@ func handle_attack_state(delta):
 		var cur_dist = global_position.distance_to(target_actor.global_position) if is_instance_valid(target_actor) else INF
 		if cur_dist < _sniper_min_engage_range:
 			change_state(State.DISENGAGE); return
+
+	# Human-like reset: prolonged face-to-face trades should break into a
+	# short reposition instead of becoming a stationary DPS contest.
+	if attack_bout_timer > ATTACK_BOUT_REPOSITION_LIMIT and _disengage_cooldown <= 0.0:
+		if has_node("/root/Telemetry"):
+			var tel = get_node("/root/Telemetry")
+			tel.log_combat_audit("attack_disengage")
+			tel.log_tactics("combat_reposition")
+		_retreating_to_reload = reserve_ammo > 0 and stats.max_ammo > 0 \
+			and float(stats.current_ammo) / float(stats.max_ammo) <= 0.5
+		change_state(State.DISENGAGE)
+		return
 
 	var dir_to_target = (last_known_target_pos - global_position).normalized()
 	rotation.y = lerp_angle(rotation.y, atan2(dir_to_target.x, dir_to_target.z) + PI, stats.rotation_speed * delta)

@@ -39,22 +39,22 @@ shape = SubResource("BoxShape3D_floor")
 
 [node name="Boundaries" type="Node3D" parent="."]
 
-[node name="Wall_N" type="StaticBody3D" parent="Boundaries"]
+[node name="Wall_N" type="StaticBody3D" parent="Boundaries" groups=["occluder"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, -60)
 [node name="Mesh" type="MeshInstance3D" parent="Boundaries/Wall_N"]
 mesh = SubResource("BoxMesh_wall")
 
-[node name="Wall_S" type="StaticBody3D" parent="Boundaries"]
+[node name="Wall_S" type="StaticBody3D" parent="Boundaries" groups=["occluder"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 5, 60)
 [node name="Mesh" type="MeshInstance3D" parent="Boundaries/Wall_S"]
 mesh = SubResource("BoxMesh_wall")
 
-[node name="Wall_E" type="StaticBody3D" parent="Boundaries"]
+[node name="Wall_E" type="StaticBody3D" parent="Boundaries" groups=["occluder"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 60, 5, 0)
 [node name="Mesh" type="MeshInstance3D" parent="Boundaries/Wall_E"]
 mesh = SubResource("BoxMesh_wall_v")
 
-[node name="Wall_W" type="StaticBody3D" parent="Boundaries"]
+[node name="Wall_W" type="StaticBody3D" parent="Boundaries" groups=["occluder"]]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -60, 5, 0)
 [node name="Mesh" type="MeshInstance3D" parent="Boundaries/Wall_W"]
 mesh = SubResource("BoxMesh_wall_v")
