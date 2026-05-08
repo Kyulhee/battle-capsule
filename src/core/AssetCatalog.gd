@@ -65,12 +65,18 @@ func get_audio_fallback(sound_id: String) -> String:
 	return String(entry.get("fallback", sound_id))
 
 func get_color(section_name: String, asset_id: String, fallback: Color = Color.WHITE) -> Color:
+	return get_tint(section_name, asset_id, "color", fallback)
+
+func get_tint(section_name: String, asset_id: String, tint_key: String, fallback: Color = Color.WHITE) -> Color:
 	var entry = get_entry(section_name, asset_id)
-	var raw = entry.get("color", [])
+	var raw = entry.get(tint_key, [])
 	if typeof(raw) == TYPE_ARRAY and raw.size() >= 3:
 		var alpha = float(raw[3]) if raw.size() >= 4 else fallback.a
 		return Color(float(raw[0]), float(raw[1]), float(raw[2]), alpha)
 	return fallback
+
+func get_cosmetic_tint(asset_id: String, tint_key: String, fallback: Color = Color.WHITE) -> Color:
+	return get_tint("cosmetics", asset_id, tint_key, fallback)
 
 func has_asset(section_name: String, asset_id: String) -> bool:
 	var section = data.get(section_name, {})
@@ -113,5 +119,26 @@ func _default_data() -> Dictionary:
 		},
 		"icons": {},
 		"props": {},
-		"cosmetics": {}
+		"cosmetics": {
+			"player.default": {
+				"body_tint": [0.10, 0.72, 0.18, 1.0],
+				"accent_tint": [0.35, 1.0, 0.35, 1.0]
+			},
+			"bot.aggressive": {
+				"body_tint": [0.85, 0.20, 0.18, 1.0],
+				"accent_tint": [1.0, 0.45, 0.30, 1.0]
+			},
+			"bot.defensive": {
+				"body_tint": [0.22, 0.36, 0.86, 1.0],
+				"accent_tint": [0.50, 0.72, 1.0, 1.0]
+			},
+			"bot.sniper": {
+				"body_tint": [0.38, 0.22, 0.72, 1.0],
+				"accent_tint": [0.78, 0.58, 1.0, 1.0]
+			},
+			"bot.opportunist": {
+				"body_tint": [0.95, 0.68, 0.18, 1.0],
+				"accent_tint": [1.0, 0.85, 0.30, 1.0]
+			}
+		}
 	}

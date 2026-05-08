@@ -94,6 +94,7 @@ func _ready():
 	if stats:
 		stats = stats.duplicate()
 	super._ready()
+	_apply_cosmetic_tint()
 
 	# Zone timer (B구역 — top-center)
 	zone_timer_label = Label.new()
@@ -462,6 +463,21 @@ func _physics_process(delta):
 		$MeshInstance3D.scale.y = 0.55 if is_crouching else 1.0
 		$MeshInstance3D.position.y = _mesh_origin_y - 0.225 if is_crouching else _mesh_origin_y
 	camera_pivot.global_position = global_position
+
+func _apply_cosmetic_tint() -> void:
+	if not has_node("MeshInstance3D"):
+		return
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		return
+	var catalog = main.get("asset_catalog")
+	if not catalog or not catalog.has_method("get_cosmetic_tint"):
+		return
+	var body_tint = catalog.get_cosmetic_tint("player.default", "body_tint", Color(0.2, 1.0, 0.2, 1.0))
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = body_tint
+	mat.roughness = 0.5
+	$MeshInstance3D.set_surface_override_material(0, mat)
 
 func _process(delta):
 	_handle_wall_transparency(delta)

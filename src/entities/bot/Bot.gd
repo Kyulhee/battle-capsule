@@ -1108,16 +1108,16 @@ func _update_archetype_marker():
 	match name:
 		"AGGRESSIVE":
 			_archetype_marker.text = _archetype_marker_text("AGG")
-			_archetype_marker.modulate = Color(1.0, 0.22, 0.12)
+			_archetype_marker.modulate = _catalog_archetype_accent(Color(1.0, 0.22, 0.12))
 		"DEFENSIVE":
 			_archetype_marker.text = _archetype_marker_text("DEF")
-			_archetype_marker.modulate = Color(0.25, 0.62, 1.0)
+			_archetype_marker.modulate = _catalog_archetype_accent(Color(0.25, 0.62, 1.0))
 		"SNIPER":
 			_archetype_marker.text = _archetype_marker_text("SNP")
-			_archetype_marker.modulate = Color(0.88, 0.52, 1.0)
+			_archetype_marker.modulate = _catalog_archetype_accent(Color(0.88, 0.52, 1.0))
 		"OPPORTUNIST":
 			_archetype_marker.text = _archetype_marker_text("OPP")
-			_archetype_marker.modulate = Color(0.25, 1.0, 0.48)
+			_archetype_marker.modulate = _catalog_archetype_accent(Color(0.25, 1.0, 0.48))
 		_:
 			_archetype_marker.text = _archetype_marker_text("BOT")
 			_archetype_marker.modulate = Color(1.0, 1.0, 1.0)
@@ -1155,6 +1155,25 @@ func _combat_plan_marker() -> String:
 
 func _archetype_name() -> String:
 	return BotArchetype.keys()[archetype] if archetype >= 0 and archetype < BotArchetype.size() else "AGGRESSIVE"
+
+func _catalog_archetype_id() -> String:
+	match _archetype_name():
+		"DEFENSIVE":
+			return "bot.defensive"
+		"SNIPER":
+			return "bot.sniper"
+		"OPPORTUNIST":
+			return "bot.opportunist"
+	return "bot.aggressive"
+
+func _catalog_archetype_accent(fallback: Color) -> Color:
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		return fallback
+	var catalog = main.get("asset_catalog")
+	if catalog and catalog.has_method("get_cosmetic_tint"):
+		return catalog.get_cosmetic_tint(_catalog_archetype_id(), "accent_tint", fallback)
+	return fallback
 
 func _log_doctrine_state_time(delta: float):
 	if not has_node("/root/Telemetry"):
@@ -1212,7 +1231,11 @@ func _ensure_doctrine_profile():
 func _apply_visual_skin():
 	if not BOT_VISUAL_KIT:
 		return
-	_skin_root = BOT_VISUAL_KIT.apply_skin(self, int(archetype), get_instance_id())
+	var catalog = null
+	var main = get_tree().root.get_node_or_null("Main")
+	if main:
+		catalog = main.get("asset_catalog")
+	_skin_root = BOT_VISUAL_KIT.apply_skin(self, int(archetype), get_instance_id(), catalog)
 	_sync_visual_skin()
 
 func _sync_visual_skin():

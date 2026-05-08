@@ -7,6 +7,29 @@
 
 ## v1.9-dev — 2026-05-09
 
+**Cosmetic Tint Catalog Hook — 플레이어/봇 외형 색상 ID 연결**
+
+**src/core/AssetCatalog.gd**
+
+- catalog entry의 임의 tint key를 `Color`로 읽는 `get_tint()`와 `get_cosmetic_tint()` API를 추가.
+- built-in fallback cosmetics에 `player.default`, `bot.aggressive/defensive/sniper/opportunist` tint 값을 포함해 JSON 누락 시에도 기존 색상 기준을 유지.
+
+**src/entities/player/Player.gd / src/entities/bot/Bot.gd / src/entities/bot/BotVisualKit.gd**
+
+- 플레이어 본체 tint를 `cosmetics.player.default.body_tint`에서 읽도록 연결.
+- 봇 아키타입 장식 파츠와 marker 색을 `cosmetics.bot.*.body_tint/accent_tint`에서 읽도록 연결.
+- 기존 본체 형태와 아키타입 장식 방식은 유지하고, catalog 색상만 바꿔 외형 실험이 가능하게 구성.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=96.0s, stage=3, recover=15, disengage=19.
+- `git diff --check` 통과.
+
+---
+
+## v1.9-dev — 2026-05-09
+
 **Audio Catalog Hook Pass — 무기별/표면별 사운드 ID 연결**
 
 **src/entities/player/Player.gd / src/entities/bot/Bot.gd**
