@@ -5,6 +5,57 @@
 
 ---
 
+## v1.7.1 — 2026-05-08
+
+**AI Doctrine Hierarchy Refactor — 전술 판단 계층 분리 1차**
+
+**src/entities/bot/BotDoctrine.gd** *(신규)*
+
+- `BotDoctrine.build_profile(archetype_id, difficulty_params)` 추가.
+- Global Safety/Base Doctrine/Archetype/Difficulty Scalar/Weapon/Runtime Context 계층을 Dictionary profile로 merge.
+- 아키타입 merge 이후 난이도 scalar를 최종 적용해 SNIPER 시야 배율과 `combat_loot_floor`/`loot_break_mult`가 함께 유지되도록 보정.
+- combat plan ID를 문자열로 통일: `strafe`, `advance`, `kite`, `peek_cover`, `reposition`, `hold_angle`.
+- `choose_combat_plan(context, profile)`로 개인 교전 수칙 선택을 순수 로직으로 분리.
+- `choose_supply_decision(context, profile)`로 보급 관심 정책을 profile 기반으로 분리.
+- `explain_profile(profile)`로 최종 merge 결과를 Telemetry에 기록 가능하게 정리.
+
+**src/entities/bot/Bot.gd / src/Main.gd**
+
+- `Bot.configure_ai(archetype_id, difficulty_params)` 공개 인터페이스 추가.
+- Main 스폰 루프가 `apply_difficulty()` + `_apply_archetype()` 누적 호출 대신 `configure_ai()` 1회 호출로 변경.
+- `Bot.gd`는 전술 선택 이유를 직접 판단하지 않고 Doctrine이 반환한 plan을 실행.
+- OPPORTUNIST 타겟 점수, DEFENSIVE/OPPORTUNIST 순찰 선호, 보급 관심 정책을 profile 값으로 이동.
+- 기존 movement, firing, cover, retreat counteraction 실행부는 유지해 리팩터 리스크를 제한.
+- 임시 디버그용 아키타입 마커 추가: 플레이어가 시야로 확인한 봇 위에 `AGG/DEF/SNP/OPP + 현재 plan` 라벨을 표시.
+
+**src/entities/bot/BotVisualKit.gd** *(신규)*
+
+- 외부 이미지 라이선스 없이 Godot primitive mesh로 봇 스킨 파츠를 생성.
+- 아키타입별 얼굴 문법 추가: AGGRESSIVE 찡그린 눈/워페인트, DEFENSIVE 고글/차분한 입, SNIPER 바이저/렌즈, OPPORTUNIST 눈웃음/스마크.
+- 랜덤 머리 파츠 5종 추가: cap, hair sweep, headset, flat hair, top knot.
+- 모든 얼굴 파츠를 봇 로컬 전방(-Z)에 배치해 봇이 바라보는 방향을 얼굴 방향으로 읽을 수 있게 구성.
+- 런타임 몸통 material override는 headless 종료 오류를 유발해 제외. 정식 외형 차별화는 별도 skin asset 단계에서 재검토.
+- 플레이어가 봇을 완전 인식하지 못했을 때 `ArchetypeSkin`도 본체 `MeshInstance3D`와 함께 숨기도록 수정.
+- 봇 웅크리기 시 스킨 루트도 낮아지고 세로로 줄어들도록 동기화.
+
+**src/core/Telemetry.gd / tools/analyze_results.py**
+
+- `doctrine` 그룹 추가.
+- profile count, profile summary, combat plan count, supply decision을 JSON/콘솔/analyzer에 출력.
+- analyzer가 Doctrine profile 분포와 plan 분포를 출력해 아키타입/plan 0 고정 회귀를 빠르게 확인.
+
+**검증 결과**
+
+- Godot headless 1회 통과, parse/script error 없음.
+- `python tools\simulate_matches.py 5` 통과: avg duration=78.8s, runs under 60s=1, avg zone stage=3.00.
+- Analyzer: max attack bout=13.9s, RECOVER 사망=2.9% of bouts, zone deaths=0.
+- Doctrine plans: `advance=5`, `kite=15`, `peek_cover=176`, `reposition=99`, `strafe=86`.
+- `python -m py_compile tools\simulate_matches.py tools\analyze_results.py` 통과.
+- `git diff --check` 통과.
+- `v1.7.2`에서 early finish 편차를 `plan_by_archetype`/engage range 지표와 함께 추가 추적.
+
+---
+
 ## v1.6.3 — 2026-05-07
 
 **AI/시야 안정화 — 후퇴 응전 + 아이템 시야 + 보급 군집 완화**

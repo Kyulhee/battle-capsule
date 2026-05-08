@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.6.3 / 마지막 검증: 2026-05-07
+> 기준 버전: v1.7.1 / 마지막 검증: 2026-05-08
 
 ---
 
@@ -45,7 +45,17 @@
 ### `src/entities/bot/Bot.gd`
 - **Main 참조 방법**: `get_tree().get_root().get_node("Main")` 런타임 조회 — 읽기 전용
 - **읽는 Main 필드**: `main.zone.current_center`, `main.zone.current_radius`, `main.zone.stage`, `main.alive_count`
-- **전술 계층**: 현재는 `Bot.gd` 내부의 State + CombatPlan + 아키타입 파라미터로 구성. v1.7에서 `BotDoctrine`으로 분리 예정.
+- **전술 계층**: State/movement/firing 실행은 `Bot.gd`, 전술 선택과 profile merge는 `BotDoctrine.gd`.
+
+### `src/entities/bot/BotDoctrine.gd`
+- **읽는 파일**: 직접 scene 참조 없음 — `Bot.gd`가 넘긴 context/profile만 사용.
+- **공개 API**: `build_profile()`, `choose_combat_plan()`, `choose_supply_decision()`, `explain_profile()`.
+- **수정 영향**: plan 문자열을 변경하면 `Bot.gd` 실행부, `Telemetry.gd`, `tools/analyze_results.py`를 함께 확인.
+
+### `src/entities/bot/BotVisualKit.gd`
+- **읽는 파일**: 직접 scene 참조 없음 — `Bot.gd`가 `apply_skin(bot, archetype_id, seed)` 호출.
+- **소유 노드**: 각 Bot 하위 `ArchetypeSkin` Node3D와 primitive MeshInstance3D 파츠.
+- **수정 영향**: material override를 몸통 MeshInstance3D에 직접 적용하면 headless 종료 오류가 날 수 있으므로 얼굴/머리 파츠 중심으로 유지.
 
 ### `src/entities/pickup/Pickup.gd`
 - **호출 대상**: `collector.receive_weapon(wstats)` / `collector.receive_ammo(type, amount)` — `has_method()` duck-typed, Player·Bot 동시 지원
@@ -63,7 +73,8 @@
 | `Entity.take_damage()` 시그니처 | `Entity.gd` | `Bot.gd`, `Player.gd`, `ZoneController.tick_damage()` |
 | `StatsData` 필드 추가 | `StatsData.gd` | `WeaponSlotManager.gd`, `Bot.gd`, `Player.gd` |
 | `Main.DIFFICULTY_PARAMS` | `Main.gd` | `Bot.gd` (스폰 시 1회 읽힘, 이후 변경 불가) |
-| Bot CombatPlan/아키타입 보정 | `Bot.gd` | `Telemetry.gd` (전술 카운트), `Main.gd` (스폰 시 아키타입 배정) |
+| Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
+| Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd` |
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
 | 새 `PressureEffect` 추가 | `MissionTracker.gd` (enum) | `Main._apply_pressure_effects()` (match 케이스 추가) |

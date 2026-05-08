@@ -467,8 +467,11 @@ func _process(delta):
 	var actors = get_tree().get_nodes_in_group("actors")
 	for a in actors:
 		if not a is Entity or a == self: continue
+		var actor_visible = a.is_revealed_to(self)
 		if a.has_node("MeshInstance3D"):
-			a.get_node("MeshInstance3D").visible = a.is_revealed_to(self)
+			a.get_node("MeshInstance3D").visible = actor_visible
+		if a.has_node("ArchetypeSkin"):
+			a.get_node("ArchetypeSkin").visible = actor_visible
 
 	# Zone timer label + alive count HUD sync
 	var main = get_tree().root.get_node_or_null("Main")

@@ -4,6 +4,8 @@ const MUZZLE_FLASH_SCN   = preload("res://src/fx/MuzzleFlash.tscn")
 const BULLET_TRAIL_SCN   = preload("res://src/fx/BulletTrail.tscn")
 const PICKUP_SCN         = preload("res://src/entities/pickup/Pickup.tscn")
 const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
+const BOT_DOCTRINE       = preload("res://src/entities/bot/BotDoctrine.gd")
+const BOT_VISUAL_KIT     = preload("res://src/entities/bot/BotVisualKit.gd")
 
 const MELEE_RANGE: float  = 1.8
 const MELEE_DAMAGE: float = 20.0
@@ -13,9 +15,9 @@ const RETREAT_COUNTERFIRE_MAX_RANGE: float = 16.0
 const RETREAT_MELEE_COUNTER_RANGE: float = 2.35
 const RETREAT_COUNTERFIRE_SPREAD: float = 0.34
 const RETREAT_COUNTERFIRE_MIN_COOLDOWN: float = 0.85
+const DEBUG_ARCHETYPE_MARKERS: bool = false
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
-enum CombatPlan { STRAFE, ADVANCE, KITE, PEEK_COVER, REPOSITION, HOLD_ANGLE }
 var current_state: State = State.IDLE
 var target_actor: Node3D = null
 
@@ -29,7 +31,7 @@ var last_known_target_pos: Vector3 = Vector3.ZERO
 
 # Individual combat doctrine. Bots periodically pick a plan instead of
 # sliding in a constant pattern while shooting.
-var _combat_plan: CombatPlan = CombatPlan.STRAFE
+var _combat_plan: String = BOT_DOCTRINE.PLAN_STRAFE
 var _combat_plan_timer: float = 0.0
 var _combat_move_target: Vector3 = Vector3.ZERO
 var _combat_cover: Vector3 = Vector3.ZERO
@@ -71,6 +73,12 @@ var _zone_thrash_cooldown: float = 0.0  # throttle random thrash bursts in ZONE_
 const DEBUG_PRINT = false
 
 var _state_label: Label3D = null
+var _archetype_marker: Label3D = null
+var _skin_root: Node3D = null
+var _doctrine_profile: Dictionary = {}
+var _difficulty_params: Dictionary = {}
+var _base_attack_range: float = -1.0
+var _base_vision_range: float = -1.0
 
 # ─── ARCHETYPE ───────────────────────────────────────────────────────────────
 enum BotArchetype { AGGRESSIVE, DEFENSIVE, SNIPER, OPPORTUNIST }
@@ -115,6 +123,7 @@ var _late_game_applied: bool = false
 func _ready():
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	super._ready()
+	_capture_base_stats()
 	add_to_group("bots")
 	# 아키타입은 Main.gd에서 스폰 후 배정. 여기서는 기본값만 유지.
 	died.connect(_on_died_zone_log)
@@ -127,6 +136,16 @@ func _ready():
 	_state_label.position = Vector3(0, 2.4, 0)
 	_state_label.visible = false
 	add_child(_state_label)
+	_archetype_marker = Label3D.new()
+	_archetype_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_archetype_marker.double_sided = true
+	_archetype_marker.font_size = 38
+	_archetype_marker.pixel_size = 0.006
+	_archetype_marker.outline_size = 8
+	_archetype_marker.position = Vector3(0, 2.85, 0)
+	_archetype_marker.visible = false
+	add_child(_archetype_marker)
+	_update_archetype_marker()
 	_nav_agent = NavigationAgent3D.new()
 	_nav_agent.path_desired_distance = 0.5
 	_nav_agent.target_desired_distance = 1.5
@@ -182,6 +201,7 @@ func _physics_process(delta):
 	_check_gunshot_sounds()
 	_check_ambient_awareness(delta)
 	_update_state_label_visibility()
+	_update_archetype_marker_visibility()
 
 	match current_state:
 		State.IDLE:        handle_idle_state(delta)
@@ -201,6 +221,7 @@ func _physics_process(delta):
 	if has_node("MeshInstance3D"):
 		$MeshInstance3D.scale.y = 0.62 if is_crouching else 1.0
 		$MeshInstance3D.position.y = _mesh_origin_y - 0.19 if is_crouching else _mesh_origin_y
+	_sync_visual_skin()
 
 func use_heal():
 	if stats.advanced_heals > 0:
@@ -545,7 +566,7 @@ func handle_attack_state(delta):
 	# Hard+ (awareness 2): occasional combat hops when committing in the open.
 	if _awareness_level >= 2:
 		_combat_jump_timer -= delta
-		if _combat_jump_timer <= 0 and is_on_floor() and _combat_plan in [CombatPlan.ADVANCE, CombatPlan.STRAFE]:
+		if _combat_jump_timer <= 0 and is_on_floor() and _combat_plan in [BOT_DOCTRINE.PLAN_ADVANCE, BOT_DOCTRINE.PLAN_STRAFE]:
 			velocity.y = 5.0
 			_combat_jump_timer = randf_range(2.0, 4.0)
 
@@ -805,19 +826,23 @@ func _retreat_local_aim(world_pos: Vector3, spread: float) -> Vector3:
 	return local
 
 func _should_pursue_supply(main: Node) -> bool:
+	_ensure_doctrine_profile()
 	var dist = global_position.distance_to(main.supply_pos)
-	if main.supply_telegraphed:
-		return archetype == BotArchetype.OPPORTUNIST and dist < 70.0
-	if archetype == BotArchetype.OPPORTUNIST:
-		return dist < 80.0
 	var hp_ratio = current_health / maxf(1.0, stats.max_health)
 	var ammo_ratio = 1.0
 	if stats.max_ammo > 0:
 		ammo_ratio = float(stats.current_ammo) / float(stats.max_ammo)
-	if hp_ratio < 0.45 or ammo_ratio <= 0.25:
-		return dist < 40.0
-	var interest_bucket = get_instance_id() % 4
-	return interest_bucket == 0 and dist < 28.0
+	var decision = BOT_DOCTRINE.choose_supply_decision({
+		"distance": dist,
+		"telegraphed": main.supply_telegraphed,
+		"spawned": main.supply_spawned,
+		"hp_ratio": hp_ratio,
+		"ammo_ratio": ammo_ratio,
+		"bucket": get_instance_id(),
+	}, _doctrine_profile)
+	if decision != "deny" and has_node("/root/Telemetry") and state_timer < 0.1:
+		get_node("/root/Telemetry").log_doctrine_supply(decision)
+	return decision != "deny"
 
 func handle_disengage_state(delta):
 	# Reload retreat: once behind cover long enough, reload and re-engage
@@ -889,6 +914,7 @@ func handle_disengage_state(delta):
 # ─── PERSONAL COMBAT DOCTRINE ────────────────────────────────────────────────
 
 func _update_combat_plan(delta: float, can_see: bool, dist: float, pref_range: float):
+	_ensure_doctrine_profile()
 	_combat_plan_timer -= delta
 	_strafe_timer -= delta
 	if _strafe_timer <= 0.0:
@@ -898,8 +924,12 @@ func _update_combat_plan(delta: float, can_see: bool, dist: float, pref_range: f
 		return
 
 	var previous_plan = _combat_plan
-	_combat_plan_timer = randf_range(0.9, 1.8)
-	_combat_plan = CombatPlan.STRAFE
+	var combat = _doctrine_profile.get("combat", {})
+	_combat_plan_timer = randf_range(
+		float(combat.get("plan_seconds_min", 0.9)),
+		float(combat.get("plan_seconds_max", 1.8))
+	)
+	_combat_plan = BOT_DOCTRINE.PLAN_STRAFE
 	_combat_move_target = Vector3.ZERO
 	_combat_cover = Vector3.ZERO
 
@@ -910,52 +940,54 @@ func _update_combat_plan(delta: float, can_see: bool, dist: float, pref_range: f
 	var visible_enemies = _count_visible_enemies()
 	var target_pos = target_actor.global_position if is_instance_valid(target_actor) else last_known_target_pos
 	var losing_trade = _engagement_dmg_taken > _engagement_dmg_dealt + 15.0
-
-	if not can_see and last_known_target_pos != Vector3.ZERO:
-		_combat_plan = CombatPlan.REPOSITION
-		_combat_move_target = _pick_combat_reposition_point(last_known_target_pos, pref_range)
-	elif hp_ratio < _flee_hp_ratio + 0.18 or losing_trade or visible_enemies >= 2:
-		_combat_cover = _find_cover_point(target_pos)
-		_combat_plan = CombatPlan.PEEK_COVER if _combat_cover != Vector3.ZERO else CombatPlan.KITE
-	elif stats.weapon_type == "shotgun" and dist > pref_range * 0.75 and hp_ratio > 0.45:
-		_combat_plan = CombatPlan.ADVANCE
-	elif archetype == BotArchetype.SNIPER or stats.weapon_type == "railgun":
-		if dist < pref_range * 0.85:
-			_combat_plan = CombatPlan.KITE
-		else:
-			_combat_cover = _find_cover_point(target_pos)
-			_combat_plan = CombatPlan.PEEK_COVER if _combat_cover != Vector3.ZERO else CombatPlan.HOLD_ANGLE
-	elif ammo_ratio <= 0.35 and reserve_ammo > 0:
-		_combat_cover = _find_cover_point(target_pos)
-		_combat_plan = CombatPlan.PEEK_COVER if _combat_cover != Vector3.ZERO else CombatPlan.KITE
-	elif can_see and randf() < 0.28:
-		_combat_cover = _find_cover_point(target_pos)
-		if _combat_cover != Vector3.ZERO:
-			_combat_plan = CombatPlan.PEEK_COVER
-	elif can_see and hp_ratio > 0.55 and randf() < 0.22:
-		_combat_plan = CombatPlan.REPOSITION
+	var candidate_cover = _find_cover_point(target_pos)
+	var context = {
+		"can_see": can_see,
+		"has_last_known": last_known_target_pos != Vector3.ZERO,
+		"hp_ratio": hp_ratio,
+		"ammo_ratio": ammo_ratio,
+		"visible_enemies": visible_enemies,
+		"losing_trade": losing_trade,
+		"weapon_type": stats.weapon_type,
+		"distance": dist,
+		"preferred_range": pref_range,
+		"reserve_ammo": reserve_ammo,
+		"target_hp_ratio": _target_hp_ratio(),
+		"has_cover": candidate_cover != Vector3.ZERO,
+		"cover_probe": randf() < float(combat.get("cover_probe_chance", 0.28)),
+		"reposition_probe": randf() < float(combat.get("reposition_probe_chance", 0.22)),
+		"advance_probe": randf() < float(combat.get("advance_probe_chance", 0.0)),
+		"kite_probe": randf() < float(combat.get("kite_probe_chance", 0.0)),
+	}
+	_combat_plan = BOT_DOCTRINE.choose_combat_plan(context, _doctrine_profile)
+	if _combat_plan == BOT_DOCTRINE.PLAN_PEEK_COVER:
+		_combat_cover = candidate_cover
+	elif _combat_plan == BOT_DOCTRINE.PLAN_REPOSITION:
 		_combat_move_target = _pick_combat_reposition_point(target_pos, pref_range)
+
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_doctrine_plan(_combat_plan)
 
 	if _combat_plan != previous_plan and has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
 		match _combat_plan:
-			CombatPlan.PEEK_COVER:
+			BOT_DOCTRINE.PLAN_PEEK_COVER:
 				_peek_side = _strafe_dir
 				tel.log_tactics("cover_peek")
-			CombatPlan.REPOSITION:
+			BOT_DOCTRINE.PLAN_REPOSITION:
 				tel.log_tactics("combat_reposition")
-			CombatPlan.KITE:
+			BOT_DOCTRINE.PLAN_KITE:
 				tel.log_tactics("combat_kite")
 
 func _apply_combat_movement(delta: float, _can_see: bool, dist: float, pref_range: float, dir_to_target: Vector3):
 	var strafe_scale = clamp(0.25 + _awareness_level * 0.16, 0.25, 0.55)
 	var strafe = Vector3(-dir_to_target.z, 0, dir_to_target.x) * _strafe_dir
 	match _combat_plan:
-		CombatPlan.ADVANCE:
+		BOT_DOCTRINE.PLAN_ADVANCE:
 			_move_or_unstick((dir_to_target + strafe * 0.25).normalized(), delta, false)
-		CombatPlan.KITE:
+		BOT_DOCTRINE.PLAN_KITE:
 			_move_or_unstick((-dir_to_target + strafe * 0.45).normalized(), delta, false)
-		CombatPlan.PEEK_COVER:
+		BOT_DOCTRINE.PLAN_PEEK_COVER:
 			if _combat_cover == Vector3.ZERO:
 				_move_or_unstick(strafe, delta, false)
 			elif global_position.distance_to(_combat_cover) > 2.0:
@@ -966,13 +998,13 @@ func _apply_combat_movement(delta: float, _can_see: bool, dist: float, pref_rang
 					_move_or_unstick((peek_dir * 0.8 + dir_to_target * 0.15).normalized(), delta, false)
 				else:
 					_move_or_unstick((-peek_dir * 0.5 - dir_to_target * 0.2).normalized(), delta, false)
-		CombatPlan.REPOSITION:
+		BOT_DOCTRINE.PLAN_REPOSITION:
 			if _combat_move_target == Vector3.ZERO or global_position.distance_to(_combat_move_target) < 2.0:
 				_combat_plan_timer = 0.0
 				_move_or_unstick(strafe * strafe_scale, delta, false)
 			else:
 				_nav_move_toward(_combat_move_target, delta, false)
-		CombatPlan.HOLD_ANGLE:
+		BOT_DOCTRINE.PLAN_HOLD_ANGLE:
 			if dist > pref_range * 1.25:
 				_move_or_unstick((dir_to_target + strafe * 0.2).normalized(), delta, false)
 			elif dist < pref_range * 0.65:
@@ -988,14 +1020,19 @@ func _apply_combat_movement(delta: float, _can_see: bool, dist: float, pref_rang
 				_move_or_unstick(strafe * strafe_scale, delta, false)
 
 func _should_fire_for_plan(can_see: bool) -> bool:
-	if _combat_plan == CombatPlan.PEEK_COVER and not _is_peeking_out():
+	if _combat_plan == BOT_DOCTRINE.PLAN_PEEK_COVER and not _is_peeking_out():
 		return false
-	if _combat_plan == CombatPlan.REPOSITION and _combat_move_target != Vector3.ZERO \
+	if _combat_plan == BOT_DOCTRINE.PLAN_REPOSITION and _combat_move_target != Vector3.ZERO \
 			and global_position.distance_to(_combat_move_target) > 3.5:
 		return false
 	if not can_see and state_timer > 1.1:
 		return false
 	return true
+
+func _target_hp_ratio() -> float:
+	if target_actor is Entity:
+		return target_actor.current_health / maxf(1.0, target_actor.stats.max_health)
+	return 1.0
 
 func _is_peeking_out() -> bool:
 	var offset = float(get_instance_id() % 17) * 0.047
@@ -1009,7 +1046,8 @@ func _pick_combat_reposition_point(anchor: Vector3, pref_range: float) -> Vector
 	to_target = to_target.normalized()
 	var side = Vector3(-to_target.z, 0, to_target.x) * _strafe_dir * randf_range(5.0, 8.0)
 	var range_adjust = Vector3.ZERO
-	if stats.weapon_type == "shotgun" or archetype == BotArchetype.AGGRESSIVE:
+	var combat = _doctrine_profile.get("combat", {})
+	if stats.weapon_type == "shotgun" or bool(combat.get("reposition_forward_bias", false)):
 		range_adjust = to_target * randf_range(1.5, 3.5)
 	elif global_position.distance_to(anchor) < pref_range:
 		range_adjust = -to_target * randf_range(2.0, 4.0)
@@ -1057,63 +1095,122 @@ func _update_state_label_visibility():
 	if not player._can_i_see(self):
 		_state_label.visible = false
 
-# ─── PERSONALITY & DIFFICULTY ────────────────────────────────────────────────
+func _update_archetype_marker():
+	if not _archetype_marker:
+		return
+	var name = BotArchetype.keys()[archetype] if archetype >= 0 and archetype < BotArchetype.size() else "AGGRESSIVE"
+	match name:
+		"AGGRESSIVE":
+			_archetype_marker.text = _archetype_marker_text("AGG")
+			_archetype_marker.modulate = Color(1.0, 0.22, 0.12)
+		"DEFENSIVE":
+			_archetype_marker.text = _archetype_marker_text("DEF")
+			_archetype_marker.modulate = Color(0.25, 0.62, 1.0)
+		"SNIPER":
+			_archetype_marker.text = _archetype_marker_text("SNP")
+			_archetype_marker.modulate = Color(0.88, 0.52, 1.0)
+		"OPPORTUNIST":
+			_archetype_marker.text = _archetype_marker_text("OPP")
+			_archetype_marker.modulate = Color(0.25, 1.0, 0.48)
+		_:
+			_archetype_marker.text = _archetype_marker_text("BOT")
+			_archetype_marker.modulate = Color(1.0, 1.0, 1.0)
+
+func _update_archetype_marker_visibility():
+	if not _archetype_marker:
+		return
+	if not DEBUG_ARCHETYPE_MARKERS or is_dead:
+		_archetype_marker.visible = false
+		return
+	var player = get_tree().get_first_node_in_group("players")
+	if not player or not player is Entity:
+		_archetype_marker.visible = false
+		return
+	_update_archetype_marker()
+	_archetype_marker.visible = is_revealed_to(player)
+
+func _archetype_marker_text(prefix: String) -> String:
+	return "%s %s" % [prefix, _combat_plan_marker()]
+
+func _combat_plan_marker() -> String:
+	match _combat_plan:
+		BOT_DOCTRINE.PLAN_ADVANCE:
+			return "ADV"
+		BOT_DOCTRINE.PLAN_KITE:
+			return "KITE"
+		BOT_DOCTRINE.PLAN_PEEK_COVER:
+			return "PEEK"
+		BOT_DOCTRINE.PLAN_REPOSITION:
+			return "FLK"
+		BOT_DOCTRINE.PLAN_HOLD_ANGLE:
+			return "HOLD"
+		_:
+			return "STR"
+
+# ─── DOCTRINE & DIFFICULTY ───────────────────────────────────────────────────
+
+func configure_ai(archetype_id: int, difficulty_params: Dictionary = {}):
+	_capture_base_stats()
+	_difficulty_params = difficulty_params.duplicate(true)
+	_doctrine_profile = BOT_DOCTRINE.build_profile(archetype_id, _difficulty_params)
+	archetype = int(_doctrine_profile.get("archetype_id", archetype))
+	_apply_doctrine_profile(_doctrine_profile)
+	_update_archetype_marker()
+	_apply_visual_skin()
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_doctrine_profile(BOT_DOCTRINE.explain_profile(_doctrine_profile))
 
 func _apply_archetype(p: BotArchetype):
-	archetype = p
-	_sniper_min_engage_range = 0.0
-	match p:
-		BotArchetype.AGGRESSIVE:
-			_disengage_threshold = 3
-			_fire_rate_mult = 0.8
-			_footstep_range = 10.0
-			_loot_radius = 70.0
-			_combat_loot_threshold = 0.0
-			_flee_hp_ratio = 0.15
-			stats.attack_range *= 0.75  # 근접 선호
-		BotArchetype.DEFENSIVE:
-			_disengage_threshold = 1
-			_fire_rate_mult = 1.0
-			_footstep_range = 15.0
-			_loot_radius = 80.0
-			_combat_loot_threshold = 0.20
-			_flee_hp_ratio = 0.35
-			stats.attack_range *= 1.2   # 원거리 유지
-		BotArchetype.SNIPER:
-			_disengage_threshold = 1
-			_fire_rate_mult = 1.3       # 신중한 단발
-			_footstep_range = 20.0
-			_loot_radius = 60.0
-			_combat_loot_threshold = 0.0
-			_flee_hp_ratio = 0.40       # 생존 최우선
-			_sniper_min_engage_range = 14.0  # 14m 이내 진입 시 후퇴
-			stats.vision_range *= 1.6
-			stats.attack_range *= 2.0
-		BotArchetype.OPPORTUNIST:
-			_disengage_threshold = 2
-			_fire_rate_mult = 1.0
-			_footstep_range = 18.0
-			_loot_radius = 90.0
-			_combat_loot_threshold = 0.25
-			_flee_hp_ratio = 0.25
+	configure_ai(int(p), _difficulty_params)
 
 func apply_difficulty(params: Dictionary):
-	if params.has("vision_mult"):
-		stats.vision_range *= params.vision_mult
-	if params.has("reaction_delay"):
-		_reaction_delay = params.reaction_delay
-	if params.has("aim_spread"):
-		_aim_spread_mult = params.aim_spread
-	if params.has("loot_break_mult"):
-		_combat_loot_threshold *= params.loot_break_mult
-	if params.has("combat_loot_floor"):
-		_combat_loot_threshold = max(_combat_loot_threshold, params.combat_loot_floor)
-	if params.has("combat_loot_radius"):
-		_combat_loot_radius = params.combat_loot_radius
-	if params.has("idle_scan_interval_max"):
-		_scan_interval_max = params.idle_scan_interval_max
-	if params.has("awareness_level"):
-		_awareness_level = params.awareness_level
+	configure_ai(int(archetype), params)
+
+func _capture_base_stats():
+	if not stats:
+		return
+	if _base_attack_range < 0.0:
+		_base_attack_range = stats.attack_range
+	if _base_vision_range < 0.0:
+		_base_vision_range = stats.vision_range
+
+func _apply_doctrine_profile(profile: Dictionary):
+	if stats:
+		stats.attack_range = _base_attack_range * float(profile.get("attack_range_mult", 1.0))
+		stats.vision_range = _base_vision_range * float(profile.get("vision_range_mult", 1.0))
+	_disengage_threshold = int(profile.get("disengage_threshold", 2))
+	_fire_rate_mult = float(profile.get("fire_rate_mult", 1.0))
+	_footstep_range = float(profile.get("footstep_range", 12.0))
+	_loot_radius = float(profile.get("loot_radius", 70.0))
+	_combat_loot_threshold = float(profile.get("combat_loot_threshold", 0.0))
+	_combat_loot_radius = float(profile.get("combat_loot_radius", 15.0))
+	_flee_hp_ratio = float(profile.get("flee_hp_ratio", 0.25))
+	_sniper_min_engage_range = float(profile.get("sniper_min_engage_range", 0.0))
+	_reaction_delay = float(profile.get("reaction_delay", 0.0))
+	_aim_spread_mult = float(profile.get("aim_spread_mult", 1.0))
+	_awareness_level = int(profile.get("awareness_level", 0))
+	_scan_interval_max = float(profile.get("scan_interval_max", 3.0))
+
+func _ensure_doctrine_profile():
+	if _doctrine_profile.is_empty():
+		configure_ai(int(archetype), _difficulty_params)
+
+func _apply_visual_skin():
+	if not BOT_VISUAL_KIT:
+		return
+	_skin_root = BOT_VISUAL_KIT.apply_skin(self, int(archetype), get_instance_id())
+	_sync_visual_skin()
+
+func _sync_visual_skin():
+	if not _skin_root:
+		return
+	_skin_root.visible = has_node("MeshInstance3D") and $MeshInstance3D.visible and not is_dead
+	if is_crouching:
+		_skin_root.position = Vector3(0.0, 0.08, 0.0)
+		_skin_root.scale = Vector3(0.92, 0.72, 0.92)
+	else:
+		_skin_root.position = Vector3.ZERO
+		_skin_root.scale = Vector3.ONE
 
 # ─── LATE GAME SHIFT ─────────────────────────────────────────────────────────
 # When alive_count ≤ 3, bots escalate: tighter scans, harder to disengage,
@@ -1464,16 +1561,17 @@ func _random_zone_point() -> Vector3:
 	return Vector3(cx + cos(angle) * dist, global_position.y, cz + sin(angle) * dist)
 
 func _pick_patrol_target() -> Vector3:
+	_ensure_doctrine_profile()
 	var main = get_tree().root.get_node_or_null("Main")
-	if main and (main.supply_telegraphed or main.supply_spawned):
+	if main and (main.supply_telegraphed or main.supply_spawned) and _should_pursue_supply(main):
 		return Vector3(main.supply_pos.x, global_position.y, main.supply_pos.z)
-	match archetype:
-		BotArchetype.DEFENSIVE:
-			var bush = _find_nearest_bush()
-			if bush != Vector3.ZERO: return bush
-		BotArchetype.OPPORTUNIST:
-			var hotspot = _find_nearest_hotspot()
-			if hotspot != Vector3.ZERO: return hotspot
+	var patrol_preference = String(_doctrine_profile.get("patrol_preference", "random"))
+	if patrol_preference == "bush":
+		var bush = _find_nearest_bush()
+		if bush != Vector3.ZERO: return bush
+	elif patrol_preference == "hotspot":
+		var hotspot = _find_nearest_hotspot()
+		if hotspot != Vector3.ZERO: return hotspot
 	return _random_zone_point()
 
 func _find_nearest_bush() -> Vector3:
@@ -1502,21 +1600,20 @@ func _find_nearest_hotspot() -> Vector3:
 	return best
 
 func _find_nearest_target() -> Entity:
+	_ensure_doctrine_profile()
 	var actors = get_tree().get_nodes_in_group("actors")
 	var best: Entity = null
 	var best_score = INF
+	var target_profile = _doctrine_profile.get("target", {})
+	var distance_weight = float(target_profile.get("distance_weight", 1.0))
+	var hp_weight = float(target_profile.get("hp_weight", 0.0))
 	for a in actors:
 		if a == self or not a is Entity or a.is_dead: continue
 		if a.is_revealed_to(self):
 			var d = global_position.distance_to(a.global_position)
 			if d >= stats.vision_range: continue
-			var score: float
-			if archetype == BotArchetype.OPPORTUNIST:
-				# 낮은 HP 적 우선: hp_ratio 낮을수록 score 낮아짐 (선호)
-				var hp_ratio = a.current_health / maxf(1.0, a.stats.max_health)
-				score = d * (0.4 + hp_ratio * 0.6)
-			else:
-				score = d
+			var hp_ratio = a.current_health / maxf(1.0, a.stats.max_health)
+			var score = d * (distance_weight + hp_ratio * hp_weight)
 			if score < best_score: best_score = score; best = a
 	return best
 
@@ -1551,6 +1648,8 @@ func _bot_melee():
 
 func die(killer: Node3D = null):
 	if _state_label: _state_label.visible = false
+	if _archetype_marker: _archetype_marker.visible = false
+	if _skin_root: _skin_root.visible = false
 	_drop_weapon()
 	_drop_ammo()
 	_drop_heals()

@@ -68,6 +68,14 @@ if __name__ == "__main__":
     pressure = [r.get("pressure", {}) for r in results]
     pressure_triggered = sum(p.get("pressure_triggered", 0) for p in pressure)
     pressure_resolved = sum(p.get("pressure_cleared", 0) + p.get("pressure_failed", 0) for p in pressure)
+    doctrine_profiles = Counter()
+    doctrine_plans = Counter()
+    doctrine_supply = Counter()
+    for r in results:
+        doctrine = r.get("doctrine", {})
+        doctrine_profiles.update(doctrine.get("profile_counts", {}))
+        doctrine_plans.update(doctrine.get("combat_plan_counts", {}))
+        doctrine_supply.update(doctrine.get("supply_decisions", {}))
 
     print("--- Simulation Analysis ---")
     print(f"Runs: {len(results)}")
@@ -109,5 +117,14 @@ if __name__ == "__main__":
     if weapon_pickups:
         pickup_parts = [f"{weapon}={count}" for weapon, count in sorted(weapon_pickups.items())]
         print(f"Weapon pickups: {', '.join(pickup_parts)}")
+    if doctrine_profiles:
+        profile_parts = [f"{name}={count}" for name, count in sorted(doctrine_profiles.items())]
+        print(f"Doctrine profiles: {', '.join(profile_parts)}")
+    if doctrine_plans:
+        plan_parts = [f"{plan}={count}" for plan, count in sorted(doctrine_plans.items()) if count]
+        print(f"Doctrine plans: {', '.join(plan_parts) if plan_parts else 'none'}")
+    if doctrine_supply:
+        supply_parts = [f"{decision}={count}" for decision, count in sorted(doctrine_supply.items())]
+        print(f"Doctrine supply: {', '.join(supply_parts)}")
     if pressure_triggered:
         print(f"Pressure resolved: {pressure_resolved}/{pressure_triggered}")

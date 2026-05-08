@@ -14,6 +14,7 @@ extends Node
 #   "hell"     — blackout/bombardment event counts (Hell difficulty only)
 #   "mission"  — active mission id, result (success/fail/none)
 #   "pressure" — pressure mission triggered/cleared/failed counts (Hard opt-in / Hell)
+#   "doctrine" — merged bot AI profiles and selected combat plans
 
 # ── Group toggles ─────────────────────────────────────────────────────────────
 
@@ -28,6 +29,7 @@ var enabled_groups: Dictionary = {
 	"mission":   true,
 	"pressure":  true,
 	"archetype": true,
+	"doctrine":  true,
 }
 
 func set_groups(overrides: Dictionary):
@@ -161,6 +163,20 @@ func _reset_metrics():
 			"archetype_distribution":   {},  # 스폰 수 {AGGRESSIVE:3, DEFENSIVE:3, ...}
 			"archetype_alive_at_zone2": {},  # 존 2단계 생존 수
 			"archetype_deaths":         {},  # 아키타입별 사망 수
+		},
+		# doctrine
+		"doctrine": {
+			"profile_counts": {},
+			"profile_summaries": {},
+			"combat_plan_counts": {
+				"strafe": 0,
+				"advance": 0,
+				"kite": 0,
+				"peek_cover": 0,
+				"reposition": 0,
+				"hold_angle": 0,
+			},
+			"supply_decisions": {},
 		},
 	}
 
@@ -362,6 +378,25 @@ func log_archetype_alive_at_zone2(distribution: Dictionary):
 	if not match_in_progress or not _g("archetype"): return
 	metrics.archetype.archetype_alive_at_zone2 = distribution.duplicate()
 
+# ── Log functions — doctrine ─────────────────────────────────────────────────
+
+func log_doctrine_profile(summary: Dictionary):
+	if not match_in_progress or not _g("doctrine"): return
+	var key = String(summary.get("archetype", "unknown"))
+	metrics.doctrine.profile_counts[key] = metrics.doctrine.profile_counts.get(key, 0) + 1
+	if not metrics.doctrine.profile_summaries.has(key):
+		metrics.doctrine.profile_summaries[key] = summary.duplicate(true)
+
+func log_doctrine_plan(plan_id: String):
+	if not match_in_progress or not _g("doctrine"): return
+	var plans = metrics.doctrine.combat_plan_counts
+	plans[plan_id] = plans.get(plan_id, 0) + 1
+
+func log_doctrine_supply(decision: String):
+	if not match_in_progress or not _g("doctrine"): return
+	var decisions = metrics.doctrine.supply_decisions
+	decisions[decision] = decisions.get(decision, 0) + 1
+
 # Weapon drops can fire on the same frame as end_match, bypassing match_in_progress.
 func log_weapon_drop():
 	if _g("tactics") and metrics.has("tactics"):
@@ -416,6 +451,7 @@ func _save_sim_result():
 	if _g("mission"):    out["mission"]    = metrics.mission.duplicate(true)
 	if _g("pressure"):   out["pressure"]   = metrics.pressure.duplicate(true)
 	if _g("archetype"):  out["archetype"]  = metrics.archetype.duplicate(true)
+	if _g("doctrine"):   out["doctrine"]   = metrics.doctrine.duplicate(true)
 	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(out, "\t"))
@@ -522,6 +558,12 @@ func _print_report():
 		print("  Spawned:        %s" % str(metrics.archetype.archetype_distribution))
 		print("  Alive@zone2:    %s" % str(metrics.archetype.archetype_alive_at_zone2))
 		print("  Deaths:         %s" % str(metrics.archetype.archetype_deaths))
+	if _g("doctrine"):
+		print("── Doctrine ────────────────────────────────")
+		print("  Profiles:       %s" % str(metrics.doctrine.profile_counts))
+		print("  Plans:          %s" % str(metrics.doctrine.combat_plan_counts))
+		if not metrics.doctrine.supply_decisions.is_empty():
+			print("  Supply:         %s" % str(metrics.doctrine.supply_decisions))
 	print("=".repeat(44) + "\n")
 
 # ── Internal helpers ──────────────────────────────────────────────────────────

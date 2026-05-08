@@ -10,9 +10,9 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v1.6.3 (후퇴 응전 + 아이템 시야 + 보급 군집 완화) |
-| 다음 버전 | v1.7 — AI Doctrine Hierarchy Refactor |
-| 미해결 | v1.7에서 Bot 전술 조건을 `BotDoctrine` 계층으로 분리 |
+| 완료 버전 | v1.7.1 (AI Doctrine 계층화 + 아키타입 얼굴/머리 파츠) |
+| 다음 버전 | v1.7.2 — 아키타입 체감 강화 및 시각 안정화 |
+| 미해결 | 아키타입별 행동 차이가 아직 약하므로 plan-by-archetype 지표 기반 튜닝 필요 |
 
 ---
 
@@ -45,7 +45,9 @@
 ## 핵심 파일
 
 ```
-src/entities/bot/Bot.gd        — AI 상태 머신 + CombatPlan 개인 교전 수칙
+src/entities/bot/Bot.gd        — AI 상태 머신 + combat plan 실행
+src/entities/bot/BotDoctrine.gd — AI profile merge + 전술 선택 순수 로직
+src/entities/bot/BotVisualKit.gd — 아키타입별 primitive 스킨/얼굴 파츠
 src/entities/player/Player.gd  — 무기 슬롯, 재장전, HUD
 src/entities/Entity.gd         — 공통 베이스 (이동, 피해, 인식)
 src/core/ZoneController.gd     — 자기장 상태 머신 (수축, 피해, 외부 추적)

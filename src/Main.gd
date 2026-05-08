@@ -818,11 +818,10 @@ func spawn_entities():
 		b.display_name = "Bot %d" % (i + 1)
 		b.global_position = _get_safe_spawn_pos()
 		b.died.connect(_on_bot_died.bind(b))
-		b.apply_difficulty(diff_params)
 		var atype = _archetype_pool[i] if i < _archetype_pool.size() else 0
-		b._apply_archetype(atype)
 		if difficulty == Difficulty.HELL and hell_modifier == HellModifier.ALL_AGGRESSIVE:
-			b._apply_archetype(b.BotArchetype.AGGRESSIVE)
+			atype = b.BotArchetype.AGGRESSIVE
+		b.configure_ai(atype, diff_params)
 		if has_node("/root/Telemetry"):
 			var aname = b.BotArchetype.keys()[b.archetype]
 			get_node("/root/Telemetry").log_archetype_spawn(aname)

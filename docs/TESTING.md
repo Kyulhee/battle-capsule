@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-05-07 (v1.6.3 기준)
+> 마지막 업데이트: 2026-05-08 (v1.7.1 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -61,7 +61,7 @@ python tools/analyze_results.py
 
 ### `tactics` (봇 AI 검증 핵심)
 
-| 지표 | 설명 | v1.6.3 기대값 |
+| 지표 | 설명 | v1.7.1 기대값 |
 |---|---|---|
 | `ammo_empty_enter` | 탄약 소진 후 RECOVER 진입 횟수 | > 0 (정상 작동 확인) |
 | `reserve_reload` | reserve 있어서 RECOVER 스킵한 횟수 | 탄약 픽업 후 증가해야 함 |
@@ -73,9 +73,18 @@ python tools/analyze_results.py
 | `weapon_drop_spawned` | 봇 사망 시 무기 드롭 생성 수 | 봇 사망 수와 유사해야 함 |
 | `disengage_triggered` | 수적 열세(2+ 적) 감지 후 DISENGAGE 진입 횟수 | > 0이면 정상 동작, 0이면 outnumbered 감지 실패 |
 | `cover_peek` | 엄폐 피킹 전술 선택 횟수 | 5회 시뮬 평균 0 고정이면 엄폐 탐색 오류 |
-| `combat_reposition` | 교전 중 측면 재배치 횟수 | 5회 시뮬 평균 0 고정이면 CombatPlan 선택 오류 |
+| `combat_reposition` | 교전 중 측면 재배치 횟수 | 5회 시뮬 평균 0 고정이면 combat plan 선택 오류 |
 | `combat_kite` | 거리 벌리기/카이팅 횟수 | 무기/상황에 따라 낮을 수 있으나 키가 존재해야 함 |
 | `survival_break` | 저체력 생존 이탈 횟수 | 0 고정이면 HP override 훅 확인 |
+
+### `doctrine`
+
+| 지표 | 설명 | 이상 판단 기준 |
+|---|---|---|
+| `profile_counts` | 최종 merge된 아키타입 profile 분포 | 5회 기준 AGGRESSIVE/DEFENSIVE/OPPORTUNIST=15, SNIPER=10 근처 |
+| `profile_summaries` | `BotDoctrine.explain_profile()` 결과 | 비어 있으면 configure/log 연결 오류 |
+| `combat_plan_counts` | Doctrine이 선택한 문자열 plan 카운트 | `peek_cover/reposition/strafe`가 0에 고정되면 plan 선택 회귀 |
+| `supply_decisions` | profile 기반 보급 관심 결정 | 보급 매치에서 일부 기록 가능, 과도한 증가 시 중앙 군집 의심 |
 
 ### `economy`
 
@@ -109,13 +118,14 @@ python tools/analyze_results.py
 
 ## 테스팅 시나리오별 그룹 설정
 
-### 봇 AI 행동 검증 (v1.6.3)
+### 봇 AI 행동 검증 (v1.7.1)
 
 ```gdscript
 Telemetry.set_groups({
     "core":    true,
     "tactics": true,
     "combat":  true,
+    "doctrine": true,
     "economy": false,
     "supply":  false,
 })
@@ -132,6 +142,8 @@ Telemetry.set_groups({
 - [ ] `disengage_triggered` > 0 → 수적 열세 감지 및 DISENGAGE 상태 작동
 - [ ] `cover_peek + combat_reposition + combat_kite` > 0 → 개인 교전 수칙 선택이 발동
 - [ ] `python tools/analyze_results.py` 출력에서 `Avg combat plans`가 표시됨
+- [ ] `Doctrine profiles`가 아키타입 스폰 분포와 일치
+- [ ] `Doctrine plans`가 표시되고 plan 카운트가 0에 고정되지 않음
 
 ### 무기 밸런스 검증
 
