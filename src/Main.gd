@@ -52,6 +52,7 @@ var weapon_templates: Array[ItemData] = []
 var consumable_templates: Array[ItemData] = []
 
 var loot_hotspots: Array[Dictionary] = []
+var loot_spawner = null
 var _spawn_positions: Array = []
 
 var zone = null
@@ -84,6 +85,7 @@ const AssetCatalogScript = preload("res://src/core/AssetCatalog.gd")
 const GameConfigScript = preload("res://src/core/GameConfig.gd")
 const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
+const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const ZoneControllerScript = preload("res://src/core/ZoneController.gd")
 
@@ -111,6 +113,7 @@ var zone_ring: MeshInstance3D = null
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	loot_spawner = LootSpawnerScript.new()
 	asset_catalog = AssetCatalogScript.new()
 	asset_catalog.load_or_default()
 	_configure_asset_catalog()
@@ -745,6 +748,8 @@ func _apply_game_config():
 	bot_count = max(0, int(game_config.match_value("bot_count", bot_count)))
 	loot_count = max(0, int(game_config.match_value("loot_count", loot_count)))
 	spawn_radius = maxf(1.0, float(game_config.match_value("spawn_radius", spawn_radius)))
+	if loot_spawner and loot_spawner.has_method("configure_count"):
+		loot_spawner.configure_count(loot_count)
 	zone_wait_time = maxf(1.0, float(game_config.zone_value("wait_time", zone_wait_time)))
 	zone_shrink_time = maxf(1.0, float(game_config.zone_value("shrink_time", zone_shrink_time)))
 	zone_damage = maxf(0.0, float(game_config.zone_value("damage_per_second", zone_damage)))
@@ -817,6 +822,8 @@ func _apply_cmdline_arg(arg: String):
 		bot_count = max(0, int(lower.get_slice("=", 1)))
 	elif lower.begins_with("loot_count="):
 		loot_count = max(0, int(lower.get_slice("=", 1)))
+		if loot_spawner and loot_spawner.has_method("configure_count"):
+			loot_spawner.configure_count(loot_count)
 	elif lower.begins_with("spawn_radius="):
 		spawn_radius = maxf(1.0, float(lower.get_slice("=", 1)))
 
@@ -949,53 +956,30 @@ func _categorize_templates():
 
 func _register_loot_hotspots():
 	loot_hotspots.clear()
-	if not map_spec:
+	if not loot_spawner or not map_spec:
 		return
-	for poi in map_spec.pois:
-		var poi_pos = poi.get("pos", [0.0, 0.0])
-		loot_hotspots.append({
-			"pos": Vector2(float(poi_pos[0]), float(poi_pos[1])),
-			"radius": maxf(float(poi.get("radius", 8.0)), 2.0),
-			"density": clampf(float(poi.get("item_density", 0.5)), 0.05, 1.5),
-			"rare_bias": clampf(float(poi.get("rare_bias", 0.0)), 0.0, 1.0),
-			"role": String(poi.get("role", "")),
-		})
+	loot_spawner.register_from_map_spec(map_spec)
+	loot_hotspots = loot_spawner.hotspots.duplicate(true)
 
 func _choose_loot_hotspot() -> Dictionary:
-	var total_weight = 0.0
-	for hotspot in loot_hotspots:
-		total_weight += maxf(float(hotspot.get("density", 1.0)), 0.05)
-	var ticket = randf() * total_weight
-	for hotspot in loot_hotspots:
-		ticket -= maxf(float(hotspot.get("density", 1.0)), 0.05)
-		if ticket <= 0.0:
-			return hotspot
-	return loot_hotspots[loot_hotspots.size() - 1]
+	return loot_spawner.choose_hotspot() if loot_spawner else {}
 
 func _random_loot_pos(hotspot: Dictionary) -> Vector2:
-	var center: Vector2 = hotspot.get("pos", Vector2.ZERO)
-	var spread = minf(maxf(float(hotspot.get("radius", 8.0)) * 0.6, 3.0), 11.0)
-	for _attempt in range(10):
-		var angle = randf() * TAU
-		var dist = randf_range(0.0, spread)
-		var candidate = center + Vector2(cos(angle), sin(angle)) * dist
-		if _is_clear_of_obstacles(candidate, 1.0):
-			return candidate
-	return center
+	if not loot_spawner:
+		return hotspot.get("pos", Vector2.ZERO)
+	return loot_spawner.random_position(hotspot, Callable(self, "_is_clear_of_obstacles"))
 
 func _spawn_initial_loot():
-	if loot_hotspots.is_empty(): return
+	if not loot_spawner or not loot_spawner.has_hotspots(): return
 	for hotspot in loot_hotspots:
-		var density = float(hotspot.get("density", 0.5))
-		var rare_bias = float(hotspot.get("rare_bias", 0.0))
-		var weapon_chance = clampf(0.01 + density * 0.045 + rare_bias * 0.035, 0.02, 0.08)
+		var weapon_chance = loot_spawner.initial_weapon_chance(hotspot)
 		if not weapon_templates.is_empty() and randf() < weapon_chance:
 			var pickup = pickup_scene.instantiate()
 			$Loot.add_child(pickup)
 			var sp = _random_loot_pos(hotspot)
 			pickup.global_position = Vector3(sp.x, 0.5, sp.y)
 			pickup.init(weapon_templates[randi() % weapon_templates.size()].duplicate(true))
-		var consumable_count = int(clamp(round(1.0 + density * 2.5), 2.0, 5.0))
+		var consumable_count = loot_spawner.initial_consumable_count(hotspot)
 		for _i in range(consumable_count):
 			if consumable_templates.is_empty(): break
 			var pickup = pickup_scene.instantiate()
@@ -1018,7 +1002,7 @@ func _is_clear_of_obstacles(pos: Vector2, margin: float = 2.0) -> bool:
 	return true
 
 func spawn_loot(prob: float, count_mult: int = 1):
-	var total_to_spawn = int(loot_count * prob * count_mult)
+	var total_to_spawn = loot_spawner.spawn_count(prob, count_mult) if loot_spawner else int(loot_count * prob * count_mult)
 	if total_to_spawn <= 0 or loot_hotspots.is_empty(): return
 	for i in range(total_to_spawn):
 		var hotspot = _choose_loot_hotspot()

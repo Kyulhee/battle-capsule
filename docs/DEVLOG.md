@@ -7,6 +7,29 @@
 
 ## v1.8-dev — 2026-05-09
 
+**LootSpawner Boundary — 루트 스폰 계산 분리**
+
+**src/core/LootSpawner.gd / src/Main.gd**
+
+- `LootSpawner` RefCounted 모듈을 추가해 POI 기반 loot hotspot 등록, density 가중치 선택, 스폰 위치 샘플링, 초기 무기/소모품 개수 계산을 Main 밖으로 분리.
+- `Main.gd`는 기존처럼 Pickup 인스턴스화와 Telemetry/게임 상태 소유를 유지하고, 루트 배치 수식만 `LootSpawner` API로 위임.
+- `loot_count=` 커맨드라인 override가 `LootSpawner`에도 즉시 반영되도록 연결.
+
+**src/ui/DebugOverlay.gd / docs/ARCHITECTURE.md**
+
+- debug overlay에 loot hotspot 수를 표시해 맵/루트 연결 상태를 빠르게 확인할 수 있게 추가.
+- 아키텍처 문서의 Core Modules에 `LootSpawner`를 추가해 v1.8 확장 경계를 반영.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=70.9s, stage=3, recover=23, disengage=21.
+- `git diff --check` 통과.
+
+---
+
+## v1.8-dev — 2026-05-09
+
 **Runtime Icon Pass — 생성 아이콘 HUD/픽업 연결**
 
 **assets/icons / data/asset_catalog.json / tools/sync_generated_icons.ps1**

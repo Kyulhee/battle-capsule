@@ -1,7 +1,7 @@
-# 배틀캡슐 아키텍처 보고서 (v1.7.3.1)
+# 배틀캡슐 아키텍처 보고서 (v1.8-dev)
 
-> 최종 업데이트: 2026-05-08
-> 이 문서는 v1.7.3.1 안정화(BotDoctrine 계층 분리 + 아키타입별 Doctrine Telemetry + 미니맵/맵 footprint 연결 + 숲 맵 v3.1 + 메인 메뉴/How to Play 핫픽스) 이후 기준이다.
+> 최종 업데이트: 2026-05-09
+> 이 문서는 v1.8-dev 확장 기반(config/debug/asset catalog/LootSpawner 경계) 기준이다.
 
 ---
 
@@ -20,7 +20,8 @@
 ├──────────────────────┴──────────────────────────────┤
 │  Core Modules  (RefCounted — 씬트리 독립)             │
 │  ZoneController · WeaponSlotManager · MissionTracker│
-│  GameConfig · AssetCatalog · Telemetry · Sfx        │
+│  LootSpawner · GameConfig · AssetCatalog · Telemetry│
+│  Sfx                                                │
 ├─────────────────────────────────────────────────────┤
 │  Data / Config  (Resource/JSON — 순수 데이터)          │
 │  StatsData · ItemData · MissionData · MapSpec        │
@@ -42,6 +43,7 @@
 | `src/core/MapSpec.gd` | 맵 POI·장애물·월드 크기 정의 | WorldBuilder, Minimap이 읽기 전용으로 참조 |
 | `data/game_config.json` | 매치 수치, 난이도 파라미터, Hell 타이머 | `GameConfig.gd`가 로드, Main이 적용 |
 | `data/asset_catalog.json` | audio/icon/prop/cosmetic ID와 fallback | `AssetCatalog.gd`가 로드, Sfx/UI/월드가 점진 참조 |
+| `src/core/LootSpawner.gd` | POI 기반 루트 hotspot/위치/개수 계산 | Main이 Pickup 생성은 유지하고 계산만 위임 |
 
 수정 시 주의: Resource를 공유 참조로 쓰면 인스턴스 간 오염 발생 → 런타임에서 반드시 `.duplicate()` 호출 (Player.gd:88, receive_weapon 진입부 참조).
 

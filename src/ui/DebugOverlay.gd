@@ -66,6 +66,8 @@ func _update_text() -> void:
 			int(main_ref.loot_count),
 			float(main_ref.spawn_radius)
 		])
+		if main_ref.loot_spawner != null:
+			lines.append("loot_hotspots=%d" % int(main_ref.loot_spawner.hotspots.size()))
 		if main_ref.asset_catalog != null and main_ref.asset_catalog.has_method("summary"):
 			var assets: Dictionary = main_ref.asset_catalog.summary()
 			lines.append("assets a=%d i=%d p=%d c=%d" % [
