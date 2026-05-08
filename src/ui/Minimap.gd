@@ -161,6 +161,10 @@ func _sort_minimap_features(a: Dictionary, b: Dictionary) -> bool:
 	var layer_a = int(a.get("layer", 0))
 	var layer_b = int(b.get("layer", 0))
 	if layer_a == layer_b:
+		var height_a = float(a.get("height", 0.0))
+		var height_b = float(b.get("height", 0.0))
+		if not is_equal_approx(height_a, height_b):
+			return height_a < height_b
 		return int(a.get("order", 0)) < int(b.get("order", 0))
 	return layer_a < layer_b
 
@@ -239,19 +243,49 @@ func _build_fallback_features() -> Array[Dictionary]:
 		var scale = obs.get("scale", [1.0, 1.0, 1.0])
 		var size = Vector2(float(scale[0]) * 2.0, float(scale[2]) * 2.0)
 		var shape = "rect"
-		var layer = 2 if float(scale[1]) > 2.5 else 1
+		var height = float(scale[1]) * 2.0
+		var layer = _fallback_feature_layer(obs_type, height)
 		if obs_type == "bush_patch":
 			size = Vector2(float(scale[0]) * 3.0, float(scale[2]) * 3.0)
 			shape = "ellipse"
-			layer = 0
+		size = _fallback_cover_size(obs_type, size, height)
 		features.append({
 			"type": obs_type,
 			"pos": obs.get("pos", [0.0, 0.0]),
 			"size": [size.x, size.y],
 			"rot": obs.get("rot", 0.0),
-			"height": float(scale[1]),
+			"height": height,
 			"layer": layer,
 			"shape": shape,
 			"order": features.size(),
 		})
 	return features
+
+func _fallback_feature_layer(obs_type: String, height: float) -> int:
+	match obs_type:
+		"bush_patch":
+			return 0
+		"log_pile":
+			return 1
+		"rock_cluster":
+			return 3 if height > 2.5 else 2
+		"tree_cluster":
+			return 3
+		"canyon_wall":
+			return 4
+	return 1
+
+func _fallback_cover_size(obs_type: String, base_size: Vector2, height: float) -> Vector2:
+	match obs_type:
+		"bush_patch", "log_pile":
+			return base_size
+		"rock_cluster":
+			var rock_margin = clampf(height * 0.55, 0.4, 2.6)
+			return base_size + Vector2(rock_margin, rock_margin)
+		"tree_cluster":
+			var tree_margin = clampf(height * 0.28, 1.0, 3.4)
+			return base_size + Vector2(tree_margin, tree_margin)
+		"canyon_wall":
+			var wall_margin = clampf(height * 0.38, 1.2, 4.8)
+			return base_size + Vector2(wall_margin, wall_margin)
+	return base_size

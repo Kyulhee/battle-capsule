@@ -97,16 +97,48 @@ func _record_minimap_feature(
 	layer: int,
 	shape: String
 ):
+	var resolved_layer = max(layer, _minimap_layer_for(type_str, height))
+	var cover_size = _minimap_cover_size(type_str, size, height)
 	minimap_features.append({
 		"type": type_str,
 		"pos": [pos.x, pos.y],
-		"size": [size.x, size.y],
+		"size": [cover_size.x, cover_size.y],
+		"base_size": [size.x, size.y],
 		"rot": rot_deg,
 		"height": height,
-		"layer": layer,
+		"layer": resolved_layer,
 		"shape": shape,
 		"order": minimap_features.size(),
 	})
+
+func _minimap_layer_for(type_str: String, height: float) -> int:
+	match type_str:
+		"bush_patch":
+			return 0
+		"log_pile":
+			return 1
+		"rock_cluster":
+			return 3 if height > 2.5 else 2
+		"tree_cluster":
+			return 3
+		"canyon_wall":
+			return 4
+	return 1
+
+func _minimap_cover_size(type_str: String, base_size: Vector2, height: float) -> Vector2:
+	match type_str:
+		"bush_patch", "log_pile":
+			return base_size
+		"rock_cluster":
+			var rock_margin = clampf(height * 0.55, 0.4, 2.6)
+			return base_size + Vector2(rock_margin, rock_margin)
+		"tree_cluster":
+			var tree_margin = clampf(height * 0.28, 1.0, 3.4)
+			return base_size + Vector2(tree_margin, tree_margin)
+		"canyon_wall":
+			var wall_margin = clampf(height * 0.38, 1.2, 4.8)
+			return base_size + Vector2(wall_margin, wall_margin)
+	return base_size
 
 func _build_base(spec: Resource):
 	var size = spec.get_world_size()
@@ -147,6 +179,7 @@ func _build_rock_cluster(parent: Node3D, pos: Array, scale_vec: Array):
 	rng.seed = int(abs(pos[0]) * 1000 + abs(pos[1]) * 7777)
 
 	var base_height: float = scale_vec[1]
+	var footprint_mult = clampf((float(scale_vec[0]) + float(scale_vec[2])) / 6.0, 0.65, 1.35)
 	var high: bool = base_height > 2.5
 	var col_layer: int = (1 | 8) if high else 1
 
@@ -157,17 +190,17 @@ func _build_rock_cluster(parent: Node3D, pos: Array, scale_vec: Array):
 	root.add_to_group("obstacles")
 
 	# Center piece — tallest
-	_add_rock_piece(root, Vector3(0, 0, 0), Vector3(1.3, base_height, 1.3), rng, col_layer)
+	_add_rock_piece(root, Vector3(0, 0, 0), Vector3(1.3 * footprint_mult, base_height, 1.3 * footprint_mult), rng, col_layer)
 
 	# Surrounding pieces
 	var piece_count = rng.randi_range(4, 6)
 	for i in range(piece_count):
 		var angle = (float(i) / float(piece_count)) * TAU + rng.randf_range(-0.25, 0.25)
-		var radius = rng.randf_range(0.7, 1.6)
+		var radius = rng.randf_range(0.7, 1.6) * footprint_mult
 		var px = cos(angle) * radius
 		var pz = sin(angle) * radius
 		var ph = base_height * rng.randf_range(0.28, 0.65)
-		var ps = rng.randf_range(0.55, 1.05)
+		var ps = rng.randf_range(0.55, 1.05) * footprint_mult
 		_add_rock_piece(root, Vector3(px, 0, pz), Vector3(ps, ph, ps), rng, col_layer)
 
 	# Ramp on high clusters so players can climb up
@@ -179,14 +212,14 @@ func _build_rock_cluster(parent: Node3D, pos: Array, scale_vec: Array):
 
 		var ramp_body = StaticBody3D.new()
 		root.add_child(ramp_body)
-		ramp_body.position = Vector3(ramp_cx * 1.8, base_height * 0.35, ramp_cz * 1.8)
+		ramp_body.position = Vector3(ramp_cx * 1.8 * footprint_mult, base_height * 0.35, ramp_cz * 1.8 * footprint_mult)
 		ramp_body.rotation.y = ramp_y_rot
 		ramp_body.rotation.x = deg_to_rad(26.0)
 		ramp_body.collision_layer = 1
 
 		var ramp_mesh = MeshInstance3D.new()
 		var rmesh = BoxMesh.new()
-		rmesh.size = Vector3(1.6, 0.18, 2.2)
+		rmesh.size = Vector3(1.6 * footprint_mult, 0.18, 2.2 * footprint_mult)
 		var rmat = StandardMaterial3D.new()
 		rmat.albedo_color = Color(0.42, 0.39, 0.34)
 		rmesh.surface_set_material(0, rmat)
@@ -195,7 +228,7 @@ func _build_rock_cluster(parent: Node3D, pos: Array, scale_vec: Array):
 
 		var ramp_col = CollisionShape3D.new()
 		var rshape = BoxShape3D.new()
-		rshape.size = Vector3(1.6, 0.18, 2.2)
+		rshape.size = Vector3(1.6 * footprint_mult, 0.18, 2.2 * footprint_mult)
 		ramp_col.shape = rshape
 		ramp_body.add_child(ramp_col)
 

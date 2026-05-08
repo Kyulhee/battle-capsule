@@ -7,7 +7,7 @@
 
 ## v1.7.3-dev — 2026-05-08
 
-**Minimap Map Consistency — 실제 생성 footprint 기반 미니맵 1차**
+**Minimap Map Consistency — 실제 생성 footprint 기반 미니맵 + 숲 맵 1차 정리**
 
 **src/maps/WorldBuilder.gd / src/ui/Minimap.gd / src/Main.gd**
 
@@ -16,12 +16,24 @@
 - 부쉬는 낮은 레이어의 ellipse, 바위/벽/나무/로그는 더 높은 레이어의 footprint로 그려 겹칠 때 하늘에서 본 최종 형태가 남도록 정렬.
 - 실제 장애물 씬의 기본 BoxMesh 크기 2m와 Bush Cylinder 반지름 1.5m를 반영해 기존 미니맵 크기 축소 문제를 보정.
 - headless autostart에서도 `WorldBuilder.generate_world(map_spec)`를 호출해 시뮬레이션이 실제 장애물 맵을 사용하도록 수정.
+- 타입별 레이어에 높이 정렬을 추가하고, tall rock/tree/canyon은 미니맵에서 top cover footprint가 낮은 부쉬를 더 확실히 덮도록 보정.
+- `item_density`/`rare_bias`가 실제 루트 스폰 가중치에 반영되도록 연결해 개활지 POI 보상을 높일 수 있게 수정.
+- 스폰/루트 안전 위치 판정에서 장애물 footprint를 실제 BoxMesh half extent 기준으로 맞춰 대형 구조물 내부 배치를 줄임.
+
+**data/mapSpec_example.json**
+
+- 기존 v3.0 구조는 `data/mapSpec_mountain_forest_alpha_v3_backup_20260508.json`로 백업.
+- 맵 스펙을 v3.1로 정리: 외곽 산악 지형(canyon wall), 중간 나무 지형(tree cluster), 내부 부쉬 지형(bush patch), 개활지 loot hub 순으로 레이어를 재구성.
+- 대형 tree/canyon/rock 군집을 줄이고, 작은 부쉬/로그/바위 배치로 숲 맵의 엄폐·은신 선택지를 유지.
+- 중앙/북쪽/남쪽 개활지는 `item_density`를 높이고, 내부 부쉬 지역은 밀도를 낮춰 노출 위험과 루팅 보상의 트레이드 오프를 명확히 함.
 
 **검증 결과**
 
 - `python tools\simulate_matches.py 1` 통과, parse/runtime error 없음.
-- `python tools\simulate_matches.py 5` 통과: avg duration=78.4s, max attack bout=13.7s, RECOVER 사망=1.1% of bouts.
-- 실제 장애물 맵이 시뮬레이션에 반영되면서 zone deaths=8/5 runs, avg stuck=19.4가 드러남. v1.7.3 후속으로 zone escape pathing/stuck recovery를 실제 맵 기준으로 재점검 필요.
+- `python tools\simulate_matches.py 5` 통과: avg duration=75.7s, min/max=57.7s/95.6s, max attack bout=16.0s.
+- 최종 5판 기준 zone deaths=0, max outside time=0.0s, avg stuck=7.2로 실제 장애물 맵 1차 반영 때보다 이동 회귀가 완화됨.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=63.2s, zone deaths=0, stuck=1, combat plans cover/reposition/kite=16/13/3.
+- `first_upgrade_time`은 모든 actor의 첫 비권총 픽업 기준이라 avg=7.3s로 아직 빠르다. 초기 무기 확률은 낮췄지만, 99명/대형 맵 전에는 플레이어 기준 업그레이드 시간 분리 계측을 검토한다.
 - `python -m py_compile tools\simulate_matches.py tools\analyze_results.py` 통과.
 - `git diff --check` 통과.
 

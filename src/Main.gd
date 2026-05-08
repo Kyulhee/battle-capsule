@@ -57,7 +57,7 @@ var _pause_panel: Control = null
 var weapon_templates: Array[ItemData] = []
 var consumable_templates: Array[ItemData] = []
 
-var loot_hotspots: Array[Vector2] = []
+var loot_hotspots: Array[Dictionary] = []
 var _spawn_positions: Array = []
 
 var zone = null
@@ -121,8 +121,7 @@ func _ready():
 		if map_spec:
 			if world_builder:
 				world_builder.generate_world(map_spec)
-			for poi in map_spec.pois:
-				loot_hotspots.append(Vector2(poi.pos[0], poi.pos[1]))
+			_register_loot_hotspots()
 		_setup_navigation()
 		start_game()
 		return
@@ -152,9 +151,7 @@ func _ready():
 			print("[MAIN] Generating world via WorldBuilder...")
 			world_builder.generate_world(map_spec)
 		_setup_navigation()
-		loot_hotspots.clear()
-		for poi in map_spec.pois:
-			loot_hotspots.append(Vector2(poi.pos[0], poi.pos[1]))
+		_register_loot_hotspots()
 			
 	# Connect Buttons
 	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/StartBtn.pressed.connect(_on_start_btn_pressed)
@@ -878,23 +875,60 @@ func _categorize_templates():
 	# Add advanced heal to pool at roughly 1:5 ratio vs other consumables (rare spawn)
 	consumable_templates.append(HEAL_ADVANCED_ITEM)
 
+func _register_loot_hotspots():
+	loot_hotspots.clear()
+	if not map_spec:
+		return
+	for poi in map_spec.pois:
+		var poi_pos = poi.get("pos", [0.0, 0.0])
+		loot_hotspots.append({
+			"pos": Vector2(float(poi_pos[0]), float(poi_pos[1])),
+			"radius": maxf(float(poi.get("radius", 8.0)), 2.0),
+			"density": clampf(float(poi.get("item_density", 0.5)), 0.05, 1.5),
+			"rare_bias": clampf(float(poi.get("rare_bias", 0.0)), 0.0, 1.0),
+			"role": String(poi.get("role", "")),
+		})
+
+func _choose_loot_hotspot() -> Dictionary:
+	var total_weight = 0.0
+	for hotspot in loot_hotspots:
+		total_weight += maxf(float(hotspot.get("density", 1.0)), 0.05)
+	var ticket = randf() * total_weight
+	for hotspot in loot_hotspots:
+		ticket -= maxf(float(hotspot.get("density", 1.0)), 0.05)
+		if ticket <= 0.0:
+			return hotspot
+	return loot_hotspots[loot_hotspots.size() - 1]
+
+func _random_loot_pos(hotspot: Dictionary) -> Vector2:
+	var center: Vector2 = hotspot.get("pos", Vector2.ZERO)
+	var spread = minf(maxf(float(hotspot.get("radius", 8.0)) * 0.6, 3.0), 11.0)
+	for _attempt in range(10):
+		var angle = randf() * TAU
+		var dist = randf_range(0.0, spread)
+		var candidate = center + Vector2(cos(angle), sin(angle)) * dist
+		if _is_clear_of_obstacles(candidate, 1.0):
+			return candidate
+	return center
+
 func _spawn_initial_loot():
 	if loot_hotspots.is_empty(): return
 	for hotspot in loot_hotspots:
-		# 50% chance to spawn a weapon per hotspot
-		if not weapon_templates.is_empty() and randf() < 0.5:
+		var density = float(hotspot.get("density", 0.5))
+		var rare_bias = float(hotspot.get("rare_bias", 0.0))
+		var weapon_chance = clampf(0.01 + density * 0.045 + rare_bias * 0.035, 0.02, 0.08)
+		if not weapon_templates.is_empty() and randf() < weapon_chance:
 			var pickup = pickup_scene.instantiate()
 			$Loot.add_child(pickup)
-			var offset = Vector2(randf_range(-3, 3), randf_range(-3, 3))
-			var sp = hotspot + offset
+			var sp = _random_loot_pos(hotspot)
 			pickup.global_position = Vector3(sp.x, 0.5, sp.y)
 			pickup.init(weapon_templates[randi() % weapon_templates.size()].duplicate(true))
-		for _i in range(randi_range(3, 5)):
+		var consumable_count = int(clamp(round(1.0 + density * 2.5), 2.0, 5.0))
+		for _i in range(consumable_count):
 			if consumable_templates.is_empty(): break
 			var pickup = pickup_scene.instantiate()
 			$Loot.add_child(pickup)
-			var offset = Vector2(randf_range(-6, 6), randf_range(-6, 6))
-			var sp = hotspot + offset
+			var sp = _random_loot_pos(hotspot)
 			pickup.global_position = Vector3(sp.x, 0.5, sp.y)
 			pickup.init(consumable_templates[randi() % consumable_templates.size()])
 
@@ -905,8 +939,8 @@ func _is_clear_of_obstacles(pos: Vector2, margin: float = 2.0) -> bool:
 		if type_str == "bush_patch": continue  # bushes don't block movement
 		var op = o.get("pos", [0, 0])
 		var sc = o.get("scale", [1, 1, 1])
-		var half_x = (sc[0] * 0.5) + margin
-		var half_z = (sc[2] * 0.5) + margin
+		var half_x = float(sc[0]) + margin
+		var half_z = float(sc[2]) + margin
 		if abs(pos.x - op[0]) < half_x and abs(pos.y - op[1]) < half_z:
 			return false
 	return true
@@ -915,14 +949,16 @@ func spawn_loot(prob: float, count_mult: int = 1):
 	var total_to_spawn = int(loot_count * prob * count_mult)
 	if total_to_spawn <= 0 or loot_hotspots.is_empty(): return
 	for i in range(total_to_spawn):
-		var hotspot = loot_hotspots[randi() % loot_hotspots.size()]
-		var offset = Vector2(randf_range(-8, 8), randf_range(-8, 8))
-		var spawn_pos = hotspot + offset
+		var hotspot = _choose_loot_hotspot()
+		var spawn_pos = _random_loot_pos(hotspot)
 		
 		var pickup = pickup_scene.instantiate()
 		$Loot.add_child(pickup)
 		pickup.global_position = Vector3(spawn_pos.x, 0.5, spawn_pos.y)
-		pickup.init(item_templates[randi() % item_templates.size()])
+		if randf() < float(hotspot.get("rare_bias", 0.0)) and not weapon_templates.is_empty():
+			pickup.init(weapon_templates[randi() % weapon_templates.size()].duplicate(true))
+		else:
+			pickup.init(item_templates[randi() % item_templates.size()])
 
 func telegraph_supply_zone():
 	supply_telegraphed = true
