@@ -3,7 +3,7 @@
 > Last updated: 2026-05-08
 > Purpose: external asset generation brief for v1.8+ asset pipeline work.
 
-This document is meant to be copied into an external image/audio/3D agent. Generated files should be placed under `assets/` and then connected through `data/asset_catalog.json`.
+This document is meant to be copied into an external image/audio/3D agent. Generated master files may stay in the separate `asset_generator/expected_output/` workspace; runtime-ready files are synced into `assets/` and then connected through `data/asset_catalog.json`.
 
 ---
 
@@ -64,11 +64,13 @@ Use these screenshots only for style, palette, camera angle, and readability. Do
 **Icons**
 
 - Format: `.png`
-- Size: `256x256`
+- Master size: `1024x1024` preferred, `256x256` acceptable.
+- Runtime size: normalized to `64x64` in `assets/icons/` for current HUD and pickup decals.
 - Background: transparent
-- Safe area: icon should fit within 208x208 center area.
+- Safe area: icon should fit within the center 80% of the canvas, e.g. about 832x832 on a 1024 master or 208x208 on a 256 master.
 - Style: flat or minimally shaded, thick silhouette, 1 to 2 accent colors.
 - No text, no tiny details, no drop shadows that disappear on dark UI.
+- After generation, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\sync_generated_icons.ps1` from the repo root to crop transparent padding and downsample selected icons.
 
 **3D props**
 
@@ -146,7 +148,7 @@ Create compact movement and item WAV sounds for a low-poly forest battle royale.
 Prompt:
 
 ```text
-Create 256x256 transparent PNG HUD icons for a low-poly tactical battle royale. Use thick readable silhouettes, minimal flat shading, no text, no background, no photorealism. Icons must remain clear at 24x24 pixels on a dark green/black UI. Palette should match muted forest gameplay with small blue/orange/red/cyan accents.
+Create square transparent PNG HUD icon masters for a low-poly tactical battle royale. 1024x1024 is preferred, 256x256 is acceptable. Use thick readable silhouettes, minimal flat shading, no text, no background, no photorealism. Icons must remain clear after downsampling to 64x64 and at 24x24 pixels on a dark green/black UI. Palette should match muted forest gameplay with small blue/orange/red/cyan accents.
 ```
 
 ### D. 3D Props - Forest And Landmarks
@@ -175,10 +177,10 @@ These IDs are not all in the catalog yet. Generate them after the current catalo
 
 | New ID | Suggested Path | Notes |
 |---|---|---|
-| `ammo.pistol` | `assets/icons/items/ammo_pistol.png` | small magazine or bullet stack |
-| `ammo.ar` | `assets/icons/items/ammo_ar.png` | rifle ammo |
-| `ammo.shotgun` | `assets/icons/items/ammo_shotgun.png` | shells |
-| `ammo.railgun` | `assets/icons/items/ammo_railgun.png` | energy cell |
+| `ammo.pistol` | `assets/icons/ammo/pistol.png` | small magazine or bullet stack |
+| `ammo.ar` | `assets/icons/ammo/ar.png` | rifle ammo |
+| `ammo.shotgun` | `assets/icons/ammo/shotgun.png` | shells |
+| `ammo.railgun` | `assets/icons/ammo/railgun.png` | energy cell |
 | `item.medkit` | `assets/icons/items/medkit.png` | stronger heal than bandage |
 | `artifact.ghost_grass` | `assets/icons/artifacts/ghost_grass.png` | stealth/grass motif |
 | `artifact.pulse_scanner` | `assets/icons/artifacts/pulse_scanner.png` | circular scan pulse |
@@ -242,6 +244,7 @@ When generated assets are returned:
 - [ ] GLB props open in Godot without missing texture errors.
 - [ ] No generated asset includes text, watermarks, or external brand marks.
 - [ ] License is recorded if a stock source was used.
+- [ ] Run `powershell -NoProfile -ExecutionPolicy Bypass -File .\tools\sync_generated_icons.ps1` if icon masters came from `asset_generator/expected_output/`.
 - [ ] `data/asset_catalog.json` path fields are updated.
 - [ ] Run `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit`.
 - [ ] Run `python tools\simulate_matches.py 1`.

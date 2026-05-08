@@ -87,6 +87,7 @@ var slots = WeaponSlotManagerScript.new()
 var slot_panels: Array = []
 var slot_icon_rects: Array = []
 var slot_ammo_labels: Array = []
+var _catalog_icon_cache: Dictionary = {}
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -271,33 +272,36 @@ func _ready():
 	slot_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	slot_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	slot_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	slot_bar.position.y -= 16
-	slot_bar.position.x -= 165
-	slot_bar.add_theme_constant_override("separation", 6)
+	slot_bar.position.y -= 18
+	slot_bar.position.x -= 201
+	slot_bar.add_theme_constant_override("separation", 8)
 
 	var slot_labels = ["`", "1", "2", "3", "4"]
 	for i in range(5):
 		var panel = PanelContainer.new()
-		panel.custom_minimum_size = Vector2(60, 68)
+		panel.custom_minimum_size = Vector2(74, 84)
 		slot_bar.add_child(panel)
 		slot_panels.append(panel)
 
 		var vbox = VBoxContainer.new()
 		panel.add_child(vbox)
-		vbox.add_theme_constant_override("separation", 2)
+		vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+		vbox.add_theme_constant_override("separation", 1)
 
 		var key_lbl = Label.new()
 		key_lbl.text = slot_labels[i]
 		key_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		key_lbl.add_theme_font_size_override("font_size", 11)
+		key_lbl.add_theme_font_size_override("font_size", 12)
 		key_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
 		vbox.add_child(key_lbl)
 
 		var icon_rect = TextureRect.new()
-		icon_rect.expand_mode = TextureRect.EXPAND_FIT_WIDTH
+		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon_rect.custom_minimum_size = Vector2(0, 20)
-		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		icon_rect.custom_minimum_size = Vector2(48, 48)
+		icon_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		icon_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		vbox.add_child(icon_rect)
 		slot_icon_rects.append(icon_rect)
 
@@ -845,7 +849,34 @@ func _refresh_slot_hud():
 			else:
 				slot_ammo_labels[i].modulate = Color.WHITE
 
-func _make_weapon_icon(wtype: String) -> ImageTexture:
+func _load_catalog_icon(icon_id: String) -> Texture2D:
+	if _catalog_icon_cache.has(icon_id):
+		return _catalog_icon_cache[icon_id]
+
+	var texture: Texture2D = null
+	var main = get_tree().root.get_node_or_null("Main")
+	if main:
+		var catalog = main.get("asset_catalog")
+		if catalog and catalog.has_method("get_path"):
+			var path = catalog.get_path("icons", icon_id, "")
+			if path != "" and ResourceLoader.exists(path):
+				var loaded = load(path)
+				if loaded is Texture2D:
+					texture = loaded
+			elif path != "" and FileAccess.file_exists(path):
+				var image = Image.new()
+				if image.load(path) == OK:
+					texture = ImageTexture.create_from_image(image)
+
+	_catalog_icon_cache[icon_id] = texture
+	return texture
+
+func _make_weapon_icon(wtype: String) -> Texture2D:
+	if wtype != "":
+		var catalog_icon = _load_catalog_icon("weapon.%s" % wtype)
+		if catalog_icon:
+			return catalog_icon
+
 	var W := 28; var H := 14
 	var img := Image.create(W, H, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))

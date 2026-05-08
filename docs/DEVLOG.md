@@ -5,6 +5,36 @@
 
 ---
 
+## v1.8-dev — 2026-05-09
+
+**Runtime Icon Pass — 생성 아이콘 HUD/픽업 연결**
+
+**assets/icons / data/asset_catalog.json / tools/sync_generated_icons.ps1**
+
+- 외부 `asset_generator/expected_output/assets/icons`의 core 15종 아이콘을 런타임용 `assets/icons`에 연결.
+- 1024px 원본을 직접 커밋하지 않고, 투명 영역 크롭 후 64x64 PNG로 정규화하는 `tools/sync_generated_icons.ps1`를 추가.
+- 무기, 탄약, 힐, 아머, 아티팩트 아이콘 경로를 `AssetCatalog`에 등록해 fallback primitive와 병행 가능하게 구성.
+
+**src/entities/player/Player.gd / src/entities/pickup/Pickup.gd**
+
+- HUD 슬롯 박스를 정사각형 아이콘 기준으로 키우고, catalog 아이콘 로드 실패 시 기존 절차 아이콘 fallback을 유지.
+- Godot import 전 PNG에서도 로드 가능하도록 `ResourceLoader.exists()` 실패 시 `Image.load()` fallback을 추가.
+- 드랍 아이템 형태를 카테고리별로 통일: 무기=긴 판, 탄약=원형 디스크, 힐=정사각 메디 판, 아머=팔각 플레이트.
+- 드랍 아이템 상단에 카탈로그 아이콘을 평면 데칼로 얹어, 색상 tint 베이스와 생성 아이콘을 함께 읽을 수 있게 수정.
+
+**docs/ASSET_BRIEF.md**
+
+- 외부 생성 원본은 `asset_generator/expected_output/`에 보관하고 런타임 에셋만 `assets/`에 동기화하는 흐름을 명시.
+- 아이콘 master는 1024x1024 preferred, runtime은 64x64 기준으로 정리.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=49.9s, stage=2, recover=12, disengage=16.
+- `git diff --check` 통과.
+
+---
+
 ## v1.8-dev — 2026-05-08
 
 **Expansion Foundation Start — config/debug/asset catalog 진입점 도입**

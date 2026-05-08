@@ -98,44 +98,84 @@
   },
   "icons": {
     "weapon.knife": {
-      "path": "",
+      "path": "res://assets/icons/weapons/knife.png",
       "fallback_shape": "knife",
       "color": [0.82, 0.84, 0.90, 1.0]
     },
     "weapon.pistol": {
-      "path": "",
+      "path": "res://assets/icons/weapons/pistol.png",
       "fallback_shape": "pistol",
       "color": [0.45, 0.72, 1.0, 1.0]
     },
     "weapon.ar": {
-      "path": "",
+      "path": "res://assets/icons/weapons/ar.png",
       "fallback_shape": "ar",
       "color": [0.42, 0.72, 1.0, 1.0]
     },
     "weapon.shotgun": {
-      "path": "",
+      "path": "res://assets/icons/weapons/shotgun.png",
       "fallback_shape": "shotgun",
       "color": [1.0, 0.62, 0.32, 1.0]
     },
     "weapon.railgun": {
-      "path": "",
+      "path": "res://assets/icons/weapons/railgun.png",
       "fallback_shape": "railgun",
       "color": [0.55, 1.0, 1.0, 1.0]
     },
+    "ammo.pistol": {
+      "path": "res://assets/icons/ammo/pistol.png",
+      "fallback_shape": "ammo",
+      "color": [0.82, 0.84, 0.90, 1.0]
+    },
+    "ammo.ar": {
+      "path": "res://assets/icons/ammo/ar.png",
+      "fallback_shape": "ammo",
+      "color": [0.42, 0.72, 1.0, 1.0]
+    },
+    "ammo.shotgun": {
+      "path": "res://assets/icons/ammo/shotgun.png",
+      "fallback_shape": "ammo",
+      "color": [1.0, 0.62, 0.32, 1.0]
+    },
+    "ammo.railgun": {
+      "path": "res://assets/icons/ammo/railgun.png",
+      "fallback_shape": "ammo",
+      "color": [0.55, 1.0, 1.0, 1.0]
+    },
     "item.heal": {
-      "path": "",
+      "path": "res://assets/icons/items/heal.png",
+      "fallback_shape": "cross",
+      "color": [0.25, 1.0, 0.42, 1.0]
+    },
+    "item.medkit": {
+      "path": "res://assets/icons/items/heal.png",
       "fallback_shape": "cross",
       "color": [0.25, 1.0, 0.42, 1.0]
     },
     "item.armor": {
-      "path": "",
+      "path": "res://assets/icons/items/armor.png",
       "fallback_shape": "shield",
       "color": [0.35, 0.62, 1.0, 1.0]
     },
     "artifact.red_trigger": {
-      "path": "",
+      "path": "res://assets/icons/artifacts/red_trigger.png",
       "fallback_shape": "trigger",
       "color": [1.0, 0.25, 0.25, 1.0]
+    },
+    "artifact.armor_sponge": {
+      "path": "res://assets/icons/artifacts/armor_sponge.png",
+      "fallback_shape": "shield",
+      "color": [0.35, 0.62, 1.0, 1.0]
+    },
+    "artifact.silent_core": {
+      "path": "res://assets/icons/artifacts/silent_core.png",
+      "fallback_shape": "stealth",
+      "color": [0.55, 0.92, 0.65, 1.0]
+    },
+    "artifact.zone_battery": {
+      "path": "res://assets/icons/artifacts/zone_battery.png",
+      "fallback_shape": "battery",
+      "color": [0.55, 1.0, 1.0, 1.0]
     }
   },
   "props": {
