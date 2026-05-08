@@ -167,6 +167,7 @@ func _ready():
 
 	var diff_lbl = Label.new()
 	diff_lbl.text = "난이도"
+	diff_lbl.custom_minimum_size = Vector2(0, 18)
 	diff_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	diff_lbl.add_theme_font_size_override("font_size", 13)
 	diff_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
@@ -176,6 +177,7 @@ func _ready():
 	var diff_hbox = HBoxContainer.new()
 	diff_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	diff_hbox.add_theme_constant_override("separation", 6)
+	diff_hbox.custom_minimum_size = Vector2(0, 38)
 	vbox.add_child(diff_hbox)
 	vbox.move_child(diff_hbox, start_idx + 1)
 
@@ -193,6 +195,7 @@ func _ready():
 	# 어려움 압박 미션 opt-in 체크버튼 (어려움 선택 시에만 표시)
 	_pressure_opt_in_check = CheckButton.new()
 	_pressure_opt_in_check.text = "압박 미션 활성화"
+	_pressure_opt_in_check.custom_minimum_size = Vector2(310, 24)
 	_pressure_opt_in_check.add_theme_font_size_override("font_size", 12)
 	_pressure_opt_in_check.button_pressed = false
 	_pressure_opt_in_check.visible = (difficulty == Difficulty.HARD)
@@ -1525,14 +1528,15 @@ func _build_help_panel():
 	_help_section(content, "CONTROLS")
 	_make_key_row(content, ["W","A","S","D"], "이동")
 	_make_key_row(content, ["MOUSE"], "조준 (캐릭터가 커서 방향을 바라봄)")
-	_make_key_row(content, ["LMB"], "사격 / 근접 공격 (슬롯 0)")
+	_make_key_row(content, ["LMB"], "사격 / 칼 공격")
 	_make_key_row(content, ["F"], "근처 아이템 줍기")
 	_make_key_row(content, ["Q"], "붕대/구급상자 사용 (HP 회복)")
 	_make_key_row(content, ["R"], "재장전")
 	_make_key_row(content, ["C"], "웅크리기 토글 (스텔스 증가)")
 	_make_key_row(content, ["SPACE"], "점프")
-	_make_key_row(content, ["0"], "근접 무기 (칼)")
+	_make_key_row(content, ["`"], "근접 무기 (칼)")
 	_make_key_row(content, ["1","2","3","4"], "총기 슬롯 전환")
+	_make_key_row(content, ["ESC"], "일시정지 / 메뉴")
 
 	# ── HUD GUIDE ──
 	_help_section(content, "HUD 아이콘")
@@ -1546,8 +1550,10 @@ func _build_help_panel():
 	_help_section(content, "SYSTEMS")
 	_make_desc_row(content, "자기장", "파란 링 밖에 있으면 지속 피해. 타이머가 빨간색이 되기 전에 이동.")
 	_make_desc_row(content, "보급 캡슐", "자기장 2단계에 맵 중앙 낙하. 레일건 포함 희귀 아이템.")
-	_make_desc_row(content, "스텔스", "풀숲에서 웅크리면 봇 시야 차단.")
-	_make_desc_row(content, "무기 획득", "주우면 탄창 1/3 장전. 탄약 아이템은 예비(+N)로 쌓임, R로 보충.")
+	_make_desc_row(content, "아티팩트", "매치 시작 전 1개 선택 가능. 강한 장점과 패널티가 함께 적용됨.")
+	_make_desc_row(content, "압박 미션", "Hell은 자동 활성화. Hard는 메뉴에서 opt-in 가능.")
+	_make_desc_row(content, "스텔스", "풀숲에서 웅크리면 봇 탐지가 크게 늦어짐.")
+	_make_desc_row(content, "무기 획득", "주우면 탄창 1/3 장전. 탄약 아이템은 예비(+N)로 쌓이고 R로 보충.")
 	_make_desc_row(content, "중복 제한", "같은 종류 무기는 두 번 주울 수 없음.")
 
 func _help_section(parent: VBoxContainer, title: String):

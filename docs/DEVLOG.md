@@ -5,6 +5,32 @@
 
 ---
 
+## v1.7.3.1 — 2026-05-08
+
+**Menu Help Hotfix — 난이도 UI/How to Play 정리**
+
+**src/Main.tscn / src/Main.gd**
+
+- 메인 메뉴 버튼 스택을 아래로 내리고 간격을 줄여 Hard 선택 시 `난이도` 라벨과 subtitle이 겹치지 않도록 조정.
+- 난이도 라벨/버튼 줄/압박 미션 토글에 안정적인 최소 높이를 부여.
+- How to Play의 칼 슬롯 키를 `0`에서 실제 입력인 `` ` ``로 수정.
+- ESC 일시정지, 아티팩트 선택, Hard opt-in/Hell 자동 압박 미션 안내를 추가.
+
+**README.md / 문서**
+
+- 조작법의 칼 슬롯 키를 `` ` ``로 통일.
+- 아티팩트와 압박 미션 안내를 최신 버전 기준으로 보강.
+- 릴리즈 표기와 다운로드 링크를 `v1.7.3.1`로 갱신.
+- export 산출물이 다음 빌드에 섞이지 않도록 `builds/**`를 export 제외 필터에 추가.
+
+**검증 결과**
+
+- `python tools\simulate_matches.py 1` 통과, parse/runtime error 없음.
+- `python -m py_compile tools\simulate_matches.py tools\analyze_results.py` 통과.
+- `git diff --check` 통과.
+
+---
+
 ## v1.7.3 — 2026-05-08
 
 **Minimap Map Consistency — 실제 생성 footprint 기반 미니맵 + 숲 맵 1차 정리**

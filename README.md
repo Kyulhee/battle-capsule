@@ -5,10 +5,10 @@
 
 > Godot 4.6.2 · 개발: Kyulhee
 
-## 다운로드 (v1.7.3)
+## 다운로드 (v1.7.3.1)
 
-[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.7.3/BattleRoyalePrototype_v1.7.3_win64.zip)
-[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.7.3/BattleRoyalePrototype_mac.zip)
+[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.7.3.1/BattleRoyalePrototype_v1.7.3.1_win64.zip)
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.7.3.1/BattleRoyalePrototype_mac.zip)
 
 > macOS: 처음 실행 시 `시스템 설정 > 개인정보 보호 및 보안`에서 허용 필요 (공증 미적용 빌드)
 
@@ -35,9 +35,10 @@
 | `Q` | 붕대/구급상자 사용 (HP 회복) |
 | `C` | 웅크리기 토글 |
 | `R` | 재장전 (예비 탄약 → 탄창) |
-| `0` | 근접 무기 (칼) 슬롯으로 전환 |
+| `` ` `` | 근접 무기 (칼) 슬롯으로 전환 |
 | `1` ~ `4` | 총기 슬롯 1~4 전환 |
 | `Space` | 점프 |
+| `Esc` | 일시정지 / 메뉴 |
 
 ---
 
@@ -105,6 +106,14 @@
 | 방어구 | 방어막 즉시 부여 | 자동 적용 |
 | 탄약 (종류별) | 해당 무기 예비 탄약 +N | R키로 탄창에 보충 |
 | 보급 캡슐 | 희귀 무기 포함 (자기장 2단계에 낙하) | F키로 수집 |
+
+---
+
+## 아티팩트와 압박 미션
+
+매치 시작 전 아티팩트 1개를 선택할 수 있습니다. 각 아티팩트는 강한 장점과 패널티를 함께 가집니다.
+
+압박 미션은 Hell 난이도에서 자동 활성화되고, Hard 난이도에서는 메인 메뉴의 `압박 미션 활성화` 토글로 켤 수 있습니다.
 
 ---
 
