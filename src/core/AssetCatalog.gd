@@ -4,17 +4,20 @@ extends RefCounted
 const DEFAULT_PATH := "res://data/asset_catalog.json"
 
 var data: Dictionary = {}
+var missing_paths: Array[Dictionary] = []
 
 func load_or_default(path: String = DEFAULT_PATH) -> void:
 	data = _default_data()
 
 	if not FileAccess.file_exists(path):
 		push_warning("AssetCatalog: %s not found. Using built-in defaults." % path)
+		_refresh_missing_paths()
 		return
 
 	var file = FileAccess.open(path, FileAccess.READ)
 	if not file:
 		push_warning("AssetCatalog: failed to open %s. Using built-in defaults." % path)
+		_refresh_missing_paths()
 		return
 
 	var json = JSON.new()
@@ -24,14 +27,17 @@ func load_or_default(path: String = DEFAULT_PATH) -> void:
 			json.get_error_line(),
 			json.get_error_message()
 		])
+		_refresh_missing_paths()
 		return
 
 	var parsed = json.get_data()
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_warning("AssetCatalog: root must be a Dictionary. Using built-in defaults.")
+		_refresh_missing_paths()
 		return
 
 	data = _merge_dict(data, parsed)
+	_refresh_missing_paths()
 
 static func _merge_dict(target: Dictionary, source: Dictionary) -> Dictionary:
 	for key in source.keys():
@@ -82,6 +88,12 @@ func has_asset(section_name: String, asset_id: String) -> bool:
 	var section = data.get(section_name, {})
 	return typeof(section) == TYPE_DICTIONARY and section.has(asset_id)
 
+func get_missing_paths() -> Array[Dictionary]:
+	return missing_paths.duplicate(true)
+
+func missing_count() -> int:
+	return missing_paths.size()
+
 func count_section(section_name: String) -> int:
 	var section = data.get(section_name, {})
 	return section.size() if typeof(section) == TYPE_DICTIONARY else 0
@@ -91,8 +103,31 @@ func summary() -> Dictionary:
 		"audio": count_section("audio"),
 		"icons": count_section("icons"),
 		"props": count_section("props"),
-		"cosmetics": count_section("cosmetics")
+		"cosmetics": count_section("cosmetics"),
+		"missing": missing_count()
 	}
+
+func _refresh_missing_paths() -> void:
+	missing_paths.clear()
+	for section_name in ["audio", "icons", "props", "cosmetics"]:
+		var section = data.get(section_name, {})
+		if typeof(section) != TYPE_DICTIONARY:
+			continue
+		for asset_id in section.keys():
+			var entry = section[asset_id]
+			if typeof(entry) != TYPE_DICTIONARY:
+				continue
+			var path = String(entry.get("path", ""))
+			if path == "":
+				continue
+			if not ResourceLoader.exists(path) and not FileAccess.file_exists(path):
+				missing_paths.append({
+					"section": section_name,
+					"id": String(asset_id),
+					"path": path,
+				})
+	if not missing_paths.is_empty():
+		push_warning("AssetCatalog: %d configured asset paths are missing; fallbacks remain active." % missing_paths.size())
 
 func _default_data() -> Dictionary:
 	return {

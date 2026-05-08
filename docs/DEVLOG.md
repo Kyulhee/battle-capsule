@@ -7,6 +7,24 @@
 
 ## v1.9-dev — 2026-05-09
 
+**AssetCatalog Missing Path Summary — 에셋 연결 누락 가시화**
+
+**src/core/AssetCatalog.gd / src/ui/DebugOverlay.gd**
+
+- catalog entry에 `path`가 등록되어 있지만 실제 파일이 없는 경우를 `missing_paths`로 집계.
+- 파일이 없어도 기존 fallback은 유지하고, debug overlay의 asset summary에 `asset_missing` 값을 표시.
+- `summary()`에 `missing` 카운트를 포함해 이후 에셋 수급/교체 작업에서 누락 경로를 빠르게 확인할 수 있게 보강.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과. 현재 미생성 사운드 7개 경로는 warning으로 집계되고 fallback 유지.
+- `python tools\simulate_matches.py 1` 통과: duration=64.3s, stage=2, recover=29, disengage=17.
+- `git diff --check` 통과.
+
+---
+
+## v1.9-dev — 2026-05-09
+
 **Cosmetic Tint Catalog Hook — 플레이어/봇 외형 색상 ID 연결**
 
 **src/core/AssetCatalog.gd**

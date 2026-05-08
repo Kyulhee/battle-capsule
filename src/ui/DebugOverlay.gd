@@ -76,6 +76,7 @@ func _update_text() -> void:
 				int(assets.get("props", 0)),
 				int(assets.get("cosmetics", 0))
 			])
+			lines.append("asset_missing=%d" % int(assets.get("missing", 0)))
 		if main_ref.zone != null:
 			lines.append("zone=%d r=%.1f t=%.1f shrink=%s" % [
 				int(main_ref.zone.stage),
