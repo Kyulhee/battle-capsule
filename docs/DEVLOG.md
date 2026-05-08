@@ -18,14 +18,22 @@
 **src/entities/bot/Bot.gd / src/entities/bot/BotDoctrine.gd**
 
 - Bot이 상태별 delta time과 combat plan 선택 시점의 거리/아키타입을 Telemetry에 누적 기록.
+- Hard/Hell 총성 감지를 보정. 시야선이 열린 총성 또는 18m 이내 총성은 partial `?` 확인 상태에 머무르지 않고 즉시 전투 타겟으로 승격.
 - AGGRESSIVE: `advance_probe_chance`와 전진 편향을 추가하고, 수적 압박 생존 override를 조금 늦춤.
 - DEFENSIVE: 엄폐 probe를 높이고 전진 probe를 꺼서 `peek_cover` 편향을 강화.
 - SNIPER: kite/reposition probe를 추가해 근접 압박 대응을 더 명확하게 기록.
 - OPPORTUNIST: 낮은 HP 타겟 마무리 시 `reposition` 우선순위를 활성화.
 
+**src/entities/bot/BotVisualKit.gd / tools/simulate_matches.py / src/Main.gd**
+
+- 아키타입 스킨에서 표정/머리 파츠를 제거하고 캡슐 전면의 단순 전술 마크로 교체.
+- `simulate_matches.py`가 선택적 난이도 인자를 받아 `python tools\simulate_matches.py 1 hell`처럼 헬 봇 파라미터를 headless에서 검증 가능.
+
 **검증 결과**
 
 - `python tools\simulate_matches.py 5` 통과: avg duration=75.8s, runs under 60s=0, avg zone stage=2.80.
+- `python tools\simulate_matches.py 5 hell` 통과: avg duration=62.3s, zone deaths=0.
+- 스킨 정리 후 `python tools\simulate_matches.py 1 hell` 통과.
 - Analyzer: max attack bout=15.1s, RECOVER 사망=1.1% of bouts, zone deaths=0.
 - Doctrine plans by archetype: AGGRESSIVE `advance=19`, DEFENSIVE `peek_cover=39`, OPPORTUNIST `reposition=52`, SNIPER `kite=11`.
 - Engage range avg: AGGRESSIVE 6.2m, DEFENSIVE 6.7m, OPPORTUNIST 8.9m, SNIPER 10.0m.

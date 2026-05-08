@@ -109,17 +109,21 @@ func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_load_settings()
 	# Check for autostart
+	var autostart_requested = false
 	for arg in OS.get_cmdline_user_args():
+		_apply_cmdline_arg(arg)
 		if "autostart=true" in arg:
-			is_simulation = true
-			Engine.time_scale = 5.0
-			_load_map_spec()
-			if map_spec:
-				for poi in map_spec.pois:
-					loot_hotspots.append(Vector2(poi.pos[0], poi.pos[1]))
-			_setup_navigation()
-			start_game()
-			return
+			autostart_requested = true
+	if autostart_requested:
+		is_simulation = true
+		Engine.time_scale = 5.0
+		_load_map_spec()
+		if map_spec:
+			for poi in map_spec.pois:
+				loot_hotspots.append(Vector2(poi.pos[0], poi.pos[1]))
+		_setup_navigation()
+		start_game()
+		return
 
 	print("[MAIN] Starting initialization...")
 	_load_map_spec()
@@ -726,6 +730,21 @@ func _setup_navigation():
 	_nav_region.bake_finished.connect(func(): print("[NAV] Bake complete"))
 	_nav_region.bake_navigation_mesh()
 	print("[NAV] Baking navigation mesh...")
+
+func _apply_cmdline_arg(arg: String):
+	var lower = arg.to_lower()
+	if not lower.begins_with("difficulty="):
+		return
+	var value = lower.get_slice("=", 1)
+	match value:
+		"easy", "0":
+			difficulty = Difficulty.EASY
+		"normal", "1":
+			difficulty = Difficulty.NORMAL
+		"hard", "2":
+			difficulty = Difficulty.HARD
+		"hell", "3":
+			difficulty = Difficulty.HELL
 
 func _load_map_spec():
 	var file = FileAccess.open("res://data/mapSpec_example.json", FileAccess.READ)

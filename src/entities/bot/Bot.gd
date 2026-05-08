@@ -16,6 +16,8 @@ const RETREAT_MELEE_COUNTER_RANGE: float = 2.35
 const RETREAT_COUNTERFIRE_SPREAD: float = 0.34
 const RETREAT_COUNTERFIRE_MIN_COOLDOWN: float = 0.85
 const DEBUG_ARCHETYPE_MARKERS: bool = false
+const HARD_GUNSHOT_MIN_RANGE: float = 25.0
+const HARD_GUNSHOT_CLOSE_COMMIT_RANGE: float = 18.0
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -1275,16 +1277,27 @@ func _check_gunshot_sounds():
 	for actor in actors:
 		if actor == self or not actor is Entity or actor.is_dead: continue
 		if actor.reveal_timer <= 1.7: continue  # didn't just fire
-		if perception_meters.get(actor, 0.0) >= 0.75: continue
 		var dist = global_position.distance_to(actor.global_position)
-		var range_limit = 25.0 if _awareness_level >= 2 else 15.0
+		var range_limit = maxf(HARD_GUNSHOT_MIN_RANGE, stats.vision_range) if _awareness_level >= 2 else 15.0
 		if dist > range_limit: continue
 		if not perception_meters.has(actor): perception_meters[actor] = 0.0
-		perception_meters[actor] = min(perception_meters[actor] + 0.5, 0.75)
+		var direct_noise_lock = _awareness_level >= 2 and (has_los_to(actor) or dist <= HARD_GUNSHOT_CLOSE_COMMIT_RANGE)
+		var max_awareness = 1.0 if direct_noise_lock else 0.75
+		var boost = 1.0 if direct_noise_lock else (0.65 if _awareness_level >= 2 else 0.5)
+		perception_meters[actor] = min(perception_meters[actor] + boost, max_awareness)
 		last_known_target_pos = actor.global_position
 		var dir_to = (actor.global_position - global_position).normalized()
 		scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
 		_scan_alert = true
+		if direct_noise_lock and current_state in [State.IDLE, State.RECOVER, State.CHASE]:
+			target_actor = actor
+			is_targeting_loot = false
+			_recovering = false
+			_pending_target = null
+			if stats.current_ammo > 0:
+				change_state(State.CHASE)
+			else:
+				change_state(State.RECOVER)
 
 # ─── CLOSE RANGE INSTANT DETECTION ─────────────────────────────────────────
 # Any actor within 2m is immediately fully detected — like bumping into someone.

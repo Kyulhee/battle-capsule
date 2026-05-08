@@ -27,6 +27,9 @@ Godot 헤드리스 모드로 게임을 자동 실행하면 `Telemetry.gd`가 지
 python tools/simulate_matches.py 5
 python tools/analyze_results.py
 
+# 특정 난이도 봇 파라미터로 실행
+python tools/simulate_matches.py 5 hell
+
 # 결과 파일 위치 (Windows)
 # %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
 ```

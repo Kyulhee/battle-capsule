@@ -9,6 +9,7 @@ from pathlib import Path
 GODOT_BIN = r".\Godot_v4.6.2-stable_win64_console.exe"
 PROJECT_PATH = "."
 NUM_MATCHES = int(sys.argv[1]) if len(sys.argv) > 1 else 20
+DIFFICULTY = sys.argv[2] if len(sys.argv) > 2 else ""
 TIMEOUT_PER_MATCH = 300
 
 APPDATA = Path(os.environ.get("APPDATA", ""))
@@ -19,6 +20,8 @@ OUT_DIR = Path("tools") / "sim_runs_current"
 def run_match(match_id: int) -> dict:
     print(f"--- Running Match {match_id + 1}/{NUM_MATCHES} ---", flush=True)
     cmd = [GODOT_BIN, "--path", PROJECT_PATH, "--headless", "--", "autostart=true"]
+    if DIFFICULTY:
+        cmd.append(f"difficulty={DIFFICULTY}")
     proc = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
