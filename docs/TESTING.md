@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-05-08 (v1.8-dev 기준)
+> 마지막 업데이트: 2026-05-09 (v1.9-dev 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -32,6 +32,9 @@ python tools/analyze_results.py
 
 # 특정 난이도 봇 파라미터로 실행
 python tools/simulate_matches.py 5 hell
+
+# 시뮬레이션에 config override 추가 전달
+python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=20 zone_shrink=25
 
 # v1.8 config/debug 진입점 확인
 ./Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit

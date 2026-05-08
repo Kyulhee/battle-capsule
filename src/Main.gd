@@ -59,6 +59,7 @@ var zone = null
 @export var zone_wait_time: float = 30.0
 @export var zone_shrink_time: float = 20.0
 @export var zone_damage: float = 2.0
+@export var zone_initial_timer: float = 15.0
 var alive_count: int = 0
 var game_over: bool = false
 var player_ref: Entity = null
@@ -753,6 +754,7 @@ func _apply_game_config():
 	zone_wait_time = maxf(1.0, float(game_config.zone_value("wait_time", zone_wait_time)))
 	zone_shrink_time = maxf(1.0, float(game_config.zone_value("shrink_time", zone_shrink_time)))
 	zone_damage = maxf(0.0, float(game_config.zone_value("damage_per_second", zone_damage)))
+	zone_initial_timer = maxf(0.1, float(game_config.zone_value("initial_timer", zone_initial_timer)))
 
 func _get_difficulty_params() -> Dictionary:
 	if game_config:
@@ -762,7 +764,7 @@ func _get_difficulty_params() -> Dictionary:
 	return {}
 
 func _zone_initial_timer() -> float:
-	return maxf(0.1, float(game_config.zone_value("initial_timer", 15.0))) if game_config else 15.0
+	return zone_initial_timer
 
 func _hell_range(min_key: String, max_key: String, fallback_min: float, fallback_max: float) -> float:
 	if not game_config:
@@ -826,6 +828,14 @@ func _apply_cmdline_arg(arg: String):
 			loot_spawner.configure_count(loot_count)
 	elif lower.begins_with("spawn_radius="):
 		spawn_radius = maxf(1.0, float(lower.get_slice("=", 1)))
+	elif lower.begins_with("zone_wait_time=") or lower.begins_with("zone_wait="):
+		zone_wait_time = maxf(1.0, float(lower.get_slice("=", 1)))
+	elif lower.begins_with("zone_shrink_time=") or lower.begins_with("zone_shrink="):
+		zone_shrink_time = maxf(1.0, float(lower.get_slice("=", 1)))
+	elif lower.begins_with("zone_damage=") or lower.begins_with("zone_dps="):
+		zone_damage = maxf(0.0, float(lower.get_slice("=", 1)))
+	elif lower.begins_with("zone_initial_timer=") or lower.begins_with("zone_initial="):
+		zone_initial_timer = maxf(0.1, float(lower.get_slice("=", 1)))
 
 func _load_map_spec():
 	var file = FileAccess.open("res://data/mapSpec_example.json", FileAccess.READ)

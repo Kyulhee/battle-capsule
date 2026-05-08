@@ -7,6 +7,29 @@
 
 ## v1.9-dev — 2026-05-09
 
+**Scale Test CLI Overrides — 확장 실험용 zone/config 인자 보강**
+
+**src/Main.gd / tools/simulate_matches.py**
+
+- `zone_wait_time`, `zone_shrink_time`, `zone_damage`, `zone_initial_timer`를 `Main.gd`의 runtime 값으로 분리해 JSON config와 커맨드라인 override가 같은 경로를 타도록 정리.
+- `zone_wait=`, `zone_shrink=`, `zone_dps=`, `zone_initial=` 짧은 alias도 지원해 실험 명령을 줄임.
+- `tools/simulate_matches.py`가 난이도 뒤의 추가 `key=value` 인자를 Godot autostart 명령에 그대로 전달하도록 확장.
+
+**docs/TESTING.md**
+
+- `python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=20 zone_shrink=25` 형태의 확장 실험 예시를 추가.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python -m py_compile tools\simulate_matches.py` 통과.
+- `python tools\simulate_matches.py 1 normal bot_count=13 loot_count=45 zone_wait=20 zone_shrink=18 zone_dps=2 zone_initial=10` 통과: duration=70.0s, stage=3.
+- `git diff --check` 통과.
+
+---
+
+## v1.9-dev — 2026-05-09
+
 **AssetCatalog Missing Path Summary — 에셋 연결 누락 가시화**
 
 **src/core/AssetCatalog.gd / src/ui/DebugOverlay.gd**

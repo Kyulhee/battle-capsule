@@ -9,7 +9,15 @@ from pathlib import Path
 GODOT_BIN = r".\Godot_v4.6.2-stable_win64_console.exe"
 PROJECT_PATH = "."
 NUM_MATCHES = int(sys.argv[1]) if len(sys.argv) > 1 else 20
-DIFFICULTY = sys.argv[2] if len(sys.argv) > 2 else ""
+DIFFICULTY = ""
+EXTRA_ARGS = []
+for raw_arg in sys.argv[2:]:
+    if "=" in raw_arg:
+        EXTRA_ARGS.append(raw_arg)
+    elif not DIFFICULTY:
+        DIFFICULTY = raw_arg
+    else:
+        EXTRA_ARGS.append(raw_arg)
 TIMEOUT_PER_MATCH = 300
 
 APPDATA = Path(os.environ.get("APPDATA", ""))
@@ -22,6 +30,7 @@ def run_match(match_id: int) -> dict:
     cmd = [GODOT_BIN, "--path", PROJECT_PATH, "--headless", "--", "autostart=true"]
     if DIFFICULTY:
         cmd.append(f"difficulty={DIFFICULTY}")
+    cmd.extend(EXTRA_ARGS)
     proc = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
