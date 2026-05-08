@@ -65,12 +65,15 @@ func _update_perception(delta):
 			if perception_meters.has(target): perception_meters.erase(target)
 			continue
 		if not perception_meters.has(target): perception_meters[target] = 0.0
+		var before = float(perception_meters[target])
 		if _can_i_see(target):
 			var dwell = target.stats.dwell_time_bush if target.is_in_bush else target.stats.dwell_time_open
 			perception_meters[target] = clamp(perception_meters[target] + (delta / dwell), 0.0, 1.0)
 		else:
 			var decay = stats.detection_decay if perception_meters[target] >= 1.0 else 0.2
 			perception_meters[target] = clamp(perception_meters[target] - (delta / decay), 0.0, 1.0)
+		if before < 1.0 and float(perception_meters[target]) >= 1.0:
+			_debug_log("perception", "%s revealed %s" % [_debug_name(), target._debug_name()])
 
 # Can THIS entity see 'target'? Uses THIS entity's stats for range/FOV.
 func _can_i_see(target: Entity) -> bool:
@@ -170,6 +173,15 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 		health_changed.emit(current_health, stats.max_health)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_damage(amount, source, weapon_type, dist)
+	_debug_log("damage", "%s took %.1f source=%s weapon=%s shield=%.1f hp=%.1f dist=%.1f" % [
+		_debug_name(),
+		amount,
+		source,
+		weapon_type,
+		current_shield,
+		current_health,
+		dist,
+	])
 	# Knockback impulse (applied even when shielded — feel the hit)
 	if source_node and is_instance_valid(source_node) and source_node != self:
 		var kb := 0.0
@@ -190,6 +202,14 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 
 func get_telemetry_state() -> String:
 	return ""
+
+func _debug_name() -> String:
+	return display_name if display_name != "" else name
+
+func _debug_log(flag: String, message: String) -> void:
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and main.has_method("debug_log"):
+		main.debug_log(flag, message)
 
 func flash_hit():
 	if is_dead: return

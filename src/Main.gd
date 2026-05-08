@@ -790,6 +790,13 @@ func _ensure_debug_overlay():
 	parent.add_child(debug_overlay)
 	debug_overlay.configure(self, debug_flags)
 
+func debug_enabled(flag: String) -> bool:
+	return debug_flags != null and debug_flags.has_method("is_enabled") and debug_flags.is_enabled(flag)
+
+func debug_log(flag: String, message: String) -> void:
+	if debug_enabled(flag):
+		print("[DEBUG:%s] %s" % [flag, message])
+
 func _setup_navigation():
 	var nav_mesh = NavigationMesh.new()
 	nav_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
@@ -880,6 +887,11 @@ func handle_zone_lifecycle(delta):
 	zone.tick_lifecycle(delta)
 
 func _on_zone_stage_changed(new_stage: int):
+	debug_log("zone", "stage advanced to %d radius=%.1f next=%.1f" % [
+		new_stage,
+		float(zone.current_radius),
+		float(zone.next_radius),
+	])
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").set_stage(new_stage)
 		if new_stage == 2:

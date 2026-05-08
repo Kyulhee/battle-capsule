@@ -226,6 +226,13 @@ func collect(collector: Entity) -> bool:
 	if not item: return false
 
 	print(collector.name, " collected ", item.item_name)
+	_debug_log("loot", "%s collected %s type=%s pos=(%.1f,%.1f)" % [
+		collector.display_name if collector.display_name != "" else collector.name,
+		item.item_name,
+		ItemData.Type.keys()[item.type],
+		global_position.x,
+		global_position.z,
+	])
 
 	if has_node("/root/Telemetry"):
 		var type_name = ItemData.Type.keys()[item.type].to_lower()
@@ -278,3 +285,8 @@ func collect(collector: Entity) -> bool:
 
 	queue_free()
 	return true
+
+func _debug_log(flag: String, message: String) -> void:
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and main.has_method("debug_log"):
+		main.debug_log(flag, message)

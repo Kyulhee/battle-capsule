@@ -7,6 +7,26 @@
 
 ## v1.9-dev — 2026-05-09
 
+**Debug Flag Hooks — 피해/인식/루트/존 로그 연결**
+
+**src/Main.gd / src/entities/Entity.gd / src/entities/pickup/Pickup.gd**
+
+- `Main.debug_enabled(flag)` / `debug_log(flag, message)` 공통 helper를 추가.
+- `debug_flags=damage`에서 피해량, source, weapon, 남은 shield/hp, 거리를 로그로 출력.
+- `debug_flags=perception`에서 대상 인식 게이지가 1.0에 도달하는 순간을 로그로 출력.
+- `debug_flags=loot`에서 픽업 수집 대상, 타입, 위치를 로그로 출력.
+- `debug_flags=zone`에서 자기장 stage 전환과 현재/다음 반경을 로그로 출력.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal debug=true debug_flags=damage,perception,loot,zone` 통과: duration=80.6s, stage=3.
+- `git diff --check` 통과.
+
+---
+
+## v1.9-dev — 2026-05-09
+
 **Scale Test CLI Overrides — 확장 실험용 zone/config 인자 보강**
 
 **src/Main.gd / tools/simulate_matches.py**
