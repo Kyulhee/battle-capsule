@@ -5,6 +5,32 @@
 
 ---
 
+## v1.8-dev — 2026-05-08
+
+**Expansion Foundation Start — config/debug 진입점 도입**
+
+**src/core/GameConfig.gd / data/game_config.json / src/Main.gd**
+
+- `bot_count`, `loot_count`, `spawn_radius`, zone 기본 시간/피해, 난이도별 봇 파라미터, Hell 이벤트 타이머를 `data/game_config.json`에서 읽도록 1차 연결.
+- config 파일이 없거나 JSON이 깨져도 built-in fallback으로 기존 기본값을 유지하도록 처리.
+- `bot_count=`, `loot_count=`, `spawn_radius=` 커맨드라인 override를 추가해 대형 맵/봇 실험 전 작은 조정이 가능하도록 준비.
+
+**src/core/DebugFlags.gd / src/ui/DebugOverlay.gd / src/Main.gd**
+
+- `debug=true`, `debug_overlay=`, `debug_flags=ai,perception,damage,loot,zone,nav` 파싱 진입점 추가.
+- release 기본값은 off이며, debug on에서만 간단한 overlay를 생성해 state/difficulty/alive/zone/config 기본값을 표시.
+- Godot import 전 `class_name` 타입 참조가 parse error를 만들지 않도록 Main 연결은 preload script instance 방식으로 유지.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=71.4s, stage=3, combat plans cover/reposition/kite=29/32/5.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=72.3s, stage=3, combat plans cover/reposition/kite=25/17/2.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless -- autostart=true debug=true debug_flags=zone` 통과, `[DEBUG] Flags: zone` 확인.
+- `git diff --check` 통과.
+
+---
+
 ## v1.7.3.1 — 2026-05-08
 
 **Menu Help Hotfix — 난이도 UI/How to Play 정리**

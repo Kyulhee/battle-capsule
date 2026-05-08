@@ -10,12 +10,6 @@ var current_state: GameState = GameState.MENU
 
 enum Difficulty { EASY, NORMAL, HARD, HELL }
 var difficulty: Difficulty = Difficulty.NORMAL
-const DIFFICULTY_PARAMS = {
-	0: { "vision_mult": 0.75, "reaction_delay": 1.2,  "aim_spread": 1.8,  "loot_break_mult": 0.0, "awareness_level": 0 },
-	1: { "vision_mult": 1.0,  "reaction_delay": 0.2,  "aim_spread": 1.0,  "loot_break_mult": 1.0, "awareness_level": 1, "combat_loot_floor": 0.20, "idle_scan_interval_max": 1.8 },
-	2: { "vision_mult": 1.25, "reaction_delay": 0.0,  "aim_spread": 0.65, "loot_break_mult": 1.5, "awareness_level": 2, "combat_loot_floor": 0.35, "combat_loot_radius": 22.0, "idle_scan_interval_max": 1.2 },
-	3: { "vision_mult": 1.5,  "reaction_delay": 0.0,  "aim_spread": 0.5,  "loot_break_mult": 2.0, "awareness_level": 2, "combat_loot_floor": 0.40, "combat_loot_radius": 25.0, "idle_scan_interval_max": 0.9 },
-}
 var _diff_btns: Array = []
 var _pressure_opt_in_check: CheckButton = null
 var _diff_tooltip: PanelContainer = null
@@ -86,6 +80,9 @@ var _result_mission_label: Label = null
 var _result_sep_mission: HSeparator = null
 
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
+const GameConfigScript = preload("res://src/core/GameConfig.gd")
+const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
+const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const ZoneControllerScript = preload("res://src/core/ZoneController.gd")
 
@@ -97,6 +94,11 @@ var map_spec = null
 # Navigation
 var _nav_region: NavigationRegion3D = null
 
+# v1.8 expansion foundation
+var game_config = null
+var debug_flags = null
+var debug_overlay = null
+
 # Dynamic Supply
 var supply_telegraphed: bool = false
 var supply_spawned: bool = false
@@ -107,6 +109,13 @@ var zone_ring: MeshInstance3D = null
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	game_config = GameConfigScript.new()
+	game_config.load_or_default()
+	_apply_game_config()
+	debug_flags = DebugFlagsScript.new()
+	debug_flags.load_from_cmdline(OS.get_cmdline_user_args())
+	if debug_flags.enabled:
+		print("[DEBUG] Flags: %s" % debug_flags.describe())
 	_load_settings()
 	# Check for autostart
 	var autostart_requested = false
@@ -412,12 +421,13 @@ func start_game():
 	zone.wait_time = zone_wait_time
 	zone.shrink_time = zone_shrink_time
 	zone.damage_per_second = zone_damage
-	zone.timer = 15.0
+	zone.timer = _zone_initial_timer()
 	zone.generate_next()
 	zone.stage_advanced.connect(_on_zone_stage_changed)
 	zone.zone_warning.connect(_on_zone_warning)
 	
 	_show_panel("HUD")
+	_ensure_debug_overlay()
 
 	# 랜덤 보너스 미션 자동 배정 (아티팩트와 불가능한 조합 제외)
 	mission_tracker = MissionTrackerScript.new()
@@ -449,8 +459,8 @@ func start_game():
 		var _rng = RandomNumberGenerator.new()
 		_rng.seed = Time.get_ticks_usec() ^ (Time.get_ticks_msec() << 16)
 		hell_modifier = _rng.randi_range(0, 2) as HellModifier
-		_hell_blackout_timer = randf_range(12.0, 20.0)
-		_hell_bomb_timer = 20.0
+		_hell_blackout_timer = _hell_range("blackout_initial_min", "blackout_initial_max", 12.0, 20.0)
+		_hell_bomb_timer = _hell_value("bomb_initial_timer", 20.0)
 		_create_hell_overlay()
 		_show_hell_announcement()
 	
@@ -719,6 +729,50 @@ func _take_screenshot(file_name: String):
 			img.save_png("user://" + file_name)
 			print("[MAIN] res:// write failed, saved to user://", file_name)
 
+func _apply_game_config():
+	if not game_config:
+		return
+	bot_count = max(0, int(game_config.match_value("bot_count", bot_count)))
+	loot_count = max(0, int(game_config.match_value("loot_count", loot_count)))
+	spawn_radius = maxf(1.0, float(game_config.match_value("spawn_radius", spawn_radius)))
+	zone_wait_time = maxf(1.0, float(game_config.zone_value("wait_time", zone_wait_time)))
+	zone_shrink_time = maxf(1.0, float(game_config.zone_value("shrink_time", zone_shrink_time)))
+	zone_damage = maxf(0.0, float(game_config.zone_value("damage_per_second", zone_damage)))
+
+func _get_difficulty_params() -> Dictionary:
+	if game_config:
+		var params = game_config.get_difficulty_params(difficulty as int)
+		if not params.is_empty():
+			return params
+	return {}
+
+func _zone_initial_timer() -> float:
+	return maxf(0.1, float(game_config.zone_value("initial_timer", 15.0))) if game_config else 15.0
+
+func _hell_range(min_key: String, max_key: String, fallback_min: float, fallback_max: float) -> float:
+	if not game_config:
+		return randf_range(fallback_min, fallback_max)
+	var a = float(game_config.hell_value(min_key, fallback_min))
+	var b = float(game_config.hell_value(max_key, fallback_max))
+	return randf_range(minf(a, b), maxf(a, b))
+
+func _hell_value(key: String, fallback: float) -> float:
+	return float(game_config.hell_value(key, fallback)) if game_config else fallback
+
+func _ensure_debug_overlay():
+	if not debug_flags or not debug_flags.enabled or not debug_flags.overlay_enabled:
+		return
+	if is_instance_valid(debug_overlay):
+		return
+	var parent = get_node_or_null("CanvasLayer/Control/HUD")
+	if not parent:
+		parent = get_node_or_null("CanvasLayer/Control")
+	if not parent:
+		return
+	debug_overlay = DebugOverlayScript.new()
+	parent.add_child(debug_overlay)
+	debug_overlay.configure(self, debug_flags)
+
 func _setup_navigation():
 	var nav_mesh = NavigationMesh.new()
 	nav_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
@@ -738,18 +792,23 @@ func _setup_navigation():
 
 func _apply_cmdline_arg(arg: String):
 	var lower = arg.to_lower()
-	if not lower.begins_with("difficulty="):
-		return
-	var value = lower.get_slice("=", 1)
-	match value:
-		"easy", "0":
-			difficulty = Difficulty.EASY
-		"normal", "1":
-			difficulty = Difficulty.NORMAL
-		"hard", "2":
-			difficulty = Difficulty.HARD
-		"hell", "3":
-			difficulty = Difficulty.HELL
+	if lower.begins_with("difficulty="):
+		var value = lower.get_slice("=", 1)
+		match value:
+			"easy", "0":
+				difficulty = Difficulty.EASY
+			"normal", "1":
+				difficulty = Difficulty.NORMAL
+			"hard", "2":
+				difficulty = Difficulty.HARD
+			"hell", "3":
+				difficulty = Difficulty.HELL
+	elif lower.begins_with("bot_count="):
+		bot_count = max(0, int(lower.get_slice("=", 1)))
+	elif lower.begins_with("loot_count="):
+		loot_count = max(0, int(lower.get_slice("=", 1)))
+	elif lower.begins_with("spawn_radius="):
+		spawn_radius = maxf(1.0, float(lower.get_slice("=", 1)))
 
 func _load_map_spec():
 	var file = FileAccess.open("res://data/mapSpec_example.json", FileAccess.READ)
@@ -829,7 +888,7 @@ func spawn_entities():
 		p.health_changed.emit(1.0, p.stats.max_health)
 
 	# Spawn Bots — 아키타입 배정 3:3:2:3 (AGGRESSIVE/DEFENSIVE/SNIPER/OPPORTUNIST)
-	var diff_params = DIFFICULTY_PARAMS[difficulty]
+	var diff_params = _get_difficulty_params()
 	var _archetype_pool: Array = []
 	for _ai in range(3): _archetype_pool.append(0)  # AGGRESSIVE
 	for _ai in range(3): _archetype_pool.append(1)  # DEFENSIVE
@@ -1915,7 +1974,7 @@ func _process_hell_events(delta):
 	if match_timer > 10.0:
 		_hell_bomb_timer -= delta
 		if _hell_bomb_timer <= 0:
-			_hell_bomb_timer = randf_range(18.0, 28.0)
+			_hell_bomb_timer = _hell_range("bomb_repeat_min", "bomb_repeat_max", 18.0, 28.0)
 			_start_bombardment()
 
 func _trigger_blackout():
@@ -1928,7 +1987,7 @@ func _trigger_blackout():
 	tw.tween_property(_hell_overlay, "color:a", 0.0, 0.5)
 	tw.tween_callback(func():
 		_hell_blackout_active = false
-		_hell_blackout_timer = randf_range(15.0, 28.0)
+		_hell_blackout_timer = _hell_range("blackout_repeat_min", "blackout_repeat_max", 15.0, 28.0)
 	)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_hell_event("blackout")

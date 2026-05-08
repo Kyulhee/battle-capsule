@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-05-08 (v1.7.3 기준)
+> 마지막 업데이트: 2026-05-08 (v1.8-dev 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -32,6 +32,10 @@ python tools/analyze_results.py
 
 # 특정 난이도 봇 파라미터로 실행
 python tools/simulate_matches.py 5 hell
+
+# v1.8 config/debug 진입점 확인
+./Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit
+./Godot_v4.6.2-stable_win64_console.exe --path . --headless -- autostart=true debug=true debug_flags=zone
 
 # 결과 파일 위치 (Windows)
 # %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
