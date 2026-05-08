@@ -1815,6 +1815,7 @@ func shoot():
 	if stats.current_ammo <= 0: return
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_shot()
+	_play_shot_sfx()
 	if stats.weapon_type == "shotgun":
 		stats.current_ammo -= 1
 		for i in range(max(1, stats.pellet_count)):
@@ -1842,6 +1843,7 @@ func shoot_predictive(target_pos: Vector3):
 	stats.current_ammo -= 1
 	fire_cooldown = stats.fire_rate
 	reveal()
+	_play_shot_sfx()
 	if MUZZLE_FLASH_SCN:
 		var flash = MUZZLE_FLASH_SCN.instantiate()
 		add_child(flash)
@@ -1854,6 +1856,15 @@ func shoot_predictive(target_pos: Vector3):
 		-1.0
 	).normalized() * stats.attack_range
 	_cast_and_visualize(local_dir)
+
+func _play_shot_sfx() -> void:
+	var sfx = get_node_or_null("/root/Sfx")
+	if not sfx:
+		return
+	if sfx.has_method("play_weapon_shot"):
+		sfx.play_weapon_shot(stats.weapon_type, global_position)
+	else:
+		sfx.play("shoot", global_position)
 
 func shoot_pellet(_idx: int):
 	reveal()

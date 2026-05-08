@@ -5,6 +5,29 @@
 
 ---
 
+## v1.9-dev — 2026-05-09
+
+**Audio Catalog Hook Pass — 무기별/표면별 사운드 ID 연결**
+
+**src/entities/player/Player.gd / src/entities/bot/Bot.gd**
+
+- 플레이어 총기 발사 호출을 `Sfx.play_weapon_shot(weapon_type)`로 연결해 `shoot.pistol/ar/shotgun/railgun` catalog ID가 실제 플레이에서 사용되도록 수정.
+- 봇 총기 발사에도 무기별 3D 사운드를 추가해 외부 `.wav`가 들어오면 봇 발사음도 같은 catalog 경로를 타도록 연결.
+- 플레이어 발자국은 부쉬면 `footstep.grass`, 바위/협곡 근처면 `footstep.stone`, 일반 지면/나무/로그 근처면 `footstep.dirt`로 분류해 호출.
+
+**src/core/SoundManager.gd / src/core/AssetCatalog.gd**
+
+- 실제 파일이 없어도 `shoot.*`, `footstep.*` ID가 generic procedural fallback으로 내려가도록 보강.
+- built-in AssetCatalog 기본값에 무기별 발사음과 표면별 발자국 fallback ID를 추가.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=65.7s, stage=2, recover=21, disengage=23.
+- `git diff --check` 통과.
+
+---
+
 ## v1.8-dev — 2026-05-09
 
 **LootSpawner Boundary — 루트 스폰 계산 분리**

@@ -418,7 +418,10 @@ func _physics_process(delta):
 		footstep_timer -= delta
 		if footstep_timer <= 0:
 			footstep_timer = FOOTSTEP_INTERVAL
-			if Sfx: Sfx.play("footstep", global_position)
+			if Sfx and Sfx.has_method("play_footstep"):
+				Sfx.play_footstep(_current_surface_id(), global_position)
+			elif Sfx:
+				Sfx.play("footstep", global_position)
 	else:
 		footstep_timer = 0.0
 
@@ -435,7 +438,7 @@ func _physics_process(delta):
 						_sync_stats_ammo()
 						for i in range(wdata.pellet_count): shoot_pellet(i)
 						fire_cooldown = wdata.fire_rate
-						if Sfx: Sfx.play("shoot")
+						_play_weapon_shot_sfx("shotgun")
 						_refresh_slot_hud()
 						_notify_mission_tracker_fire("shotgun")
 					else:
@@ -1273,7 +1276,7 @@ func _shoot_with_slot(slot: int):
 		shot_vec.y = randf_range(-heat_spread * 0.15, heat_spread * 0.15)
 	_internal_shoot(shot_vec)
 	fire_cooldown = wdata.fire_rate
-	if Sfx: Sfx.play("shoot")
+	_play_weapon_shot_sfx(wdata.weapon_type)
 	_refresh_slot_hud()
 	_notify_mission_tracker_fire(wdata.weapon_type)
 
@@ -1314,7 +1317,35 @@ func shoot():
 	reveal()
 	_internal_shoot(Vector3(0, 0, -stats.attack_range))
 	fire_cooldown = stats.fire_rate
-	if Sfx: Sfx.play("shoot")
+	_play_weapon_shot_sfx(stats.weapon_type)
+
+func _play_weapon_shot_sfx(weapon_type: String) -> void:
+	if not Sfx:
+		return
+	if Sfx.has_method("play_weapon_shot"):
+		Sfx.play_weapon_shot(weapon_type)
+	else:
+		Sfx.play("shoot")
+
+func _current_surface_id() -> String:
+	if is_in_bush:
+		return "grass"
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and main.map_spec:
+		var p2 = Vector2(global_position.x, global_position.z)
+		for obstacle in main.map_spec.obstacles:
+			var type_str = String(obstacle.get("type", ""))
+			var op = obstacle.get("pos", [0.0, 0.0])
+			var sc = obstacle.get("scale", [1.0, 1.0, 1.0])
+			var half_x = float(sc[0]) + 1.5
+			var half_z = float(sc[2]) + 1.5
+			if abs(p2.x - float(op[0])) <= half_x and abs(p2.y - float(op[1])) <= half_z:
+				match type_str:
+					"rock_cluster", "canyon_wall":
+						return "stone"
+					"tree_cluster", "log_pile":
+						return "dirt"
+	return "dirt"
 
 func apply_artifact(artifact: Dictionary):
 	active_artifact = artifact

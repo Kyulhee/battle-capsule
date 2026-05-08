@@ -1,11 +1,11 @@
 # 배틀캡슐 마스터 플랜
 
-> 마지막 업데이트: 2026-05-08 (v1.8 Asset Brief 추가)
+> 마지막 업데이트: 2026-05-09 (v1.9 audio catalog hook pass)
 > 이 문서는 AI 에이전트 간 인수인계 및 장기 방향 공유를 위해 작성되었습니다.
 
 ## 현재 상태
 
-**현재**: v1.8-dev — 다음 릴리즈: v1.8 (Expansion Foundation)
+**현재**: v1.9-dev — 릴리즈 없이 v1.8 foundation 커밋 후 Asset Pipeline First Pass 진행 중
 
 **문서 구조** *(각 파일의 업데이트 시점 기준 → [CLAUDE.md](../CLAUDE.md))*
 

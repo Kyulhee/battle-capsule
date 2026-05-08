@@ -93,6 +93,10 @@ func _generate_procedural(type: String) -> AudioStreamWAV:
 		"melee":        return _noise_burst(0.040, 15.0, 0.30)
 		"reload":       return _reload_sound()
 		"zone_warning": return _alarm_beep()
+	if type.begins_with("shoot."):
+		return _generate_procedural("shoot")
+	if type.begins_with("footstep."):
+		return _generate_procedural("footstep")
 	return null
 
 # White noise shaped by an exponential decay envelope

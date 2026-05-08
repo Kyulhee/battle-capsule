@@ -92,6 +92,10 @@ func _default_data() -> Dictionary:
 	return {
 		"audio": {
 			"shoot": { "path": "", "fallback": "shoot" },
+			"shoot.pistol": { "path": "", "fallback": "shoot" },
+			"shoot.ar": { "path": "", "fallback": "shoot" },
+			"shoot.shotgun": { "path": "", "fallback": "shoot" },
+			"shoot.railgun": { "path": "", "fallback": "shoot" },
 			"hit": { "path": "", "fallback": "hit" },
 			"impact_wall": { "path": "", "fallback": "impact_wall" },
 			"hurt": { "path": "", "fallback": "hurt" },
@@ -100,6 +104,9 @@ func _default_data() -> Dictionary:
 			"pickup": { "path": "", "fallback": "pickup" },
 			"heal": { "path": "", "fallback": "heal" },
 			"footstep": { "path": "", "fallback": "footstep" },
+			"footstep.grass": { "path": "", "fallback": "footstep" },
+			"footstep.dirt": { "path": "", "fallback": "footstep" },
+			"footstep.stone": { "path": "", "fallback": "footstep" },
 			"melee": { "path": "", "fallback": "melee" },
 			"reload": { "path": "", "fallback": "reload" },
 			"zone_warning": { "path": "", "fallback": "zone_warning" }
