@@ -5,7 +5,7 @@
 
 ---
 
-## v1.7.2-dev — 2026-05-08
+## v1.7.2 — 2026-05-08
 
 **Archetype Readability Stabilization — 지표 기반 1차 튜닝**
 
@@ -31,12 +31,11 @@
 
 **검증 결과**
 
-- `python tools\simulate_matches.py 5` 통과: avg duration=75.8s, runs under 60s=0, avg zone stage=2.80.
-- `python tools\simulate_matches.py 5 hell` 통과: avg duration=62.3s, zone deaths=0.
-- 스킨 정리 후 `python tools\simulate_matches.py 1 hell` 통과.
-- Analyzer: max attack bout=15.1s, RECOVER 사망=1.1% of bouts, zone deaths=0.
-- Doctrine plans by archetype: AGGRESSIVE `advance=19`, DEFENSIVE `peek_cover=39`, OPPORTUNIST `reposition=52`, SNIPER `kite=11`.
-- Engage range avg: AGGRESSIVE 6.2m, DEFENSIVE 6.7m, OPPORTUNIST 8.9m, SNIPER 10.0m.
+- `python tools\simulate_matches.py 5` 통과: avg duration=72.0s, avg zone stage=2.60, zone deaths=0.
+- `python tools\simulate_matches.py 5 hell` 통과: avg duration=62.0s, zone deaths=0.
+- Analyzer: max attack bout=16.0s, RECOVER 사망=4.5% of bouts, hell RECOVER 사망=0%.
+- Doctrine plans by archetype: AGGRESSIVE `advance=18`, DEFENSIVE `peek_cover=68`, OPPORTUNIST `reposition=68`, SNIPER `kite=21`.
+- Engage range avg: AGGRESSIVE 6.7m, DEFENSIVE 9.3m, OPPORTUNIST 8.2m, SNIPER 10.9m.
 - `python -m py_compile tools\simulate_matches.py tools\analyze_results.py` 통과.
 - `git diff --check` 통과.
 

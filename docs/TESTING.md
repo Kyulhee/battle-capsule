@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-05-08 (v1.7.1 기준)
+> 마지막 업데이트: 2026-05-08 (v1.7.2 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -45,7 +45,7 @@ python tools/simulate_matches.py 5 hell
 
 | 지표 | 설명 | 이상 판단 기준 |
 |---|---|---|
-| `duration` | 매치 소요 시간 (초) | < 20s → 즉사/스폰 버그 의심 |
+| `duration` | 매치 소요 시간 (초) | < 20s → 즉사/스폰 버그 의심. 장기적으로 10분까지 늘리는 방향이므로 상한 자체는 실패 조건으로 보지 않음 |
 | `zone_stage_reached` | 자기장 최대 단계 | 항상 1이면 봇이 너무 빠르게 전멸 |
 | `kills` / `assists` | 플레이어 킬/어시스트 | 매번 0이면 전투가 발생 안 함 |
 | `deaths_by_stage` | 스테이지별 봇 사망 수 | 1단계에만 몰리면 초반 밸런스 과도 |
@@ -56,7 +56,7 @@ python tools/simulate_matches.py 5 hell
 | 지표 | 설명 | 이상 판단 기준 |
 |---|---|---|
 | `shots_fired` | 봇 전체 발사 수 | 0이면 봇이 전투 안 함 |
-| `total_damage_dealt` | 게임 내 발생한 총 피해량 | 지나치게 낮으면 봇 사거리 버그 |
+| `total_damage_dealt` | 게임 내 발생한 총 피해량 | 0이면 피해/사거리/인식 회귀. duration이 급증할 때 가장 먼저 확인 |
 | `damage_by_weapon` | 무기별 피해량 | 특정 무기가 0이면 해당 무기 미사용 |
 | `kills_by_weapon` | 무기별 킬 수 | — |
 | `kill_distances` | 무기별 평균 킬 거리 | 피스톨 > 20m 이상이면 교전 범위 이상 |
@@ -64,7 +64,7 @@ python tools/simulate_matches.py 5 hell
 
 ### `tactics` (봇 AI 검증 핵심)
 
-| 지표 | 설명 | v1.7.1 기대값 |
+| 지표 | 설명 | v1.7.2 기대값 |
 |---|---|---|
 | `ammo_empty_enter` | 탄약 소진 후 RECOVER 진입 횟수 | > 0 (정상 작동 확인) |
 | `reserve_reload` | reserve 있어서 RECOVER 스킵한 횟수 | 탄약 픽업 후 증가해야 함 |
@@ -124,7 +124,7 @@ python tools/simulate_matches.py 5 hell
 
 ## 테스팅 시나리오별 그룹 설정
 
-### 봇 AI 행동 검증 (v1.7.1)
+### 봇 AI 행동 검증 (v1.7.2)
 
 ```gdscript
 Telemetry.set_groups({
@@ -186,7 +186,7 @@ Telemetry.set_groups({
 **체크리스트**
 - [ ] `weapon_pickups` 전 무기 종류에 고르게 분포
 - [ ] `rare_pickups` > 0 → 보급 캡슐 정상 작동
-- [ ] `duration` > 60s → 게임이 너무 빨리 끝나지 않음
+- [ ] duration이 갑자기 늘어난 경우 `total_damage_dealt`, `shots_fired`, `cover_peek + combat_reposition + combat_kite`가 0에 고정되지 않음
 
 ### 압박 미션 검증 (Hard opt-in / Hell)
 

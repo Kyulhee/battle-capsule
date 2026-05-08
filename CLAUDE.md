@@ -10,9 +10,9 @@
 
 | 항목 | 내용 |
 |---|---|
-| 완료 버전 | v1.7.1 (AI Doctrine 계층화 + 아키타입 얼굴/머리 파츠) |
-| 다음 버전 | v1.7.2 — 아키타입 체감 강화 및 시각 안정화 |
-| 미해결 | v1.7.2-dev에서 아키타입별 지표/1차 튜닝 완료. 수동 시각 확인과 장기 시뮬레이션 필요 |
+| 완료 버전 | v1.7.2 (아키타입 지표/마커 + 헬 총성 인식 보정) |
+| 다음 버전 | v1.7.3 — 미니맵/맵 일치성 개선 |
+| 미해결 | 미니맵이 실제 맵의 상단 시점 최종 형태와 불일치하는 문제 점검 필요 |
 
 ---
 
@@ -80,5 +80,5 @@ Godot 실행 파일 → 프로젝트 루트 (`Godot_v4.6.2-stable_win64*.exe`)
 # 결과: %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
 ```
 
-정상 기준: `duration > 60s`, `zone_stage_reached >= 2`, `recover_bouts > 0`, combat plan 카운트가 0에 고정되지 않음
+정상 기준: `zone_stage_reached >= 2`, `recover_bouts > 0`, combat plan 카운트가 0에 고정되지 않음, duration 급증 시 `total_damage_dealt`/`shots_fired`가 0이 아닌지 먼저 확인
 상세 판단 기준 → [TESTING.md](docs/TESTING.md)
