@@ -5,7 +5,7 @@
 
 ---
 
-## v1.7.3-dev — 2026-05-08
+## v1.7.3 — 2026-05-08
 
 **Minimap Map Consistency — 실제 생성 footprint 기반 미니맵 + 숲 맵 1차 정리**
 
