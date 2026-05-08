@@ -82,6 +82,12 @@ const ARCHETYPE_OVERLAYS := {
 		"combat_loot_threshold": 0.0,
 		"flee_hp_ratio": 0.15,
 		"combat": {
+			"survival_cover_hp_buffer": 0.12,
+			"outnumbered_visible_enemies": 3,
+			"cover_probe_chance": 0.18,
+			"reposition_probe_chance": 0.18,
+			"advance_probe_chance": 0.24,
+			"advance_min_hp": 0.45,
 			"reposition_forward_bias": true,
 		},
 	},
@@ -95,6 +101,11 @@ const ARCHETYPE_OVERLAYS := {
 		"combat_loot_threshold": 0.20,
 		"flee_hp_ratio": 0.35,
 		"patrol_preference": "bush",
+		"combat": {
+			"cover_probe_chance": 0.42,
+			"reposition_probe_chance": 0.14,
+			"advance_probe_chance": 0.0,
+		},
 	},
 	2: {
 		"archetype_name": "SNIPER",
@@ -109,6 +120,8 @@ const ARCHETYPE_OVERLAYS := {
 		"sniper_min_engage_range": 14.0,
 		"combat": {
 			"prefers_hold_angle": true,
+			"kite_probe_chance": 0.18,
+			"reposition_probe_chance": 0.12,
 		},
 	},
 	3: {
@@ -123,6 +136,12 @@ const ARCHETYPE_OVERLAYS := {
 		"supply": {
 			"telegraph_interest_dist": 70.0,
 			"spawn_interest_dist": 80.0,
+		},
+		"combat": {
+			"finish_low_hp_targets": true,
+			"finish_target_hp_ratio": 0.40,
+			"reposition_probe_chance": 0.34,
+			"advance_probe_chance": 0.10,
 		},
 		"target": {
 			"distance_weight": 0.4,

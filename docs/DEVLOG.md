@@ -5,6 +5,35 @@
 
 ---
 
+## v1.7.2-dev — 2026-05-08
+
+**Archetype Readability Stabilization — 지표 기반 1차 튜닝**
+
+**src/core/Telemetry.gd / tools/analyze_results.py**
+
+- Doctrine 지표에 `plan_by_archetype`, `state_time_by_archetype`, `engage_range_by_archetype` 추가.
+- analyzer가 아키타입별 plan 분포, 상태별 누적 시간, 교전거리 avg/min/max를 출력하도록 확장.
+- v1.7.2 튜닝 시 "아키타입이 다르게 느껴지는가"를 주관 확인 전에 JSON 지표로 먼저 확인할 수 있게 정리.
+
+**src/entities/bot/Bot.gd / src/entities/bot/BotDoctrine.gd**
+
+- Bot이 상태별 delta time과 combat plan 선택 시점의 거리/아키타입을 Telemetry에 누적 기록.
+- AGGRESSIVE: `advance_probe_chance`와 전진 편향을 추가하고, 수적 압박 생존 override를 조금 늦춤.
+- DEFENSIVE: 엄폐 probe를 높이고 전진 probe를 꺼서 `peek_cover` 편향을 강화.
+- SNIPER: kite/reposition probe를 추가해 근접 압박 대응을 더 명확하게 기록.
+- OPPORTUNIST: 낮은 HP 타겟 마무리 시 `reposition` 우선순위를 활성화.
+
+**검증 결과**
+
+- `python tools\simulate_matches.py 5` 통과: avg duration=75.8s, runs under 60s=0, avg zone stage=2.80.
+- Analyzer: max attack bout=15.1s, RECOVER 사망=1.1% of bouts, zone deaths=0.
+- Doctrine plans by archetype: AGGRESSIVE `advance=19`, DEFENSIVE `peek_cover=39`, OPPORTUNIST `reposition=52`, SNIPER `kite=11`.
+- Engage range avg: AGGRESSIVE 6.2m, DEFENSIVE 6.7m, OPPORTUNIST 8.9m, SNIPER 10.0m.
+- `python -m py_compile tools\simulate_matches.py tools\analyze_results.py` 통과.
+- `git diff --check` 통과.
+
+---
+
 ## v1.7.1 — 2026-05-08
 
 **AI Doctrine Hierarchy Refactor — 전술 판단 계층 분리 1차**

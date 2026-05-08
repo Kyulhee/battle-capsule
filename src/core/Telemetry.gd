@@ -176,6 +176,9 @@ func _reset_metrics():
 				"reposition": 0,
 				"hold_angle": 0,
 			},
+			"plan_by_archetype": {},
+			"state_time_by_archetype": {},
+			"engage_range_by_archetype": {},
 			"supply_decisions": {},
 		},
 	}
@@ -387,10 +390,41 @@ func log_doctrine_profile(summary: Dictionary):
 	if not metrics.doctrine.profile_summaries.has(key):
 		metrics.doctrine.profile_summaries[key] = summary.duplicate(true)
 
-func log_doctrine_plan(plan_id: String):
+func log_doctrine_plan(plan_id: String, archetype_name: String = ""):
 	if not match_in_progress or not _g("doctrine"): return
 	var plans = metrics.doctrine.combat_plan_counts
 	plans[plan_id] = plans.get(plan_id, 0) + 1
+	if archetype_name != "":
+		var by_archetype = metrics.doctrine.plan_by_archetype
+		if not by_archetype.has(archetype_name):
+			by_archetype[archetype_name] = {}
+		var archetype_plans = by_archetype[archetype_name]
+		archetype_plans[plan_id] = archetype_plans.get(plan_id, 0) + 1
+
+func log_doctrine_state_time(archetype_name: String, state_name: String, seconds: float):
+	if not match_in_progress or not _g("doctrine") or seconds <= 0.0: return
+	var by_archetype = metrics.doctrine.state_time_by_archetype
+	if not by_archetype.has(archetype_name):
+		by_archetype[archetype_name] = {}
+	var state_times = by_archetype[archetype_name]
+	state_times[state_name] = float(state_times.get(state_name, 0.0)) + seconds
+
+func log_doctrine_engage_range(archetype_name: String, distance: float):
+	if not match_in_progress or not _g("doctrine") or distance < 0.0: return
+	var by_archetype = metrics.doctrine.engage_range_by_archetype
+	if not by_archetype.has(archetype_name):
+		by_archetype[archetype_name] = {
+			"count": 0,
+			"total": 0.0,
+			"min": distance,
+			"max": distance,
+		}
+	var bucket = by_archetype[archetype_name]
+	var count = int(bucket.get("count", 0))
+	bucket["count"] = count + 1
+	bucket["total"] = float(bucket.get("total", 0.0)) + distance
+	bucket["min"] = distance if count == 0 else minf(float(bucket.get("min", distance)), distance)
+	bucket["max"] = distance if count == 0 else maxf(float(bucket.get("max", distance)), distance)
 
 func log_doctrine_supply(decision: String):
 	if not match_in_progress or not _g("doctrine"): return
@@ -562,6 +596,24 @@ func _print_report():
 		print("── Doctrine ────────────────────────────────")
 		print("  Profiles:       %s" % str(metrics.doctrine.profile_counts))
 		print("  Plans:          %s" % str(metrics.doctrine.combat_plan_counts))
+		if not metrics.doctrine.plan_by_archetype.is_empty():
+			print("  Plans/type:     %s" % str(metrics.doctrine.plan_by_archetype))
+		if not metrics.doctrine.state_time_by_archetype.is_empty():
+			print("  State time/type:%s" % str(metrics.doctrine.state_time_by_archetype))
+		if not metrics.doctrine.engage_range_by_archetype.is_empty():
+			var range_summary = {}
+			for archetype_name in metrics.doctrine.engage_range_by_archetype:
+				var bucket = metrics.doctrine.engage_range_by_archetype[archetype_name]
+				var count = int(bucket.get("count", 0))
+				if count <= 0:
+					continue
+				range_summary[archetype_name] = {
+					"avg": float(bucket.get("total", 0.0)) / count,
+					"min": bucket.get("min", 0.0),
+					"max": bucket.get("max", 0.0),
+					"count": count,
+				}
+			print("  Range/type:     %s" % str(range_summary))
 		if not metrics.doctrine.supply_decisions.is_empty():
 			print("  Supply:         %s" % str(metrics.doctrine.supply_decisions))
 	print("=".repeat(44) + "\n")

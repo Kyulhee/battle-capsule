@@ -71,11 +71,32 @@ if __name__ == "__main__":
     doctrine_profiles = Counter()
     doctrine_plans = Counter()
     doctrine_supply = Counter()
+    doctrine_plan_by_archetype: dict[str, Counter] = {}
+    doctrine_state_time_by_archetype: dict[str, Counter] = {}
+    doctrine_range_by_archetype: dict[str, dict[str, float]] = {}
     for r in results:
         doctrine = r.get("doctrine", {})
         doctrine_profiles.update(doctrine.get("profile_counts", {}))
         doctrine_plans.update(doctrine.get("combat_plan_counts", {}))
         doctrine_supply.update(doctrine.get("supply_decisions", {}))
+        for archetype, plans in doctrine.get("plan_by_archetype", {}).items():
+            doctrine_plan_by_archetype.setdefault(archetype, Counter()).update(plans)
+        for archetype, states in doctrine.get("state_time_by_archetype", {}).items():
+            doctrine_state_time_by_archetype.setdefault(archetype, Counter()).update(
+                {state: float(seconds) for state, seconds in states.items()}
+            )
+        for archetype, bucket in doctrine.get("engage_range_by_archetype", {}).items():
+            count = int(bucket.get("count", 0))
+            if count <= 0:
+                continue
+            dst = doctrine_range_by_archetype.setdefault(
+                archetype,
+                {"count": 0.0, "total": 0.0, "min": float("inf"), "max": 0.0},
+            )
+            dst["count"] += count
+            dst["total"] += float(bucket.get("total", 0.0))
+            dst["min"] = min(dst["min"], float(bucket.get("min", dst["min"])))
+            dst["max"] = max(dst["max"], float(bucket.get("max", dst["max"])))
 
     print("--- Simulation Analysis ---")
     print(f"Runs: {len(results)}")
@@ -123,6 +144,28 @@ if __name__ == "__main__":
     if doctrine_plans:
         plan_parts = [f"{plan}={count}" for plan, count in sorted(doctrine_plans.items()) if count]
         print(f"Doctrine plans: {', '.join(plan_parts) if plan_parts else 'none'}")
+    if doctrine_plan_by_archetype:
+        print("Doctrine plans by archetype:")
+        for archetype, plans in sorted(doctrine_plan_by_archetype.items()):
+            parts = [f"{plan}={count}" for plan, count in sorted(plans.items()) if count]
+            print(f"  {archetype}: {', '.join(parts) if parts else 'none'}")
+    if doctrine_state_time_by_archetype:
+        print("Doctrine state time by archetype:")
+        for archetype, states in sorted(doctrine_state_time_by_archetype.items()):
+            parts = [
+                f"{state}={seconds:.1f}s"
+                for state, seconds in sorted(states.items(), key=lambda item: item[1], reverse=True)
+                if seconds > 0.0
+            ]
+            print(f"  {archetype}: {', '.join(parts) if parts else 'none'}")
+    if doctrine_range_by_archetype:
+        print("Doctrine engage range by archetype:")
+        for archetype, bucket in sorted(doctrine_range_by_archetype.items()):
+            count = max(1.0, bucket["count"])
+            print(
+                f"  {archetype}: avg={bucket['total'] / count:.1f}m "
+                f"min={bucket['min']:.1f}m max={bucket['max']:.1f}m n={int(bucket['count'])}"
+            )
     if doctrine_supply:
         supply_parts = [f"{decision}={count}" for decision, count in sorted(doctrine_supply.items())]
         print(f"Doctrine supply: {', '.join(supply_parts)}")

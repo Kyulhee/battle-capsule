@@ -84,6 +84,9 @@ python tools/analyze_results.py
 | `profile_counts` | 최종 merge된 아키타입 profile 분포 | 5회 기준 AGGRESSIVE/DEFENSIVE/OPPORTUNIST=15, SNIPER=10 근처 |
 | `profile_summaries` | `BotDoctrine.explain_profile()` 결과 | 비어 있으면 configure/log 연결 오류 |
 | `combat_plan_counts` | Doctrine이 선택한 문자열 plan 카운트 | `peek_cover/reposition/strafe`가 0에 고정되면 plan 선택 회귀 |
+| `plan_by_archetype` | 아키타입별 plan 분포 | AGGRESSIVE/DEFENSIVE/SNIPER/OPPORTUNIST 대표 plan 편향이 모두 같으면 아키타입 체감 약함 |
+| `state_time_by_archetype` | 아키타입별 상태 누적 시간 | 특정 상태가 모든 아키타입에서 과도하게 같으면 state transition 튜닝 필요 |
+| `engage_range_by_archetype` | 아키타입별 교전거리 avg/min/max 계산용 집계 | SNIPER와 AGGRESSIVE 평균 교전거리가 장기간 동일하면 거리 선호 회귀 의심 |
 | `supply_decisions` | profile 기반 보급 관심 결정 | 보급 매치에서 일부 기록 가능, 과도한 증가 시 중앙 군집 의심 |
 
 ### `economy`
@@ -144,6 +147,7 @@ Telemetry.set_groups({
 - [ ] `python tools/analyze_results.py` 출력에서 `Avg combat plans`가 표시됨
 - [ ] `Doctrine profiles`가 아키타입 스폰 분포와 일치
 - [ ] `Doctrine plans`가 표시되고 plan 카운트가 0에 고정되지 않음
+- [ ] `Doctrine plans by archetype`, `Doctrine state time by archetype`, `Doctrine engage range by archetype` 출력이 표시됨
 
 ### 무기 밸런스 검증
 

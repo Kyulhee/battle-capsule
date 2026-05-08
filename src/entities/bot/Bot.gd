@@ -181,6 +181,7 @@ func _physics_process(delta):
 	if _reaction_timer > 0: _reaction_timer -= delta
 	if _zone_thrash_cooldown > 0: _zone_thrash_cooldown -= delta
 	state_timer += delta
+	_log_doctrine_state_time(delta)
 
 	if current_state == State.ATTACK:
 		attack_bout_timer += delta
@@ -966,7 +967,10 @@ func _update_combat_plan(delta: float, can_see: bool, dist: float, pref_range: f
 		_combat_move_target = _pick_combat_reposition_point(target_pos, pref_range)
 
 	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").log_doctrine_plan(_combat_plan)
+		var archetype_name = _archetype_name()
+		var tel = get_node("/root/Telemetry")
+		tel.log_doctrine_plan(_combat_plan, archetype_name)
+		tel.log_doctrine_engage_range(archetype_name, dist)
 
 	if _combat_plan != previous_plan and has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
@@ -1098,7 +1102,7 @@ func _update_state_label_visibility():
 func _update_archetype_marker():
 	if not _archetype_marker:
 		return
-	var name = BotArchetype.keys()[archetype] if archetype >= 0 and archetype < BotArchetype.size() else "AGGRESSIVE"
+	var name = _archetype_name()
 	match name:
 		"AGGRESSIVE":
 			_archetype_marker.text = _archetype_marker_text("AGG")
@@ -1146,6 +1150,14 @@ func _combat_plan_marker() -> String:
 			return "HOLD"
 		_:
 			return "STR"
+
+func _archetype_name() -> String:
+	return BotArchetype.keys()[archetype] if archetype >= 0 and archetype < BotArchetype.size() else "AGGRESSIVE"
+
+func _log_doctrine_state_time(delta: float):
+	if not has_node("/root/Telemetry"):
+		return
+	get_node("/root/Telemetry").log_doctrine_state_time(_archetype_name(), State.keys()[current_state], delta)
 
 # ─── DOCTRINE & DIFFICULTY ───────────────────────────────────────────────────
 
