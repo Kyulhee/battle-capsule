@@ -1,0 +1,195 @@
+{
+  "audio": {
+    "shoot": {
+      "path": "",
+      "fallback": "shoot",
+      "tags": ["weapon", "generic"]
+    },
+    "shoot.pistol": {
+      "path": "res://assets/sfx/weapons/pistol_shoot.wav",
+      "fallback": "shoot",
+      "tags": ["weapon", "pistol"]
+    },
+    "shoot.ar": {
+      "path": "res://assets/sfx/weapons/ar_shoot.wav",
+      "fallback": "shoot",
+      "tags": ["weapon", "ar"]
+    },
+    "shoot.shotgun": {
+      "path": "res://assets/sfx/weapons/shotgun_shoot.wav",
+      "fallback": "shoot",
+      "tags": ["weapon", "shotgun"]
+    },
+    "shoot.railgun": {
+      "path": "res://assets/sfx/weapons/railgun_shoot.wav",
+      "fallback": "shoot",
+      "tags": ["weapon", "railgun", "rare"]
+    },
+    "reload": {
+      "path": "",
+      "fallback": "reload",
+      "tags": ["weapon"]
+    },
+    "dry_fire": {
+      "path": "",
+      "fallback": "dry_fire",
+      "tags": ["weapon"]
+    },
+    "hit": {
+      "path": "",
+      "fallback": "hit",
+      "tags": ["combat"]
+    },
+    "impact_wall": {
+      "path": "",
+      "fallback": "impact_wall",
+      "tags": ["combat"]
+    },
+    "hurt": {
+      "path": "",
+      "fallback": "hurt",
+      "tags": ["combat", "player"]
+    },
+    "death": {
+      "path": "",
+      "fallback": "death",
+      "tags": ["combat"]
+    },
+    "pickup": {
+      "path": "",
+      "fallback": "pickup",
+      "tags": ["item"]
+    },
+    "heal": {
+      "path": "",
+      "fallback": "heal",
+      "tags": ["item"]
+    },
+    "footstep": {
+      "path": "",
+      "fallback": "footstep",
+      "tags": ["movement", "surface.default"]
+    },
+    "footstep.grass": {
+      "path": "res://assets/sfx/footsteps/grass_01.wav",
+      "fallback": "footstep",
+      "tags": ["movement", "surface.grass"]
+    },
+    "footstep.dirt": {
+      "path": "res://assets/sfx/footsteps/dirt_01.wav",
+      "fallback": "footstep",
+      "tags": ["movement", "surface.dirt"]
+    },
+    "footstep.stone": {
+      "path": "res://assets/sfx/footsteps/stone_01.wav",
+      "fallback": "footstep",
+      "tags": ["movement", "surface.stone"]
+    },
+    "melee": {
+      "path": "",
+      "fallback": "melee",
+      "tags": ["weapon", "knife"]
+    },
+    "zone_warning": {
+      "path": "",
+      "fallback": "zone_warning",
+      "tags": ["zone", "ui"]
+    }
+  },
+  "icons": {
+    "weapon.knife": {
+      "path": "",
+      "fallback_shape": "knife",
+      "color": [0.82, 0.84, 0.90, 1.0]
+    },
+    "weapon.pistol": {
+      "path": "",
+      "fallback_shape": "pistol",
+      "color": [0.45, 0.72, 1.0, 1.0]
+    },
+    "weapon.ar": {
+      "path": "",
+      "fallback_shape": "ar",
+      "color": [0.42, 0.72, 1.0, 1.0]
+    },
+    "weapon.shotgun": {
+      "path": "",
+      "fallback_shape": "shotgun",
+      "color": [1.0, 0.62, 0.32, 1.0]
+    },
+    "weapon.railgun": {
+      "path": "",
+      "fallback_shape": "railgun",
+      "color": [0.55, 1.0, 1.0, 1.0]
+    },
+    "item.heal": {
+      "path": "",
+      "fallback_shape": "cross",
+      "color": [0.25, 1.0, 0.42, 1.0]
+    },
+    "item.armor": {
+      "path": "",
+      "fallback_shape": "shield",
+      "color": [0.35, 0.62, 1.0, 1.0]
+    },
+    "artifact.red_trigger": {
+      "path": "",
+      "fallback_shape": "trigger",
+      "color": [1.0, 0.25, 0.25, 1.0]
+    }
+  },
+  "props": {
+    "forest.tree": {
+      "path": "",
+      "fallback_shape": "tree_cluster",
+      "tags": ["forest", "cover", "los_blocker"]
+    },
+    "forest.bush": {
+      "path": "",
+      "fallback_shape": "bush_patch",
+      "tags": ["forest", "stealth"]
+    },
+    "forest.rock": {
+      "path": "",
+      "fallback_shape": "rock",
+      "tags": ["forest", "cover"]
+    },
+    "landmark.cabin": {
+      "path": "",
+      "fallback_shape": "cabin",
+      "tags": ["landmark", "loot"]
+    },
+    "landmark.wall": {
+      "path": "",
+      "fallback_shape": "wall",
+      "tags": ["landmark", "cover"]
+    }
+  },
+  "cosmetics": {
+    "player.default": {
+      "path": "",
+      "body_tint": [0.10, 0.72, 0.18, 1.0],
+      "accent_tint": [0.35, 1.0, 0.35, 1.0]
+    },
+    "bot.aggressive": {
+      "path": "",
+      "body_tint": [0.85, 0.20, 0.18, 1.0],
+      "accent_tint": [1.0, 0.45, 0.30, 1.0]
+    },
+    "bot.defensive": {
+      "path": "",
+      "body_tint": [0.22, 0.36, 0.86, 1.0],
+      "accent_tint": [0.50, 0.72, 1.0, 1.0]
+    },
+    "bot.sniper": {
+      "path": "",
+      "body_tint": [0.38, 0.22, 0.72, 1.0],
+      "accent_tint": [0.78, 0.58, 1.0, 1.0]
+    },
+    "bot.opportunist": {
+      "path": "",
+      "body_tint": [0.95, 0.68, 0.18, 1.0],
+      "accent_tint": [1.0, 0.85, 0.30, 1.0]
+    }
+  }
+}

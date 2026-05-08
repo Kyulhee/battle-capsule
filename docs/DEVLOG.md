@@ -7,7 +7,7 @@
 
 ## v1.8-dev — 2026-05-08
 
-**Expansion Foundation Start — config/debug 진입점 도입**
+**Expansion Foundation Start — config/debug/asset catalog 진입점 도입**
 
 **src/core/GameConfig.gd / data/game_config.json / src/Main.gd**
 
@@ -18,13 +18,20 @@
 **src/core/DebugFlags.gd / src/ui/DebugOverlay.gd / src/Main.gd**
 
 - `debug=true`, `debug_overlay=`, `debug_flags=ai,perception,damage,loot,zone,nav` 파싱 진입점 추가.
-- release 기본값은 off이며, debug on에서만 간단한 overlay를 생성해 state/difficulty/alive/zone/config 기본값을 표시.
+- release 기본값은 off이며, debug on에서만 간단한 overlay를 생성해 state/difficulty/alive/zone/config/asset 기본값을 표시.
 - Godot import 전 `class_name` 타입 참조가 parse error를 만들지 않도록 Main 연결은 preload script instance 방식으로 유지.
+
+**src/core/AssetCatalog.gd / data/asset_catalog.json / src/core/SoundManager.gd**
+
+- audio/icon/prop/cosmetic ID를 등록하는 `AssetCatalog` 1차 구조 추가.
+- `SoundManager`가 catalog audio path를 먼저 확인하고, 없으면 기존 `assets/sfx/{name}.wav`와 procedural fallback 순서로 처리.
+- `shoot.pistol`, `shoot.ar`, `shoot.shotgun`, `shoot.railgun`, surface footstep, item/artifact icon, forest prop, bot cosmetic tint ID를 미리 등록.
+- 실제 에셋 파일이 없어도 `fallback` ID와 절차음/primitive 색상 기준으로 플레이가 유지된다.
 
 **검증 결과**
 
 - `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
-- `python tools\simulate_matches.py 1` 통과: duration=71.4s, stage=3, combat plans cover/reposition/kite=29/32/5.
+- `python tools\simulate_matches.py 1` 통과: config/debug 1차 duration=71.4s, stage=3 / AssetCatalog 추가 후 duration=58.7s, stage=2.
 - `python tools\simulate_matches.py 1 hell` 통과: duration=72.3s, stage=3, combat plans cover/reposition/kite=25/17/2.
 - `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless -- autostart=true debug=true debug_flags=zone` 통과, `[DEBUG] Flags: zone` 확인.
 - `git diff --check` 통과.

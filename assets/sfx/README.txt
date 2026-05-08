@@ -1,4 +1,5 @@
 WAV files placed here override the procedural fallback in SoundManager.gd.
+For new asset IDs, prefer registering the file in data/asset_catalog.json.
 All files must be 44100 Hz, 16-bit PCM mono .wav
 
 Required filenames:
@@ -25,3 +26,8 @@ Suggested Kenney file mappings:
   dry_fire.wav     <- impactPlate_000.ogg
   pickup.wav       <- pickupCoin_000.ogg
   heal.wav         <- powerUp3.ogg
+
+Catalog examples:
+  shoot.ar          -> assets/sfx/weapons/ar_shoot.wav
+  shoot.shotgun     -> assets/sfx/weapons/shotgun_shoot.wav
+  footstep.grass    -> assets/sfx/footsteps/grass_01.wav

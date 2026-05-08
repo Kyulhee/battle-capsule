@@ -1,12 +1,21 @@
 extends Node
 # Autoloaded as "Sfx"
-# Plays from res://assets/sfx/{name}.wav when present; falls back to procedural audio.
+# Plays catalog audio paths when present, then res://assets/sfx/{name}.wav,
+# and finally falls back to procedural audio.
 # 3D sounds: pass a world position. UI/player sounds: omit position (plays flat 2D).
+
+var asset_catalog = null
+
+func set_asset_catalog(catalog) -> void:
+	asset_catalog = catalog
 
 func play(sound_name: String, pos: Vector3 = Vector3.ZERO):
 	var stream = _try_load_file(sound_name)
+	var fallback_name = sound_name
+	if not stream and asset_catalog and asset_catalog.has_method("get_audio_fallback"):
+		fallback_name = asset_catalog.get_audio_fallback(sound_name)
 	if not stream:
-		stream = _generate_procedural(sound_name)
+		stream = _generate_procedural(fallback_name)
 	if not stream:
 		return
 	if pos != Vector3.ZERO:
@@ -14,9 +23,30 @@ func play(sound_name: String, pos: Vector3 = Vector3.ZERO):
 	else:
 		_play_2d(stream)
 
+func play_weapon_shot(weapon_type: String, pos: Vector3 = Vector3.ZERO):
+	play("shoot.%s" % weapon_type, pos)
+
+func play_footstep(surface_id: String = "", pos: Vector3 = Vector3.ZERO):
+	var sound_id = "footstep.%s" % surface_id if surface_id != "" else "footstep"
+	play(sound_id, pos)
+
 func _try_load_file(sound_name: String) -> AudioStream:
+	if asset_catalog and asset_catalog.has_method("get_audio_path"):
+		var catalog_path = asset_catalog.get_audio_path(sound_name)
+		var catalog_stream = _load_stream(catalog_path)
+		if catalog_stream:
+			return catalog_stream
+
 	var path = "res://assets/sfx/" + sound_name + ".wav"
-	if FileAccess.file_exists(path):
+	var legacy_stream = _load_stream(path)
+	if legacy_stream:
+		return legacy_stream
+	return null
+
+func _load_stream(path: String) -> AudioStream:
+	if path == "":
+		return null
+	if ResourceLoader.exists(path) or FileAccess.file_exists(path):
 		return load(path)
 	return null
 

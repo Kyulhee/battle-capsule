@@ -66,6 +66,14 @@ func _update_text() -> void:
 			int(main_ref.loot_count),
 			float(main_ref.spawn_radius)
 		])
+		if main_ref.asset_catalog != null and main_ref.asset_catalog.has_method("summary"):
+			var assets: Dictionary = main_ref.asset_catalog.summary()
+			lines.append("assets a=%d i=%d p=%d c=%d" % [
+				int(assets.get("audio", 0)),
+				int(assets.get("icons", 0)),
+				int(assets.get("props", 0)),
+				int(assets.get("cosmetics", 0))
+			])
 		if main_ref.zone != null:
 			lines.append("zone=%d r=%.1f t=%.1f shrink=%s" % [
 				int(main_ref.zone.stage),

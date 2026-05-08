@@ -44,6 +44,8 @@ src/
 ├── core/
 │   ├── StatsData.gd            # 무기/캐릭터 스탯 Resource
 │   ├── ItemData.gd             # 아이템 정의 Resource
+│   ├── GameConfig.gd           # match/zone/difficulty/Hell 수치 JSON 로더
+│   ├── AssetCatalog.gd         # audio/icon/prop/cosmetic ID JSON 로더
 │   ├── SoundManager.gd         # 절차적 오디오 생성 (Autoload: Sfx)
 │   ├── Telemetry.gd            # 매치 통계 기록 (Autoload: Telemetry)
 │   ├── MapSpec.gd              # JSON 맵 스펙 파서
@@ -64,6 +66,8 @@ src/
 │   └── Minimap.gd              # 타입별 장애물 표현 (rock→원, bush→반투명 연두 등)
 └── Main.gd                     # 게임 루프, 존, 스폰, 보급 캡슐, NavigationRegion3D 베이크
 data/
+├── game_config.json            # bot/loot/zone/difficulty/Hell 기본값
+├── asset_catalog.json          # 에셋 ID → path/fallback/색상/태그
 └── mapSpec_example.json        # 맵 POI 및 배치 정보 (v3.1 — 숲 레이어 구조)
 ```
 
@@ -126,8 +130,9 @@ DIFF_MULT = [1.0, 1.5, 2.5, 4.0] (쉬움/보통/어려움/지옥)
 
 ### 사운드 (SoundManager.gd)
 
-절차적 오디오 — 파일 없이 코드로 WAV 버퍼 생성.  
+AssetCatalog → `assets/sfx/{name}.wav` → 절차음 순서로 fallback.
 `Sfx.play("shoot")` / `Sfx.play("shoot", global_position)` (3D 공간음)
+무기별/바닥별 확장은 `Sfx.play_weapon_shot("ar")`, `Sfx.play_footstep("grass", global_position)`처럼 ID만 바꿔 연결한다.
 
 ---
 

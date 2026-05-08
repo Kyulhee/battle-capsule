@@ -80,6 +80,7 @@ var _result_mission_label: Label = null
 var _result_sep_mission: HSeparator = null
 
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
+const AssetCatalogScript = preload("res://src/core/AssetCatalog.gd")
 const GameConfigScript = preload("res://src/core/GameConfig.gd")
 const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
@@ -95,6 +96,7 @@ var map_spec = null
 var _nav_region: NavigationRegion3D = null
 
 # v1.8 expansion foundation
+var asset_catalog = null
 var game_config = null
 var debug_flags = null
 var debug_overlay = null
@@ -109,6 +111,9 @@ var zone_ring: MeshInstance3D = null
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	asset_catalog = AssetCatalogScript.new()
+	asset_catalog.load_or_default()
+	_configure_asset_catalog()
 	game_config = GameConfigScript.new()
 	game_config.load_or_default()
 	_apply_game_config()
@@ -728,6 +733,11 @@ func _take_screenshot(file_name: String):
 			# If res:// is read-only, try user://
 			img.save_png("user://" + file_name)
 			print("[MAIN] res:// write failed, saved to user://", file_name)
+
+func _configure_asset_catalog():
+	var sfx = get_node_or_null("/root/Sfx")
+	if sfx and sfx.has_method("set_asset_catalog"):
+		sfx.set_asset_catalog(asset_catalog)
 
 func _apply_game_config():
 	if not game_config:
