@@ -1,7 +1,7 @@
-# 배틀캡슐 아키텍처 보고서 (v1.7.3)
+# 배틀캡슐 아키텍처 보고서 (v1.7.3.1)
 
 > 최종 업데이트: 2026-05-08
-> 이 문서는 v1.7.3 안정화(BotDoctrine 계층 분리 + 아키타입별 Doctrine Telemetry + 미니맵/맵 footprint 연결 + 숲 맵 v3.1) 이후 기준이다.
+> 이 문서는 v1.7.3.1 안정화(BotDoctrine 계층 분리 + 아키타입별 Doctrine Telemetry + 미니맵/맵 footprint 연결 + 숲 맵 v3.1 + 메인 메뉴/How to Play 핫픽스) 이후 기준이다.
 
 ---
 
@@ -193,6 +193,12 @@ Main.gd는 유일하게 모든 레이어를 연결하는 노드다.
   ─ UI/메뉴     _setup_main_menu(), _setup_records_panel(), etc.
   ─ Hell 이벤트 _run_hell_events()
 ```
+
+v1.8~v1.10 분리 기준:
+- v1.8은 `Main.gd` 전체 분해가 아니라 config/debug/asset catalog의 진입점을 만든다.
+- 수치와 리소스 ID는 `GameConfig`/`AssetCatalog` 쪽으로 이동시키고, Main은 로드된 값을 연결하는 역할만 맡긴다.
+- 첫 분리 후보는 `LootSpawner`, `SupplyDropController`, `MenuController`, `MatchBootstrap` 순서다.
+- `zone`, `mission_tracker`, `player_ref`, `alive_count`, Telemetry hook의 single source는 유지한다.
 
 ---
 
