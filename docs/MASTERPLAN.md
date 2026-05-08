@@ -1,11 +1,11 @@
 # 배틀캡슐 마스터 플랜
 
-> 마지막 업데이트: 2026-05-08 (v1.8 확장 기반 로드맵 재정렬)
+> 마지막 업데이트: 2026-05-08 (v1.8 Asset Brief 추가)
 > 이 문서는 AI 에이전트 간 인수인계 및 장기 방향 공유를 위해 작성되었습니다.
 
 ## 현재 상태
 
-**현재**: v1.7.3.1 — 다음: v1.8 (Expansion Foundation)
+**현재**: v1.8-dev — 다음 릴리즈: v1.8 (Expansion Foundation)
 
 **문서 구조** *(각 파일의 업데이트 시점 기준 → [CLAUDE.md](../CLAUDE.md))*
 
@@ -14,6 +14,7 @@
 - [DEVLOG.md](DEVLOG.md) — 버전별 구현 상세 (완료된 것)
 - [TESTING.md](TESTING.md) — 헤드리스 시뮬레이션 검증 (구현 후 실행)
 - [RELEASE.md](RELEASE.md) — 빌드 → GitHub 릴리즈 → README 업데이트
+- [ASSET_BRIEF.md](ASSET_BRIEF.md) — 외부 에셋 생성용 스타일/파일/프롬프트 명세
 
 ---
 

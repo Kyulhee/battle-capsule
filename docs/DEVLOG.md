@@ -28,6 +28,11 @@
 - `shoot.pistol`, `shoot.ar`, `shoot.shotgun`, `shoot.railgun`, surface footstep, item/artifact icon, forest prop, bot cosmetic tint ID를 미리 등록.
 - 실제 에셋 파일이 없어도 `fallback` ID와 절차음/primitive 색상 기준으로 플레이가 유지된다.
 
+**docs/ASSET_BRIEF.md**
+
+- 외부 생성 에이전트에 전달할 스타일 기준, 스크린샷 레퍼런스 안내, 파일 경로, 포맷, 프롬프트, catalog 연결 예시를 정리.
+- 1차 생성 우선순위를 weapon sounds, surface footsteps, core HUD icons, forest props, artifact/cosmetic IDs 순으로 정리.
+
 **검증 결과**
 
 - `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.

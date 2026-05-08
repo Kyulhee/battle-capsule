@@ -11,7 +11,8 @@
 | 항목 | 내용 |
 |---|---|
 | 완료 버전 | v1.7.3.1 (메인 메뉴/How to Play 핫픽스) |
-| 다음 버전 | v1.8 — Expansion Foundation |
+| 진행 중 | v1.8-dev — GameConfig / DebugFlags / AssetCatalog / Asset Brief |
+| 다음 릴리즈 | v1.8 — Expansion Foundation |
 | 미해결 | config/debug/asset catalog/Main 경계 정리 전에는 맵 크기 5배/99명 실험 보류 |
 
 v1.8의 목표는 콘텐츠 추가가 아니라 확장 기반 정리다. 단순 수치 변경이 `Main.gd` 직접 수정으로 이어지지 않도록 config를 분리하고, DebugMode/DebugOverlay flag, AssetCatalog, 안전한 `Main.gd` 분리 후보를 먼저 고정한다.
@@ -29,6 +30,7 @@ v1.8의 목표는 콘텐츠 추가가 아니라 확장 기반 정리다. 단순 
 | [TESTING.md](docs/TESTING.md) | 헤드리스 시뮬레이션 실행법 + 지표별 판단 기준 |
 | [RELEASE.md](docs/RELEASE.md) | Godot 빌드 → GitHub 릴리즈 → README 업데이트 전 절차 |
 | [UI_DESIGN.md](docs/UI_DESIGN.md) | HUD 디자인 프로세스 (ASCII 스케치 → 목업 → 구현) |
+| [ASSET_BRIEF.md](docs/ASSET_BRIEF.md) | 외부 에셋 생성용 스타일/파일/프롬프트 명세 |
 
 **단계별 업데이트 기준**
 
