@@ -119,6 +119,8 @@ func _ready():
 		Engine.time_scale = 5.0
 		_load_map_spec()
 		if map_spec:
+			if world_builder:
+				world_builder.generate_world(map_spec)
 			for poi in map_spec.pois:
 				loot_hotspots.append(Vector2(poi.pos[0], poi.pos[1]))
 		_setup_navigation()
@@ -455,7 +457,10 @@ func start_game():
 	# Final Minimap Sync
 	var minimap = get_node_or_null("CanvasLayer/Control/HUD/Minimap")
 	if minimap and minimap.has_method("set_map_spec"):
-		minimap.set_map_spec(map_spec)
+		var minimap_features: Array[Dictionary] = []
+		if world_builder and world_builder.has_method("get_minimap_features"):
+			minimap_features = world_builder.get_minimap_features()
+		minimap.set_map_spec(map_spec, minimap_features)
 
 	# Apply artifact to player (skipped in simulation)
 	if player_ref and player_ref.has_method("apply_artifact") and not is_simulation:

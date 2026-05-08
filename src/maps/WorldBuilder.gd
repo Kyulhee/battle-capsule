@@ -4,10 +4,13 @@ class_name WorldBuilder
 @export var obstacle_scene: PackedScene = preload("res://src/environment/Obstacle.tscn")
 @export var bush_scene: PackedScene = preload("res://src/environment/Bush.tscn")
 
+var minimap_features: Array[Dictionary] = []
+
 func generate_world(spec: Resource):
 	# 1. Clear existing generated content if any
 	for child in get_children():
 		child.queue_free()
+	minimap_features.clear()
 		
 	# 2. Build Floor and Boundaries
 	_build_base(spec)
@@ -36,7 +39,17 @@ func generate_world(spec: Resource):
 			var bush = bush_scene.instantiate()
 			obs_container.add_child(bush)
 			bush.global_position = Vector3(pos[0], 0, pos[1])
+			bush.rotation_degrees.y = rot_deg
 			bush.scale = Vector3(scale_vec[0], scale_vec[1], scale_vec[2])
+			_record_minimap_feature(
+				type_str,
+				Vector2(pos[0], pos[1]),
+				Vector2(scale_vec[0] * 3.0, scale_vec[2] * 3.0),
+				rot_deg,
+				scale_vec[1] * 2.0,
+				0,
+				"ellipse"
+			)
 		elif type_str == "rock_cluster":
 			_build_rock_cluster(obs_container, pos, scale_vec)
 		else:
@@ -62,6 +75,38 @@ func generate_world(spec: Resource):
 					obs.type = 1 # TREE
 				"log_pile":
 					obs.type = 2 # LOG
+			_record_minimap_feature(
+				type_str,
+				Vector2(pos[0], pos[1]),
+				Vector2(scale_vec[0] * 2.0, scale_vec[2] * 2.0),
+				rot_deg,
+				scale_vec[1] * 2.0,
+				2 if scale_vec[1] > 2.5 else 1,
+				"rect"
+			)
+
+func get_minimap_features() -> Array[Dictionary]:
+	return minimap_features.duplicate(true)
+
+func _record_minimap_feature(
+	type_str: String,
+	pos: Vector2,
+	size: Vector2,
+	rot_deg: float,
+	height: float,
+	layer: int,
+	shape: String
+):
+	minimap_features.append({
+		"type": type_str,
+		"pos": [pos.x, pos.y],
+		"size": [size.x, size.y],
+		"rot": rot_deg,
+		"height": height,
+		"layer": layer,
+		"shape": shape,
+		"order": minimap_features.size(),
+	})
 
 func _build_base(spec: Resource):
 	var size = spec.get_world_size()
@@ -179,6 +224,18 @@ func _add_rock_piece(parent: Node3D, local_pos: Vector3, size: Vector3, rng: Ran
 	shape.size = size
 	col.shape = shape
 	body.add_child(col)
+
+	var root_pos = Vector2(parent.position.x, parent.position.z)
+	var piece_pos = root_pos + Vector2(local_pos.x, local_pos.z)
+	_record_minimap_feature(
+		"rock_cluster",
+		piece_pos,
+		Vector2(size.x, size.z),
+		rad_to_deg(body.rotation.y),
+		size.y,
+		2 if col_layer & 8 != 0 else 1,
+		"rect"
+	)
 
 func _add_wall(parent: Node, pos: Vector3, size: Vector3):
 	var wall = StaticBody3D.new()

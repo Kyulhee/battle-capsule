@@ -61,6 +61,16 @@
 - **호출 대상**: `collector.receive_weapon(wstats)` / `collector.receive_ammo(type, amount)` — `has_method()` duck-typed, Player·Bot 동시 지원
 - **표시 조건**: 플레이어의 `Entity.can_sense_item()`을 통과한 경우에만 mesh/light/label 표시.
 
+### `src/maps/WorldBuilder.gd`
+- **읽는 파일**: `MapSpec.gd`가 파싱한 POI/obstacles/routes.
+- **공개 API**: `generate_world(spec)`, `get_minimap_features()`.
+- **수정 영향**: 실제 생성 위치/회전/jitter/스케일을 바꾸면 미니맵 footprint 기록도 같은 기준으로 수정해야 함.
+
+### `src/ui/Minimap.gd`
+- **읽는 파일**: `MapSpec`의 POI, `WorldBuilder.get_minimap_features()`의 실제 생성 footprint, `Main.zone`/supply/player 상태.
+- **렌더 순서**: 낮은 layer(부쉬) → 높은 layer(장애물) 순서로 그려 하늘에서 본 최종 덮임 형태를 표현.
+- **수정 영향**: 새 장애물 타입을 추가하면 `WorldBuilder` footprint 기록과 `Minimap._feature_colors()`를 함께 확인.
+
 ---
 
 ## 변경 → 연쇄 영향
@@ -75,7 +85,7 @@
 | `Main.DIFFICULTY_PARAMS` | `Main.gd` | `Bot.gd` (스폰 시 1회 읽힘, 이후 변경 불가) |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
-| `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd` |
+| `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
 | 새 `PressureEffect` 추가 | `MissionTracker.gd` (enum) | `Main._apply_pressure_effects()` (match 케이스 추가) |
 | 새 `PressureCondition` 추가 | `MissionTracker.gd` (enum + `_eval_single_condition`) | `MissionTracker.filter_feasible()` (필터 케이스 추가) |

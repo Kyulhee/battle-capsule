@@ -5,6 +5,28 @@
 
 ---
 
+## v1.7.3-dev — 2026-05-08
+
+**Minimap Map Consistency — 실제 생성 footprint 기반 미니맵 1차**
+
+**src/maps/WorldBuilder.gd / src/ui/Minimap.gd / src/Main.gd**
+
+- `WorldBuilder`가 실제 생성에 사용한 jitter/회전/스케일을 `minimap_features`로 기록.
+- `Minimap`이 원본 `MapSpec.obstacles` 대신 generated footprint를 받아 그리도록 변경.
+- 부쉬는 낮은 레이어의 ellipse, 바위/벽/나무/로그는 더 높은 레이어의 footprint로 그려 겹칠 때 하늘에서 본 최종 형태가 남도록 정렬.
+- 실제 장애물 씬의 기본 BoxMesh 크기 2m와 Bush Cylinder 반지름 1.5m를 반영해 기존 미니맵 크기 축소 문제를 보정.
+- headless autostart에서도 `WorldBuilder.generate_world(map_spec)`를 호출해 시뮬레이션이 실제 장애물 맵을 사용하도록 수정.
+
+**검증 결과**
+
+- `python tools\simulate_matches.py 1` 통과, parse/runtime error 없음.
+- `python tools\simulate_matches.py 5` 통과: avg duration=78.4s, max attack bout=13.7s, RECOVER 사망=1.1% of bouts.
+- 실제 장애물 맵이 시뮬레이션에 반영되면서 zone deaths=8/5 runs, avg stuck=19.4가 드러남. v1.7.3 후속으로 zone escape pathing/stuck recovery를 실제 맵 기준으로 재점검 필요.
+- `python -m py_compile tools\simulate_matches.py tools\analyze_results.py` 통과.
+- `git diff --check` 통과.
+
+---
+
 ## v1.7.2 — 2026-05-08
 
 **Archetype Readability Stabilization — 지표 기반 1차 튜닝**

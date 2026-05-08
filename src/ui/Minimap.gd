@@ -18,10 +18,12 @@ var supply_state = "none" # none, pending, active
 var supply_pulse = 0.0
 
 var map_spec: Resource = null
+var minimap_features: Array[Dictionary] = []
 
-func set_map_spec(spec: Resource):
+func set_map_spec(spec: Resource, features: Array[Dictionary] = []):
 	map_spec = spec
 	map_size_3d = Vector2(spec.get_world_size(), spec.get_world_size())
+	minimap_features = features.duplicate(true)
 	queue_redraw()
 
 func _ready():
@@ -87,59 +89,13 @@ func _draw():
 			"recovery_pocket": role_color = Color(0.2, 0.2, 1.0, 0.08)
 		draw_circle(mini_pos, mini_rad, role_color)
 
-	# 3. Draw Obstacles — type-differentiated shape and colour
-	for obs in map_spec.obstacles:
-		var wpos   = Vector2(obs.pos[0], obs.pos[1])
-		var sx     = float(obs.scale[0])
-		var sz     = float(obs.scale[2])
-		var rot_rad = deg_to_rad(obs.get("rot", 0.0))
-		var obs_type: String = obs.get("type", "")
-		var mpos   = world_to_minimap(wpos)
-
-		match obs_type:
-			"rock_cluster":
-				# Radial cluster — circle whose radius matches the actual spread
-				var r = max(3.5, world_size_to_minimap(sx * 0.75))
-				draw_circle(mpos, r, Color(0.66, 0.62, 0.56, 0.88))
-				draw_arc(mpos, r, 0.0, TAU, 16, Color(0.45, 0.42, 0.38, 1.0), 1.0)
-			"bush_patch":
-				# Ground-level concealment — semi-transparent green, no hard border
-				var r = max(3.5, world_size_to_minimap((sx + sz) * 0.25))
-				draw_circle(mpos, r, Color(0.28, 0.62, 0.22, 0.38))
-			_:
-				# Rectangular obstacles: tree_cluster / canyon_wall / log_pile
-				var hx = sx * 0.5
-				var hz = sz * 0.5
-				var corners_local = [
-					Vector2(-hx, -hz),
-					Vector2( hx, -hz),
-					Vector2( hx,  hz),
-					Vector2(-hx,  hz),
-				]
-				var mc = PackedVector2Array()
-				for c in corners_local:
-					mc.append(world_to_minimap(c.rotated(rot_rad) + wpos))
-
-				var fill_col: Color
-				var border_col: Color
-				var bw := 1.0
-				match obs_type:
-					"tree_cluster":
-						fill_col   = Color(0.13, 0.36, 0.13, 0.88)
-						border_col = Color(0.08, 0.24, 0.08, 1.0)
-					"canyon_wall":
-						fill_col   = Color(0.50, 0.36, 0.22, 1.0)
-						border_col = Color(0.32, 0.22, 0.12, 1.0)
-						bw = 1.5
-					"log_pile":
-						fill_col   = Color(0.52, 0.38, 0.18, 0.88)
-						border_col = Color(0.36, 0.26, 0.10, 1.0)
-					_:
-						fill_col   = Color(0.35, 0.35, 0.40, 0.88)
-						border_col = Color(0.22, 0.22, 0.26, 1.0)
-
-				draw_colored_polygon(mc, fill_col)
-				draw_polyline(mc + PackedVector2Array([mc[0]]), border_col, bw)
+	# 3. Draw final generated footprints from bottom to top.
+	var features = minimap_features.duplicate(true)
+	if features.is_empty():
+		features = _build_fallback_features()
+	features.sort_custom(Callable(self, "_sort_minimap_features"))
+	for feature in features:
+		_draw_minimap_feature(feature)
 
 	# 4. Draw Supply Zones (Telegraphing/Active)
 	if supply_state != "none":
@@ -200,3 +156,102 @@ func world_to_minimap(world_pos: Vector2) -> Vector2:
 
 func world_size_to_minimap(size: float) -> float:
 	return size * (minimap_size.x / (map_size_3d.x * 1.414))
+
+func _sort_minimap_features(a: Dictionary, b: Dictionary) -> bool:
+	var layer_a = int(a.get("layer", 0))
+	var layer_b = int(b.get("layer", 0))
+	if layer_a == layer_b:
+		return int(a.get("order", 0)) < int(b.get("order", 0))
+	return layer_a < layer_b
+
+func _draw_minimap_feature(feature: Dictionary):
+	var pos = feature.get("pos", [0.0, 0.0])
+	var size = feature.get("size", [1.0, 1.0])
+	var wpos = Vector2(float(pos[0]), float(pos[1]))
+	var world_size = Vector2(float(size[0]), float(size[1]))
+	var rot_rad = deg_to_rad(float(feature.get("rot", 0.0)))
+	var shape = String(feature.get("shape", "rect"))
+	var obs_type = String(feature.get("type", ""))
+	var colors = _feature_colors(obs_type)
+
+	if shape == "ellipse":
+		var pts = PackedVector2Array()
+		var steps = 24
+		for i in range(steps):
+			var a = TAU * float(i) / float(steps)
+			var local = Vector2(cos(a) * world_size.x * 0.5, sin(a) * world_size.y * 0.5)
+			pts.append(world_to_minimap(local.rotated(rot_rad) + wpos))
+		draw_colored_polygon(pts, colors["fill"])
+		return
+
+	var hx = world_size.x * 0.5
+	var hz = world_size.y * 0.5
+	var corners_local = [
+		Vector2(-hx, -hz),
+		Vector2( hx, -hz),
+		Vector2( hx,  hz),
+		Vector2(-hx,  hz),
+	]
+	var pts = PackedVector2Array()
+	for c in corners_local:
+		pts.append(world_to_minimap(c.rotated(rot_rad) + wpos))
+	draw_colored_polygon(pts, colors["fill"])
+	draw_polyline(pts + PackedVector2Array([pts[0]]), colors["border"], float(colors["width"]))
+
+func _feature_colors(obs_type: String) -> Dictionary:
+	match obs_type:
+		"bush_patch":
+			return {
+				"fill": Color(0.22, 0.58, 0.20, 0.42),
+				"border": Color(0.16, 0.36, 0.12, 0.0),
+				"width": 0.0,
+			}
+		"tree_cluster":
+			return {
+				"fill": Color(0.24, 0.20, 0.14, 0.92),
+				"border": Color(0.12, 0.09, 0.06, 1.0),
+				"width": 1.0,
+			}
+		"canyon_wall", "rock_cluster":
+			return {
+				"fill": Color(0.42, 0.42, 0.46, 0.96),
+				"border": Color(0.24, 0.24, 0.28, 1.0),
+				"width": 1.2,
+			}
+		"log_pile":
+			return {
+				"fill": Color(0.44, 0.30, 0.14, 0.92),
+				"border": Color(0.26, 0.17, 0.07, 1.0),
+				"width": 1.0,
+			}
+	return {
+		"fill": Color(0.35, 0.35, 0.40, 0.92),
+		"border": Color(0.22, 0.22, 0.26, 1.0),
+		"width": 1.0,
+	}
+
+func _build_fallback_features() -> Array[Dictionary]:
+	var features: Array[Dictionary] = []
+	if not map_spec:
+		return features
+	for obs in map_spec.obstacles:
+		var obs_type = String(obs.get("type", ""))
+		var scale = obs.get("scale", [1.0, 1.0, 1.0])
+		var size = Vector2(float(scale[0]) * 2.0, float(scale[2]) * 2.0)
+		var shape = "rect"
+		var layer = 2 if float(scale[1]) > 2.5 else 1
+		if obs_type == "bush_patch":
+			size = Vector2(float(scale[0]) * 3.0, float(scale[2]) * 3.0)
+			shape = "ellipse"
+			layer = 0
+		features.append({
+			"type": obs_type,
+			"pos": obs.get("pos", [0.0, 0.0]),
+			"size": [size.x, size.y],
+			"rot": obs.get("rot", 0.0),
+			"height": float(scale[1]),
+			"layer": layer,
+			"shape": shape,
+			"order": features.size(),
+		})
+	return features
