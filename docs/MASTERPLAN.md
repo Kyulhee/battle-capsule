@@ -69,7 +69,8 @@ src/
 │   └── WorldElement.gd         # 맵 환경 요소 기반
 ├── fx/                         # MuzzleFlash, BulletTrail, ImpactEffect 등
 ├── ui/
-│   └── Minimap.gd              # 타입별 장애물 표현 (rock→원, bush→반투명 연두 등)
+│   ├── Minimap.gd              # 타입별 장애물 표현 (rock→원, bush→반투명 연두 등)
+│   └── MenuIconFactory.gd      # 메뉴/Records/Help 절차적 픽셀 아이콘 생성
 └── Main.gd                     # 게임 루프, 존, 스폰, 보급 캡슐, NavigationRegion3D 베이크
 data/
 ├── game_config.json            # bot/loot/zone/difficulty/Hell 기본값

@@ -7,6 +7,27 @@
 
 ## v1.10-dev — 2026-05-11
 
+**MenuIconFactory Boundary — 절차적 메뉴 아이콘 분리**
+
+**src/ui/MenuIconFactory.gd / src/Main.gd**
+
+- Main에 있던 캡슐 로고와 Records/Help용 픽셀 아이콘 생성 로직을 `MenuIconFactory` UI helper로 분리.
+- Main은 메뉴/Records/Help에서 필요한 아이콘 ID만 요청하고, `ImageTexture` 픽셀 생성 세부 구현은 UI helper가 담당하도록 정리.
+
+**docs/ARCHITECTURE.md / docs/MASTERPLAN.md**
+
+- UI helper 경계에 `MenuIconFactory`를 추가.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=58.4s, stage=2, recover=21, disengage=18.
+- `git diff --check` 통과.
+
+---
+
+## v1.10-dev — 2026-05-11
+
 **HelpCatalog Boundary — How to Play 데이터 분리**
 
 **src/core/HelpCatalog.gd / src/Main.gd**

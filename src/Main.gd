@@ -84,6 +84,7 @@ const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
 const HelpCatalogScript = preload("res://src/core/HelpCatalog.gd")
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
+const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const SupplyDropControllerScript = preload("res://src/core/SupplyDropController.gd")
 const ZoneControllerScript = preload("res://src/core/ZoneController.gd")
@@ -540,8 +541,8 @@ func _populate_records_list():
 		list.add_child(empty_lbl)
 		return
 
-	var skull_tex = _make_menu_icon("skull")
-	var hand_tex  = _make_menu_icon("hand")
+	var skull_tex = MenuIconFactoryScript.make_icon("skull")
+	var hand_tex  = MenuIconFactoryScript.make_icon("hand")
 	for record in history:
 		var row = HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)
@@ -1487,31 +1488,7 @@ func _setup_menu_visuals():
 	panel.add_child(overlay)
 	panel.move_child(overlay, 1)
 
-	# Pixel art capsule logo above title
-	var logo_size = 80
-	var img = Image.create(logo_size, logo_size, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	var cx = logo_size / 2
-	var cy = logo_size / 2
-	var rx = 18; var ry = 32
-	for py in range(logo_size):
-		for px in range(logo_size):
-			var dx = float(px - cx) / rx
-			var dy = float(py - cy) / ry
-			if dx * dx + dy * dy <= 1.0:
-				var top_half = py < cy
-				var border = (dx * dx + dy * dy) > 0.80
-				if border:
-					img.set_pixel(px, py, Color(0.15, 0.15, 0.22, 1.0))
-				elif top_half:
-					img.set_pixel(px, py, Color(0.25, 0.55, 1.0, 1.0))
-				else:
-					img.set_pixel(px, py, Color(0.9, 0.25, 0.25, 1.0))
-	# Divider line
-	for px in range(cx - rx + 2, cx + rx - 1):
-		img.set_pixel(px, cy, Color(0.15, 0.15, 0.22, 1.0))
-		img.set_pixel(px, cy - 1, Color(0.15, 0.15, 0.22, 1.0))
-	var logo_tex = ImageTexture.create_from_image(img)
+	var logo_tex = MenuIconFactoryScript.make_capsule_logo(80)
 	var logo_rect = TextureRect.new()
 	logo_rect.texture = logo_tex
 	logo_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -1630,7 +1607,7 @@ func _make_icon_row(parent: VBoxContainer, shape: String, col: Color, desc: Stri
 	row.add_theme_constant_override("separation", 6)
 	parent.add_child(row)
 	var icon = TextureRect.new()
-	icon.texture = _make_menu_icon(shape)
+	icon.texture = MenuIconFactoryScript.make_icon(shape)
 	icon.custom_minimum_size = Vector2(16, 16)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -1681,65 +1658,6 @@ func _make_desc_row(parent: VBoxContainer, label: String, desc: String):
 	dl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	dl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(dl)
-
-static func _make_menu_icon(shape: String) -> ImageTexture:
-	const S = 12
-	var img = Image.create(S, S, false, Image.FORMAT_RGBA8)
-	img.fill(Color(0, 0, 0, 0))
-	var px: Array
-	match shape:
-		"skull":
-			px = [
-				[0,0,1,1,1,1,1,1,0,0,0,0],
-				[0,1,1,1,1,1,1,1,1,0,0,0],
-				[1,1,1,1,1,1,1,1,1,1,0,0],
-				[1,1,0,0,1,1,0,0,1,1,0,0],
-				[1,1,0,0,1,1,0,0,1,1,0,0],
-				[1,1,1,1,1,1,1,1,1,1,0,0],
-				[1,1,1,1,1,1,1,1,1,1,0,0],
-				[0,1,0,1,1,0,1,1,0,1,0,0],
-				[0,1,0,1,1,0,1,1,0,1,0,0],
-				[0,0,0,0,0,0,0,0,0,0,0,0],
-				[0,0,0,0,0,0,0,0,0,0,0,0],
-				[0,0,0,0,0,0,0,0,0,0,0,0],
-			]
-		"hand":
-			px = [
-				[0,0,1,1,0,0,0,0,0,0,0,0],
-				[0,1,1,1,0,0,0,0,0,0,0,0],
-				[0,1,1,1,0,1,1,0,0,0,0,0],
-				[0,1,1,1,1,1,1,0,1,1,0,0],
-				[0,1,1,1,1,1,1,1,1,1,0,0],
-				[1,1,1,1,1,1,1,1,1,1,0,0],
-				[1,1,1,1,1,1,1,1,1,1,0,0],
-				[0,1,1,1,1,1,1,1,1,0,0,0],
-				[0,0,1,1,1,1,1,1,0,0,0,0],
-				[0,0,0,1,1,1,1,0,0,0,0,0],
-				[0,0,0,0,0,0,0,0,0,0,0,0],
-				[0,0,0,0,0,0,0,0,0,0,0,0],
-			]
-		"person":
-			px = [
-				[0,0,0,1,1,1,0,0,0,0,0,0],
-				[0,0,0,1,1,1,0,0,0,0,0,0],
-				[0,0,0,1,1,1,0,0,0,0,0,0],
-				[0,0,1,1,1,1,1,0,0,0,0,0],
-				[0,0,0,1,1,1,0,0,0,0,0,0],
-				[0,0,0,1,1,1,0,0,0,0,0,0],
-				[0,0,1,1,1,1,1,0,0,0,0,0],
-				[0,0,1,1,1,1,1,0,0,0,0,0],
-				[0,1,1,1,0,1,1,1,0,0,0,0],
-				[0,1,1,0,0,0,1,1,0,0,0,0],
-				[0,1,0,0,0,0,0,1,0,0,0,0],
-				[0,0,0,0,0,0,0,0,0,0,0,0],
-			]
-		_:
-			px = []
-	for y in range(S):
-		for x in range(S):
-			if y < px.size() and x < px[y].size() and px[y][x]:
-				img.set_pixel(x, y, Color.WHITE)
-	return ImageTexture.create_from_image(img)
 
 func _apply_btn_style(btn: Button):
 	var sn = StyleBoxFlat.new()

@@ -17,6 +17,7 @@
 │  Player.gd           │  WorldBuilder.gd             │
 │  Bot.gd              │  Pickup.gd                   │
 │  BotDoctrine.gd      │                              │
+│                      │  MenuIconFactory.gd          │
 ├──────────────────────┴──────────────────────────────┤
 │  Core Modules  (RefCounted — 씬트리 독립)             │
 │  ZoneController · WeaponSlotManager · MissionTracker│
@@ -149,7 +150,13 @@
 
 ---
 
-### 2-C. Entity Layer
+### 2-C. Entity / UI Helper Layer
+
+#### UI Helpers
+
+| 파일 | 역할 | 접근 패턴 |
+|---|---|---|
+| `src/ui/MenuIconFactory.gd` | 메뉴/Records/Help에서 쓰는 절차적 픽셀 아이콘 생성 | Main UI 빌더가 `make_icon()` / `make_capsule_logo()` 호출 |
 
 ```
 Entity (CharacterBody3D)
