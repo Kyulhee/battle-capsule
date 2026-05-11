@@ -82,6 +82,7 @@ const DifficultyCatalogScript = preload("res://src/core/DifficultyCatalog.gd")
 const GameConfigScript = preload("res://src/core/GameConfig.gd")
 const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
+const HelpCatalogScript = preload("res://src/core/HelpCatalog.gd")
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const SupplyDropControllerScript = preload("res://src/core/SupplyDropController.gd")
@@ -1571,37 +1572,18 @@ func _build_help_panel():
 	content.add_theme_constant_override("separation", 6)
 	scroll.add_child(content)
 
-	# ── CONTROLS ──
-	_help_section(content, "CONTROLS")
-	_make_key_row(content, ["W","A","S","D"], "이동")
-	_make_key_row(content, ["MOUSE"], "조준 (캐릭터가 커서 방향을 바라봄)")
-	_make_key_row(content, ["LMB"], "사격 / 칼 공격")
-	_make_key_row(content, ["F"], "근처 아이템 줍기")
-	_make_key_row(content, ["Q"], "붕대/구급상자 사용 (HP 회복)")
-	_make_key_row(content, ["R"], "재장전")
-	_make_key_row(content, ["C"], "웅크리기 토글 (스텔스 증가)")
-	_make_key_row(content, ["SPACE"], "점프")
-	_make_key_row(content, ["`"], "근접 무기 (칼)")
-	_make_key_row(content, ["1","2","3","4"], "총기 슬롯 전환")
-	_make_key_row(content, ["ESC"], "일시정지 / 메뉴")
-
-	# ── HUD GUIDE ──
-	_help_section(content, "HUD 아이콘")
-	_make_icon_row(content, "skull", Color(1.0,0.92,0.15), "Kill 수")
-	_make_icon_row(content, "hand",  Color(1.0,0.6, 0.2 ), "Assist 수")
-	_make_icon_row(content, "person",Color(0.72,0.72,0.72), "현재 생존자 수")
-	_make_text_row(content, "♥", Color(0.95,0.25,0.25), "붕대 보유 수")
-	_make_text_row(content, "◆", Color(1.0, 0.85,0.1 ), "구급상자 보유 수")
-
-	# ── SYSTEMS ──
-	_help_section(content, "SYSTEMS")
-	_make_desc_row(content, "자기장", "파란 링 밖에 있으면 지속 피해. 타이머가 빨간색이 되기 전에 이동.")
-	_make_desc_row(content, "보급 캡슐", "자기장 2단계에 맵 중앙 낙하. 레일건 포함 희귀 아이템.")
-	_make_desc_row(content, "아티팩트", "매치 시작 전 1개 선택 가능. 강한 장점과 패널티가 함께 적용됨.")
-	_make_desc_row(content, "압박 미션", "Hell은 자동 활성화. Hard는 메뉴에서 opt-in 가능.")
-	_make_desc_row(content, "스텔스", "풀숲에서 웅크리면 봇 탐지가 크게 늦어짐.")
-	_make_desc_row(content, "무기 획득", "주우면 탄창 1/3 장전. 탄약 아이템은 예비(+N)로 쌓이고 R로 보충.")
-	_make_desc_row(content, "중복 제한", "같은 종류 무기는 두 번 주울 수 없음.")
+	for section in HelpCatalogScript.sections():
+		_help_section(content, section.get("title", ""))
+		for row in section.get("rows", []):
+			match row.get("type", ""):
+				"key":
+					_make_key_row(content, row.get("keys", []), row.get("desc", ""))
+				"icon":
+					_make_icon_row(content, row.get("shape", ""), row.get("color", Color.WHITE), row.get("desc", ""))
+				"text":
+					_make_text_row(content, row.get("symbol", ""), row.get("color", Color.WHITE), row.get("desc", ""))
+				"desc":
+					_make_desc_row(content, row.get("label", ""), row.get("desc", ""))
 
 func _help_section(parent: VBoxContainer, title: String):
 	var spacer = Control.new(); spacer.custom_minimum_size = Vector2(0, 6); parent.add_child(spacer)

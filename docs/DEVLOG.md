@@ -7,6 +7,27 @@
 
 ## v1.10-dev — 2026-05-11
 
+**HelpCatalog Boundary — How to Play 데이터 분리**
+
+**src/core/HelpCatalog.gd / src/Main.gd**
+
+- How to Play의 조작키, HUD 아이콘, 시스템 설명 행을 `HelpCatalog`로 분리.
+- Main은 기존 HelpPanel 스타일과 key/icon/text/desc 렌더 helper를 유지하고, catalog 섹션을 순회해 화면을 구성하도록 변경.
+
+**docs/ARCHITECTURE.md / docs/MASTERPLAN.md**
+
+- UI catalog 분리 현황에 `HelpCatalog`를 추가.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=61.0s, stage=2, recover=16, disengage=10.
+- `git diff --check` 통과.
+
+---
+
+## v1.10-dev — 2026-05-11
+
 **DifficultyCatalog Boundary — 난이도 UI 데이터 분리**
 
 **src/core/DifficultyCatalog.gd / src/Main.gd**
