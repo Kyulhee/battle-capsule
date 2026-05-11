@@ -1,7 +1,7 @@
 # 배틀캡슐 아키텍처 보고서 (v1.10-dev)
 
 > 최종 업데이트: 2026-05-11
-> 이 문서는 v1.10-dev 확장 기반(config/debug/asset catalog/LootSpawner/SupplyDropController 경계) 기준이다.
+> 이 문서는 v1.10-dev 확장 기반(config/debug/asset catalog/LootSpawner/SupplyDropController/ArtifactCatalog 경계) 기준이다.
 
 ---
 
@@ -25,7 +25,7 @@
 ├─────────────────────────────────────────────────────┤
 │  Data / Config  (Resource/JSON — 순수 데이터)          │
 │  StatsData · ItemData · MissionData · MapSpec        │
-│  game_config.json · asset_catalog.json              │
+│  ArtifactCatalog · game_config.json · asset_catalog.json │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -43,6 +43,7 @@
 | `src/core/MapSpec.gd` | 맵 POI·장애물·월드 크기 정의 | WorldBuilder, Minimap이 읽기 전용으로 참조 |
 | `data/game_config.json` | 매치 수치, 난이도 파라미터, Hell 타이머 | `GameConfig.gd`가 로드, Main이 적용 |
 | `data/asset_catalog.json` | audio/icon/prop/cosmetic ID와 fallback | `AssetCatalog.gd`가 로드, Sfx/UI/월드가 점진 참조 |
+| `src/core/ArtifactCatalog.gd` | 시작 아티팩트 선택지와 modifier 정의 | Main 메뉴가 읽고 선택 결과만 Player modifier로 적용 |
 | `src/core/LootSpawner.gd` | POI 기반 루트 hotspot/위치/개수 계산 | Main이 Pickup 생성은 유지하고 계산만 위임 |
 | `src/core/SupplyDropController.gd` | 보급 캡슐 위치·타이머·클러스터 계산 | Main이 미니맵 상태와 실제 노드 생성은 유지 |
 
@@ -203,6 +204,7 @@ Main.gd는 유일하게 모든 레이어를 연결하는 노드다.
 v1.8~v1.10 분리 기준:
 - v1.8은 `Main.gd` 전체 분해가 아니라 config/debug/asset catalog의 진입점을 만든다.
 - 수치와 리소스 ID는 `GameConfig`/`AssetCatalog` 쪽으로 이동시키고, Main은 로드된 값을 연결하는 역할만 맡긴다.
+- 메뉴 선택지처럼 순수 데이터에 가까운 목록은 `ArtifactCatalog`처럼 작은 catalog로 우선 분리한다.
 - 첫 분리 후보는 `LootSpawner`, `SupplyDropController`, `MenuController`, `MatchBootstrap` 순서다.
 - `zone`, `mission_tracker`, `player_ref`, `alive_count`, Telemetry hook의 single source는 유지한다.
 

@@ -7,6 +7,27 @@
 
 ## v1.10-dev — 2026-05-11
 
+**ArtifactCatalog Boundary — 시작 아티팩트 데이터 분리**
+
+**src/core/ArtifactCatalog.gd / src/Main.gd**
+
+- 시작 아티팩트 선택지 목록을 `Main.gd`의 메뉴 생성 코드에서 `ArtifactCatalog` RefCounted catalog로 분리.
+- Main은 선택 UI 구성과 modifier 적용 흐름만 유지하고, 아티팩트 id/label/color/설명/modifier 데이터는 catalog에서 읽도록 정리.
+
+**docs/ARCHITECTURE.md**
+
+- Data / Config 경계에 `ArtifactCatalog`를 추가하고 v1.10 Main slimdown 기준 문구를 갱신.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=65.1s, stage=2, recover=27, disengage=17.
+- `git diff --check` 통과.
+
+---
+
+## v1.10-dev — 2026-05-11
+
 **Regression Sentinel Summary — 장기 매치 회귀 감지 보강**
 
 **tools/analyze_results.py / docs/TESTING.md**
