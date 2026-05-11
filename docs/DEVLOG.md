@@ -7,6 +7,27 @@
 
 ## v1.10-dev — 2026-05-11
 
+**DifficultyCatalog Boundary — 난이도 UI 데이터 분리**
+
+**src/core/DifficultyCatalog.gd / src/Main.gd**
+
+- 난이도 label/description/color를 `DifficultyCatalog`로 분리해 메인 메뉴, tooltip, Records 탭이 같은 UI 데이터를 참조하도록 정리.
+- Main의 난이도 선택 흐름과 실제 difficulty enum/설정 적용 경로는 유지해 동작 변경 없이 UI 데이터 중복만 제거.
+
+**docs/ARCHITECTURE.md**
+
+- Data / Config 경계에 `DifficultyCatalog`를 추가하고 catalog 분리 기준을 갱신.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=55.3s, stage=2, recover=9, disengage=15.
+- `git diff --check` 통과.
+
+---
+
+## v1.10-dev — 2026-05-11
+
 **ArtifactCatalog Boundary — 시작 아티팩트 데이터 분리**
 
 **src/core/ArtifactCatalog.gd / src/Main.gd**

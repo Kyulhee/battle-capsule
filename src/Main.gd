@@ -15,12 +15,6 @@ var _pressure_opt_in_check: CheckButton = null
 var _diff_tooltip: PanelContainer = null
 var _diff_tooltip_label: Label = null
 var _records_selected_diff: int = 1
-const DIFF_DESCRIPTIONS = [
-	"봇 시야 75%  ·  반응 느림  ·  조준 부정확\n입문용 난이도.",
-	"표준 난이도.",
-	"봇 시야 125%  ·  즉각 반응  ·  정밀 조준\n극한의 도전.",
-	"HP 1 시작  ·  힐 감소  ·  암전 + 폭격\n랜덤 이벤트: 힐추가반감 / 탄막 / 전원적대",
-]
 
 # Hell events
 enum HellModifier { SCARCITY, BARRAGE, ALL_AGGRESSIVE }
@@ -84,6 +78,7 @@ var _result_sep_mission: HSeparator = null
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const ArtifactCatalogScript = preload("res://src/core/ArtifactCatalog.gd")
 const AssetCatalogScript = preload("res://src/core/AssetCatalog.gd")
+const DifficultyCatalogScript = preload("res://src/core/DifficultyCatalog.gd")
 const GameConfigScript = preload("res://src/core/GameConfig.gd")
 const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
@@ -205,7 +200,7 @@ func _ready():
 
 	for i in range(4):
 		var btn = Button.new()
-		btn.text = ["쉬움", "보통", "어려움", "지옥"][i]
+		btn.text = DifficultyCatalogScript.label(i)
 		btn.custom_minimum_size = Vector2(68, 0)
 		btn.add_theme_font_size_override("font_size", 14)
 		btn.pressed.connect(_on_difficulty_btn.bind(i))
@@ -490,10 +485,9 @@ func _setup_records_controls():
 	vbox.add_child(tabs)
 	vbox.move_child(tabs, scroll_idx)
 
-	const DIFF_LABELS = ["쉬움", "보통", "어려움", "지옥"]
 	for i in range(4):
 		var btn = Button.new()
-		btn.text = DIFF_LABELS[i]
+		btn.text = DifficultyCatalogScript.label(i)
 		btn.custom_minimum_size = Vector2(68, 0)
 		btn.add_theme_font_size_override("font_size", 13)
 		btn.pressed.connect(_on_records_diff_tab.bind(i))
@@ -528,11 +522,10 @@ func _populate_records_list():
 	for child in list.get_children(): child.queue_free()
 
 	# Update tab highlights
-	const DIFF_COLORS = [Color(0.3,1.0,0.45), Color(1.0,0.88,0.25), Color(1.0,0.35,0.35), Color(0.75,0.1,1.0)]
 	var tabs = $CanvasLayer/Control/RecordsPanel/VBox.get_node_or_null("DiffTabs")
 	if tabs:
 		for i in range(tabs.get_child_count()):
-			tabs.get_child(i).modulate = DIFF_COLORS[i] if i == _records_selected_diff else Color(0.55, 0.55, 0.55)
+			tabs.get_child(i).modulate = DifficultyCatalogScript.color(i) if i == _records_selected_diff else DifficultyCatalogScript.dim_color()
 
 	if not has_node("/root/Telemetry"): return
 	var tel = get_node("/root/Telemetry")
@@ -1795,7 +1788,7 @@ func _apply_btn_style(btn: Button):
 
 func _show_diff_tooltip(idx: int):
 	if not _diff_tooltip or idx >= _diff_btns.size(): return
-	_diff_tooltip_label.text = DIFF_DESCRIPTIONS[idx]
+	_diff_tooltip_label.text = DifficultyCatalogScript.description(idx)
 	var gr = _diff_btns[idx].get_global_rect()
 	_diff_tooltip.global_position = Vector2(gr.position.x - 10, gr.end.y + 6)
 	_diff_tooltip.visible = true
@@ -1807,14 +1800,8 @@ func _on_difficulty_btn(idx: int):
 		_pressure_opt_in_check.visible = (difficulty == Difficulty.HARD)
 
 func _update_diff_highlights():
-	const DIFF_COLORS = [
-		Color(0.3, 1.0, 0.45),   # 쉬움 — 초록
-		Color(1.0, 0.88, 0.25),  # 보통 — 노랑
-		Color(1.0, 0.35, 0.35),  # 어려움 — 빨강
-		Color(0.75, 0.1,  1.0),  # 지옥 — 보라
-	]
 	for i in range(_diff_btns.size()):
-		_diff_btns[i].modulate = DIFF_COLORS[i] if i == difficulty else Color(0.55, 0.55, 0.55)
+		_diff_btns[i].modulate = DifficultyCatalogScript.color(i) if i == difficulty else DifficultyCatalogScript.dim_color()
 
 # ─── HELL EVENTS ─────────────────────────────────────────────────────────────
 

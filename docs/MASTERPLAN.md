@@ -1,11 +1,11 @@
 # 배틀캡슐 마스터 플랜
 
-> 마지막 업데이트: 2026-05-11 (v1.10 SupplyDropController split)
+> 마지막 업데이트: 2026-05-11 (v1.10 catalog splits)
 > 이 문서는 AI 에이전트 간 인수인계 및 장기 방향 공유를 위해 작성되었습니다.
 
 ## 현재 상태
 
-**현재**: v1.10-dev — 릴리즈 없이 v1.9 asset hook 커밋 후 Main Slimdown 진행 중
+**현재**: v1.10-dev — 릴리즈 없이 v1.9 asset hook 커밋 후 Main Slimdown/catalog 분리 진행 중
 
 **문서 구조** *(각 파일의 업데이트 시점 기준 → [CLAUDE.md](../CLAUDE.md))*
 
@@ -47,6 +47,10 @@ src/
 │   ├── ItemData.gd             # 아이템 정의 Resource
 │   ├── GameConfig.gd           # match/zone/difficulty/Hell 수치 JSON 로더
 │   ├── AssetCatalog.gd         # audio/icon/prop/cosmetic ID JSON 로더
+│   ├── ArtifactCatalog.gd      # 시작 아티팩트 선택지 catalog
+│   ├── DifficultyCatalog.gd    # 난이도 UI label/description/color catalog
+│   ├── LootSpawner.gd          # POI/밀도 기반 루트 위치 계산
+│   ├── SupplyDropController.gd # 보급 캡슐 위치/타이밍/클러스터 계산
 │   ├── SoundManager.gd         # 절차적 오디오 생성 (Autoload: Sfx)
 │   ├── Telemetry.gd            # 매치 통계 기록 (Autoload: Telemetry)
 │   ├── MapSpec.gd              # JSON 맵 스펙 파서
