@@ -7,6 +7,24 @@
 
 ## v1.10-dev — 2026-05-11
 
+**Regression Sentinel Summary — 장기 매치 회귀 감지 보강**
+
+**tools/analyze_results.py / docs/TESTING.md**
+
+- 분석 결과 하단에 `Regression sentinels` 섹션을 추가해 `zero total damage`, `zero weapon damage`, `zero shot`, `zero combat plan` run을 별도로 표시.
+- 매치 시간이 길어지는 것 자체는 실패 기준으로 보지 않고, 전투/피해/인식 루프가 죽은 경우를 먼저 추적하는 현재 테스트 방향을 문서에 반영.
+- sentinel은 warning 출력만 하며 기존 pass/fail 기준이나 체크리스트 임계치는 변경하지 않음.
+
+**검증 결과**
+
+- `python -m py_compile tools\analyze_results.py` 통과.
+- `python tools\analyze_results.py` 통과: current run 기준 sentinel 전부 `none`.
+- `git diff --check` 통과.
+
+---
+
+## v1.10-dev — 2026-05-11
+
 **SupplyDropController Boundary — 보급 캡슐 계산 분리**
 
 **src/core/SupplyDropController.gd / src/Main.gd**

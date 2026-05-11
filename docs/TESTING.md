@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-05-09 (v1.9-dev 기준)
+> 마지막 업데이트: 2026-05-11 (v1.10-dev 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -17,6 +17,7 @@ Godot 헤드리스 모드로 게임을 자동 실행하면 `Telemetry.gd`가 지
 
 v1.7.3 이후 맵은 장기적으로 더 넓고 오래 진행되는 방향을 목표로 합니다.
 따라서 매치 시간이 늘어나는 것만으로 실패 처리하지 않고, 피해/발사/전투 plan이 0에 고정되거나 zone death가 급증하는 회귀를 우선 확인합니다.
+`tools/analyze_results.py`의 `Regression sentinels` 섹션은 `zero total damage`, `zero weapon damage`, `zero shot`, `zero combat plan` run을 별도로 표시합니다.
 
 ---
 

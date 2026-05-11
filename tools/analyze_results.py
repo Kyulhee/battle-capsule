@@ -23,6 +23,22 @@ def avg(values: list[float]) -> float:
     return sum(values) / max(1, len(values))
 
 
+def run_numbers(runs: list[dict], predicate) -> list[int]:
+    return [idx + 1 for idx, run in enumerate(runs) if predicate(run)]
+
+
+def combat_plan_total(run: dict) -> int:
+    tactics = run.get("tactics", {})
+    doctrine = run.get("doctrine", {})
+    doctrine_total = sum(int(v) for v in doctrine.get("combat_plan_counts", {}).values())
+    tactics_total = (
+        int(tactics.get("cover_peek", 0))
+        + int(tactics.get("combat_reposition", 0))
+        + int(tactics.get("combat_kite", 0))
+    )
+    return max(tactics_total, doctrine_total)
+
+
 if __name__ == "__main__":
     results = load_runs(RUN_DIR)
     if not results:
@@ -171,3 +187,25 @@ if __name__ == "__main__":
         print(f"Doctrine supply: {', '.join(supply_parts)}")
     if pressure_triggered:
         print(f"Pressure resolved: {pressure_resolved}/{pressure_triggered}")
+
+    zero_damage_runs = run_numbers(
+        results,
+        lambda r: float(r.get("combat", {}).get("total_damage_dealt", 0.0)) <= 0.0,
+    )
+    zero_weapon_damage_runs = run_numbers(
+        results,
+        lambda r: sum(float(v) for v in r.get("combat", {}).get("damage_by_weapon", {}).values()) <= 0.0,
+    )
+    zero_shot_runs = run_numbers(
+        results,
+        lambda r: int(r.get("combat", {}).get("shots_fired", 0)) <= 0,
+    )
+    zero_plan_runs = run_numbers(results, lambda r: combat_plan_total(r) <= 0)
+
+    print("Regression sentinels:")
+    print(f"  zero total damage runs: {zero_damage_runs or 'none'}")
+    print(f"  zero weapon damage runs: {zero_weapon_damage_runs or 'none'}")
+    print(f"  zero shot runs: {zero_shot_runs or 'none'}")
+    print(f"  zero combat plan runs: {zero_plan_runs or 'none'}")
+    if zero_damage_runs or zero_weapon_damage_runs or zero_shot_runs or zero_plan_runs:
+        print("  WARNING: investigate combat/perception/damage before tuning duration targets.")
