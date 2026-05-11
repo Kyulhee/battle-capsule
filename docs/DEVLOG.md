@@ -5,6 +5,28 @@
 
 ---
 
+## v1.10-dev — 2026-05-11
+
+**SupplyDropController Boundary — 보급 캡슐 계산 분리**
+
+**src/core/SupplyDropController.gd / src/Main.gd**
+
+- `SupplyDropController` RefCounted 모듈을 추가해 보급 캡슐 telegraph 시간, 위치 롤, 기둥 진행률, 클러스터 consumable 개수/오프셋 계산을 Main 밖으로 분리.
+- Main은 기존처럼 `supply_telegraphed`, `supply_spawned`, `supply_pos`를 유지해 미니맵 연결을 보존하고, 실제 pillar/pickup 노드 생성만 담당.
+- `debug_flags=loot`에서 보급 예고/활성화 위치를 로그로 확인할 수 있게 추가.
+
+**docs/ARCHITECTURE.md / docs/MASTERPLAN.md**
+
+- Core Modules에 `SupplyDropController`를 추가하고 현재 작업 상태를 v1.10-dev로 갱신.
+
+**검증 결과**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=59.0s, stage=2, recover=9, disengage=18.
+- `git diff --check` 통과.
+
+---
+
 ## v1.9-dev — 2026-05-09
 
 **Debug Flag Hooks — 피해/인식/루트/존 로그 연결**

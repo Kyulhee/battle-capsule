@@ -88,6 +88,7 @@ const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
+const SupplyDropControllerScript = preload("res://src/core/SupplyDropController.gd")
 const ZoneControllerScript = preload("res://src/core/ZoneController.gd")
 
 # MapSpec & Builder
@@ -103,6 +104,7 @@ var asset_catalog = null
 var game_config = null
 var debug_flags = null
 var debug_overlay = null
+var supply_controller = null
 
 # Dynamic Supply
 var supply_telegraphed: bool = false
@@ -115,6 +117,7 @@ var zone_ring: MeshInstance3D = null
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	loot_spawner = LootSpawnerScript.new()
+	supply_controller = SupplyDropControllerScript.new()
 	asset_catalog = AssetCatalogScript.new()
 	asset_catalog.load_or_default()
 	_configure_asset_catalog()
@@ -877,7 +880,7 @@ func _process(delta):
 		supply_timer -= delta
 		# Move pillar down over time
 		if supply_pillar:
-			var t = 1.0 - (supply_timer / 8.0) # 8.0 is the telegraph time
+			var t = supply_controller.pillar_progress(supply_timer) if supply_controller else 1.0
 			supply_pillar.global_position.y = lerp(50.0, 0.0, t)
 			
 		if supply_timer <= 0:
@@ -1039,10 +1042,15 @@ func spawn_loot(prob: float, count_mult: int = 1):
 			pickup.init(item_templates[randi() % item_templates.size()])
 
 func telegraph_supply_zone():
+	var drop = supply_controller.start_telegraph() if supply_controller else {
+		"pos": Vector3(randf_range(-25, 25), 1.0, randf_range(-25, 25)),
+		"timer": 8.0,
+	}
 	supply_telegraphed = true
 	supply_spawned = false
-	supply_timer = 8.0
-	supply_pos = Vector3(randf_range(-25, 25), 1.0, randf_range(-25, 25))
+	supply_timer = float(drop.get("timer", 8.0))
+	supply_pos = drop.get("pos", Vector3.ZERO)
+	debug_log("loot", "supply telegraphed at (%.1f, %.1f)" % [supply_pos.x, supply_pos.z])
 	
 	# Visual beacon
 	supply_pillar = MeshInstance3D.new()
@@ -1062,6 +1070,7 @@ func telegraph_supply_zone():
 func activate_supply_zone():
 	supply_spawned = true
 	supply_telegraphed = false # Clear from minimap
+	debug_log("loot", "supply activated at (%.1f, %.1f)" % [supply_pos.x, supply_pos.z])
 	if supply_pillar:
 		supply_pillar.queue_free()
 		supply_pillar = null
@@ -1072,10 +1081,11 @@ func activate_supply_zone():
 		$Loot.add_child(rg)
 		rg.global_position = supply_pos
 		rg.init(railgun_item.duplicate(true))
-	for i in range(4):
+	var consumable_count = supply_controller.consumable_count() if supply_controller else 4
+	for i in range(consumable_count):
 		var pickup = pickup_scene.instantiate()
 		$Loot.add_child(pickup)
-		var offset = Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5))
+		var offset = supply_controller.random_cluster_offset() if supply_controller else Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5))
 		pickup.global_position = supply_pos + offset
 		if not consumable_templates.is_empty():
 			pickup.init(consumable_templates[randi() % consumable_templates.size()])
