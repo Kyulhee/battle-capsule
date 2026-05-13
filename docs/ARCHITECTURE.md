@@ -1,7 +1,7 @@
 # 배틀캡슐 아키텍처 보고서 (v1.10-dev)
 
-> 최종 업데이트: 2026-05-11
-> 이 문서는 v1.10-dev 확장 기반(config/debug/asset catalog/LootSpawner/SupplyDropController/catalog 경계) 기준이다.
+> 최종 업데이트: 2026-05-13
+> 이 문서는 v1.10-dev 확장 기반(config/debug/asset catalog/LootSpawner/SupplyDropController/catalog/UI helper 경계) 기준이다.
 
 ---
 
@@ -18,6 +18,7 @@
 │  Bot.gd              │  Pickup.gd                   │
 │  BotDoctrine.gd      │                              │
 │                      │  MenuIconFactory.gd          │
+│                      │  HelpPanelBuilder.gd         │
 ├──────────────────────┴──────────────────────────────┤
 │  Core Modules  (RefCounted — 씬트리 독립)             │
 │  ZoneController · WeaponSlotManager · MissionTracker│
@@ -47,7 +48,7 @@
 | `data/asset_catalog.json` | audio/icon/prop/cosmetic ID와 fallback | `AssetCatalog.gd`가 로드, Sfx/UI/월드가 점진 참조 |
 | `src/core/ArtifactCatalog.gd` | 시작 아티팩트 선택지와 modifier 정의 | Main 메뉴가 읽고 선택 결과만 Player modifier로 적용 |
 | `src/core/DifficultyCatalog.gd` | 난이도 label/description/color 정의 | Main 메뉴와 Records가 같은 UI 데이터를 참조 |
-| `src/core/HelpCatalog.gd` | How to Play 섹션/행 데이터 정의 | Main의 HelpPanel 빌더가 읽어 key/icon/desc 행으로 렌더 |
+| `src/core/HelpCatalog.gd` | How to Play 섹션/행 데이터 정의 | `HelpPanelBuilder.gd`가 읽어 key/icon/desc 행으로 렌더 |
 | `src/core/LootSpawner.gd` | POI 기반 루트 hotspot/위치/개수 계산 | Main이 Pickup 생성은 유지하고 계산만 위임 |
 | `src/core/SupplyDropController.gd` | 보급 캡슐 위치·타이머·클러스터 계산 | Main이 미니맵 상태와 실제 노드 생성은 유지 |
 
@@ -157,6 +158,7 @@
 | 파일 | 역할 | 접근 패턴 |
 |---|---|---|
 | `src/ui/MenuIconFactory.gd` | 메뉴/Records/Help에서 쓰는 절차적 픽셀 아이콘 생성 | Main UI 빌더가 `make_icon()` / `make_capsule_logo()` 호출 |
+| `src/ui/HelpPanelBuilder.gd` | How to Play scroll content 렌더링 | Main이 Help panel root를 넘기고, builder가 `HelpCatalog` + `MenuIconFactory`로 행 생성 |
 
 ```
 Entity (CharacterBody3D)

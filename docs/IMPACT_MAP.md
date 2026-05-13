@@ -68,6 +68,11 @@
 - **호출 대상**: `collector.receive_weapon(wstats)` / `collector.receive_ammo(type, amount)` — `has_method()` duck-typed, Player·Bot 동시 지원
 - **표시 조건**: 플레이어의 `Entity.can_sense_item()`을 통과한 경우에만 pickup node가 표시됨. Label은 `Pickup` 내부 LOD/focus 정책을 따르고, 현재 상호작용 후보 focus는 `Player.gd`가 `set_focused()`로 전달.
 
+### `src/ui/HelpPanelBuilder.gd`
+- **읽는 파일**: `HelpCatalog.gd` section/row data, `MenuIconFactory.gd` procedural icons.
+- **호출자**: `Main.gd` `_setup_secondary_panels()`.
+- **소유 범위**: How to Play scroll content 생성. Help panel 표시 전환, close button 연결, 버튼 스타일은 `Main.gd`가 유지.
+
 ### `src/maps/WorldBuilder.gd`
 - **읽는 파일**: `MapSpec.gd`가 파싱한 POI/obstacles/routes.
 - **공개 API**: `generate_world(spec)`, `get_minimap_features()`.
@@ -95,5 +100,6 @@
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |
 | Death drop 표시 이름/색상 | `DropDisplayCatalog.gd` | `Player.gd`, `Bot.gd`, `Pickup.gd` label output |
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
+| How to Play 행 구조 | `HelpCatalog.gd` | `HelpPanelBuilder.gd`, `Main.gd` Help panel wiring |
 | 새 `PressureEffect` 추가 | `MissionTracker.gd` (enum) | `Main._apply_pressure_effects()` (match 케이스 추가) |
 | 새 `PressureCondition` 추가 | `MissionTracker.gd` (enum + `_eval_single_condition`) | `MissionTracker.filter_feasible()` (필터 케이스 추가) |

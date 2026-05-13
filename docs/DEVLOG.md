@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10-dev — 2026-05-13
+
+**HelpPanelBuilder Boundary — How to Play rendering split**
+
+**src/ui/HelpPanelBuilder.gd / src/Main.gd**
+
+- Moved How to Play scroll content rendering from `Main.gd` into `HelpPanelBuilder`.
+- `Main.gd` now wires the Help panel root and close button styling, while `HelpPanelBuilder` reads `HelpCatalog` rows and uses `MenuIconFactory` for icon rows.
+- This is a low-risk `MenuController`-direction slice; gameplay state ownership, Telemetry hooks, and match flow were not changed.
+- `Main.gd` dropped the HelpPanel row-builder functions and no longer preloads `HelpCatalog` directly.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=62.3s, stage=2, recover=14, disengage=17.
+
+---
+
 ## v1.10.2-dev — 2026-05-13
 
 **Item/Asset Readability Polish — weapon icon optical sizing**

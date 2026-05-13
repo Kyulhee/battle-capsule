@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-13 (v1.10.2 icon sizing patch)
+> Last updated: 2026-05-13 (HelpPanelBuilder split)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -53,6 +53,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `DifficultyCatalog`: difficulty label/description/color UI data.
 - `HelpCatalog`: How to Play section/row data.
 - `MenuIconFactory`: procedural menu/records/help icon generation.
+- `HelpPanelBuilder`: How to Play panel rendering from HelpCatalog rows.
 
 **Good next candidates**
 
