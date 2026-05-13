@@ -3,17 +3,18 @@ param(
     [string]$DestRoot = "assets\icons",
     [int]$Size = 64,
     [int]$Margin = 5,
-    [int]$AlphaThreshold = 32
+    [int]$AlphaThreshold = 32,
+    [string]$OnlyCategory = ""
 )
 
 Add-Type -AssemblyName System.Drawing
 
 $IconMap = @(
-    @{ Source = "weapons\weapon_knife.png"; Dest = "weapons\knife.png" },
-    @{ Source = "weapons\weapon_pistol.png"; Dest = "weapons\pistol.png" },
-    @{ Source = "weapons\weapon_ar.png"; Dest = "weapons\ar.png" },
-    @{ Source = "weapons\weapon_shotgun.png"; Dest = "weapons\shotgun.png" },
-    @{ Source = "weapons\weapon_railgun.png"; Dest = "weapons\railgun.png" },
+    @{ Source = "weapons\weapon_knife.png"; Dest = "weapons\knife.png"; VisualScale = 0.90 },
+    @{ Source = "weapons\weapon_pistol.png"; Dest = "weapons\pistol.png"; VisualScale = 0.78 },
+    @{ Source = "weapons\weapon_ar.png"; Dest = "weapons\ar.png"; VisualScale = 1.08 },
+    @{ Source = "weapons\weapon_shotgun.png"; Dest = "weapons\shotgun.png"; VisualScale = 1.12 },
+    @{ Source = "weapons\weapon_railgun.png"; Dest = "weapons\railgun.png"; VisualScale = 1.05 },
     @{ Source = "ammo\ammo_pistol.png"; Dest = "ammo\pistol.png" },
     @{ Source = "ammo\ammo_ar.png"; Dest = "ammo\ar.png" },
     @{ Source = "ammo\ammo_shotgun.png"; Dest = "ammo\shotgun.png" },
@@ -79,7 +80,8 @@ function Export-Icon {
         [string]$DestPath,
         [int]$OutputSize,
         [int]$OutputMargin,
-        [int]$Threshold
+        [int]$Threshold,
+        [double]$VisualScale
     )
 
     if (-not (Test-Path -LiteralPath $SourcePath)) {
@@ -99,7 +101,10 @@ function Export-Icon {
     try {
         $bounds = Get-NormalizedBounds -Bitmap $source -Threshold $Threshold
         $innerSize = [Math]::Max(1, $OutputSize - ($OutputMargin * 2))
-        $scale = [Math]::Min($innerSize / $bounds.Width, $innerSize / $bounds.Height)
+        $baseScale = [Math]::Min($innerSize / $bounds.Width, $innerSize / $bounds.Height)
+        $maxDrawSize = [Math]::Max(1, $OutputSize - 2)
+        $maxScale = [Math]::Min($maxDrawSize / $bounds.Width, $maxDrawSize / $bounds.Height)
+        $scale = [Math]::Min($baseScale * $VisualScale, $maxScale)
         $drawW = [Math]::Max(1, [int][Math]::Round($bounds.Width * $scale))
         $drawH = [Math]::Max(1, [int][Math]::Round($bounds.Height * $scale))
         $drawX = [int][Math]::Floor(($OutputSize - $drawW) / 2)
@@ -126,8 +131,15 @@ function Export-Icon {
 }
 
 foreach ($icon in $IconMap) {
+    if ($OnlyCategory -ne "" -and -not $icon.Dest.StartsWith("$OnlyCategory\")) {
+        continue
+    }
     $src = Join-Path $SourceRoot $icon.Source
     $dst = Join-Path $DestRoot $icon.Dest
-    Export-Icon -SourcePath $src -DestPath $dst -OutputSize $Size -OutputMargin $Margin -Threshold $AlphaThreshold
+    $visualScale = 1.0
+    if ($icon.ContainsKey("VisualScale")) {
+        $visualScale = [double]$icon.VisualScale
+    }
+    Export-Icon -SourcePath $src -DestPath $dst -OutputSize $Size -OutputMargin $Margin -Threshold $AlphaThreshold -VisualScale $visualScale
     Write-Host "synced $($icon.Dest)"
 }

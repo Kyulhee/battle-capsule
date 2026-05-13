@@ -6,6 +6,30 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.2-dev — 2026-05-13
+
+**Item/Asset Readability Polish — weapon icon optical sizing**
+
+**tools/sync_generated_icons.ps1**
+
+- Added per-icon `VisualScale` overrides so generated square-canvas weapon masters can be optically balanced during sync instead of manually edited after export.
+- Added `-OnlyCategory` filtering and used `-OnlyCategory weapons` so this pass only re-synced runtime weapon icons.
+
+**assets/icons/weapons/**
+
+- Re-synced knife, pistol, AR, shotgun, and railgun runtime icons.
+- Pistol was reduced from roughly 54x43 alpha bounds to 42x34.
+- AR, shotgun, and railgun were expanded horizontally to roughly 57-60px bounds so long weapons do not read as undersized beside pistol.
+- HUD rendering and pickup decal code were not changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=77.0s, stage=3, recover=14, disengage=20.
+
+---
+
 ## v1.10.1-dev — 2026-05-13
 
 **Item/Asset Readability Polish — focus marker and death-drop labels**

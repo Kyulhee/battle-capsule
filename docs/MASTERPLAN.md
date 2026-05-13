@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-13 (v1.10.1 display patch)
+> Last updated: 2026-05-13 (v1.10.2 icon sizing patch)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -118,10 +118,11 @@ This is a stabilization step before v1.11 Complex Artifacts. It covers pickup di
 5. Pickup focus
    - The current interactable target must be visually clear.
    - Focus should feel like game UI, not debug text.
-6. Weapon icon optical sizing — next `v1.10.2` candidate
+6. Weapon icon optical sizing — v1.10.2 first pass complete
    - Generated weapon masters are square canvases, so short/thick weapons such as pistol can appear optically larger than long weapons such as shotgun/rifle in HUD slots.
    - Prefer post-processing rules over manual PNG edits so future sync runs stay consistent.
-   - Add per-icon visual scale overrides to `tools/sync_generated_icons.ps1` before re-syncing runtime `assets/icons/weapons/*.png`.
+   - `tools/sync_generated_icons.ps1` now supports per-icon `VisualScale` overrides and `-OnlyCategory weapons`.
+   - Runtime `assets/icons/weapons/*.png` were re-synced with pistol/knife reduced and long weapons slightly expanded.
    - Keep HUD slot rendering unchanged unless post-processing cannot solve the mismatch.
    - Do not bulk-sync held action/status/map/ui icons as part of this work.
 7. AssetCatalog/fallback
