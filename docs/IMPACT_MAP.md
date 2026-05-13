@@ -59,7 +59,7 @@
 
 ### `src/entities/pickup/Pickup.gd`
 - **호출 대상**: `collector.receive_weapon(wstats)` / `collector.receive_ammo(type, amount)` — `has_method()` duck-typed, Player·Bot 동시 지원
-- **표시 조건**: 플레이어의 `Entity.can_sense_item()`을 통과한 경우에만 mesh/light/label 표시.
+- **표시 조건**: 플레이어의 `Entity.can_sense_item()`을 통과한 경우에만 pickup node가 표시됨. Label은 `Pickup` 내부 LOD/focus 정책을 따르고, 현재 상호작용 후보 focus는 `Player.gd`가 `set_focused()`로 전달.
 
 ### `src/maps/WorldBuilder.gd`
 - **읽는 파일**: `MapSpec.gd`가 파싱한 POI/obstacles/routes.

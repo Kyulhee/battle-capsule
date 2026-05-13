@@ -3,10 +3,15 @@ class_name Pickup
 
 @export var item: ItemData
 
+const LABEL_NAME_RANGE := 3.2
+const LABEL_CLUSTER_RADIUS := 2.2
+
 var _label: Label3D = null
 var _icon_decal: MeshInstance3D = null
+var _focus_marker: MeshInstance3D = null
 var _catalog_icon_cache: Dictionary = {}
 var _los_timer: float = 0.0
+var _focused: bool = false
 
 func _ready():
 	add_to_group("pickups")
@@ -23,8 +28,15 @@ func _update_visibility_for_player():
 	var player = get_tree().get_first_node_in_group("players")
 	var sensed = player != null and player.has_method("can_sense_item") and player.can_sense_item(global_position)
 	visible = sensed
-	if _label:
-		_label.visible = sensed
+	_refresh_label_for_player(player, sensed)
+	_update_focus_marker_visibility(sensed)
+
+func set_focused(value: bool) -> void:
+	if _focused == value:
+		return
+	_focused = value
+	_refresh_label_for_player()
+	_update_focus_marker_visibility(visible)
 
 func init(data: ItemData):
 	item = data
@@ -36,9 +48,10 @@ func _update_visuals():
 		var mesh_inst = $MeshInstance3D
 		var mat = StandardMaterial3D.new()
 		var base_color = _base_color_for_item()
+		var visual_params = _visual_params_for_item()
 		mat.albedo_color = base_color
 		mat.emission_enabled = true
-		mat.emission = base_color * 0.42
+		mat.emission = base_color * visual_params.get("emission", 0.22)
 		mesh_inst.material_override = mat
 		mesh_inst.transform = Transform3D.IDENTITY
 		match item.type:
@@ -69,12 +82,18 @@ func _update_visuals():
 				mesh_inst.mesh = armor_plate
 				mesh_inst.position = Vector3(0, 0.105, 0)
 		if has_node("OmniLight3D"):
-			$OmniLight3D.light_color = base_color
+			var light = $OmniLight3D
+			light.light_color = base_color
+			light.light_energy = visual_params.get("light_energy", 0.8)
+			light.omni_range = visual_params.get("light_range", 2.2)
+		_update_focus_marker(base_color)
 	_update_icon_decal()
 
-	var existing = get_node_or_null("PickupLabel")
-	if existing:
-		existing.queue_free()
+	_update_label_node()
+
+func _update_label_node() -> void:
+	if is_instance_valid(_label):
+		_label.queue_free()
 		_label = null
 	if not item: return
 
@@ -87,29 +106,36 @@ func _update_visuals():
 	label.position = Vector3(0, 1.1, 0)
 	label.outline_size = 6
 	label.visible = false  # hidden until LOS confirmed
-
-	# Unicode prefix makes type immediately clear without adding a separate node
-	var prefix = ""
-	match item.type:
-		ItemData.Type.HEAL:
-			prefix = ("◆ " if item.rarity == ItemData.Rarity.RARE else "♥ ")
-		ItemData.Type.ARMOR:
-			prefix = "◈ "
-		ItemData.Type.AMMO:
-			prefix = "● "
-		ItemData.Type.WEAPON:
-			prefix = ""  # name alone is distinctive enough
-
-	var display_text = prefix + item.item_name
-	if item.type == ItemData.Type.WEAPON and item.weapon_stats:
-		display_text += "\n%d/%d" % [item.weapon_stats.current_ammo, item.weapon_stats.max_ammo]
-	elif item.type == ItemData.Type.AMMO and item.ammo_weapon_type != "":
-		display_text += " +%d" % item.amount
-
-	label.text = display_text
-	label.modulate = Color.GOLD if item.rarity == ItemData.Rarity.RARE else Color.WHITE
 	add_child(label)
 	_label = label
+	_refresh_label_for_player()
+
+func _refresh_label_for_player(player: Node3D = null, sensed: bool = false) -> void:
+	if not is_instance_valid(_label):
+		return
+	if not item:
+		_label.visible = false
+		return
+	if player == null:
+		player = get_tree().get_first_node_in_group("players")
+		sensed = player != null and player.has_method("can_sense_item") and player.can_sense_item(global_position)
+	if not sensed:
+		_label.visible = false
+		return
+
+	var dist = player.global_position.distance_to(global_position)
+	if _focused:
+		_label.text = _label_detail_text()
+		_label.modulate = _label_color(true)
+		_label.scale = Vector3(1.08, 1.08, 1.08)
+		_label.visible = true
+	elif dist <= LABEL_NAME_RANGE and _should_show_cluster_label(player, dist):
+		_label.text = _label_name_text()
+		_label.modulate = _label_color(false)
+		_label.scale = Vector3.ONE
+		_label.visible = true
+	else:
+		_label.visible = false
 
 func _base_color_for_item() -> Color:
 	if not item:
@@ -124,6 +150,120 @@ func _base_color_for_item() -> Color:
 		ItemData.Type.ARMOR:
 			return Color(0.35, 0.62, 1.0, 1.0)
 	return item.color
+
+func _visual_params_for_item() -> Dictionary:
+	if not item:
+		return {"emission": 0.18, "light_energy": 0.6, "light_range": 2.0}
+	var high_value_color = _is_high_value_color(item.color)
+	match item.type:
+		ItemData.Type.WEAPON:
+			if high_value_color:
+				return {"emission": 0.36, "light_energy": 1.35, "light_range": 2.8}
+			return {"emission": 0.18, "light_energy": 0.75, "light_range": 2.1}
+		ItemData.Type.AMMO:
+			if high_value_color:
+				return {"emission": 0.22, "light_energy": 0.8, "light_range": 2.0}
+			return {"emission": 0.10, "light_energy": 0.45, "light_range": 1.6}
+		ItemData.Type.HEAL:
+			if item.rarity == ItemData.Rarity.RARE:
+				return {"emission": 0.34, "light_energy": 1.25, "light_range": 2.5}
+			return {"emission": 0.20, "light_energy": 0.75, "light_range": 2.0}
+		ItemData.Type.ARMOR:
+			return {"emission": 0.34, "light_energy": 1.25, "light_range": 2.5}
+	return {"emission": 0.18, "light_energy": 0.6, "light_range": 2.0}
+
+func _is_high_value_color(color: Color) -> bool:
+	var is_purple = color.r >= 0.65 and color.b >= 0.65
+	var is_orange = color.r >= 0.85 and color.g >= 0.35 and color.g <= 0.75 and color.b <= 0.30
+	var is_cyan = color.g >= 0.55 and color.b >= 0.75
+	return is_purple or is_orange or is_cyan
+
+func _update_focus_marker(base_color: Color) -> void:
+	if not is_instance_valid(_focus_marker):
+		_focus_marker = MeshInstance3D.new()
+		_focus_marker.name = "FocusMarker"
+		var disc = CylinderMesh.new()
+		disc.top_radius = 0.76
+		disc.bottom_radius = 0.76
+		disc.height = 0.018
+		disc.radial_segments = 36
+		_focus_marker.mesh = disc
+		_focus_marker.position = Vector3(0.0, 0.03, 0.0)
+		add_child(_focus_marker)
+	var mat = StandardMaterial3D.new()
+	mat.albedo_color = Color(base_color.r, base_color.g, base_color.b, 0.26)
+	mat.emission_enabled = true
+	mat.emission = base_color * 0.28
+	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_focus_marker.material_override = mat
+	_focus_marker.visible = false
+
+func _update_focus_marker_visibility(sensed: bool) -> void:
+	if is_instance_valid(_focus_marker):
+		_focus_marker.visible = sensed and _focused
+
+func _label_prefix() -> String:
+	if not item:
+		return ""
+	match item.type:
+		ItemData.Type.HEAL:
+			return "◆ " if item.rarity == ItemData.Rarity.RARE else "♥ "
+		ItemData.Type.ARMOR:
+			return "◈ "
+		ItemData.Type.AMMO:
+			return "● "
+	return ""
+
+func _label_name_text() -> String:
+	if not item:
+		return ""
+	return _label_prefix() + item.item_name
+
+func _label_detail_text() -> String:
+	if not item:
+		return ""
+	var display_text = _label_name_text()
+	if item.type == ItemData.Type.WEAPON and item.weapon_stats:
+		display_text += "\n%d/%d" % [item.weapon_stats.current_ammo, item.weapon_stats.max_ammo]
+	elif item.type == ItemData.Type.AMMO and item.ammo_weapon_type != "":
+		display_text += " +%d" % item.amount
+	return display_text
+
+func _label_color(is_focused: bool) -> Color:
+	if is_focused:
+		return Color(1.0, 0.95, 0.55) if item.rarity == ItemData.Rarity.RARE else Color(1.0, 1.0, 0.86)
+	return Color(1.0, 0.86, 0.22) if item.rarity == ItemData.Rarity.RARE else Color(0.88, 0.90, 0.86)
+
+func _should_show_cluster_label(player: Node3D, own_dist: float) -> bool:
+	var own_key = _cluster_key()
+	for other in get_tree().get_nodes_in_group("pickups"):
+		if other == self or not other is Pickup:
+			continue
+		if not other.item or other._cluster_key() != own_key:
+			continue
+		if global_position.distance_to(other.global_position) > LABEL_CLUSTER_RADIUS:
+			continue
+		if player.has_method("can_sense_item") and not player.can_sense_item(other.global_position):
+			continue
+		var other_dist = player.global_position.distance_to(other.global_position)
+		if other_dist < own_dist - 0.05:
+			return false
+	return true
+
+func _cluster_key() -> String:
+	if not item:
+		return ""
+	match item.type:
+		ItemData.Type.WEAPON:
+			if item.weapon_stats:
+				return "weapon:%s" % item.weapon_stats.weapon_type
+		ItemData.Type.AMMO:
+			return "ammo:%s" % item.ammo_weapon_type
+		ItemData.Type.HEAL:
+			return "heal:%d" % item.rarity
+		ItemData.Type.ARMOR:
+			return "armor"
+	return "%d:%s" % [item.type, item.item_name]
 
 func _update_icon_decal():
 	if is_instance_valid(_icon_decal):

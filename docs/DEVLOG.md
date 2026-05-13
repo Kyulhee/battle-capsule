@@ -6,6 +6,30 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.x-dev — 2026-05-13
+
+**Item/Asset Readability Polish — pickup label LOD and focus**
+
+**src/entities/pickup/Pickup.gd / src/entities/player/Player.gd**
+
+- Pickup labels now use a small LOD policy: distant pickups hide labels, nearby non-focused pickups show name only, and the current interaction focus shows name plus ammo/quantity detail.
+- Same-kind pickup clusters suppress duplicate labels so dense loot piles do not flood the screen with repeated text.
+- Common/blue weapon and ammo glow intensity was reduced while purple/orange/cyan high-value cues remain stronger.
+- The player now tracks the nearest interactable pickup each frame and marks it with a subtle in-world focus disc plus detailed label.
+- Collection behavior, item data, and Telemetry JSON schema were not changed.
+
+**docs/IMPACT_MAP.md**
+
+- Updated pickup display ownership notes to reflect label LOD/focus behavior.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=61.7s, stage=2, recover=17, disengage=21.
+
+---
+
 ## v1.10-docs — 2026-05-13
 
 **Document Operations Reset + External Asset Prompt Plan**

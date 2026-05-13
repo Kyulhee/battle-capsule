@@ -88,6 +88,7 @@ var slot_panels: Array = []
 var slot_icon_rects: Array = []
 var slot_ammo_labels: Array = []
 var _catalog_icon_cache: Dictionary = {}
+var _focused_pickup: Pickup = null
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_PAUSABLE
@@ -452,6 +453,7 @@ func _physics_process(delta):
 	if Input.is_key_pressed(KEY_SPACE) and is_on_floor() and not is_crouching:
 		velocity.y = 7.0
 		footstep_timer = 0.0
+	_update_pickup_focus()
 	if Input.is_action_just_pressed("interact"): handle_interaction()
 	if Input.is_key_pressed(KEY_Q): handle_healing()
 	super._physics_process(delta)
@@ -563,16 +565,34 @@ func _process(delta):
 		i -= 1
 
 func handle_interaction():
+	var closest = _get_interaction_pickup()
+	if closest and closest.collect(self):
+		if closest == _focused_pickup:
+			_focused_pickup = null
+
+func _update_pickup_focus() -> void:
+	var closest = _get_interaction_pickup()
+	if closest == _focused_pickup:
+		return
+	if is_instance_valid(_focused_pickup) and _focused_pickup.has_method("set_focused"):
+		_focused_pickup.set_focused(false)
+	_focused_pickup = closest
+	if is_instance_valid(_focused_pickup) and _focused_pickup.has_method("set_focused"):
+		_focused_pickup.set_focused(true)
+
+func _get_interaction_pickup() -> Pickup:
 	var pickups = interaction_area.get_overlapping_areas()
 	var closest: Pickup = null
-	var min_dist = 999.0
+	var min_dist = INF
 	for area in pickups:
 		if area is Pickup:
 			if not can_sense_item(area.global_position):
 				continue
 			var d = global_position.distance_to(area.global_position)
-			if d < min_dist: min_dist = d; closest = area
-	if closest: closest.collect(self)
+			if d < min_dist:
+				min_dist = d
+				closest = area
+	return closest
 
 func handle_healing():
 	var main = get_tree().root.get_node_or_null("Main")
