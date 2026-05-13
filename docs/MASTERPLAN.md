@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-13 (document routing + asset readability planning)
+> Last updated: 2026-05-13 (v1.10.1 display patch)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -9,6 +9,8 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 **Current line**: v1.10-dev — Main slimdown and UI/catalog boundaries.
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
+
+**v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
 **Release status**: paused. Continue version-to-version development without GitHub releases unless explicitly requested.
 
@@ -38,6 +40,8 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Summary**: Keep `Main.gd` as the orchestration root, but move isolated screen/config/spawn/asset responsibilities behind small boundaries.
 
+**Status**: in progress. `Main.gd` still owns substantial UI orchestration, match bootstrapping, event flow, and state wiring. The goal is not line-count reduction by itself; the goal is that routine config, catalog, asset, and display edits no longer require reading unrelated `Main.gd` systems.
+
 **Already split**
 
 - `GameConfig`: match, zone, difficulty, Hell timing JSON loader.
@@ -62,11 +66,24 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Do not move zone, mission, player, alive count, or Telemetry ownership out of `Main.gd` yet.
 - Preserve Telemetry event names and JSON schema unless a dedicated migration is planned.
 
+**Completion gate before v1.11**
+
+- Finish the v1.10.x item/asset readability stabilization work or explicitly defer remaining visual-only items.
+- Move at least one remaining large isolated responsibility out of `Main.gd`, preferably `MenuController` first or `MatchBootstrap` if bootstrapping becomes the lower-risk slice.
+- Keep pressure mission effects, zone state, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists.
+- Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
+
 ### v1.10.x — Item/Asset Readability Polish `S`
 
 **Summary**: Improve readability and consistency of already connected item/icon assets without adding new items, weapons, artifacts, or gameplay content.
 
 This is a stabilization step before v1.11 Complex Artifacts. It covers pickup display, item label noise, focus clarity, glow intensity, and asset fallback/export checks.
+
+**Patch numbering guidance**
+
+- Use `v1.10.1`-style slices for localized presentation tuning that does not change asset pipeline rules. Example: weakening an over-visible pickup focus marker after screenshot review.
+- Use `v1.10.2`-style slices for small asset-pipeline rule changes that can affect multiple runtime files. Example: changing generated icon post-processing scale rules and re-syncing runtime weapon icons.
+- Keep all `v1.10.x` slices inside the existing v1.10 stabilization scope. These are not v1.11 content features.
 
 **Scope**
 
@@ -79,23 +96,39 @@ This is a stabilization step before v1.11 Complex Artifacts. It covers pickup di
 
 **Priorities**
 
-1. Item label LOD
+1. Item label LOD — first pass complete
    - Hide labels for distant pickups.
    - At pickup range, show name only.
    - For the current focus/pickup candidate, show name plus quantity/ammo details.
    - When same-kind pickups are clustered, avoid showing every label at once.
-2. Glow intensity
+2. Focus marker tone-down — v1.10.1 first pass complete
+   - Current filled floor highlight read too heavy in real screenshots.
+   - Reduced alpha, emission, and radius while preserving current focus logic.
+   - Focus should be secondary to pickup shape/icon and detailed label.
+   - No collection logic, Telemetry, or asset file changes.
+3. Drop display naming consistency — v1.10.1 first pass complete
+   - Initial map loot and supply drops use `ItemData` templates from `src/items/*.tres`, so their labels are already Korean and data-driven.
+   - Player/bot death drops create `ItemData` at runtime and now share `DropDisplayCatalog` for Korean weapon/ammo/heal names and death-drop weapon colors.
+   - This was fixed as a generation-path consistency issue, not as label text patching in `Pickup.gd`.
+   - Preserve drop quantities, item types, Telemetry schema, and collection behavior.
+4. Glow intensity
    - Reduce common/blue weapon and ammo glow.
    - Preserve rare/purple, legendary/orange, and armor/cyan readability.
    - Keep glow values in catalog/helper-style visual parameters rather than adding scattered item hardcoding.
-3. Pickup focus
+5. Pickup focus
    - The current interactable target must be visually clear.
    - Focus should feel like game UI, not debug text.
-4. AssetCatalog/fallback
+6. Weapon icon optical sizing — next `v1.10.2` candidate
+   - Generated weapon masters are square canvases, so short/thick weapons such as pistol can appear optically larger than long weapons such as shotgun/rifle in HUD slots.
+   - Prefer post-processing rules over manual PNG edits so future sync runs stay consistent.
+   - Add per-icon visual scale overrides to `tools/sync_generated_icons.ps1` before re-syncing runtime `assets/icons/weapons/*.png`.
+   - Keep HUD slot rendering unchanged unless post-processing cannot solve the mismatch.
+   - Do not bulk-sync held action/status/map/ui icons as part of this work.
+7. AssetCatalog/fallback
    - Missing assets must keep using primitive/icon fallback without runtime errors.
    - New runtime assets must be registered through `data/asset_catalog.json`.
    - Export should include selected runtime assets and exclude generated source/master files.
-5. Verification
+8. Verification
    - `git diff --check`
    - `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit`
    - `python tools\simulate_matches.py 1`

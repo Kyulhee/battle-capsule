@@ -6,6 +6,34 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.1-dev — 2026-05-13
+
+**Item/Asset Readability Polish — focus marker and death-drop labels**
+
+**src/entities/pickup/Pickup.gd**
+
+- Reduced focused pickup floor marker radius, alpha, and emission so it reads as a secondary focus cue instead of a heavy ground highlight.
+- Pickup focus logic, collection behavior, and Telemetry schema were not changed.
+
+**src/core/DropDisplayCatalog.gd / src/entities/player/Player.gd / src/entities/bot/Bot.gd**
+
+- Added a shared death-drop display catalog for runtime-generated weapon, ammo, and heal pickup names.
+- Player death drops now use Korean names consistently with bot death drops and `src/items/*.tres` templates.
+- Bot death drops were moved to the same catalog so future death-drop naming changes have one source.
+
+**Docs**
+
+- Clarified that v1.10 is still in progress, not a completed Main slimdown release.
+- Updated v1.10 completion gate and impact notes for `DropDisplayCatalog`.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=77.1s, stage=3, recover=20, disengage=21.
+
+---
+
 ## v1.10.x-dev — 2026-05-13
 
 **Item/Asset Readability Polish — pickup label LOD and focus**

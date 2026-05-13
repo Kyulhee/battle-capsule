@@ -12,6 +12,7 @@
 | ZoneController | `var zone` | `Main.gd` | RefCounted |
 | WeaponSlotManager | `var slots` | `Player.gd` | RefCounted |
 | MissionTracker | `var mission_tracker` | `Main.gd` | RefCounted |
+| DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 
 ---
 
@@ -46,6 +47,12 @@
 - **Main 참조 방법**: `get_tree().get_root().get_node("Main")` 런타임 조회 — 읽기 전용
 - **읽는 Main 필드**: `main.zone.current_center`, `main.zone.current_radius`, `main.zone.stage`, `main.alive_count`
 - **전술 계층**: State/movement/firing 실행은 `Bot.gd`, 전술 선택과 profile merge는 `BotDoctrine.gd`.
+- **Death drop 표시**: `DropDisplayCatalog`에서 무기/탄약/회복 아이템 표시 이름과 death-drop 색상을 가져옴.
+
+### `src/core/DropDisplayCatalog.gd`
+- **읽는 파일**: 직접 scene 참조 없음.
+- **호출자**: `Player.gd`, `Bot.gd` death drop 생성 경로.
+- **역할**: 런타임으로 생성되는 death drop의 weapon/ammo/heal 표시 이름과 weapon color를 한 곳에서 제공. 초기 맵 loot/supply drop 템플릿 이름은 `src/items/*.tres`가 계속 소유.
 
 ### `src/entities/bot/BotDoctrine.gd`
 - **읽는 파일**: 직접 scene 참조 없음 — `Bot.gd`가 넘긴 context/profile만 사용.
@@ -86,6 +93,7 @@
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |
+| Death drop 표시 이름/색상 | `DropDisplayCatalog.gd` | `Player.gd`, `Bot.gd`, `Pickup.gd` label output |
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
 | 새 `PressureEffect` 추가 | `MissionTracker.gd` (enum) | `Main._apply_pressure_effects()` (match 케이스 추가) |
 | 새 `PressureCondition` 추가 | `MissionTracker.gd` (enum + `_eval_single_condition`) | `MissionTracker.filter_feasible()` (필터 케이스 추가) |

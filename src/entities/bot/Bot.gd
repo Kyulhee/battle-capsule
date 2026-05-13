@@ -4,6 +4,7 @@ const MUZZLE_FLASH_SCN   = preload("res://src/fx/MuzzleFlash.tscn")
 const BULLET_TRAIL_SCN   = preload("res://src/fx/BulletTrail.tscn")
 const PICKUP_SCN         = preload("res://src/entities/pickup/Pickup.tscn")
 const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
+const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const BOT_DOCTRINE       = preload("res://src/entities/bot/BotDoctrine.gd")
 const BOT_VISUAL_KIT     = preload("res://src/entities/bot/BotVisualKit.gd")
 
@@ -1712,8 +1713,8 @@ func _drop_weapon():
 	var item = ItemData.new()
 	item.type = ItemData.Type.WEAPON
 	item.rarity = ItemData.Rarity.COMMON
-	item.item_name = _weapon_display_name(stats.weapon_type)
-	item.color = _weapon_color(stats.weapon_type)
+	item.item_name = DropDisplayCatalogScript.weapon_name(stats.weapon_type)
+	item.color = DropDisplayCatalogScript.weapon_color(stats.weapon_type)
 	var wstats = stats.duplicate() as StatsData
 	wstats.current_ammo = wstats.max_ammo / 3  # partial load only — actual ammo drops separately
 	item.weapon_stats = wstats
@@ -1730,10 +1731,10 @@ func _drop_ammo():
 	var item = ItemData.new()
 	item.type = ItemData.Type.AMMO
 	item.rarity = ItemData.Rarity.COMMON
-	item.item_name = _ammo_display_name(stats.weapon_type)
+	item.item_name = DropDisplayCatalogScript.ammo_name(stats.weapon_type)
 	item.ammo_weapon_type = stats.weapon_type
 	item.amount = total
-	item.color = _weapon_color(stats.weapon_type)
+	item.color = DropDisplayCatalogScript.weapon_color(stats.weapon_type)
 	var pickup = PICKUP_SCN.instantiate()
 	get_tree().root.add_child(pickup)
 	pickup.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
@@ -1744,7 +1745,7 @@ func _drop_heals():
 		var item = ItemData.new()
 		item.type = ItemData.Type.HEAL
 		item.rarity = ItemData.Rarity.COMMON
-		item.item_name = "붕대"
+		item.item_name = DropDisplayCatalogScript.common_heal_name()
 		item.amount = stats.heal_items
 		item.color = Color(0.2, 1.0, 0.4)
 		var pickup = PICKUP_SCN.instantiate()
@@ -1755,37 +1756,13 @@ func _drop_heals():
 		var item = ItemData.new()
 		item.type = ItemData.Type.HEAL
 		item.rarity = ItemData.Rarity.RARE
-		item.item_name = "구급상자"
+		item.item_name = DropDisplayCatalogScript.rare_heal_name()
 		item.amount = stats.advanced_heals
 		item.color = Color(1.0, 0.88, 0.1)
 		var pickup = PICKUP_SCN.instantiate()
 		get_tree().root.add_child(pickup)
 		pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5))
 		pickup.init(item)
-
-func _weapon_display_name(wtype: String) -> String:
-	match wtype:
-		"pistol":  return "피스톨"
-		"ar":      return "돌격소총"
-		"shotgun": return "샷건"
-		"railgun": return "레일건"
-	return wtype.capitalize()
-
-func _ammo_display_name(wtype: String) -> String:
-	match wtype:
-		"ar":      return "소총 탄"
-		"shotgun": return "샷건 탄"
-		"railgun": return "레일 탄"
-		"pistol":  return "피스톨 탄"
-	return wtype.capitalize() + " 탄"
-
-func _weapon_color(wtype: String) -> Color:
-	match wtype:
-		"pistol":  return Color(0.55, 0.78, 1.0)
-		"ar":      return Color(0.2, 0.88, 0.35)
-		"shotgun": return Color(1.0, 0.6, 0.1)
-		"railgun": return Color(0.85, 0.2, 1.0)
-	return Color.WHITE
 
 # ─── DAMAGE OVERRIDE ─────────────────────────────────────────────────────────
 # Force immediate RECOVER when hit with no ammo left — prevents bots from

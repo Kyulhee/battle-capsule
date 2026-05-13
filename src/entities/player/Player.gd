@@ -63,6 +63,7 @@ const BULLET_TRAIL_SCN = preload("res://src/fx/BulletTrail.tscn")
 const SHOT_PING_SCN = preload("res://src/fx/ShotPing.tscn")
 const PISTOL_STATS = preload("res://src/core/pistol_stats.tres")
 const PICKUP_SCN = preload("res://src/entities/pickup/Pickup.tscn")
+const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
@@ -1222,8 +1223,8 @@ func _drop_on_death():
 		var item = ItemData.new()
 		item.type = ItemData.Type.WEAPON
 		item.rarity = ItemData.Rarity.COMMON
-		item.item_name = _drop_weapon_name(wdata.weapon_type)
-		item.color = _drop_weapon_color(wdata.weapon_type)
+		item.item_name = DropDisplayCatalogScript.weapon_name(wdata.weapon_type)
+		item.color = DropDisplayCatalogScript.weapon_color(wdata.weapon_type)
 		var wstats = wdata.duplicate() as StatsData
 		wstats.current_ammo = wstats.max_ammo / 3
 		item.weapon_stats = wstats
@@ -1236,10 +1237,10 @@ func _drop_on_death():
 			var ammo_item = ItemData.new()
 			ammo_item.type = ItemData.Type.AMMO
 			ammo_item.rarity = ItemData.Rarity.COMMON
-			ammo_item.item_name = _drop_weapon_name(wdata.weapon_type) + " Ammo"
+			ammo_item.item_name = DropDisplayCatalogScript.ammo_name(wdata.weapon_type)
 			ammo_item.ammo_weapon_type = wdata.weapon_type
 			ammo_item.amount = total_ammo
-			ammo_item.color = _drop_weapon_color(wdata.weapon_type)
+			ammo_item.color = DropDisplayCatalogScript.weapon_color(wdata.weapon_type)
 			var ap = PICKUP_SCN.instantiate()
 			get_tree().root.add_child(ap)
 			ap.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
@@ -1248,7 +1249,7 @@ func _drop_on_death():
 		var heal_item = ItemData.new()
 		heal_item.type = ItemData.Type.HEAL
 		heal_item.rarity = ItemData.Rarity.COMMON
-		heal_item.item_name = "Health Potion"
+		heal_item.item_name = DropDisplayCatalogScript.common_heal_name()
 		heal_item.amount = stats.heal_items
 		heal_item.color = Color(0.2, 1.0, 0.4)
 		var hp = PICKUP_SCN.instantiate()
@@ -1259,29 +1260,13 @@ func _drop_on_death():
 		var adv_item = ItemData.new()
 		adv_item.type = ItemData.Type.HEAL
 		adv_item.rarity = ItemData.Rarity.RARE
-		adv_item.item_name = "MedKit"
+		adv_item.item_name = DropDisplayCatalogScript.rare_heal_name()
 		adv_item.amount = stats.advanced_heals
 		adv_item.color = Color(1.0, 0.88, 0.1)
 		var ap2 = PICKUP_SCN.instantiate()
 		get_tree().root.add_child(ap2)
 		ap2.global_position = global_position + Vector3(0, 0.3, 0.5)
 		ap2.init(adv_item)
-
-func _drop_weapon_name(wtype: String) -> String:
-	match wtype:
-		"pistol":  return "Pistol"
-		"ar":      return "Assault Rifle"
-		"shotgun": return "Shotgun"
-		"railgun": return "Railgun"
-	return wtype.capitalize()
-
-func _drop_weapon_color(wtype: String) -> Color:
-	match wtype:
-		"pistol":  return Color(0.55, 0.78, 1.0)
-		"ar":      return Color(0.2, 0.88, 0.35)
-		"shotgun": return Color(1.0, 0.6, 0.1)
-		"railgun": return Color(0.85, 0.2, 1.0)
-	return Color.WHITE
 
 func shoot_pellet(_idx: int):
 	reveal()

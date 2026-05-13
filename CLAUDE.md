@@ -10,11 +10,12 @@ Repository: `https://github.com/Kyulhee/battle-capsule`
 |---|---|
 | Last public release baseline | v1.7.3.1 — main menu / How to Play hotfix |
 | Current development line | v1.10-dev — Main slimdown + UI/catalog boundaries |
+| v1.10 completion | In progress. Completed slices do not mean Main slimdown is finished. |
 | Current stabilization add-on | v1.10.x — Item/Asset Readability Polish |
 | Release policy | Paused. Do not create GitHub releases unless explicitly requested. |
 | External asset workspace | `asset_generator/` stays untracked unless explicitly integrated. |
 
-v1.10 is infrastructure work, not a content expansion. Keep changes incremental, preserve current gameplay state ownership in `Main.gd`, and avoid starting v1.11 Complex Artifacts until item/asset readability and document routing are stable.
+v1.10 is infrastructure work, not a content expansion. Keep changes incremental, preserve current gameplay state ownership in `Main.gd`, and avoid starting v1.11 Complex Artifacts until item/asset readability and the v1.10 completion gate in [MASTERPLAN.md](docs/MASTERPLAN.md) are stable.
 
 ## Default Reading Path
 

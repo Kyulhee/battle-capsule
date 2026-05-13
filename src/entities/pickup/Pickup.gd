@@ -183,17 +183,17 @@ func _update_focus_marker(base_color: Color) -> void:
 		_focus_marker = MeshInstance3D.new()
 		_focus_marker.name = "FocusMarker"
 		var disc = CylinderMesh.new()
-		disc.top_radius = 0.76
-		disc.bottom_radius = 0.76
-		disc.height = 0.018
+		disc.top_radius = 0.54
+		disc.bottom_radius = 0.54
+		disc.height = 0.012
 		disc.radial_segments = 36
 		_focus_marker.mesh = disc
-		_focus_marker.position = Vector3(0.0, 0.03, 0.0)
+		_focus_marker.position = Vector3(0.0, 0.025, 0.0)
 		add_child(_focus_marker)
 	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(base_color.r, base_color.g, base_color.b, 0.26)
+	mat.albedo_color = Color(base_color.r, base_color.g, base_color.b, 0.10)
 	mat.emission_enabled = true
-	mat.emission = base_color * 0.28
+	mat.emission = base_color * 0.08
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	_focus_marker.material_override = mat
 	_focus_marker.visible = false
