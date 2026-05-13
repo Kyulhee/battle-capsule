@@ -129,11 +129,11 @@ git push origin master
 릴리즈 완료 후 두 파일을 업데이트한다.
 
 **MASTERPLAN.md**
-- 릴리즈 히스토리 테이블에 새 버전 행 추가
-- 해당 버전 로드맵 항목에 `~~취소선~~` 표시
+- Compact History 테이블에 새 버전 행 추가
+- 현재 상태와 다음 개발 라인 갱신
 
 **CLAUDE.md**
-- 현재 상태 표의 `완료 버전`, `다음 버전`, `미해결` 갱신
+- Current State 표의 release baseline, current development line, release policy 갱신
 
 ---
 
@@ -148,8 +148,8 @@ git push origin master
 [ ] gh release create (Windows + macOS 첨부)
 [ ] README 배지 URL 업데이트 + push
 [ ] gh release view vX.Y.Z 로 asset 업로드 확인
-[ ] MASTERPLAN.md 릴리즈 히스토리 행 추가 + 완료 로드맵 취소선
-[ ] CLAUDE.md 현재 상태 표 갱신
+[ ] MASTERPLAN.md Compact History + 현재 상태 갱신
+[ ] CLAUDE.md Current State 표 갱신
 ```
 
 ---
@@ -163,4 +163,4 @@ assets: BattleRoyalePrototype_v0.3.2_win64.zip
         BattleRoyalePrototype_mac.zip
 ```
 
-릴리즈 본문은 DEVLOG.md 해당 버전 섹션을 요약해서 작성한다.
+릴리즈 본문은 DEVLOG.md의 active entry 또는 docs/devlog 버전 요약을 기반으로 작성한다.

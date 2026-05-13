@@ -1,9 +1,11 @@
 # Battle Capsule Asset Production Brief
 
-> Last updated: 2026-05-08
-> Purpose: external asset generation brief for v1.8+ asset pipeline work.
+> Last updated: 2026-05-13
+> Purpose: stable style and file-format reference for v1.8+ asset pipeline work.
 
-This document is meant to be copied into an external image/audio/3D agent. Generated master files may stay in the separate `asset_generator/expected_output/` workspace; runtime-ready files are synced into `assets/` and then connected through `data/asset_catalog.json`.
+Copy-ready external generator prompts may be kept in local `docs/ASSET_GENERATION_PROMPTS.md`, which is intentionally untracked unless the user asks to publish it. This file is the tracked reference for style, formats, IDs, and handoff checks.
+
+Generated master files may stay in the separate `asset_generator/expected_output/` workspace; runtime-ready files are selected into `assets/` and then connected through `data/asset_catalog.json`.
 
 ---
 

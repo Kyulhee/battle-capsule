@@ -1,88 +1,100 @@
-# 배틀캡슐 — Claude 온보딩
+# Battle Capsule — Agent Onboarding
 
-**Godot 4.6.2 / GDScript** 쿼터뷰 배틀로얄 프로토타입.  
-플레이어 1명 vs 봇 11명, 자기장 수축, 숲 맵 1개.  
-저장소: https://github.com/Kyulhee/battle-capsule
+Godot 4.6.2 / GDScript quarter-view battle royale prototype.
 
----
+Repository: `https://github.com/Kyulhee/battle-capsule`
 
-## 현재 상태
+## Current State
 
-| 항목 | 내용 |
+| Item | Status |
 |---|---|
-| 완료 버전 | v1.7.3.1 (메인 메뉴/How to Play 핫픽스) |
-| 진행 중 | v1.8-dev — GameConfig / DebugFlags / AssetCatalog / Asset Brief |
-| 다음 릴리즈 | v1.8 — Expansion Foundation |
-| 미해결 | config/debug/asset catalog/Main 경계 정리 전에는 맵 크기 5배/99명 실험 보류 |
+| Last public release baseline | v1.7.3.1 — main menu / How to Play hotfix |
+| Current development line | v1.10-dev — Main slimdown + UI/catalog boundaries |
+| Current stabilization add-on | v1.10.x — Item/Asset Readability Polish |
+| Release policy | Paused. Do not create GitHub releases unless explicitly requested. |
+| External asset workspace | `asset_generator/` stays untracked unless explicitly integrated. |
 
-v1.8의 목표는 콘텐츠 추가가 아니라 확장 기반 정리다. 단순 수치 변경이 `Main.gd` 직접 수정으로 이어지지 않도록 config를 분리하고, DebugMode/DebugOverlay flag, AssetCatalog, 안전한 `Main.gd` 분리 후보를 먼저 고정한다.
+v1.10 is infrastructure work, not a content expansion. Keep changes incremental, preserve current gameplay state ownership in `Main.gd`, and avoid starting v1.11 Complex Artifacts until item/asset readability and document routing are stable.
 
----
+## Default Reading Path
 
-## 핵심 문서 — 작업 전 읽기
+Read only the documents needed for the task. Do not load archived long documents by default.
 
-| 문서 | 용도 |
+| Order | Document | Read When |
+|---|---|---|
+| 1 | [HANDOFF.md](docs/HANDOFF.md) | Every new session or context resume |
+| 2 | [DOCS_INDEX.md](docs/DOCS_INDEX.md) | To choose the right source document |
+| 3 | [MASTERPLAN.md](docs/MASTERPLAN.md) | Current roadmap, scope, non-goals |
+| 4 | [IMPACT_MAP.md](docs/IMPACT_MAP.md) | Before code changes that touch game state, entities, UI, map, or telemetry |
+| 5 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Before structural refactors or module boundary changes |
+| 6 | [TESTING.md](docs/TESTING.md) | Before/after verification |
+
+Task-specific documents:
+
+| Document | Use |
 |---|---|
-| [MASTERPLAN.md](docs/MASTERPLAN.md) | 전체 로드맵 (v0.1~v1.0), 코드 구조, 설계 원칙 |
-| [DEVLOG.md](docs/DEVLOG.md) | 버전별 구현 상세 기록 (가장 최근 항목부터) |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | 레이어 구조, 의존성 맵, 시그널 흐름, 설계 원칙 상세 |
-| [IMPACT_MAP.md](docs/IMPACT_MAP.md) | **코드 수정 전 필독** — 모듈 소유 관계, 양방향 참조, 변경→연쇄 영향 |
-| [TESTING.md](docs/TESTING.md) | 헤드리스 시뮬레이션 실행법 + 지표별 판단 기준 |
-| [RELEASE.md](docs/RELEASE.md) | Godot 빌드 → GitHub 릴리즈 → README 업데이트 전 절차 |
-| [UI_DESIGN.md](docs/UI_DESIGN.md) | HUD 디자인 프로세스 (ASCII 스케치 → 목업 → 구현) |
-| [ASSET_BRIEF.md](docs/ASSET_BRIEF.md) | 외부 에셋 생성용 스타일/파일/프롬프트 명세 |
+| [DEVLOG.md](docs/DEVLOG.md) | Short active log only. Historical details are indexed under `docs/devlog/`. |
+| [ASSET_BRIEF.md](docs/ASSET_BRIEF.md) | Stable style/file-format reference for assets |
+| [UI_DESIGN.md](docs/UI_DESIGN.md) | Screenshot-driven UI visual review guidance |
+| [RELEASE.md](docs/RELEASE.md) | Release work only |
 
-**단계별 업데이트 기준**
+Excluded from default context:
 
-| 단계 | 업데이트할 파일 |
+- `docs/archive/**` — legacy plans and full historical documents.
+- `docs/devlog/DEVLOG_full_2026-05-13.md` — preserved full old devlog; open only for historical detail.
+- `docs/ASSET_GENERATION_PROMPTS.md` — local-only copy-ready prompt scratch file; intentionally not tracked unless requested.
+- `asset_generator/**` — external generator workspace; inspect only for asset tasks, do not commit unless requested.
+
+## Update Rules
+
+| Event | Update |
 |---|---|
-| **코드 수정 전** | **[IMPACT_MAP.md](docs/IMPACT_MAP.md) 확인** — 변경 대상의 연쇄 영향 파악. 내용이 실제 코드와 다르면 즉시 사용자에게 보고 후 수정. |
-| 구현 후 검증 | *(없음)* — TESTING.md 체크리스트만 실행 |
-| 검증 통과 | **DEVLOG.md** 상단에 새 버전 섹션 추가 |
-| 검증 통과 | **CLAUDE.md** 현재 상태 표 갱신 |
-| 릴리즈 실행 | **RELEASE.md** 절차 따름 (export_presets → 빌드 → README) |
-| 릴리즈 완료 | **MASTERPLAN.md** 릴리즈 히스토리 추가 + 완료 로드맵 표시 |
-| 새 텔레메트리 추가 시 | **TESTING.md** 지표 기준표 + 체크리스트 갱신 |
+| Current scope/roadmap changes | `docs/MASTERPLAN.md` |
+| Completed verified work | `docs/DEVLOG.md` |
+| New/changed architecture boundary | `docs/ARCHITECTURE.md` and, if impact changes, `docs/IMPACT_MAP.md` |
+| New telemetry or validation rule | `docs/TESTING.md` |
+| External asset generation request changes | local `docs/ASSET_GENERATION_PROMPTS.md` scratch file and, if stable style/format changes, `docs/ASSET_BRIEF.md` |
+| Session handoff-sensitive context | `docs/HANDOFF.md` |
 
----
+## Key Files
 
-## 핵심 파일
-
-```
-src/entities/bot/Bot.gd        — AI 상태 머신 + combat plan 실행
-src/entities/bot/BotDoctrine.gd — AI profile merge + 전술 선택 순수 로직
-src/entities/bot/BotVisualKit.gd — 아키타입별 primitive 스킨/얼굴 파츠
-src/entities/player/Player.gd  — 무기 슬롯, 재장전, HUD
-src/entities/Entity.gd         — 공통 베이스 (이동, 피해, 인식)
-src/core/ZoneController.gd     — 자기장 상태 머신 (수축, 피해, 외부 추적)
-src/core/WeaponSlotManager.gd  — 무기 슬롯 5개, 탄약, 재장전 로직
-src/core/MissionTracker.gd     — 보너스·압박 미션 상태, 풀 정의, 필터
-src/core/Telemetry.gd          — 매치 통계 (그룹 토글, JSON 출력)
-src/Main.gd                    — 게임 루프, 스폰, 보급 캡슐, UI 오케스트레이션
-src/core/StatsData.gd          — 무기/캐릭터 스탯 Resource
-```
-
-빌드 아티팩트 → `builds/`  
-Godot 실행 파일 → 프로젝트 루트 (`Godot_v4.6.2-stable_win64*.exe`)
-
----
-
-## Godot 4 주의사항
-
-- Control preset: `PRESET_CENTER_BOTTOM` (not `PRESET_BOTTOM_CENTER`)
-- `grow_vertical = GROW_DIRECTION_BEGIN` 없으면 bottom anchor가 화면 밖으로 나감
-- macOS export key: `application/bundle_identifier` (not `application/identifier`)
-- 헤드리스 빌드 시 `textures/vram_compression/import_etc2_astc=true` 필요 (project.godot)
-- 에디터 밖에서 새 `class_name` 스크립트를 만들 때는 헤드리스 안정성을 위해 직접 타입 의존보다 `preload()`를 우선한다.
-
----
-
-## 헤드리스 시뮬레이션 (빠른 실행)
-
-```bash
-./Godot_v4.6.2-stable_win64_console.exe --headless -- autostart=true
-# 결과: %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
+```text
+src/Main.gd                         — orchestration, game loop, spawns, UI wiring
+src/entities/player/Player.gd       — player input, weapon slots, HUD
+src/entities/bot/Bot.gd             — AI state machine and combat execution
+src/entities/pickup/Pickup.gd       — pickup visibility, label, icon decal, collect logic
+src/entities/Entity.gd              — shared HP, shield, movement, perception
+src/core/ZoneController.gd          — zone lifecycle and damage
+src/core/MissionTracker.gd          — bonus/pressure mission state
+src/core/Telemetry.gd               — match metrics; preserve JSON schema unless planned
+src/core/AssetCatalog.gd            — audio/icon/prop/cosmetic ID lookup and fallback
+src/core/LootSpawner.gd             — loot hotspot and position calculations
+src/core/SupplyDropController.gd    — supply drop timing/position calculations
+src/ui/MenuIconFactory.gd           — procedural menu/records/help icons
 ```
 
-정상 기준: `zone_stage_reached >= 2`, `recover_bouts > 0`, combat plan 카운트가 0에 고정되지 않음, duration 급증 시 `total_damage_dealt`/`shots_fired`가 0이 아닌지 먼저 확인
-상세 판단 기준 → [TESTING.md](docs/TESTING.md)
+## Verification Rhythm
+
+For narrow v1.10 refactors and readability polish, normally run:
+
+```powershell
+git diff --check
+.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit
+python tools\simulate_matches.py 1
+```
+
+Expected warning while audio assets are missing:
+
+```text
+AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
+```
+
+Repeated simulation batches are not required for small UI/catalog/pickup display changes unless gameplay paths change.
+
+## Godot Notes
+
+- Control preset: `PRESET_CENTER_BOTTOM`, not `PRESET_BOTTOM_CENTER`.
+- Bottom-anchored Control nodes need `grow_vertical = GROW_DIRECTION_BEGIN`.
+- macOS export key: `application/bundle_identifier`.
+- Headless export requires `textures/vram_compression/import_etc2_astc=true` in `project.godot`.
+- For new `class_name` scripts created outside the editor, prefer `preload()` usage from `Main.gd` to avoid headless parse timing issues.

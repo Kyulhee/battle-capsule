@@ -1,178 +1,181 @@
-# UI/HUD 디자인 프로세스
+# UI Visual Review Guide
 
-> 그래픽·레이아웃 변경 논의 및 구현 가이드
+> Last updated: 2026-05-13. This replaces the old ASCII/mockup approval process with a screenshot-driven review workflow.
 
----
+Use this document when a change affects HUD, menus, pickup labels, minimap, result screens, settings, or any visible UI state.
 
-## 프로세스 개요
+## Goal
 
-UI 변경은 **텍스트 → 시각 → 구현** 순서로 단계를 밟는다.  
-각 단계에서 명시적 승인 후 다음으로 진행한다.
+UI review should answer concrete visual questions:
 
-```
-1단계  ASCII 스케치   → 레이아웃 방향 합의 (코드 없음)
-2단계  Godot 목업     → 실제 화면에서 시각 확인 (더미 데이터)
-3단계  스크린샷 검토  → 피드백 수집 및 수정
-4단계  최종 구현      → 목업 코드 정리, 실제 데이터 연결
-```
+- Is anything overlapping?
+- Is important information readable against the real game background?
+- Does text fit in its container?
+- Does dynamic state change layout size or position?
+- Does the UI still work at the project baseline viewport and likely smaller/wider viewports?
 
----
+Do not rely on intended layout from code alone. Review actual screenshots whenever the change is visual.
 
-## HUD 구역 정의
+## Current Capture Support
 
-아래 4개 구역을 기준으로 모든 UI 논의를 진행한다.
+The game currently supports manual screenshot capture:
 
-```
-┌────────────────────────────────────────────────────────┐
-│  [A: 좌상단 — 플레이어 상태]          [C: 우상단 — 킬피드]  │
-│                                                        │
-│                   [B: 중앙 상단 — Zone]                │
-│                                                        │
-│                                                        │
-│                  [D: 하단 중앙 — 무기 슬롯]              │
-└────────────────────────────────────────────────────────┘
+```text
+F12 -> debug_screenshot_manual.png
 ```
 
-| 구역 | 위치 | 포함 요소 | Godot anchor |
-|---|---|---|---|
-| A | 좌상단 | HP, 쉴드, 힐 아이템, K/A, 생존자 | `PRESET_TOP_LEFT` |
-| B | 중앙 상단 | Zone 타이머, ZONE CLOSING 경고 | `PRESET_CENTER_TOP` |
-| C | 우상단 | 킬피드 (최대 6줄) | `PRESET_TOP_RIGHT` |
-| D | 하단 중앙 | 무기 슬롯 바 5칸 | `PRESET_CENTER_BOTTOM` |
+Implementation reference:
 
----
+- `src/Main.gd` handles `KEY_F12`.
+- `_take_screenshot("debug_screenshot_manual.png")` first saves to `res://`, then falls back to `user://` if project write fails.
 
-## 1단계: ASCII 스케치
+Current baseline viewport:
 
-### 포맷 규칙
-
-- 가로 56자 기준 (16:9 화면 비율 근사)
-- **현재 → 제안** 쌍으로 작성
-- 구역은 `[A]` `[B]` `[C]` `[D]` 레이블로 표시
-- 겹치는 영역은 `!!!` 로 표시
-
-### 스케치 템플릿
-
-```
-현재:
-┌────────────────────────────────────────────────────────┐
-│[A: HP:80/100|SH:20/50|MK:2 H:2|K:2 A:0|Alive:9][B:ZONE 12s]!!!│
-│                                         [C: ★ YOU → Bot KILL] │
-│                                         [C: Bot → Bot        ] │
-│                          [D: K | 1 | 2 | 3 | 4 ]             │
-└────────────────────────────────────────────────────────┘
-
-제안:
-┌────────────────────────────────────────────────────────┐
-│[A: HP ████████░░ 80  SH ████░░ 20  🩹×2 💊×1  ◉9]     │
-│[A: K:2  A:0                                   ]        │
-│              ┌──────────────────────┐    [C: ★ KILL  Bot] │
-│              │[B: ZONE  12s        ]│    [C: Bot → Bot  ] │
-│              └──────────────────────┘                  │
-│                      [D: K | 1 | 2 | 3 | 4 ]          │
-└────────────────────────────────────────────────────────┘
+```text
+project.godot
+window/size/viewport_width=1280
+window/size/viewport_height=720
 ```
 
----
+There is not yet a dedicated command-line screenshot capture mode. If a UI task needs repeatable visual verification, adding a small non-gameplay capture mode is preferred over temporary mockup branches.
 
-## 2단계: Godot 목업
+## Default Review Workflow
 
-ASCII 스케치가 승인되면 Godot에서 임시 목업을 구현한다.
+1. Run the game normally and capture the relevant screen with `F12`.
+2. Inspect the screenshot directly, preferably with the image viewer available to the agent.
+3. Run the normal non-visual checks:
 
-### 구현 규칙
-
-1. **플래그로 분기**: `Player.gd` `_ready()`에 `const HUD_MOCKUP = true` 상수 추가. 목업 코드는 이 플래그 아래에만 작성.
-2. **더미 데이터 허용**: 실제 게임 데이터 연결 없이 하드코딩 값 사용 가능.
-3. **`# MOCKUP` 주석**: 목업 전용 노드·코드에 반드시 표시.
-4. **커밋 금지**: 목업 코드는 스크린샷 확인 후 폐기. 승인 전 커밋 안 함.
-
-### 스크린샷 찍기
-
-```bash
-# 게임 실행 후 F12
-./Godot_v4.6.2-stable_win64.exe
-# → res://debug_screenshot_manual.png 저장
+```powershell
+git diff --check
+.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit
+python tools\simulate_matches.py 1
 ```
 
----
+For pure documentation or copy changes, screenshots and simulations are not required.
 
-## 3단계: 스크린샷 검토 체크리스트
+## Required Screenshots By Change Type
 
-**레이아웃**
-- [ ] 구역 간 겹침 없음 (특히 A/B 경계, C 킬피드 누적 시)
-- [ ] 중요 정보(HP, Zone)가 즉시 눈에 들어옴
-- [ ] 킬피드 최대 6줄 누적해도 다른 구역 침범 안 함
+| Change Type | Screenshots To Capture |
+|---|---|
+| HUD status, health, shield, missions | active match with normal state, damaged/low state if relevant |
+| Zone timer / warnings | normal `ZONE Ns`, `ZONE CLOSING` |
+| Pickup labels/icons/glow | sparse pickup area, dense pickup cluster, focused pickup candidate |
+| Weapon slot HUD | empty slots, full inventory, reload/low ammo if relevant |
+| Records/settings/help/menu | each changed panel at default viewport |
+| Minimap/full-map work | normal map, zone closing, supply/loot marker state if relevant |
+| Result screen | win and loss if the change touches result text/layout |
 
-**가독성**
-- [ ] outline 없이도 텍스트가 배경과 구분됨
-- [ ] 폰트 크기가 정보 우선순위와 일치 (HP > Zone timer > 킬피드)
-- [ ] 색상이 직관적 (빨강=위험, 노랑=경고, 흰색=일반)
+Do not capture every possible state for small changes. Capture the states that could plausibly break.
 
-**반응성**
-- [ ] Zone 타이머 숫자 변경 시 B 구역 레이아웃 흔들림 없음
-- [ ] ZONE CLOSING ↔ ZONE Ns 전환 시 크기 변화 없음
+## Visual Review Checklist
 
-> ⚠️ 이 체크리스트 항목은 개발자와 상의 후에만 수정한다.
+### Layout
 
----
+- No overlapping UI text, icons, panels, minimap, or labels.
+- Text stays inside buttons, panels, slot boxes, and labels.
+- Dynamic values do not resize the whole layout unexpectedly.
+- Top-left HUD, center zone text, killfeed, minimap, and bottom slot bar do not fight for the same screen space.
+- Pickup labels do not flood the center of the screen when loot is clustered.
 
-## 4단계: 최종 구현
+### Readability
 
-목업 검토 통과 후 실제 코드로 전환한다.
+- HP, shield, alive count, zone state, active weapon, and focused pickup are readable first.
+- Secondary information is visibly lower priority.
+- Text outline/shadow is enough on dark terrain, buildings, zone overlay, and glow effects.
+- Icons remain recognizable at their actual in-game size, not just in source sheets.
+- Color is functional: danger, rare, armor, heal, ammo, and common loot are distinguishable.
 
-1. `# MOCKUP` 노드·상수 제거
-2. 더미 데이터를 실제 소스로 교체 (Telemetry, Main.alive_count 등)
-3. `_ready()` 분기 코드 정리
-4. 헤드리스 시뮬레이션 실행 — UI 변경이 봇 AI 지표에 영향 없는지 확인
-5. DEVLOG.md에 UI 변경 기록
-6. TESTING.md 체크리스트에 새 UI 관련 항목 있으면 개발자와 상의 후 추가
+### Motion And State
 
----
+- `ZONE Ns` and `ZONE CLOSING` transitions do not jump or occlude other UI.
+- Killfeed accumulation does not spill into unrelated HUD areas.
+- Pickup focus changes are clear but not debug-like.
+- Reload/low ammo indicators update without layout jitter.
+- Pause, settings, help, records, and result panels return to the correct previous screen.
 
-## 현재 알려진 HUD 문제
+### Asset-Specific Checks
 
-| 문제 | 구역 | 심각도 | 상태 |
-|---|---|---|---|
-| Zone timer가 HP 상태바 텍스트와 겹침 | A/B | 높음 | 미해결 |
-| 킬피드 최대 높이 미지정 — 누적 시 좌상단 침범 가능 | C | 중간 | 미해결 |
-| Alive 카운터 항상 1 표시 | A | 높음 | v0.6.1 수정 |
+- Catalog icons render when present.
+- Fallback primitive/icon display still works when an asset is missing.
+- Common weapon/ammo glow does not overpower rare/purple, legendary/orange, armor/cyan, or zone warning cues.
+- New generated source files under `asset_generator/expected_output/` are not accidentally treated as runtime assets.
 
----
+## Automated Review Direction
 
-## v0.7 HUD 목표 스케치
+For future UI work, prefer adding a small deterministic capture path instead of temporary mockups.
 
-### 현재 (v0.6.1)
+Recommended command shape:
 
-```
-┌────────────────────────────────────────────────────────┐
-│ HP:80/100|SH:20/50|MK:2 H:2|K:2 A:0|Alive:9  ZONE 12s│ ← A+B 겹침
-│                                        ★ YOU→Bot  KILL │ ← C
-│                                        Bot → Bot       │
-│                   [ K ][ 1 ][ 2 ][ 3 ][ 4 ]           │ ← D
-└────────────────────────────────────────────────────────┘
-```
-
-### 제안 (v0.7)
-
-```
-┌────────────────────────────────────────────────────────┐
-│ HP ████████░░ 80/100   SH ████░░ 20/50                 │ ← A 위
-│ 🩹×2  💊×1   K:2  A:0   ◉ Alive: 9                   │ ← A 아래
-│                                                        │
-│              ╔══════════════════╗   ★ YOU→Bot  KILL   │ ← B + C
-│              ║   ZONE  12s      ║   Bot → Bot          │
-│              ╚══════════════════╝                      │
-│                   [ K ][ 1 ][ 2 ][ 3 ][ 4 ]           │ ← D
-└────────────────────────────────────────────────────────┘
-
-ZONE CLOSING 시:
-│              ╔══════════════════╗
-│              ║  ⚠ ZONE CLOSING ║   (빨간 배경)
-│              ╚══════════════════╝
+```powershell
+.\Godot_v4.6.2-stable_win64_console.exe --path . -- ui_capture=true ui_state=pickup_dense screenshot=ui_pickup_dense_1280x720.png
 ```
 
-**변경 요약:**
-- A: 단일 텍스트 줄 → 2줄 분리 (HP/SH 바 시각화 + K/A/Alive 줄)
-- B: anchor 유지, 배경 패널(`PanelContainer`) 추가로 겹침 방지
-- C: 변경 없음 (위치 유지, 최대 높이 `custom_minimum_size`로 제한)
-- D: 변경 없음
+Suggested capture states:
+
+| State ID | Purpose |
+|---|---|
+| `hud_normal` | baseline gameplay HUD |
+| `hud_zone_closing` | zone warning layout |
+| `pickup_sparse` | one or two visible pickups |
+| `pickup_dense` | clustered loot readability |
+| `inventory_full` | weapon slot stress state |
+| `menu_main` | main menu layout |
+| `panel_help` | How to Play panel |
+| `panel_records` | records list and difficulty tabs |
+| `panel_settings` | settings controls |
+| `result_win` | result screen layout |
+
+Suggested viewport matrix:
+
+```text
+1280x720   baseline
+1600x900   wider desktop
+960x540    small 16:9
+```
+
+This capture mode should:
+
+- Avoid changing gameplay simulation logic.
+- Build only the requested UI state or start a deterministic short match setup.
+- Save screenshots to a known path.
+- Exit automatically after capture.
+- Be excluded from release-facing UI unless explicitly enabled by command-line args.
+
+## Agent Review Expectations
+
+When screenshots are available, the agent should inspect them as images and report concrete findings:
+
+- file reviewed,
+- viewport/state,
+- visible overlaps,
+- unreadable text,
+- label/icon clutter,
+- container overflow,
+- suspicious regressions.
+
+Good review result:
+
+```text
+Reviewed ui_pickup_dense_1280x720.png.
+Findings:
+- Pickup labels overlap above the lower-left loot cluster.
+- Blue ammo glow is stronger than armor/cyan and should be reduced.
+- Focus candidate is not distinguishable from non-focused pickups.
+```
+
+Bad review result:
+
+```text
+Looks fine.
+```
+
+## When To Update This Document
+
+Update this document when:
+
+- a screenshot capture command is actually implemented,
+- a new recurring UI state needs review,
+- viewport support changes,
+- a visual issue repeats often enough to become a checklist item.
+
+Do not add large design proposals here. Put roadmap/scope in [MASTERPLAN.md](MASTERPLAN.md), completed work in [DEVLOG.md](DEVLOG.md), and stable asset style/format rules in [ASSET_BRIEF.md](ASSET_BRIEF.md).
