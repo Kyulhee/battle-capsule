@@ -8,6 +8,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ## v1.10-dev — 2026-05-13
 
+**RecordsPanelBuilder Boundary — Records rendering split**
+
+**src/ui/RecordsPanelBuilder.gd / src/Main.gd**
+
+- Moved Records difficulty tabs, clear button, history row rendering, and record icon value rows out of `Main.gd`.
+- `Main.gd` keeps selected difficulty state and callbacks; `RecordsPanelBuilder` owns UI construction from Telemetry history.
+- This continues the low-risk `MenuController`-direction split without moving game state, match flow, or Telemetry schema.
+- `Main.gd` is now about 1847 lines after the Help/Records builder splits.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=74.1s, stage=3, recover=30, disengage=17.
+
+---
+
+## v1.10-dev — 2026-05-13
+
 **HelpPanelBuilder Boundary — How to Play rendering split**
 
 **src/ui/HelpPanelBuilder.gd / src/Main.gd**

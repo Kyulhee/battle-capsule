@@ -19,6 +19,7 @@
 │  BotDoctrine.gd      │                              │
 │                      │  MenuIconFactory.gd          │
 │                      │  HelpPanelBuilder.gd         │
+│                      │  RecordsPanelBuilder.gd      │
 ├──────────────────────┴──────────────────────────────┤
 │  Core Modules  (RefCounted — 씬트리 독립)             │
 │  ZoneController · WeaponSlotManager · MissionTracker│
@@ -159,6 +160,7 @@
 |---|---|---|
 | `src/ui/MenuIconFactory.gd` | 메뉴/Records/Help에서 쓰는 절차적 픽셀 아이콘 생성 | Main UI 빌더가 `make_icon()` / `make_capsule_logo()` 호출 |
 | `src/ui/HelpPanelBuilder.gd` | How to Play scroll content 렌더링 | Main이 Help panel root를 넘기고, builder가 `HelpCatalog` + `MenuIconFactory`로 행 생성 |
+| `src/ui/RecordsPanelBuilder.gd` | Records 탭/clear/history row 렌더링 | Main이 selected difficulty와 콜백을 유지하고, builder가 Telemetry history를 행으로 렌더 |
 
 ```
 Entity (CharacterBody3D)

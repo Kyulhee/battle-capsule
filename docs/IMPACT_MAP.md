@@ -73,6 +73,11 @@
 - **호출자**: `Main.gd` `_setup_secondary_panels()`.
 - **소유 범위**: How to Play scroll content 생성. Help panel 표시 전환, close button 연결, 버튼 스타일은 `Main.gd`가 유지.
 
+### `src/ui/RecordsPanelBuilder.gd`
+- **읽는 파일**: `DifficultyCatalog.gd`, `MenuIconFactory.gd`, `Telemetry.get_history_for_difficulty()`.
+- **호출자**: `Main.gd` `_on_records_pressed()` / `_populate_records_list()`.
+- **소유 범위**: Records 난이도 탭, CLEAR ALL 버튼, 기록 행 렌더링. 선택된 난이도 상태와 clear/diff 콜백은 `Main.gd`가 유지.
+
 ### `src/maps/WorldBuilder.gd`
 - **읽는 파일**: `MapSpec.gd`가 파싱한 POI/obstacles/routes.
 - **공개 API**: `generate_world(spec)`, `get_minimap_features()`.
@@ -101,5 +106,6 @@
 | Death drop 표시 이름/색상 | `DropDisplayCatalog.gd` | `Player.gd`, `Bot.gd`, `Pickup.gd` label output |
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
 | How to Play 행 구조 | `HelpCatalog.gd` | `HelpPanelBuilder.gd`, `Main.gd` Help panel wiring |
+| Records 행 구조 | `RecordsPanelBuilder.gd` | `Telemetry.gd` match history fields, `Main.gd` Records callbacks |
 | 새 `PressureEffect` 추가 | `MissionTracker.gd` (enum) | `Main._apply_pressure_effects()` (match 케이스 추가) |
 | 새 `PressureCondition` 추가 | `MissionTracker.gd` (enum + `_eval_single_condition`) | `MissionTracker.filter_feasible()` (필터 케이스 추가) |

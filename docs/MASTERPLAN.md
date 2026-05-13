@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-13 (HelpPanelBuilder split)
+> Last updated: 2026-05-13 (UI panel builder splits)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -54,6 +54,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `HelpCatalog`: How to Play section/row data.
 - `MenuIconFactory`: procedural menu/records/help icon generation.
 - `HelpPanelBuilder`: How to Play panel rendering from HelpCatalog rows.
+- `RecordsPanelBuilder`: Records tabs, clear button, and history row rendering.
 
 **Good next candidates**
 
