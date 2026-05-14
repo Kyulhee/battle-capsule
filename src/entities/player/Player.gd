@@ -66,6 +66,7 @@ const SHOT_PING_SCN = preload("res://src/fx/ShotPing.tscn")
 const PISTOL_STATS = preload("res://src/core/pistol_stats.tres")
 const PICKUP_SCN = preload("res://src/entities/pickup/Pickup.tscn")
 const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
+const ItemDisplayFormatterScript = preload("res://src/core/ItemDisplayFormatter.gd")
 const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
@@ -536,7 +537,7 @@ func _process(delta):
 		var max_a_r = wdata_r.max_ammo if wdata_r else 0
 		var transferred = disp_ammo - slots.reload_ammo_start
 		var disp_res = max(0, slots.slot_reserve[slots.active_slot] - transferred)
-		slot_ammo_labels[slots.active_slot].text = "%d/%d+%d" % [disp_ammo, max_a_r, disp_res]
+		slot_ammo_labels[slots.active_slot].text = ItemDisplayFormatterScript.slot_ammo_text(disp_ammo, max_a_r, disp_res)
 		slot_ammo_labels[slots.active_slot].modulate = Color.YELLOW
 
 	# Zone Battery: 자기장 경계 내측 근방에서 쉴드 자동 충전
@@ -883,7 +884,7 @@ func _refresh_slot_hud():
 			var ammo  = slots.slot_ammo[i]
 			var max_a = slots.weapon_slots[i].max_ammo
 			var res   = slots.slot_reserve[i]
-			slot_ammo_labels[i].text = "%d/%d+%d" % [ammo, max_a, res]
+			slot_ammo_labels[i].text = ItemDisplayFormatterScript.slot_ammo_text(ammo, max_a, res)
 			if ammo <= 0 and res <= 0:
 				slot_ammo_labels[i].modulate = Color.RED
 			elif ammo <= max_a / 4:

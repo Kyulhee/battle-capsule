@@ -3,6 +3,7 @@ class_name Pickup
 
 @export var item: ItemData
 
+const ItemDisplayFormatterScript = preload("res://src/core/ItemDisplayFormatter.gd")
 const LABEL_NAME_RANGE := 3.2
 const LABEL_CLUSTER_RADIUS := 2.2
 
@@ -203,31 +204,13 @@ func _update_focus_marker_visibility(sensed: bool) -> void:
 		_focus_marker.visible = sensed and _focused
 
 func _label_prefix() -> String:
-	if not item:
-		return ""
-	match item.type:
-		ItemData.Type.HEAL:
-			return "◆ " if item.rarity == ItemData.Rarity.RARE else "♥ "
-		ItemData.Type.ARMOR:
-			return "◈ "
-		ItemData.Type.AMMO:
-			return "● "
-	return ""
+	return ItemDisplayFormatterScript.pickup_prefix(item)
 
 func _label_name_text() -> String:
-	if not item:
-		return ""
-	return _label_prefix() + item.item_name
+	return ItemDisplayFormatterScript.pickup_name(item)
 
 func _label_detail_text() -> String:
-	if not item:
-		return ""
-	var display_text = _label_name_text()
-	if item.type == ItemData.Type.WEAPON and item.weapon_stats:
-		display_text += "\n%d/%d" % [item.weapon_stats.current_ammo, item.weapon_stats.max_ammo]
-	elif item.type == ItemData.Type.AMMO and item.ammo_weapon_type != "":
-		display_text += " +%d" % item.amount
-	return display_text
+	return ItemDisplayFormatterScript.pickup_detail(item)
 
 func _label_color(is_focused: bool) -> Color:
 	if is_focused:

@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.4-dev — 2026-05-14
+
+**Data/Description Value Binding — item display formatter**
+
+**src/core/ItemDisplayFormatter.gd / src/entities/pickup/Pickup.gd / src/entities/player/Player.gd**
+
+- Added a small item display formatter for pickup names/details and weapon/slot ammo strings.
+- Focused pickup details now read weapon ammo, ammo amount, heal count, and armor amount from `ItemData` / `StatsData` instead of local string fragments in `Pickup.gd`.
+- Player HUD slot ammo and reload-progress ammo text now share the same formatter fed by `WeaponSlotManager` slot state.
+- No pickup collection, inventory, balance values, Telemetry hook names, or JSON schema were changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=72.6s, stage=3, recover=23, disengage=12.
+
+---
+
 ## v1.10.3-dev — 2026-05-14
 
 **Data/Description Value Binding — artifact descriptions**
