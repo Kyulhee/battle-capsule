@@ -24,8 +24,10 @@
 │                      │  RecordsPanelBuilder.gd      │
 │                      │  SettingsPanelBuilder.gd     │
 │                      │  panels/ResultPanelBuilder   │
+│                      │  panels/PausePanelBuilder    │
 │                      │  panels/ArtifactSelection     │
 │                      │  panels/HellAnnouncement      │
+│                      │  overlays/EventTextBuilder   │
 │                      │  menu/MenuController          │
 ├──────────────────────┴──────────────────────────────┤
 │  Core Modules / Runtime Controllers                  │
@@ -200,8 +202,10 @@
 | `src/ui/RecordsPanelBuilder.gd` | Records 탭/clear/history row 렌더링 | Main이 selected difficulty와 콜백을 유지하고, builder가 Telemetry history를 행으로 렌더 |
 | `src/ui/SettingsPanelBuilder.gd` | Settings modal layout/control 생성 | Main이 volume/fullscreen/save 동작 callback을 유지하고, builder가 UI 생성 |
 | `src/ui/panels/ResultPanelBuilder.gd` | Result panel layout/buttons/label population | Main이 match finalization, mission evaluation, score calculation을 유지하고 결과 표시 데이터만 넘김 |
+| `src/ui/panels/PausePanelBuilder.gd` | Pause overlay/title/buttons 생성 | Main이 pause state와 resume/restart/menu callback을 유지 |
 | `src/ui/panels/ArtifactSelectionPanelBuilder.gd` | Artifact selection overlay/cards/buttons | Main이 catalog lookup, pending artifact, panel lifetime, start transition을 유지 |
 | `src/ui/panels/HellAnnouncementBuilder.gd` | Hell announcement overlay/card/rows/button | Main이 Hell modifier selection, pause/unpause, panel lifetime, dismiss fade를 유지 |
+| `src/ui/overlays/EventTextBuilder.gd` | Top-center transient event text label/fade 생성 | Main/HellEventController signal path가 message/color만 넘김 |
 | `src/ui/menu/MenuController.gd` | Panel visibility routing and menu button wiring | Main이 callbacks/settings/content builders를 유지하고 controller가 scene panel visibility와 button connect만 처리 |
 | `src/systems/match/MatchBootstrap.gd` | Match-start object/value initialization | Main이 match-global state ownership을 유지하고 bootstrap helper가 zone/mission/pressure/Hell modifier 초기값만 반환 |
 | `src/systems/match/MatchTuning.gd` | Match/zone config and CLI override interpretation | Main이 exported match fields, loot spawner wiring, and difficulty state ownership을 유지 |

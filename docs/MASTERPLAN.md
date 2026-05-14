@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-15 (MenuVisualBuilder split + modularization plan)
+> Last updated: 2026-05-15 (Pause/Event overlay builder split + modularization plan)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural planning slice**: v1.10.14+ — remaining GameTuning/data-value binding or MatchBootstrap follow-up.
+**Next structural planning slice**: v1.10.15+ — remaining GameTuning/data-value binding or MatchBootstrap follow-up.
 
-**Latest completed slice**: v1.10.13 — menu/secondary panel visual styling split into `src/ui/MenuVisualBuilder.gd`.
+**Latest completed slice**: v1.10.14 — pause overlay and transient event text construction split into UI builders.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -65,8 +65,10 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `DifficultySelectorBuilder`: difficulty button/tooltip/pressure opt-in menu UI.
 - `SettingsPanelBuilder`: Settings modal layout and controls.
 - `ResultPanelBuilder`: result panel card/buttons/label population.
+- `PausePanelBuilder`: pause overlay and pause action buttons.
 - `ArtifactSelectionPanelBuilder`: artifact selection overlay/cards/buttons.
 - `HellAnnouncementBuilder`: Hell mode announcement overlay/card/rows/button.
+- `EventTextBuilder`: transient top-center event text labels and fade-out tween setup.
 - `MenuController`: panel visibility routing and main/secondary menu button wiring.
 - `MatchBootstrap`: match-start zone creation, bonus mission selection, pressure flag initialization, Hell modifier roll.
 - `MatchTuning`: `GameConfig` match/zone tuning interpretation and CLI match/difficulty override parsing.
@@ -102,7 +104,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 **Completion gate before v1.11**
 
 - Finish the v1.10.x item/asset readability stabilization work or explicitly defer remaining visual-only items.
-- MenuController, MenuVisualBuilder, MatchBootstrap, and MatchTuning first passes are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap/GameTuning follow-up items.
+- MenuController, MenuVisualBuilder, PausePanelBuilder, EventTextBuilder, MatchBootstrap, and MatchTuning first passes are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap/GameTuning follow-up items.
 - Keep pressure mission effects, zone state, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists.
 - Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
 - Complete or explicitly defer the first Data/Description Value Binding slice before v1.11 artifacts add more numeric descriptions.

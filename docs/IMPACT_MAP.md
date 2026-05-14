@@ -20,8 +20,10 @@
 | DifficultySelectorBuilder | difficulty selector/tooltip UI | `Main.gd` | static UI builder |
 | SettingsPanelBuilder | settings modal UI | `Main.gd` | static UI builder |
 | ResultPanelBuilder | result panel layout/population | `Main.gd` | static UI builder |
+| PausePanelBuilder | pause overlay/buttons | `Main.gd` | static UI builder |
 | ArtifactSelectionPanelBuilder | artifact selection modal UI | `Main.gd` | static UI builder |
 | HellAnnouncementBuilder | Hell announcement modal UI | `Main.gd` | static UI builder |
+| EventTextBuilder | transient event text overlay | `Main.gd` | static UI builder |
 | MenuController | panel routing and menu button wiring | `Main.gd` | RefCounted UI controller |
 | MatchBootstrap | match-start initialization helpers | `Main.gd` | static system helper |
 | MatchTuning | match/zone tuning interpretation | `Main.gd` | static system helper |
@@ -109,6 +111,13 @@
 - **역할**: Result panel card/buttons/labels 생성과 최종 결과 label population.
 - **소유하지 않는 것**: match finalization, mission evaluation, score formula, Telemetry end/log calls.
 
+### `src/ui/panels/PausePanelBuilder.gd`
+- **읽는 파일**: 직접 scene lookup 없음. `Main.gd`가 resume/restart/menu callbacks와 button style callback을 넘김.
+- **호출자**: `Main.gd` `_create_pause_panel()`.
+- **역할**: pause overlay ColorRect, centered button stack, title, pause action buttons 생성.
+- **소유하지 않는 것**: paused state, Escape input handling, restart/menu behavior, scene reload, panel lifetime.
+- **수정 영향**: pause UI layout이나 버튼 구성을 바꾸면 `Main.gd` `_toggle_pause()`/`_input()`, `MenuVisualBuilder.gd` shared button style, scene pause mode behavior를 함께 확인.
+
 ### `src/ui/panels/ArtifactSelectionPanelBuilder.gd`
 - **읽는 파일**: 직접 scene 참조 없음. 표시할 artifact catalog array를 `Main.gd`에서 받음.
 - **호출자**: `Main.gd` `_show_artifact_select()`.
@@ -120,6 +129,13 @@
 - **호출자**: `Main.gd` `_show_hell_announcement()`.
 - **역할**: Hell announcement overlay, card, penalty/event rows, start button 생성.
 - **소유하지 않는 것**: Hell modifier selection, pause/unpause, active panel lifetime, dismiss fade, Hell runtime controller.
+
+### `src/ui/overlays/EventTextBuilder.gd`
+- **읽는 파일**: 직접 scene lookup 없음. `Main.gd`가 parent node, message, color를 넘김.
+- **호출자**: `Main.gd` `_show_event_text()` through Hell/event signal paths.
+- **역할**: top-center event label construction, text/shadow style, z-index, fade-out tween, queue_free callback.
+- **소유하지 않는 것**: event timing, event source, Hell event runtime, gameplay state, Telemetry schema.
+- **수정 영향**: event text 위치/수명/스타일을 바꾸면 `Main.gd` event signal wiring과 `HellEventController.gd` `event_text_requested` 호출 흐름을 함께 확인.
 
 ### `src/ui/menu/MenuController.gd`
 - **읽는 파일**: `Main.gd`가 넘긴 `CanvasLayer/Control` subtree.
@@ -197,8 +213,10 @@
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Settings modal UI | `SettingsPanelBuilder.gd` | `Main.gd` settings callbacks, `user://settings.cfg` key compatibility |
 | Result panel UI | `ResultPanelBuilder.gd` | `Main.gd` finalization/score data, Telemetry score fields |
+| Pause overlay UI | `PausePanelBuilder.gd` | `Main.gd` pause state/input callbacks, `MenuVisualBuilder.gd` shared button style |
 | Artifact selection UI | `ArtifactSelectionPanelBuilder.gd` | `ArtifactCatalog.gd`, `Main.gd` pending/apply flow, `Player.gd` `apply_artifact()` |
 | Hell announcement UI | `HellAnnouncementBuilder.gd` | `Main.gd` Hell modifier/dismiss wiring, `HellEventController.gd` modifier description |
+| Event text overlay | `EventTextBuilder.gd` | `Main.gd` event signal wiring, `HellEventController.gd` event text requests |
 | Menu panel routing | `MenuController.gd` | `Main.gd` callbacks, scene panel names, Records/Help close buttons |
 | Menu visual style | `MenuVisualBuilder.gd` | `Main.gd` target node wiring, `MenuController.gd`, `HelpPanelBuilder.gd`, `RecordsPanelBuilder.gd` |
 | Match start initialization | `MatchBootstrap.gd` | `Main.gd` state ownership, `ZoneController.gd`, `MissionTracker.gd`, Hell modifier enum compatibility |

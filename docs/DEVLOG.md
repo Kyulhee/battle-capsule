@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.14-dev — 2026-05-15
+
+**Main Slimdown — pause/event overlay builder split**
+
+**src/ui/panels/PausePanelBuilder.gd / src/ui/overlays/EventTextBuilder.gd / src/Main.gd**
+
+- Added `PausePanelBuilder` for the pause overlay, title, and Resume/Restart/Main Menu buttons.
+- Added `EventTextBuilder` for transient top-center event text labels and fade-out tween setup.
+- `Main.gd` now keeps pause state, callbacks, and event signal handling; overlay node construction moved to UI helpers.
+- No pause state rules, button callbacks, menu routing, Hell event behavior, gameplay behavior, Telemetry hook names, or JSON schema were changed.
+- `Main.gd` is now 1156 lines after this split.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=92.3s, stage=3, recover=28, disengage=20.
+
+---
+
 ## v1.10.13-dev — 2026-05-15
 
 **Main Slimdown — menu visual builder split**

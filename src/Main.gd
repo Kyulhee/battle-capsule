@@ -67,6 +67,7 @@ const ArtifactCatalogScript = preload("res://src/core/ArtifactCatalog.gd")
 const ArtifactSelectionPanelBuilderScript = preload("res://src/ui/panels/ArtifactSelectionPanelBuilder.gd")
 const AssetCatalogScript = preload("res://src/core/AssetCatalog.gd")
 const DifficultySelectorBuilderScript = preload("res://src/ui/DifficultySelectorBuilder.gd")
+const EventTextBuilderScript = preload("res://src/ui/overlays/EventTextBuilder.gd")
 const GameConfigScript = preload("res://src/core/GameConfig.gd")
 const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
@@ -80,6 +81,7 @@ const MenuVisualBuilderScript = preload("res://src/ui/MenuVisualBuilder.gd")
 const MatchBootstrapScript = preload("res://src/systems/match/MatchBootstrap.gd")
 const MatchTuningScript = preload("res://src/systems/match/MatchTuning.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
+const PausePanelBuilderScript = preload("res://src/ui/panels/PausePanelBuilder.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
 const ResultPanelBuilderScript = preload("res://src/ui/panels/ResultPanelBuilder.gd")
 const SettingsPanelBuilderScript = preload("res://src/ui/SettingsPanelBuilder.gd")
@@ -376,41 +378,12 @@ func _toggle_pause():
 		$CanvasLayer/Control.add_child(_pause_panel)
 
 func _create_pause_panel() -> Control:
-	var panel = ColorRect.new()
-	panel.process_mode = Node.PROCESS_MODE_ALWAYS
-	panel.layout_mode = 1
-	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.color = Color(0.0, 0.0, 0.0, 0.55)
-	panel.z_index = 15
-
-	var box = VBoxContainer.new()
-	box.process_mode = Node.PROCESS_MODE_ALWAYS
-	box.set_anchors_preset(Control.PRESET_CENTER)
-	box.offset_left = -110.0; box.offset_right = 110.0
-	box.offset_top  = -80.0;  box.offset_bottom = 80.0
-	box.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	box.grow_vertical   = Control.GROW_DIRECTION_BOTH
-	box.alignment = BoxContainer.ALIGNMENT_CENTER
-	box.add_theme_constant_override("separation", 10)
-	panel.add_child(box)
-
-	var title = Label.new()
-	title.text = "PAUSED"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	box.add_child(title)
-
-	for btn_data in [["RESUME", _toggle_pause], ["RESTART", restart_game], ["MAIN MENU", return_to_menu]]:
-		var btn = Button.new()
-		btn.process_mode = Node.PROCESS_MODE_ALWAYS
-		btn.text = btn_data[0]
-		btn.add_theme_font_size_override("font_size", 20)
-		btn.pressed.connect(btn_data[1])
-		_apply_btn_style(btn)
-		box.add_child(btn)
-
-	return panel
+	return PausePanelBuilderScript.build(
+		Callable(self, "_toggle_pause"),
+		Callable(self, "restart_game"),
+		Callable(self, "return_to_menu"),
+		Callable(self, "_apply_btn_style")
+	)
 
 func _input(event):
 	if not (event is InputEventKey) or not event.pressed: return
@@ -1180,21 +1153,4 @@ func _on_settings_closed(vol_linear: float):
 	_save_settings(vol_linear, DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 func _show_event_text(msg: String, col: Color):
-	var lbl = Label.new()
-	lbl.text = msg
-	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 22)
-	lbl.add_theme_color_override("font_color", col)
-	lbl.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.8))
-	lbl.add_theme_constant_override("shadow_offset_x", 2)
-	lbl.add_theme_constant_override("shadow_offset_y", 2)
-	lbl.layout_mode = 1
-	lbl.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	lbl.offset_top = 80.0; lbl.offset_bottom = 120.0
-	lbl.offset_left = -200.0; lbl.offset_right = 200.0
-	lbl.z_index = 8
-	$CanvasLayer/Control.add_child(lbl)
-	var tw = create_tween()
-	tw.tween_interval(1.5)
-	tw.tween_property(lbl, "modulate:a", 0.0, 0.4)
-	tw.tween_callback(lbl.queue_free)
+	EventTextBuilderScript.show($CanvasLayer/Control, msg, col)
