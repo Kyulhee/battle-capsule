@@ -19,10 +19,6 @@ var _records_selected_diff: int = 1
 # Hell events
 enum HellModifier { SCARCITY, BARRAGE, ALL_AGGRESSIVE }
 var hell_modifier: HellModifier = HellModifier.SCARCITY
-var _hell_blackout_timer: float = 0.0
-var _hell_blackout_active: bool = false
-var _hell_bomb_timer: float = 0.0
-var _hell_overlay: ColorRect = null
 var _hell_announce_active: bool = false
 var _hell_announce_panel: Control = null
 var _pause_panel: Control = null
@@ -83,6 +79,7 @@ const GameConfigScript = preload("res://src/core/GameConfig.gd")
 const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
 const HelpPanelBuilderScript = preload("res://src/ui/HelpPanelBuilder.gd")
+const HellEventControllerScript = preload("res://src/core/HellEventController.gd")
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
@@ -104,6 +101,7 @@ var game_config = null
 var debug_flags = null
 var debug_overlay = null
 var supply_controller = null
+var hell_events = null
 
 # Dynamic Supply
 var supply_telegraphed: bool = false
@@ -117,6 +115,8 @@ func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	loot_spawner = LootSpawnerScript.new()
 	supply_controller = SupplyDropControllerScript.new()
+	hell_events = HellEventControllerScript.new()
+	hell_events.event_text_requested.connect(_show_event_text)
 	asset_catalog = AssetCatalogScript.new()
 	asset_catalog.load_or_default()
 	_configure_asset_catalog()
@@ -438,9 +438,13 @@ func start_game():
 		var _rng = RandomNumberGenerator.new()
 		_rng.seed = Time.get_ticks_usec() ^ (Time.get_ticks_msec() << 16)
 		hell_modifier = _rng.randi_range(0, 2) as HellModifier
-		_hell_blackout_timer = _hell_range("blackout_initial_min", "blackout_initial_max", 12.0, 20.0)
-		_hell_bomb_timer = _hell_value("bomb_initial_timer", 20.0)
-		_create_hell_overlay()
+		hell_events.configure(game_config)
+		hell_events.start_match(
+			self,
+			hell_modifier as int,
+			$CanvasLayer/Control,
+			get_node_or_null("/root/Telemetry")
+		)
 		_show_hell_announcement()
 	
 	# Final Minimap Sync
@@ -612,16 +616,6 @@ func _get_difficulty_params() -> Dictionary:
 func _zone_initial_timer() -> float:
 	return zone_initial_timer
 
-func _hell_range(min_key: String, max_key: String, fallback_min: float, fallback_max: float) -> float:
-	if not game_config:
-		return randf_range(fallback_min, fallback_max)
-	var a = float(game_config.hell_value(min_key, fallback_min))
-	var b = float(game_config.hell_value(max_key, fallback_max))
-	return randf_range(minf(a, b), maxf(a, b))
-
-func _hell_value(key: String, fallback: float) -> float:
-	return float(game_config.hell_value(key, fallback)) if game_config else fallback
-
 func _ensure_debug_overlay():
 	if not debug_flags or not debug_flags.enabled or not debug_flags.overlay_enabled:
 		return
@@ -707,7 +701,8 @@ func _process(delta):
 	handle_zone_lifecycle(delta)
 	handle_damage_tick(delta)
 	_check_match_end()
-	_process_hell_events(delta)
+	if difficulty == Difficulty.HELL and hell_events:
+		hell_events.tick(delta, match_timer, zone)
 	_process_pressure_mission(delta)
 	
 	# Update Zone Visuals
@@ -1451,15 +1446,6 @@ func _update_diff_highlights():
 
 # ─── HELL EVENTS ─────────────────────────────────────────────────────────────
 
-func _create_hell_overlay():
-	_hell_overlay = ColorRect.new()
-	_hell_overlay.layout_mode = 1
-	_hell_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_hell_overlay.color = Color(0, 0, 0, 0.0)
-	_hell_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_hell_overlay.z_index = 10
-	$CanvasLayer/Control.add_child(_hell_overlay)
-
 func _show_hell_announcement():
 	_hell_announce_active = true
 	get_tree().paused = true
@@ -1525,12 +1511,7 @@ func _show_hell_announcement():
 
 	# ── 이번 매치 이벤트 ──
 	vbox.add_child(_hell_section("이번 매치 이벤트"))
-	const MOD_DESC = {
-		0: ["아이템 희귀화", "힐·장비 드롭 확률이 크게 낮아집니다"],
-		1: ["포격 강화",     "포격 범위와 폭탄 수가 크게 늘어납니다"],
-		2: ["전원 경계",     "모든 봇이 처음부터 당신을 추적합니다"],
-	}
-	var md = MOD_DESC[hell_modifier as int]
+	var md = HellEventControllerScript.modifier_description(hell_modifier as int)
 	_hell_row(vbox, md[0], md[1])
 	_hell_row(vbox, "정전", "주기적으로 화면이 어두워지며 미니맵이 차단됩니다")
 	_hell_row(vbox, "포격", "경고 후 지정 범위에 폭탄이 쏟아집니다")
@@ -1592,137 +1573,6 @@ func _dismiss_hell_announcement():
 		tw.tween_callback(_hell_announce_panel.queue_free)
 		_hell_announce_panel = null
 	get_tree().paused = false
-
-func _process_hell_events(delta):
-	if difficulty != Difficulty.HELL or game_over: return
-	if not _hell_blackout_active:
-		_hell_blackout_timer -= delta
-		if _hell_blackout_timer <= 0:
-			_trigger_blackout()
-	if match_timer > 10.0:
-		_hell_bomb_timer -= delta
-		if _hell_bomb_timer <= 0:
-			_hell_bomb_timer = _hell_range("bomb_repeat_min", "bomb_repeat_max", 18.0, 28.0)
-			_start_bombardment()
-
-func _trigger_blackout():
-	if _hell_blackout_active or not is_instance_valid(_hell_overlay): return
-	_hell_blackout_active = true
-	var hold = randf_range(2.0, 4.0)
-	var tw = create_tween()
-	tw.tween_property(_hell_overlay, "color:a", 0.88, 0.3)
-	tw.tween_interval(hold)
-	tw.tween_property(_hell_overlay, "color:a", 0.0, 0.5)
-	tw.tween_callback(func():
-		_hell_blackout_active = false
-		_hell_blackout_timer = _hell_range("blackout_repeat_min", "blackout_repeat_max", 15.0, 28.0)
-	)
-	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").log_hell_event("blackout")
-
-func _make_bomb_disc(radius: float, col: Color) -> MeshInstance3D:
-	var m = MeshInstance3D.new()
-	var cyl = CylinderMesh.new()
-	cyl.top_radius = radius; cyl.bottom_radius = radius; cyl.height = 0.12
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = col
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	mat.emission_enabled = true
-	mat.emission = Color(col.r, col.g * 0.4, 0.0)
-	mat.emission_energy_multiplier = 1.2
-	cyl.surface_set_material(0, mat)
-	m.mesh = cyl
-	return m
-
-func _start_bombardment():
-	_show_event_text("BOMBARDMENT INCOMING", Color(1.0, 0.35, 0.0))
-	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").log_hell_event("bombardment_warned")
-
-	var angle = randf() * TAU
-	var dist  = randf() * zone.current_radius * 0.85
-	var center = Vector3(
-		zone.current_center.x + cos(angle) * dist,
-		0.05,
-		zone.current_center.y + sin(angle) * dist
-	)
-
-	if hell_modifier == HellModifier.BARRAGE:
-		const OUTER_R       = 14.0
-		const PELLET_R      = 2.5
-		const PELLET_DAMAGE = 22.0
-		const PELLET_COUNT  = 10
-		const BASE_DELAY    = 0.7
-
-		var outer = _make_bomb_disc(OUTER_R, Color(1.0, 0.1, 0.1, 0.3))
-		add_child(outer)
-		outer.global_position = center
-
-		for i in range(PELLET_COUNT):
-			var pa   = randf() * TAU
-			var pr   = randf() * OUTER_R
-			var pos  = Vector3(center.x + cos(pa) * pr, 0.05, center.z + sin(pa) * pr)
-			var disc = _make_bomb_disc(PELLET_R, Color(1.0, 0.45, 0.0, 0.75))
-			add_child(disc)
-			disc.global_position = pos
-			var delay = BASE_DELAY + i * 0.06
-			get_tree().create_timer(delay).timeout.connect(func():
-				if is_instance_valid(disc): disc.queue_free()
-				for actor in get_tree().get_nodes_in_group("actors"):
-					if not is_instance_valid(actor): continue
-					if actor is Entity and actor.is_dead: continue
-					if actor.global_position.distance_to(pos) <= PELLET_R:
-						actor.take_damage(PELLET_DAMAGE, "zone")
-			)
-
-		get_tree().create_timer(BASE_DELAY + PELLET_COUNT * 0.06).timeout.connect(func():
-			if is_instance_valid(outer): outer.queue_free()
-			if is_instance_valid(_hell_overlay):
-				_hell_overlay.color = Color(0.9, 0.3, 0.0, 0.5)
-				create_tween().tween_property(_hell_overlay, "color:a", 0.0, 0.3)
-			if has_node("/root/Telemetry"):
-				get_node("/root/Telemetry").log_hell_event("bombardment_hit")
-		)
-	else:
-		# ── 비-BARRAGE 포격 튜닝 파라미터 ────────────────────────────────────────
-		# 봇에게 회피 로직이 없으므로 데미지를 낮게 유지.
-		# 봇 회피 AI 추가 시 BOMB_DAMAGE를 30~45 수준으로 상향 고려.
-		const ZONE_RADIUS  = 15.0  # 폭탄이 퍼지는 전체 반경 (m) — 넓힐수록 긴장감↑
-		const BOMB_RADIUS  = 3.0   # 개별 폭탄 폭발 반경 (m)
-		const BOMB_DAMAGE  = 18.0  # 개별 폭탄 데미지 — 봇 회피 추가 시 상향
-		const WARN_DELAY   = 1.5   # 첫 폭탄까지 경고 시간 (s) — 너무 짧으면 불공평
-		const PELLET_COUNT = 10    # 투하 개수 — 늘릴수록 화면이 정신없어짐
-		const PELLET_GAP   = 0.18  # 폭탄 간 간격 (s) — 줄일수록 밀집·혼란스러움
-		# ─────────────────────────────────────────────────────────────────────────
-
-		for i in PELLET_COUNT:
-			var spread_a = randf() * TAU
-			var spread_r = randf_range(0.0, ZONE_RADIUS)
-			var pos = Vector3(
-				center.x + cos(spread_a) * spread_r,
-				0.05,
-				center.z + sin(spread_a) * spread_r
-			)
-			var disc = _make_bomb_disc(BOMB_RADIUS, Color(1.0, 0.1, 0.1, 0.55))
-			add_child(disc)
-			disc.global_position = pos
-			var fire_at = WARN_DELAY + i * PELLET_GAP
-			get_tree().create_timer(fire_at).timeout.connect(func():
-				if is_instance_valid(disc): disc.queue_free()
-				for actor in get_tree().get_nodes_in_group("actors"):
-					if not is_instance_valid(actor): continue
-					if actor is Entity and actor.is_dead: continue
-					if actor.global_position.distance_to(pos) <= BOMB_RADIUS:
-						actor.take_damage(BOMB_DAMAGE, "zone")
-				if is_instance_valid(_hell_overlay):
-					_hell_overlay.color = Color(0.9, 0.3, 0.0, 0.4)
-					create_tween().tween_property(_hell_overlay, "color:a", 0.0, 0.25)
-			)
-		# 마지막 폭탄 착탄 후 텔레메트리 기록
-		get_tree().create_timer(WARN_DELAY + (PELLET_COUNT - 1) * PELLET_GAP + 0.05).timeout.connect(func():
-			if has_node("/root/Telemetry"):
-				get_node("/root/Telemetry").log_hell_event("bombardment_hit")
-		)
 
 # ─── SETTINGS ────────────────────────────────────────────────────────────────
 

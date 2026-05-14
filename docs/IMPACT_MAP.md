@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.7.3 / 마지막 검증: 2026-05-08
+> 기준 버전: v1.10-dev / 마지막 검증: 2026-05-14
 
 ---
 
@@ -15,6 +15,7 @@
 | ArtifactCatalog | starting artifact specs/descriptions | `Main.gd`, `Player.gd` | static catalog |
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
+| HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted runtime controller |
 
 ---
 
@@ -37,6 +38,13 @@
 - **쓰는 파일**: `Main.gd` 만
 - **시그널**: 없음 — `tick_pressure(delta, num_detecting)` 반환값 `"success"` / `"fail"` / `""` 을 Main이 폴링
 - **훅 호출자**: `Main.gd` (`on_pressure_kill`, `on_pressure_damage`, `on_weapon_slot_used` 등), `ZoneController.gd` (`on_player_zone_tick`, `on_pressure_zone_tick`)
+
+### `src/core/HellEventController.gd`
+- **읽는 파일**: 직접 scene lookup 없음. `Main.gd`가 `game_config`, host, overlay parent, Telemetry를 주입.
+- **호출자**: `Main.gd` `start_game()` / `_process()`에서 `configure()`, `start_match()`, `tick()` 호출.
+- **역할**: Hell blackout/bombardment timer, warning disc creation, overlay flash, bomb damage application, and `Telemetry.log_hell_event()` delegation.
+- **소유하지 않는 것**: 난이도 선택, Hell modifier enum compatibility, announcement panel, match-global state, Telemetry schema.
+- **수정 영향**: Hell tuning constants or event names 변경 시 `Main.gd` Hell wiring, `Player.gd` SCARCITY read, `Telemetry.gd` event aggregation, `data/game_config.json` Hell timer keys를 함께 확인.
 
 ### `src/entities/Entity.gd` (base)
 - **시그널 수신처**:
@@ -120,6 +128,7 @@
 | `Main.DIFFICULTY_PARAMS` | `Main.gd` | `Bot.gd` (스폰 시 1회 읽힘, 이후 변경 불가) |
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
+| Hell 정전/포격 이벤트 | `HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, `data/game_config.json` Hell keys |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |

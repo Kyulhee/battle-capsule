@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-14 (bot objective awareness + value binding plan)
+> Last updated: 2026-05-14 (HellEventController split + modularization plan)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural planning slice**: v1.10.3+ — Data/Description Value Binding.
+**Next structural planning slice**: v1.10.6+ — UI/MenuController or MatchBootstrap, then broader data/value binding.
 
-**Latest completed slice**: v1.10.4 — item/pickup/HUD display text generated from shared formatter inputs.
+**Latest completed slice**: v1.10.5 — Hell blackout/bombardment runtime split into `HellEventController`.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -27,6 +27,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Prefer catalog/helper/controller boundaries over broad gameplay rewrites.
 - Treat already connected item/icon assets as readability polish, not new content expansion.
 - User-facing descriptions that contain gameplay numbers should be generated from the same data used by gameplay logic whenever practical.
+- New gameplay tuning values should enter through data/config/catalog/controller specs first, not as local constants inside `Main.gd`.
 - Do not start 99-player scale, new maps, mission map theming, or v1.11 complex artifact logic until v1.10 stabilization is complete.
 
 ## Active Docs
@@ -60,19 +61,35 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `MenuIconFactory`: procedural menu/records/help icon generation.
 - `HelpPanelBuilder`: How to Play panel rendering from HelpCatalog rows.
 - `RecordsPanelBuilder`: Records tabs, clear button, and history row rendering.
+- `HellEventController`: Hell blackout/bombardment timers, overlay flashes, warning markers, damage application, and Hell event Telemetry logging.
 
 **Good next candidates**
 
-1. `MenuController`: main menu, records, help, settings orchestration.
-2. `MatchBootstrap`: config load, difficulty setup, seed/map bootstrapping.
-3. Small UI/helper/catalog splits that remove isolated static data from `Main.gd`.
-4. Data/description value binding: move gameplay numbers used in descriptions, tooltips, labels, and algorithms into shared data/schema sources. Treat this as a dedicated structural slice, not ad hoc text cleanup.
+1. `MenuController`: main menu, difficulty tooltip, records/help/settings visibility, and panel orchestration.
+2. `MatchBootstrap`: config load, difficulty setup, artifact preparation, seed/map bootstrapping, and start-game sequencing.
+3. `GameTuning` / data-value binding slices: move gameplay numbers used by descriptions, tooltips, labels, and algorithms into shared data/schema sources.
+4. Small UI/helper/catalog splits that remove isolated static data from `Main.gd`.
+
+**Recommended split order**
+
+1. Finish low-risk UI/menu extraction first.
+   - Good targets: difficulty tooltip panel, settings/menu panel visibility, records/help entry wiring.
+   - Reason: large line-count reduction with low gameplay risk.
+2. Extract match bootstrapping only after the UI surface is calmer.
+   - Good targets: `start_game()` config/difficulty/artifact/spawn sequencing.
+   - Reason: this touches player, bots, zone, mission, Telemetry, and asset wiring, so it needs a clearer call graph.
+3. Continue data/value binding as vertical slices.
+   - Good targets: mission/pressure text, difficulty descriptions with numeric values, remaining ammo/heal/help strings.
+   - Reason: this directly prevents hardcoded-number drift without forcing a large config rewrite.
+4. Defer state-owning systems until there is a dedicated migration plan.
+   - Pressure mission effects, zone state, player reference, alive count, and result/Telemetry finalization should stay in `Main.gd` for now.
 
 **Boundary rules**
 
 - Controllers/helpers should not discover each other through the scene tree. `Main.gd` wires them.
 - Do not move zone, mission, player, alive count, or Telemetry ownership out of `Main.gd` yet.
 - Preserve Telemetry event names and JSON schema unless a dedicated migration is planned.
+- Runtime controllers may receive `Main.gd`-owned references through explicit wiring, but they should not own match-global state.
 
 **Completion gate before v1.11**
 
