@@ -23,6 +23,7 @@
 | HellAnnouncementBuilder | Hell announcement modal UI | `Main.gd` | static UI builder |
 | MenuController | panel routing and menu button wiring | `Main.gd` | RefCounted UI controller |
 | MatchBootstrap | match-start initialization helpers | `Main.gd` | static system helper |
+| MatchTuning | match/zone tuning interpretation | `Main.gd` | static system helper |
 
 ---
 
@@ -124,6 +125,13 @@
 - **역할**: zone controller creation/configuration, bonus mission tracker creation/selection, initial pressure state dictionary, Hell modifier roll.
 - **소유하지 않는 것**: `zone`, `mission_tracker`, pressure fields, spawn calls, Telemetry start calls, artifact application, Hell runtime controller.
 
+### `src/systems/match/MatchTuning.gd`
+- **읽는 파일**: 직접 scene 참조 없음. `Main.gd`가 `GameConfig`, 현재 exported tuning 값, 또는 CLI arg 문자열을 넘김.
+- **호출자**: `Main.gd` `_apply_game_config()` / `_apply_cmdline_arg()`.
+- **역할**: match/zone config 값 clamp, CLI match override alias parsing, CLI difficulty parsing.
+- **소유하지 않는 것**: `bot_count`, `loot_count`, `spawn_radius`, zone timing fields, `difficulty`, `loot_spawner.configure_count()`, match-global state, Telemetry schema.
+- **수정 영향**: 새 CLI alias나 config key를 추가하면 `Main.gd` 적용 경로, `data/game_config.json`, `tools/simulate_matches.py` 호출 관례, TESTING/문서 예시를 함께 확인.
+
 ### `src/entities/bot/Bot.gd`
 - **목표 이동**: `is_targeting_loot` CHASE는 `_nav_move_toward(..., false)`로 pickup 방향 이동을 유지하고 `_update_objective_scan()`으로 시야 회전을 따로 갱신.
 - **감지 연결**: footstep/ambient awareness는 loot chase 중에도 `_scan_alert`를 걸 수 있음. 비회복성 opportunistic loot만 완전 감지된 적에게 중단될 수 있고, recovery/combat-loot는 기존 damage/gunshot override가 우선.
@@ -185,6 +193,7 @@
 | Hell announcement UI | `HellAnnouncementBuilder.gd` | `Main.gd` Hell modifier/dismiss wiring, `HellEventController.gd` modifier description |
 | Menu panel routing | `MenuController.gd` | `Main.gd` callbacks, scene panel names, Records/Help close buttons |
 | Match start initialization | `MatchBootstrap.gd` | `Main.gd` state ownership, `ZoneController.gd`, `MissionTracker.gd`, Hell modifier enum compatibility |
+| Match/zone tuning config 또는 CLI alias | `MatchTuning.gd` | `Main.gd` apply path, `data/game_config.json`, `tools/simulate_matches.py`, TESTING/문서 예시 |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |

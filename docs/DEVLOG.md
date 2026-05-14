@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.12-dev — 2026-05-14
+
+**Main Slimdown — MatchTuning config/CLI split**
+
+**src/systems/match/MatchTuning.gd / src/Main.gd**
+
+- Added `MatchTuning` under `src/systems/match/` for match/zone tuning interpretation.
+- Moved `game_config` match/zone value reads, clamp defaults, CLI match override parsing, and CLI difficulty parsing out of `Main.gd`.
+- `Main.gd` still owns exported match fields and applies returned values to its own state; `loot_spawner.configure_count()` remains in `Main.gd` because the spawner is Main-owned.
+- This slice is a responsibility-boundary cleanup, not a line-count reduction; `Main.gd` is now 1160 lines after the helper wrapper offset the removed parser code.
+- No config keys, CLI aliases, difficulty indices, gameplay values, Telemetry hook names, or JSON schema were changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal bot_count=11 loot_count=40 zone_wait=30 zone_shrink=20` 통과: duration=97.6s, stage=4, recover=30, disengage=21.
+
+---
+
 ## v1.10.11-dev — 2026-05-14
 
 **Main Slimdown — MatchBootstrap first pass**
@@ -15,7 +35,7 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 - Added `MatchBootstrap` under the new `src/systems/match/` placement for match lifecycle helpers.
 - Moved zone controller creation/configuration, bonus mission tracker creation/selection, pressure flag initialization, and Hell modifier roll out of `Main.gd`.
 - `Main.gd` still owns `zone`, `mission_tracker`, pressure state fields, Hell event runtime wiring, spawn calls, Telemetry start calls, and artifact application.
-- This slice prioritizes consistent ownership boundaries over line-count reduction; `Main.gd` is now 1277 lines because the explicit helper calls are longer than the previous inline code.
+- This slice prioritizes consistent ownership boundaries over line-count reduction; `Main.gd` was 1162 lines after this split because the explicit helper calls offset most of the removed inline code.
 - No zone values, mission pool rules, pressure behavior, Hell modifier range, Telemetry hook names, or JSON schema were changed.
 
 **검증 결과**
@@ -36,7 +56,7 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 - Moved panel visibility routing, main menu button wiring, dynamic Settings button insertion, and Records/Help close button wiring out of `Main.gd`.
 - `Main.gd` keeps menu callbacks, settings behavior, result/records/help content ownership, and a thin `_show_panel()` wrapper.
 - No scene node names, panel visibility rules, gameplay behavior, Telemetry hook names, or JSON schema were changed.
-- `Main.gd` is now 1273 lines after this split.
+- `Main.gd` was 1158 lines after this split.
 
 **검증 결과**
 
@@ -56,7 +76,7 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 - Moved Hell mode announcement overlay, card layout, penalty rows, event rows, and start button construction out of `Main.gd`.
 - `Main.gd` keeps Hell modifier selection, pause/unpause state, active panel lifetime, and dismiss fade ownership.
 - No Hell modifier descriptions, Hell runtime behavior, pause/dismiss behavior, Telemetry hook names, or JSON schema were changed.
-- `Main.gd` is now 1280 lines after this split.
+- `Main.gd` was 1164 lines after this split.
 
 **검증 결과**
 
@@ -76,7 +96,7 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 - Moved artifact selection overlay, card layout, skip button, and card button construction out of `Main.gd`.
 - `Main.gd` keeps artifact catalog selection, `_pending_artifact`, panel lifetime, and `start_game()` transition ownership.
 - No artifact data, modifier values, description generation, apply behavior, Telemetry hook names, or JSON schema were changed.
-- `Main.gd` is now 1386 lines after this split.
+- `Main.gd` was 1254 lines after this split.
 
 **검증 결과**
 
@@ -96,7 +116,7 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 - Moved Result panel card layout, labels, result buttons, and result label population out of `Main.gd`.
 - `Main.gd` keeps match finalization, mission evaluation, score calculation, Telemetry calls, and result panel routing.
 - No score formula, mission evaluation, Telemetry hook names, JSON schema, or scene panel names were changed.
-- `Main.gd` is now 1472 lines after this split.
+- `Main.gd` was 1327 lines after this split.
 
 **검증 결과**
 

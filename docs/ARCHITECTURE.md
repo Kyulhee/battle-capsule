@@ -1,7 +1,7 @@
 # 배틀캡슐 아키텍처 보고서 (v1.10-dev)
 
 > 최종 업데이트: 2026-05-14
-> 이 문서는 v1.10-dev 확장 기반(config/debug/asset catalog/LootSpawner/SupplyDropController/catalog/UI builders/HellEventController 경계) 기준이다.
+> 이 문서는 v1.10-dev 확장 기반(config/debug/asset catalog/LootSpawner/SupplyDropController/catalog/UI builders/systems match helpers/HellEventController 경계) 기준이다.
 
 ---
 
@@ -31,7 +31,7 @@
 │  ZoneController · WeaponSlotManager · MissionTracker│
 │  LootSpawner · SupplyDropController · HellEventCtrl │
 │  GameConfig · AssetCatalog · Telemetry · Sfx        │
-│  Systems           match/MatchBootstrap              │
+│  Systems           match/MatchBootstrap · MatchTuning│
 ├─────────────────────────────────────────────────────┤
 │  Data / Config  (Resource/JSON — 순수 데이터)          │
 │  StatsData · ItemData · MissionData · MapSpec        │
@@ -60,6 +60,7 @@
 | `src/core/HelpCatalog.gd` | How to Play 섹션/행 데이터 정의 | `HelpPanelBuilder.gd`가 읽어 key/icon/desc 행으로 렌더 |
 | `src/core/LootSpawner.gd` | POI 기반 루트 hotspot/위치/개수 계산 | Main이 Pickup 생성은 유지하고 계산만 위임 |
 | `src/core/SupplyDropController.gd` | 보급 캡슐 위치·타이머·클러스터 계산 | Main이 미니맵 상태와 실제 노드 생성은 유지 |
+| `src/systems/match/MatchTuning.gd` | GameConfig/CLI match-zone tuning 해석과 clamp | Main이 exported 상태를 소유하고 반환된 값만 적용 |
 
 수정 시 주의: Resource를 공유 참조로 쓰면 인스턴스 간 오염 발생 → 런타임에서 반드시 `.duplicate()` 호출 (Player.gd:88, receive_weapon 진입부 참조).
 
@@ -201,6 +202,7 @@
 | `src/ui/panels/HellAnnouncementBuilder.gd` | Hell announcement overlay/card/rows/button | Main이 Hell modifier selection, pause/unpause, panel lifetime, dismiss fade를 유지 |
 | `src/ui/menu/MenuController.gd` | Panel visibility routing and menu button wiring | Main이 callbacks/settings/content builders를 유지하고 controller가 scene panel visibility와 button connect만 처리 |
 | `src/systems/match/MatchBootstrap.gd` | Match-start object/value initialization | Main이 match-global state ownership을 유지하고 bootstrap helper가 zone/mission/pressure/Hell modifier 초기값만 반환 |
+| `src/systems/match/MatchTuning.gd` | Match/zone config and CLI override interpretation | Main이 exported match fields, loot spawner wiring, and difficulty state ownership을 유지 |
 
 ```
 Entity (CharacterBody3D)

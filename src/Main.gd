@@ -77,6 +77,7 @@ const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MenuControllerScript = preload("res://src/ui/menu/MenuController.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
 const MatchBootstrapScript = preload("res://src/systems/match/MatchBootstrap.gd")
+const MatchTuningScript = preload("res://src/systems/match/MatchTuning.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
 const ResultPanelBuilderScript = preload("res://src/ui/panels/ResultPanelBuilder.gd")
@@ -447,17 +448,38 @@ func _configure_asset_catalog():
 		sfx.set_asset_catalog(asset_catalog)
 
 func _apply_game_config():
-	if not game_config:
+	_apply_match_tuning(MatchTuningScript.from_game_config(game_config, _current_match_tuning()))
+
+func _current_match_tuning() -> Dictionary:
+	return {
+		"bot_count": bot_count,
+		"loot_count": loot_count,
+		"spawn_radius": spawn_radius,
+		"zone_wait_time": zone_wait_time,
+		"zone_shrink_time": zone_shrink_time,
+		"zone_damage": zone_damage,
+		"zone_initial_timer": zone_initial_timer,
+	}
+
+func _apply_match_tuning(tuning: Dictionary):
+	if tuning.is_empty():
 		return
-	bot_count = max(0, int(game_config.match_value("bot_count", bot_count)))
-	loot_count = max(0, int(game_config.match_value("loot_count", loot_count)))
-	spawn_radius = maxf(1.0, float(game_config.match_value("spawn_radius", spawn_radius)))
+	if tuning.has("bot_count"):
+		bot_count = int(tuning["bot_count"])
+	if tuning.has("loot_count"):
+		loot_count = int(tuning["loot_count"])
+	if tuning.has("spawn_radius"):
+		spawn_radius = float(tuning["spawn_radius"])
+	if tuning.has("zone_wait_time"):
+		zone_wait_time = float(tuning["zone_wait_time"])
+	if tuning.has("zone_shrink_time"):
+		zone_shrink_time = float(tuning["zone_shrink_time"])
+	if tuning.has("zone_damage"):
+		zone_damage = float(tuning["zone_damage"])
+	if tuning.has("zone_initial_timer"):
+		zone_initial_timer = float(tuning["zone_initial_timer"])
 	if loot_spawner and loot_spawner.has_method("configure_count"):
 		loot_spawner.configure_count(loot_count)
-	zone_wait_time = maxf(1.0, float(game_config.zone_value("wait_time", zone_wait_time)))
-	zone_shrink_time = maxf(1.0, float(game_config.zone_value("shrink_time", zone_shrink_time)))
-	zone_damage = maxf(0.0, float(game_config.zone_value("damage_per_second", zone_damage)))
-	zone_initial_timer = maxf(0.1, float(game_config.zone_value("initial_timer", zone_initial_timer)))
 
 func _get_difficulty_params() -> Dictionary:
 	if game_config:
@@ -508,34 +530,12 @@ func _setup_navigation():
 	print("[NAV] Baking navigation mesh...")
 
 func _apply_cmdline_arg(arg: String):
-	var lower = arg.to_lower()
-	if lower.begins_with("difficulty="):
-		var value = lower.get_slice("=", 1)
-		match value:
-			"easy", "0":
-				difficulty = Difficulty.EASY
-			"normal", "1":
-				difficulty = Difficulty.NORMAL
-			"hard", "2":
-				difficulty = Difficulty.HARD
-			"hell", "3":
-				difficulty = Difficulty.HELL
-	elif lower.begins_with("bot_count="):
-		bot_count = max(0, int(lower.get_slice("=", 1)))
-	elif lower.begins_with("loot_count="):
-		loot_count = max(0, int(lower.get_slice("=", 1)))
-		if loot_spawner and loot_spawner.has_method("configure_count"):
-			loot_spawner.configure_count(loot_count)
-	elif lower.begins_with("spawn_radius="):
-		spawn_radius = maxf(1.0, float(lower.get_slice("=", 1)))
-	elif lower.begins_with("zone_wait_time=") or lower.begins_with("zone_wait="):
-		zone_wait_time = maxf(1.0, float(lower.get_slice("=", 1)))
-	elif lower.begins_with("zone_shrink_time=") or lower.begins_with("zone_shrink="):
-		zone_shrink_time = maxf(1.0, float(lower.get_slice("=", 1)))
-	elif lower.begins_with("zone_damage=") or lower.begins_with("zone_dps="):
-		zone_damage = maxf(0.0, float(lower.get_slice("=", 1)))
-	elif lower.begins_with("zone_initial_timer=") or lower.begins_with("zone_initial="):
-		zone_initial_timer = maxf(0.1, float(lower.get_slice("=", 1)))
+	var parsed = MatchTuningScript.from_cmdline_arg(arg)
+	if parsed.is_empty():
+		return
+	if parsed.has("difficulty"):
+		difficulty = int(parsed["difficulty"]) as Difficulty
+	_apply_match_tuning(parsed.get("tuning", {}))
 
 func _load_map_spec():
 	var file = FileAccess.open("res://data/mapSpec_example.json", FileAccess.READ)
