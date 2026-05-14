@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-14 (HellEventController split + modularization plan)
+> Last updated: 2026-05-14 (menu UI builder split + modularization plan)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural planning slice**: v1.10.6+ — UI/MenuController or MatchBootstrap, then broader data/value binding.
+**Next structural planning slice**: v1.10.7+ — panel transition controller or MatchBootstrap, then broader data/value binding.
 
-**Latest completed slice**: v1.10.5 — Hell blackout/bombardment runtime split into `HellEventController`.
+**Latest completed slice**: v1.10.6 — difficulty selector and Settings modal UI split into UI builders.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -61,11 +61,13 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `MenuIconFactory`: procedural menu/records/help icon generation.
 - `HelpPanelBuilder`: How to Play panel rendering from HelpCatalog rows.
 - `RecordsPanelBuilder`: Records tabs, clear button, and history row rendering.
+- `DifficultySelectorBuilder`: difficulty button/tooltip/pressure opt-in menu UI.
+- `SettingsPanelBuilder`: Settings modal layout and controls.
 - `HellEventController`: Hell blackout/bombardment timers, overlay flashes, warning markers, damage application, and Hell event Telemetry logging.
 
 **Good next candidates**
 
-1. `MenuController`: main menu, difficulty tooltip, records/help/settings visibility, and panel orchestration.
+1. `MenuController`: panel visibility, main menu records/help/settings entry wiring, and shared menu styling.
 2. `MatchBootstrap`: config load, difficulty setup, artifact preparation, seed/map bootstrapping, and start-game sequencing.
 3. `GameTuning` / data-value binding slices: move gameplay numbers used by descriptions, tooltips, labels, and algorithms into shared data/schema sources.
 4. Small UI/helper/catalog splits that remove isolated static data from `Main.gd`.

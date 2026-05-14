@@ -10,10 +10,7 @@ var current_state: GameState = GameState.MENU
 
 enum Difficulty { EASY, NORMAL, HARD, HELL }
 var difficulty: Difficulty = Difficulty.NORMAL
-var _diff_btns: Array = []
-var _pressure_opt_in_check: CheckButton = null
-var _diff_tooltip: PanelContainer = null
-var _diff_tooltip_label: Label = null
+var _difficulty_selector: Dictionary = {}
 var _records_selected_diff: int = 1
 
 # Hell events
@@ -74,7 +71,7 @@ var _result_sep_mission: HSeparator = null
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const ArtifactCatalogScript = preload("res://src/core/ArtifactCatalog.gd")
 const AssetCatalogScript = preload("res://src/core/AssetCatalog.gd")
-const DifficultyCatalogScript = preload("res://src/core/DifficultyCatalog.gd")
+const DifficultySelectorBuilderScript = preload("res://src/ui/DifficultySelectorBuilder.gd")
 const GameConfigScript = preload("res://src/core/GameConfig.gd")
 const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
@@ -84,6 +81,7 @@ const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
+const SettingsPanelBuilderScript = preload("res://src/ui/SettingsPanelBuilder.gd")
 const SupplyDropControllerScript = preload("res://src/core/SupplyDropController.gd")
 const ZoneControllerScript = preload("res://src/core/ZoneController.gd")
 
@@ -183,68 +181,16 @@ func _ready():
 	_setup_menu_visuals()
 
 	# Difficulty selector (inserted before StartBtn)
-	var start_idx = $CanvasLayer/Control/MainMenuPanel/VBoxContainer/StartBtn.get_index()
-
-	var diff_lbl = Label.new()
-	diff_lbl.text = "난이도"
-	diff_lbl.custom_minimum_size = Vector2(0, 18)
-	diff_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	diff_lbl.add_theme_font_size_override("font_size", 13)
-	diff_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
-	vbox.add_child(diff_lbl)
-	vbox.move_child(diff_lbl, start_idx)
-
-	var diff_hbox = HBoxContainer.new()
-	diff_hbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	diff_hbox.add_theme_constant_override("separation", 6)
-	diff_hbox.custom_minimum_size = Vector2(0, 38)
-	vbox.add_child(diff_hbox)
-	vbox.move_child(diff_hbox, start_idx + 1)
-
-	for i in range(4):
-		var btn = Button.new()
-		btn.text = DifficultyCatalogScript.label(i)
-		btn.custom_minimum_size = Vector2(68, 0)
-		btn.add_theme_font_size_override("font_size", 14)
-		btn.pressed.connect(_on_difficulty_btn.bind(i))
-		diff_hbox.add_child(btn)
-		_diff_btns.append(btn)
-		_apply_btn_style(btn)
-	_update_diff_highlights()
-
-	# 어려움 압박 미션 opt-in 체크버튼 (어려움 선택 시에만 표시)
-	_pressure_opt_in_check = CheckButton.new()
-	_pressure_opt_in_check.text = "압박 미션 활성화"
-	_pressure_opt_in_check.custom_minimum_size = Vector2(310, 24)
-	_pressure_opt_in_check.add_theme_font_size_override("font_size", 12)
-	_pressure_opt_in_check.button_pressed = false
-	_pressure_opt_in_check.visible = (difficulty == Difficulty.HARD)
-	_pressure_opt_in_check.toggled.connect(func(v: bool): pressure_opt_in_hard = v)
-	vbox.add_child(_pressure_opt_in_check)
-	vbox.move_child(_pressure_opt_in_check, start_idx + 2)
-
-	# Difficulty tooltip panel
-	_diff_tooltip = PanelContainer.new()
-	_diff_tooltip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var ts = StyleBoxFlat.new()
-	ts.bg_color = Color(0.06, 0.08, 0.10, 0.95)
-	ts.border_color = Color(0.35, 0.60, 0.45, 0.8)
-	ts.set_border_width_all(1); ts.set_corner_radius_all(4)
-	ts.content_margin_left = 10; ts.content_margin_right = 10
-	ts.content_margin_top = 6;   ts.content_margin_bottom = 6
-	_diff_tooltip.add_theme_stylebox_override("panel", ts)
-	_diff_tooltip_label = Label.new()
-	_diff_tooltip_label.add_theme_font_size_override("font_size", 13)
-	_diff_tooltip_label.add_theme_color_override("font_color", Color(0.82, 0.90, 0.84))
-	_diff_tooltip_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_diff_tooltip_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_diff_tooltip.add_child(_diff_tooltip_label)
-	_diff_tooltip.custom_minimum_size = Vector2(240, 0)
-	_diff_tooltip.visible = false
-	$CanvasLayer/Control/MainMenuPanel.add_child(_diff_tooltip)
-	for i in range(_diff_btns.size()):
-		_diff_btns[i].mouse_entered.connect(_show_diff_tooltip.bind(i))
-		_diff_btns[i].mouse_exited.connect(func(): if _diff_tooltip: _diff_tooltip.visible = false)
+	var start_btn = $CanvasLayer/Control/MainMenuPanel/VBoxContainer/StartBtn
+	_difficulty_selector = DifficultySelectorBuilderScript.insert(
+		vbox,
+		$CanvasLayer/Control/MainMenuPanel,
+		start_btn,
+		difficulty as int,
+		Callable(self, "_on_difficulty_btn"),
+		Callable(self, "_on_pressure_opt_in_toggled"),
+		Callable(self, "_apply_btn_style")
+	)
 
 	var exit_idx = $CanvasLayer/Control/MainMenuPanel/VBoxContainer/ExitBtn.get_index()
 	var settings_btn = Button.new()
@@ -1427,22 +1373,16 @@ func _apply_btn_style(btn: Button):
 
 # ─── DIFFICULTY ──────────────────────────────────────────────────────────────
 
-func _show_diff_tooltip(idx: int):
-	if not _diff_tooltip or idx >= _diff_btns.size(): return
-	_diff_tooltip_label.text = DifficultyCatalogScript.description(idx)
-	var gr = _diff_btns[idx].get_global_rect()
-	_diff_tooltip.global_position = Vector2(gr.position.x - 10, gr.end.y + 6)
-	_diff_tooltip.visible = true
-
 func _on_difficulty_btn(idx: int):
 	difficulty = idx as Difficulty
 	_update_diff_highlights()
-	if _pressure_opt_in_check:
-		_pressure_opt_in_check.visible = (difficulty == Difficulty.HARD)
+	DifficultySelectorBuilderScript.set_pressure_visible(_difficulty_selector, difficulty == Difficulty.HARD)
+
+func _on_pressure_opt_in_toggled(enabled: bool):
+	pressure_opt_in_hard = enabled
 
 func _update_diff_highlights():
-	for i in range(_diff_btns.size()):
-		_diff_btns[i].modulate = DifficultyCatalogScript.color(i) if i == difficulty else DifficultyCatalogScript.dim_color()
+	DifficultySelectorBuilderScript.update_highlights(_difficulty_selector, difficulty as int)
 
 # ─── HELL EVENTS ─────────────────────────────────────────────────────────────
 
@@ -1591,86 +1531,29 @@ func _save_settings(vol_linear: float, fullscreen: bool):
 	cfg.save("user://settings.cfg")
 
 func _on_settings_pressed():
-	if get_node_or_null("CanvasLayer/Control/SettingsPanel"): return
-	var ctrl = $CanvasLayer/Control
-	var panel = PanelContainer.new()
-	panel.name = "SettingsPanel"
-	panel.layout_mode = 1
-	panel.set_anchors_preset(Control.PRESET_CENTER)
-	panel.offset_left = -200.0; panel.offset_right = 200.0
-	panel.offset_top  = -160.0; panel.offset_bottom = 160.0
-	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	panel.grow_vertical   = Control.GROW_DIRECTION_BOTH
-	var ps = StyleBoxFlat.new()
-	ps.bg_color = Color(0.04, 0.06, 0.10, 0.97)
-	ps.border_color = Color(0.25, 0.55, 0.35, 0.8)
-	ps.set_border_width_all(1); ps.set_corner_radius_all(6)
-	ps.content_margin_left = 20; ps.content_margin_right = 20
-	ps.content_margin_top = 16;  ps.content_margin_bottom = 16
-	panel.add_theme_stylebox_override("panel", ps)
-	ctrl.add_child(panel)
-
-	var vbox = VBoxContainer.new()
-	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
-	vbox.add_theme_constant_override("separation", 14)
-	panel.add_child(vbox)
-
-	var title = Label.new()
-	title.text = "SETTINGS"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 26)
-	title.add_theme_color_override("font_color", Color(0.88, 0.95, 0.9))
-	vbox.add_child(title)
-
-	# Volume row
-	var vol_lbl = Label.new()
-	vol_lbl.text = "VOLUME"
-	vol_lbl.add_theme_font_size_override("font_size", 15)
-	vol_lbl.add_theme_color_override("font_color", Color(0.65, 0.85, 1.0))
-	vbox.add_child(vol_lbl)
-	var slider = HSlider.new()
-	slider.min_value = 0.0; slider.max_value = 1.0; slider.step = 0.01
-	var cur_vol = db_to_linear(AudioServer.get_bus_volume_db(0))
-	slider.value = cur_vol
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_child(slider)
-	var vol_val_lbl = Label.new()
-	vol_val_lbl.text = "%d%%" % int(cur_vol * 100)
-	vol_val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vol_val_lbl.add_theme_font_size_override("font_size", 13)
-	vol_val_lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.75))
-	vbox.add_child(vol_val_lbl)
-	slider.value_changed.connect(func(v: float):
-		AudioServer.set_bus_volume_db(0, linear_to_db(v))
-		vol_val_lbl.text = "%d%%" % int(v * 100)
+	SettingsPanelBuilderScript.show(
+		$CanvasLayer/Control,
+		db_to_linear(AudioServer.get_bus_volume_db(0)),
+		DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN,
+		Callable(self, "_on_settings_volume_changed"),
+		Callable(self, "_toggle_fullscreen_setting"),
+		Callable(self, "_on_settings_closed"),
+		Callable(self, "_apply_btn_style")
 	)
 
-	# Fullscreen toggle
-	var fs_btn = Button.new()
-	var is_fs = DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN
-	fs_btn.text = "FULLSCREEN: ON" if is_fs else "FULLSCREEN: OFF"
-	fs_btn.add_theme_font_size_override("font_size", 18)
-	fs_btn.pressed.connect(func():
-		var new_fs = not (DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN)
-		if new_fs:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-		else:
-			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-		fs_btn.text = "FULLSCREEN: ON" if new_fs else "FULLSCREEN: OFF"
-	)
-	_apply_btn_style(fs_btn)
-	vbox.add_child(fs_btn)
+func _on_settings_volume_changed(vol_linear: float):
+	AudioServer.set_bus_volume_db(0, linear_to_db(vol_linear))
 
-	# Close + save
-	var close_btn = Button.new()
-	close_btn.text = "CLOSE"
-	close_btn.add_theme_font_size_override("font_size", 20)
-	close_btn.pressed.connect(func():
-		_save_settings(slider.value, DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN)
-		panel.queue_free()
-	)
-	_apply_btn_style(close_btn)
-	vbox.add_child(close_btn)
+func _toggle_fullscreen_setting() -> bool:
+	var new_fullscreen = not (DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN)
+	if new_fullscreen:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
+	else:
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	return new_fullscreen
+
+func _on_settings_closed(vol_linear: float):
+	_save_settings(vol_linear, DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN)
 
 func _show_event_text(msg: String, col: Color):
 	var lbl = Label.new()

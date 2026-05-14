@@ -16,6 +16,8 @@
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted runtime controller |
+| DifficultySelectorBuilder | difficulty selector/tooltip UI | `Main.gd` | static UI builder |
+| SettingsPanelBuilder | settings modal UI | `Main.gd` | static UI builder |
 
 ---
 
@@ -75,6 +77,18 @@
 - **호출자**: `Pickup.gd` label name/detail, `Player.gd` slot ammo and reload-progress HUD text.
 - **역할**: pickup detail과 HUD ammo 문자열을 `ItemData`, `StatsData`, `WeaponSlotManager` slot state에서 받은 값으로 생성한다. 포맷 변경은 이 helper에서 시작하고, collection/inventory 동작은 건드리지 않는다.
 
+### `src/ui/DifficultySelectorBuilder.gd`
+- **읽는 파일**: `DifficultyCatalog.gd`.
+- **호출자**: `Main.gd` main menu setup and difficulty state refresh.
+- **역할**: 난이도 버튼, hover tooltip, pressure opt-in checkbox UI, difficulty highlight 갱신.
+- **소유하지 않는 것**: 실제 `difficulty`, `pressure_opt_in_hard`, match start behavior.
+
+### `src/ui/SettingsPanelBuilder.gd`
+- **읽는 파일**: 직접 scene 참조 없음.
+- **호출자**: `Main.gd` `_on_settings_pressed()`.
+- **역할**: Settings modal UI, volume slider text, fullscreen button text, close button construction.
+- **소유하지 않는 것**: `AudioServer`, `DisplayServer`, settings save/load keys. Main이 callback으로 유지.
+
 ### `src/entities/bot/Bot.gd`
 - **목표 이동**: `is_targeting_loot` CHASE는 `_nav_move_toward(..., false)`로 pickup 방향 이동을 유지하고 `_update_objective_scan()`으로 시야 회전을 따로 갱신.
 - **감지 연결**: footstep/ambient awareness는 loot chase 중에도 `_scan_alert`를 걸 수 있음. 비회복성 opportunistic loot만 완전 감지된 적에게 중단될 수 있고, recovery/combat-loot는 기존 damage/gunshot override가 우선.
@@ -129,6 +143,8 @@
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
 | Hell 정전/포격 이벤트 | `HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, `data/game_config.json` Hell keys |
+| Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
+| Settings modal UI | `SettingsPanelBuilder.gd` | `Main.gd` settings callbacks, `user://settings.cfg` key compatibility |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |

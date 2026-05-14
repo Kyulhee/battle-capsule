@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.6-dev — 2026-05-14
+
+**Main Slimdown — menu UI builder split**
+
+**src/ui/DifficultySelectorBuilder.gd / src/ui/SettingsPanelBuilder.gd / src/Main.gd**
+
+- Moved difficulty selector button creation, pressure opt-in checkbox UI, and difficulty tooltip rendering out of `Main.gd`.
+- Moved Settings modal layout, volume slider row, fullscreen button text, and close button construction out of `Main.gd`.
+- `Main.gd` now keeps only selected difficulty, pressure opt-in state, AudioServer/DisplayServer actions, and settings persistence.
+- No difficulty values, settings file keys, menu scene nodes, gameplay behavior, Telemetry hook names, or JSON schema were changed.
+- `Main.gd` is now 1576 lines after this split.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=76.5s, stage=3, recover=21, disengage=18.
+
+---
+
 ## v1.10.5-dev — 2026-05-14
 
 **Main Slimdown — HellEventController runtime split**
