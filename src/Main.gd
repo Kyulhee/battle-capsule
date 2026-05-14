@@ -76,6 +76,7 @@ const HellAnnouncementBuilderScript = preload("res://src/ui/panels/HellAnnouncem
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MenuControllerScript = preload("res://src/ui/menu/MenuController.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
+const MatchBootstrapScript = preload("res://src/systems/match/MatchBootstrap.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
 const ResultPanelBuilderScript = preload("res://src/ui/panels/ResultPanelBuilder.gd")
@@ -249,32 +250,37 @@ func start_game():
 	current_state = GameState.PLAYING
 	game_over = false
 	match_timer = 0.0
-	zone = ZoneControllerScript.new()
-	zone.wait_time = zone_wait_time
-	zone.shrink_time = zone_shrink_time
-	zone.damage_per_second = zone_damage
-	zone.timer = _zone_initial_timer()
-	zone.generate_next()
-	zone.stage_advanced.connect(_on_zone_stage_changed)
-	zone.zone_warning.connect(_on_zone_warning)
+	zone = MatchBootstrapScript.create_zone(
+		ZoneControllerScript,
+		zone_wait_time,
+		zone_shrink_time,
+		zone_damage,
+		_zone_initial_timer(),
+		Callable(self, "_on_zone_stage_changed"),
+		Callable(self, "_on_zone_warning")
+	)
 	
 	_show_panel("HUD")
 	_ensure_debug_overlay()
 
 	# 랜덤 보너스 미션 자동 배정 (아티팩트와 불가능한 조합 제외)
-	mission_tracker = MissionTrackerScript.new()
-	var _bm_pool = MissionTrackerScript.get_all_missions()
-	var _bm_art_mods = _pending_artifact.get("mods", {})
-	_bm_pool = _bm_pool.filter(func(m): return _is_bonus_mission_feasible(m, _bm_art_mods))
-	if _bm_pool.is_empty(): _bm_pool = MissionTrackerScript.get_all_missions()
-	mission_tracker.active_mission = _bm_pool[randi() % _bm_pool.size()]
+	mission_tracker = MatchBootstrapScript.create_mission_tracker(
+		MissionTrackerScript,
+		_pending_artifact,
+		Callable(self, "_is_bonus_mission_feasible")
+	)
 
 	# 압박 미션 활성화 여부
-	heal_pickup_banned = false
-	heal_ban_until_stage = -1
-	railgun_unlimited_until_stage = -1
-	pressure_missions_enabled = (difficulty == Difficulty.HELL) or \
-		(difficulty == Difficulty.HARD and pressure_opt_in_hard)
+	var pressure_state = MatchBootstrapScript.initial_pressure_state(
+		difficulty as int,
+		pressure_opt_in_hard,
+		Difficulty.HARD,
+		Difficulty.HELL
+	)
+	heal_pickup_banned = pressure_state.get("heal_pickup_banned", false)
+	heal_ban_until_stage = pressure_state.get("heal_ban_until_stage", -1)
+	railgun_unlimited_until_stage = pressure_state.get("railgun_unlimited_until_stage", -1)
+	pressure_missions_enabled = pressure_state.get("pressure_missions_enabled", false)
 
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
@@ -288,9 +294,7 @@ func start_game():
 	spawn_entities()
 	_spawn_initial_loot()
 	if difficulty == Difficulty.HELL and not is_simulation:
-		var _rng = RandomNumberGenerator.new()
-		_rng.seed = Time.get_ticks_usec() ^ (Time.get_ticks_msec() << 16)
-		hell_modifier = _rng.randi_range(0, 2) as HellModifier
+		hell_modifier = MatchBootstrapScript.pick_hell_modifier(0, 2) as HellModifier
 		hell_events.configure(game_config)
 		hell_events.start_match(
 			self,

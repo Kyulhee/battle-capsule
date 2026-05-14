@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.11-dev — 2026-05-14
+
+**Main Slimdown — MatchBootstrap first pass**
+
+**src/systems/match/MatchBootstrap.gd / src/Main.gd**
+
+- Added `MatchBootstrap` under the new `src/systems/match/` placement for match lifecycle helpers.
+- Moved zone controller creation/configuration, bonus mission tracker creation/selection, pressure flag initialization, and Hell modifier roll out of `Main.gd`.
+- `Main.gd` still owns `zone`, `mission_tracker`, pressure state fields, Hell event runtime wiring, spawn calls, Telemetry start calls, and artifact application.
+- This slice prioritizes consistent ownership boundaries over line-count reduction; `Main.gd` is now 1277 lines because the explicit helper calls are longer than the previous inline code.
+- No zone values, mission pool rules, pressure behavior, Hell modifier range, Telemetry hook names, or JSON schema were changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=53.2s, stage=2, recover=18, disengage=20.
+
+---
+
 ## v1.10.10-dev — 2026-05-14
 
 **Main Slimdown — MenuController routing split**

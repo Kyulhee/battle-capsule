@@ -31,6 +31,7 @@
 │  ZoneController · WeaponSlotManager · MissionTracker│
 │  LootSpawner · SupplyDropController · HellEventCtrl │
 │  GameConfig · AssetCatalog · Telemetry · Sfx        │
+│  Systems           match/MatchBootstrap              │
 ├─────────────────────────────────────────────────────┤
 │  Data / Config  (Resource/JSON — 순수 데이터)          │
 │  StatsData · ItemData · MissionData · MapSpec        │
@@ -199,6 +200,7 @@
 | `src/ui/panels/ArtifactSelectionPanelBuilder.gd` | Artifact selection overlay/cards/buttons | Main이 catalog lookup, pending artifact, panel lifetime, start transition을 유지 |
 | `src/ui/panels/HellAnnouncementBuilder.gd` | Hell announcement overlay/card/rows/button | Main이 Hell modifier selection, pause/unpause, panel lifetime, dismiss fade를 유지 |
 | `src/ui/menu/MenuController.gd` | Panel visibility routing and menu button wiring | Main이 callbacks/settings/content builders를 유지하고 controller가 scene panel visibility와 button connect만 처리 |
+| `src/systems/match/MatchBootstrap.gd` | Match-start object/value initialization | Main이 match-global state ownership을 유지하고 bootstrap helper가 zone/mission/pressure/Hell modifier 초기값만 반환 |
 
 ```
 Entity (CharacterBody3D)

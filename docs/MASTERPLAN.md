@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-14 (MenuController routing split + modularization plan)
+> Last updated: 2026-05-14 (MatchBootstrap first pass + modularization plan)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural planning slice**: v1.10.11+ — MatchBootstrap or GameTuning/data-value binding.
+**Next structural planning slice**: v1.10.12+ — GameTuning/data-value binding or MatchBootstrap follow-up.
 
-**Latest completed slice**: v1.10.10 — panel routing and menu button wiring split into `src/ui/menu/MenuController.gd`.
+**Latest completed slice**: v1.10.11 — zone/mission/pressure/Hell modifier initialization split into `src/systems/match/MatchBootstrap.gd`.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -67,12 +67,13 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `ArtifactSelectionPanelBuilder`: artifact selection overlay/cards/buttons.
 - `HellAnnouncementBuilder`: Hell mode announcement overlay/card/rows/button.
 - `MenuController`: panel visibility routing and main/secondary menu button wiring.
+- `MatchBootstrap`: match-start zone creation, bonus mission selection, pressure flag initialization, Hell modifier roll.
 - `HellEventController`: Hell blackout/bombardment timers, overlay flashes, warning markers, damage application, and Hell event Telemetry logging.
 
 **Good next candidates**
 
-1. `MatchBootstrap`: config load, difficulty setup, artifact preparation, seed/map bootstrapping, and start-game sequencing.
-2. `GameTuning` / data-value binding slices: move gameplay numbers used by descriptions, tooltips, labels, and algorithms into shared data/schema sources.
+1. `GameTuning` / data-value binding slices: move gameplay numbers used by descriptions, tooltips, labels, and algorithms into shared data/schema sources.
+2. `MatchBootstrap` follow-up: config load, difficulty setup, artifact preparation, seed/map bootstrapping, and minimap sync where ownership remains clear.
 3. Small ownership-preserving splits that remove isolated static data from `Main.gd`.
 
 **Recommended split order**
@@ -99,7 +100,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 **Completion gate before v1.11**
 
 - Finish the v1.10.x item/asset readability stabilization work or explicitly defer remaining visual-only items.
-- MenuController first pass is complete; before v1.11 either complete a `MatchBootstrap` slice or explicitly defer it with rationale.
+- MenuController first pass and MatchBootstrap first pass are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap follow-up items.
 - Keep pressure mission effects, zone state, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists.
 - Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
 - Complete or explicitly defer the first Data/Description Value Binding slice before v1.11 artifacts add more numeric descriptions.

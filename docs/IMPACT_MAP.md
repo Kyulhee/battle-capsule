@@ -22,6 +22,7 @@
 | ArtifactSelectionPanelBuilder | artifact selection modal UI | `Main.gd` | static UI builder |
 | HellAnnouncementBuilder | Hell announcement modal UI | `Main.gd` | static UI builder |
 | MenuController | panel routing and menu button wiring | `Main.gd` | RefCounted UI controller |
+| MatchBootstrap | match-start initialization helpers | `Main.gd` | static system helper |
 
 ---
 
@@ -117,6 +118,12 @@
 - **역할**: panel visibility routing, main menu button wiring, dynamic Settings button insertion, Records/Help close button wiring.
 - **소유하지 않는 것**: menu callbacks, settings behavior, Records/Help/Result content, gameplay state.
 
+### `src/systems/match/MatchBootstrap.gd`
+- **읽는 파일**: 직접 scene 참조 없음. `Main.gd`가 script refs, values, and callbacks를 넘김.
+- **호출자**: `Main.gd` `start_game()`.
+- **역할**: zone controller creation/configuration, bonus mission tracker creation/selection, initial pressure state dictionary, Hell modifier roll.
+- **소유하지 않는 것**: `zone`, `mission_tracker`, pressure fields, spawn calls, Telemetry start calls, artifact application, Hell runtime controller.
+
 ### `src/entities/bot/Bot.gd`
 - **목표 이동**: `is_targeting_loot` CHASE는 `_nav_move_toward(..., false)`로 pickup 방향 이동을 유지하고 `_update_objective_scan()`으로 시야 회전을 따로 갱신.
 - **감지 연결**: footstep/ambient awareness는 loot chase 중에도 `_scan_alert`를 걸 수 있음. 비회복성 opportunistic loot만 완전 감지된 적에게 중단될 수 있고, recovery/combat-loot는 기존 damage/gunshot override가 우선.
@@ -177,6 +184,7 @@
 | Artifact selection UI | `ArtifactSelectionPanelBuilder.gd` | `ArtifactCatalog.gd`, `Main.gd` pending/apply flow, `Player.gd` `apply_artifact()` |
 | Hell announcement UI | `HellAnnouncementBuilder.gd` | `Main.gd` Hell modifier/dismiss wiring, `HellEventController.gd` modifier description |
 | Menu panel routing | `MenuController.gd` | `Main.gd` callbacks, scene panel names, Records/Help close buttons |
+| Match start initialization | `MatchBootstrap.gd` | `Main.gd` state ownership, `ZoneController.gd`, `MissionTracker.gd`, Hell modifier enum compatibility |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |
