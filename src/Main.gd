@@ -66,6 +66,7 @@ const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const ArtifactCatalogScript = preload("res://src/core/ArtifactCatalog.gd")
 const ArtifactSelectionPanelBuilderScript = preload("res://src/ui/panels/ArtifactSelectionPanelBuilder.gd")
 const AssetCatalogScript = preload("res://src/core/AssetCatalog.gd")
+const BotSpawnPlannerScript = preload("res://src/systems/match/BotSpawnPlanner.gd")
 const DifficultySelectorBuilderScript = preload("res://src/ui/DifficultySelectorBuilder.gd")
 const EventTextBuilderScript = preload("res://src/ui/overlays/EventTextBuilder.gd")
 const GameConfigScript = preload("res://src/core/GameConfig.gd")
@@ -75,6 +76,7 @@ const HelpPanelBuilderScript = preload("res://src/ui/HelpPanelBuilder.gd")
 const HellEventControllerScript = preload("res://src/core/HellEventController.gd")
 const HellAnnouncementBuilderScript = preload("res://src/ui/panels/HellAnnouncementBuilder.gd")
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
+const LootSpawnDirectorScript = preload("res://src/systems/match/LootSpawnDirector.gd")
 const MenuControllerScript = preload("res://src/ui/menu/MenuController.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
 const MenuVisualBuilderScript = preload("res://src/ui/MenuVisualBuilder.gd")
@@ -82,6 +84,7 @@ const MatchBootstrapScript = preload("res://src/systems/match/MatchBootstrap.gd"
 const MatchTuningScript = preload("res://src/systems/match/MatchTuning.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const PausePanelBuilderScript = preload("res://src/ui/panels/PausePanelBuilder.gd")
+const PressureEffectApplierScript = preload("res://src/systems/match/PressureEffectApplier.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
 const ResultPanelBuilderScript = preload("res://src/ui/panels/ResultPanelBuilder.gd")
 const SettingsPanelBuilderScript = preload("res://src/ui/SettingsPanelBuilder.gd")
@@ -594,23 +597,17 @@ func spawn_entities():
 		p.current_health = 1.0
 		p.health_changed.emit(1.0, p.stats.max_health)
 
-	# Spawn Bots — 아키타입 배정 3:3:2:3 (AGGRESSIVE/DEFENSIVE/SNIPER/OPPORTUNIST)
 	var diff_params = _get_difficulty_params()
-	var _archetype_pool: Array = []
-	for _ai in range(3): _archetype_pool.append(0)  # AGGRESSIVE
-	for _ai in range(3): _archetype_pool.append(1)  # DEFENSIVE
-	for _ai in range(2): _archetype_pool.append(2)  # SNIPER
-	for _ai in range(3): _archetype_pool.append(3)  # OPPORTUNIST
-	_archetype_pool.shuffle()
+	var archetype_plan = BotSpawnPlannerScript.archetype_plan(bot_count)
+	if difficulty == Difficulty.HELL and hell_modifier == HellModifier.ALL_AGGRESSIVE:
+		archetype_plan = BotSpawnPlannerScript.force_archetype(archetype_plan, 0)
 	for i in range(bot_count):
 		var b = bot_scene.instantiate()
 		$Entities.add_child(b)
 		b.display_name = "Bot %d" % (i + 1)
 		b.global_position = _get_safe_spawn_pos()
 		b.died.connect(_on_bot_died.bind(b))
-		var atype = _archetype_pool[i] if i < _archetype_pool.size() else 0
-		if difficulty == Difficulty.HELL and hell_modifier == HellModifier.ALL_AGGRESSIVE:
-			atype = b.BotArchetype.AGGRESSIVE
+		var atype = archetype_plan[i] if i < archetype_plan.size() else 0
 		b.configure_ai(atype, diff_params)
 		if has_node("/root/Telemetry"):
 			var aname = b.BotArchetype.keys()[b.archetype]
@@ -636,13 +633,11 @@ func _is_clear_of_entities(pos: Vector2, min_dist: float = 3.5) -> bool:
 func _categorize_templates():
 	weapon_templates.clear()
 	consumable_templates.clear()
-	for t in item_templates:
-		if t.type == ItemData.Type.WEAPON:
-			weapon_templates.append(t)
-		else:
-			consumable_templates.append(t)
-	# Add advanced heal to pool at roughly 1:5 ratio vs other consumables (rare spawn)
-	consumable_templates.append(HEAL_ADVANCED_ITEM)
+	var categorized = LootSpawnDirectorScript.categorize_templates(item_templates, [HEAL_ADVANCED_ITEM])
+	for template in categorized.get("weapons", []):
+		weapon_templates.append(template)
+	for template in categorized.get("consumables", []):
+		consumable_templates.append(template)
 
 func _register_loot_hotspots():
 	loot_hotspots.clear()
@@ -660,23 +655,17 @@ func _random_loot_pos(hotspot: Dictionary) -> Vector2:
 	return loot_spawner.random_position(hotspot, Callable(self, "_is_clear_of_obstacles"))
 
 func _spawn_initial_loot():
-	if not loot_spawner or not loot_spawner.has_hotspots(): return
-	for hotspot in loot_hotspots:
-		var weapon_chance = loot_spawner.initial_weapon_chance(hotspot)
-		if not weapon_templates.is_empty() and randf() < weapon_chance:
-			var pickup = pickup_scene.instantiate()
-			$Loot.add_child(pickup)
-			var sp = _random_loot_pos(hotspot)
-			pickup.global_position = Vector3(sp.x, 0.5, sp.y)
-			pickup.init(weapon_templates[randi() % weapon_templates.size()].duplicate(true))
-		var consumable_count = loot_spawner.initial_consumable_count(hotspot)
-		for _i in range(consumable_count):
-			if consumable_templates.is_empty(): break
-			var pickup = pickup_scene.instantiate()
-			$Loot.add_child(pickup)
-			var sp = _random_loot_pos(hotspot)
-			pickup.global_position = Vector3(sp.x, 0.5, sp.y)
-			pickup.init(consumable_templates[randi() % consumable_templates.size()])
+	if not loot_spawner or not loot_spawner.has_hotspots():
+		return
+	LootSpawnDirectorScript.spawn_initial_loot(
+		pickup_scene,
+		$Loot,
+		loot_hotspots,
+		loot_spawner,
+		weapon_templates,
+		consumable_templates,
+		Callable(self, "_random_loot_pos")
+	)
 
 func _is_clear_of_obstacles(pos: Vector2, margin: float = 2.0) -> bool:
 	if not map_spec: return true
@@ -694,17 +683,15 @@ func _is_clear_of_obstacles(pos: Vector2, margin: float = 2.0) -> bool:
 func spawn_loot(prob: float, count_mult: int = 1):
 	var total_to_spawn = loot_spawner.spawn_count(prob, count_mult) if loot_spawner else int(loot_count * prob * count_mult)
 	if total_to_spawn <= 0 or loot_hotspots.is_empty(): return
-	for i in range(total_to_spawn):
-		var hotspot = _choose_loot_hotspot()
-		var spawn_pos = _random_loot_pos(hotspot)
-		
-		var pickup = pickup_scene.instantiate()
-		$Loot.add_child(pickup)
-		pickup.global_position = Vector3(spawn_pos.x, 0.5, spawn_pos.y)
-		if randf() < float(hotspot.get("rare_bias", 0.0)) and not weapon_templates.is_empty():
-			pickup.init(weapon_templates[randi() % weapon_templates.size()].duplicate(true))
-		else:
-			pickup.init(item_templates[randi() % item_templates.size()])
+	LootSpawnDirectorScript.spawn_loot_wave(
+		pickup_scene,
+		$Loot,
+		total_to_spawn,
+		Callable(self, "_choose_loot_hotspot"),
+		Callable(self, "_random_loot_pos"),
+		weapon_templates,
+		item_templates
+	)
 
 func telegraph_supply_zone():
 	var drop = supply_controller.start_telegraph() if supply_controller else {
@@ -717,18 +704,7 @@ func telegraph_supply_zone():
 	supply_pos = drop.get("pos", Vector3.ZERO)
 	debug_log("loot", "supply telegraphed at (%.1f, %.1f)" % [supply_pos.x, supply_pos.z])
 	
-	# Visual beacon
-	supply_pillar = MeshInstance3D.new()
-	var mesh = CylinderMesh.new()
-	mesh.top_radius = 0.5; mesh.bottom_radius = 0.5; mesh.height = 100.0
-	supply_pillar.mesh = mesh
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(1.0, 0.8, 0.2, 0.3)
-	mat.transparency = StandardMaterial3D.TRANSPARENCY_ALPHA
-	mat.emission_enabled = true; mat.emission = Color(1.0, 0.8, 0.2)
-	supply_pillar.material_override = mat
-	add_child(supply_pillar)
-	supply_pillar.global_position = supply_pos + Vector3(0, 50, 0)
+	supply_pillar = LootSpawnDirectorScript.create_supply_pillar(self, supply_pos)
 	
 	if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_supply_event("telegraph")
 
@@ -740,22 +716,20 @@ func activate_supply_zone():
 		supply_pillar.queue_free()
 		supply_pillar = null
 	
-	# Spawn Rare Loot cluster: 1 guaranteed railgun + 4 consumables
-	if railgun_item:
-		var rg = pickup_scene.instantiate()
-		$Loot.add_child(rg)
-		rg.global_position = supply_pos
-		rg.init(railgun_item.duplicate(true))
 	var consumable_count = supply_controller.consumable_count() if supply_controller else 4
-	for i in range(consumable_count):
-		var pickup = pickup_scene.instantiate()
-		$Loot.add_child(pickup)
-		var offset = supply_controller.random_cluster_offset() if supply_controller else Vector3(randf_range(-2.5, 2.5), 0, randf_range(-2.5, 2.5))
-		pickup.global_position = supply_pos + offset
-		if not consumable_templates.is_empty():
-			pickup.init(consumable_templates[randi() % consumable_templates.size()])
-		else:
-			pickup.init(item_templates[randi() % item_templates.size()])
+	var cluster_offset = Callable()
+	if supply_controller:
+		cluster_offset = Callable(supply_controller, "random_cluster_offset")
+	LootSpawnDirectorScript.spawn_supply_cluster(
+		pickup_scene,
+		$Loot,
+		supply_pos,
+		railgun_item,
+		consumable_count,
+		cluster_offset,
+		consumable_templates,
+		item_templates
+	)
 		
 	if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_supply_event("contest")
 
@@ -982,64 +956,18 @@ func _process_pressure_mission(delta: float):
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_pressure_event("failed")
 
-func _apply_pressure_effects(effects: Array, is_reward: bool):
-	if not is_instance_valid(player_ref): return
-	for eff in effects:
-		match int(eff["type"]):
-			MissionTrackerScript.PressureEffect.AMMO_REFILL:
-				player_ref.slots.fill_all_ammo()
-			MissionTrackerScript.PressureEffect.AMMO_CLEAR:
-				player_ref.slots.clear_all_ammo()
-			MissionTrackerScript.PressureEffect.AMMO_ACTIVE_CLEAR:
-				player_ref.slots.clear_active_ammo()
-			MissionTrackerScript.PressureEffect.HP_RESTORE:
-				if eff.get("full", false):
-					player_ref.current_health = player_ref.stats.max_health
-				else:
-					player_ref.current_health = min(player_ref.stats.max_health, player_ref.current_health + float(eff.get("amount", 30.0)))
-				player_ref.health_changed.emit(player_ref.current_health, player_ref.stats.max_health)
-			MissionTrackerScript.PressureEffect.HP_DAMAGE:
-				var frac = eff.get("fraction", 0.0)
-				var amt = float(eff.get("amount", 20.0))
-				if frac > 0.0:
-					amt = player_ref.current_health * frac
-				player_ref.current_health = max(1.0, player_ref.current_health - amt)
-				player_ref.health_changed.emit(player_ref.current_health, player_ref.stats.max_health)
-			MissionTrackerScript.PressureEffect.SHIELD_ADD:
-				player_ref.current_shield = min(player_ref.stats.max_shield, player_ref.current_shield + float(eff.get("amount", 50.0)))
-				player_ref.shield_changed.emit(player_ref.current_shield, player_ref.stats.max_shield)
-			MissionTrackerScript.PressureEffect.HEAL_ADD:
-				player_ref.stats.heal_items += int(eff.get("count", 1))
-				player_ref._update_hud()
-			MissionTrackerScript.PressureEffect.HEAL_CLEAR:
-				player_ref.stats.heal_items = 0
-				player_ref.stats.advanced_heals = 0
-				player_ref._update_hud()
-			MissionTrackerScript.PressureEffect.HEAL_PICKUP_BAN:
-				heal_pickup_banned = true
-				heal_ban_until_stage = zone.stage + 1
-			MissionTrackerScript.PressureEffect.ALL_BOTS_DETECT:
-				for b in get_tree().get_nodes_in_group("actors"):
-					if is_instance_valid(b) and not b.is_in_group("players") and not b.is_dead:
-						b.perception_meters[player_ref] = 1.0
-			MissionTrackerScript.PressureEffect.BOT_AGGRO:
-				var nearest = null
-				var nearest_dist = INF
-				for b in get_tree().get_nodes_in_group("actors"):
-					if is_instance_valid(b) and not b.is_in_group("players") and not b.is_dead:
-						var d = b.global_position.distance_to(player_ref.global_position)
-						if d < nearest_dist:
-							nearest_dist = d
-							nearest = b
-				if nearest and nearest.has_method("handle_idle_state"):
-					nearest.target_actor = player_ref
-					nearest.is_targeting_loot = false
-					nearest.last_known_target_pos = player_ref.global_position
-					nearest.current_state = nearest.State.CHASE
-			MissionTrackerScript.PressureEffect.ZONE_EXTEND:
-				zone.timer += zone.wait_time * (float(eff.get("mult", 1.0)) - 1.0)
-			MissionTrackerScript.PressureEffect.RAILGUN_UNLIMITED:
-				railgun_unlimited_until_stage = zone.stage + int(eff.get("stages", 1))
+func _apply_pressure_effects(effects: Array, _is_reward: bool):
+	var updates = PressureEffectApplierScript.apply(effects, {
+		"player": player_ref,
+		"actors": get_tree().get_nodes_in_group("actors"),
+		"zone": zone,
+	})
+	if updates.has("heal_pickup_banned"):
+		heal_pickup_banned = bool(updates["heal_pickup_banned"])
+	if updates.has("heal_ban_until_stage"):
+		heal_ban_until_stage = int(updates["heal_ban_until_stage"])
+	if updates.has("railgun_unlimited_until_stage"):
+		railgun_unlimited_until_stage = int(updates["railgun_unlimited_until_stage"])
 
 # ─── MENU VISUALS ────────────────────────────────────────────────────────────
 

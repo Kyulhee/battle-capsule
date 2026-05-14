@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-15 (Pause/Event overlay builder split + modularization plan)
+> Last updated: 2026-05-15 (expansion risk reducer split + modularization plan)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural planning slice**: v1.10.15+ — remaining GameTuning/data-value binding or MatchBootstrap follow-up.
+**Next structural planning slice**: v1.10.16+ — v1.10 closure review, remaining GameTuning/data-value binding, or explicit defer list.
 
-**Latest completed slice**: v1.10.14 — pause overlay and transient event text construction split into UI builders.
+**Latest completed slice**: v1.10.15 — pressure effects, bot archetype planning, and loot/supply pickup creation split into match helpers.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -72,13 +72,16 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `MenuController`: panel visibility routing and main/secondary menu button wiring.
 - `MatchBootstrap`: match-start zone creation, bonus mission selection, pressure flag initialization, Hell modifier roll.
 - `MatchTuning`: `GameConfig` match/zone tuning interpretation and CLI match/difficulty override parsing.
+- `BotSpawnPlanner`: weighted bot archetype plans that scale beyond the 11-bot baseline.
+- `LootSpawnDirector`: item template categorization, pickup creation, supply pillar creation, and supply cluster creation.
+- `PressureEffectApplier`: pressure mission reward/penalty effect execution against explicit player/zone/actor context.
 - `HellEventController`: Hell blackout/bombardment timers, overlay flashes, warning markers, damage application, and Hell event Telemetry logging.
 
 **Good next candidates**
 
-1. `GameTuning` / data-value binding slices: move remaining gameplay numbers used by descriptions, tooltips, labels, and algorithms into shared data/schema sources.
-2. `MatchBootstrap` follow-up: config load, difficulty setup, artifact preparation, seed/map bootstrapping, and minimap sync where ownership remains clear.
-3. Small ownership-preserving splits that remove isolated static data from `Main.gd`.
+1. v1.10 closure review: mark remaining state-owning systems as complete/deferred before v1.11.
+2. `GameTuning` / data-value binding slices: move remaining gameplay numbers used by descriptions, tooltips, labels, and algorithms into shared data/schema sources.
+3. Match lifecycle follow-up only where ownership remains clear, such as seed/map bootstrapping or minimap sync.
 
 **Recommended split order**
 
@@ -104,7 +107,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 **Completion gate before v1.11**
 
 - Finish the v1.10.x item/asset readability stabilization work or explicitly defer remaining visual-only items.
-- MenuController, MenuVisualBuilder, PausePanelBuilder, EventTextBuilder, MatchBootstrap, and MatchTuning first passes are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap/GameTuning follow-up items.
+- MenuController, MenuVisualBuilder, PausePanelBuilder, EventTextBuilder, MatchBootstrap, MatchTuning, BotSpawnPlanner, LootSpawnDirector, and PressureEffectApplier first passes are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap/GameTuning follow-up items.
 - Keep pressure mission effects, zone state, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists.
 - Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
 - Complete or explicitly defer the first Data/Description Value Binding slice before v1.11 artifacts add more numeric descriptions.

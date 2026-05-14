@@ -27,6 +27,9 @@
 | MenuController | panel routing and menu button wiring | `Main.gd` | RefCounted UI controller |
 | MatchBootstrap | match-start initialization helpers | `Main.gd` | static system helper |
 | MatchTuning | match/zone tuning interpretation | `Main.gd` | static system helper |
+| BotSpawnPlanner | bot archetype plan generation | `Main.gd` | static system helper |
+| LootSpawnDirector | loot/supply pickup creation | `Main.gd` | static system helper |
+| PressureEffectApplier | pressure reward/penalty execution | `Main.gd` | static system helper |
 
 ---
 
@@ -156,6 +159,27 @@
 - **소유하지 않는 것**: `bot_count`, `loot_count`, `spawn_radius`, zone timing fields, `difficulty`, `loot_spawner.configure_count()`, match-global state, Telemetry schema.
 - **수정 영향**: 새 CLI alias나 config key를 추가하면 `Main.gd` 적용 경로, `data/game_config.json`, `tools/simulate_matches.py` 호출 관례, TESTING/문서 예시를 함께 확인.
 
+### `src/systems/match/BotSpawnPlanner.gd`
+- **읽는 파일**: 직접 scene 참조 없음.
+- **호출자**: `Main.gd` `spawn_entities()`.
+- **역할**: weighted bot archetype plan 생성, Hell all-aggressive modifier용 forced archetype plan 생성.
+- **소유하지 않는 것**: bot scene instancing, spawn position, AI configuration call, `alive_count`, Telemetry spawn logging.
+- **수정 영향**: bot_count 확장, archetype 비율, 새 archetype 추가 시 `Bot.gd` enum/order, `BotDoctrine.gd`, Telemetry archetype aggregation, `Main.gd` spawn wiring을 함께 확인.
+
+### `src/systems/match/LootSpawnDirector.gd`
+- **읽는 파일**: `ItemData.gd` type enum. 직접 scene lookup 없음.
+- **호출자**: `Main.gd` `_categorize_templates()` / `_spawn_initial_loot()` / `spawn_loot()` / `telegraph_supply_zone()` / `activate_supply_zone()`.
+- **역할**: item template category split, initial loot pickup creation, dynamic loot wave pickup creation, supply pillar creation, supply cluster pickup creation.
+- **소유하지 않는 것**: `loot_count`, `loot_hotspots`, `supply_telegraphed`, `supply_spawned`, `supply_pos`, `supply_timer`, Telemetry supply event logging, minimap state.
+- **수정 영향**: pickup spawn quantities or supply cluster composition 변경 시 `LootSpawner.gd`, `SupplyDropController.gd`, item templates, `Pickup.gd`, `Main.gd` supply state, Minimap supply display를 함께 확인.
+
+### `src/systems/match/PressureEffectApplier.gd`
+- **읽는 파일**: `MissionTracker.gd` PressureEffect enum. 직접 scene lookup 없음.
+- **호출자**: `Main.gd` `_apply_pressure_effects()`.
+- **역할**: pressure reward/penalty effects execution against explicit `player`, `zone`, and `actors` context; returns Main-owned pressure state updates.
+- **소유하지 않는 것**: pressure mission selection/timing, `heal_pickup_banned`, `heal_ban_until_stage`, `railgun_unlimited_until_stage`, player/zone/actor ownership, Telemetry logging.
+- **수정 영향**: 새 PressureEffect 추가 시 `MissionTracker.gd` enum/pools/HUD formatter, `PressureEffectApplier.gd`, `Main.gd` returned state handling, `Player.gd`/`ZoneController.gd`/`Bot.gd` touched state를 함께 확인.
+
 ### `src/entities/bot/Bot.gd`
 - **목표 이동**: `is_targeting_loot` CHASE는 `_nav_move_toward(..., false)`로 pickup 방향 이동을 유지하고 `_update_objective_scan()`으로 시야 회전을 따로 갱신.
 - **감지 연결**: footstep/ambient awareness는 loot chase 중에도 `_scan_alert`를 걸 수 있음. 비회복성 opportunistic loot만 완전 감지된 적에게 중단될 수 있고, recovery/combat-loot는 기존 damage/gunshot override가 우선.
@@ -206,7 +230,7 @@
 | `MissionTracker` 훅 추가/변경 | `MissionTracker.gd` | `Main.gd` (훅 호출 추가), 존 관련이면 `ZoneController.gd` |
 | `Entity.take_damage()` 시그니처 | `Entity.gd` | `Bot.gd`, `Player.gd`, `ZoneController.tick_damage()` |
 | `StatsData` 필드 추가 | `StatsData.gd` | `WeaponSlotManager.gd`, `Bot.gd`, `Player.gd` |
-| `Main.DIFFICULTY_PARAMS` | `Main.gd` | `Bot.gd` (스폰 시 1회 읽힘, 이후 변경 불가) |
+| 난이도 파라미터 | `data/game_config.json`, `GameConfig.gd` | `Main.gd` `_get_difficulty_params()`, `Bot.gd` configure path |
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
 | Hell 정전/포격 이벤트 | `HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, `data/game_config.json` Hell keys |
@@ -221,6 +245,9 @@
 | Menu visual style | `MenuVisualBuilder.gd` | `Main.gd` target node wiring, `MenuController.gd`, `HelpPanelBuilder.gd`, `RecordsPanelBuilder.gd` |
 | Match start initialization | `MatchBootstrap.gd` | `Main.gd` state ownership, `ZoneController.gd`, `MissionTracker.gd`, Hell modifier enum compatibility |
 | Match/zone tuning config 또는 CLI alias | `MatchTuning.gd` | `Main.gd` apply path, `data/game_config.json`, `tools/simulate_matches.py`, TESTING/문서 예시 |
+| Bot count/archetype ratio | `BotSpawnPlanner.gd` | `Main.gd` spawn wiring, `Bot.gd` archetype enum, `BotDoctrine.gd`, Telemetry archetype reports |
+| Loot/supply pickup creation | `LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
+| Pressure reward/penalty effect | `PressureEffectApplier.gd` | `MissionTracker.gd` enum/pools/HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |
@@ -228,5 +255,5 @@
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
 | How to Play 행 구조 | `HelpCatalog.gd` | `HelpPanelBuilder.gd`, `Main.gd` Help panel wiring |
 | Records 행 구조 | `RecordsPanelBuilder.gd` | `Telemetry.gd` match history fields, `Main.gd` Records callbacks |
-| 새 `PressureEffect` 추가 | `MissionTracker.gd` (enum) | `Main._apply_pressure_effects()` (match 케이스 추가) |
+| 새 `PressureEffect` 추가 | `MissionTracker.gd` (enum) | `PressureEffectApplier.gd` (match 케이스 추가), `MissionTracker._format_pressure_effects()`, 필요 시 `Main.gd` state update 반영 |
 | 새 `PressureCondition` 추가 | `MissionTracker.gd` (enum + `_eval_single_condition`) | `MissionTracker.filter_feasible()` (필터 케이스 추가) |

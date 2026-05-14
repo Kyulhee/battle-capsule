@@ -6,6 +6,28 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.15-dev — 2026-05-15
+
+**Main Slimdown — expansion risk reducer split**
+
+**src/systems/match/PressureEffectApplier.gd / BotSpawnPlanner.gd / LootSpawnDirector.gd / src/Main.gd**
+
+- Added `PressureEffectApplier` for pressure mission reward/penalty execution.
+- Added `BotSpawnPlanner` for weighted bot archetype plans, preserving the 3:3:2:3 base mix while scaling beyond 11 bots.
+- Added `LootSpawnDirector` for item template categorization, initial/wave loot pickup creation, supply pillar creation, and supply cluster pickup creation.
+- `Main.gd` keeps state ownership (`player_ref`, `zone`, pressure flags, supply flags, Telemetry hooks) and explicit scene wiring; helpers receive references/callbacks instead of discovering scene nodes.
+- This reduces pre-expansion risk around new pressure effects, larger bot counts, and loot/supply rule changes without changing gameplay values or Telemetry schema.
+- `Main.gd` is now 1084 lines after this split.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=82.9s, stage=3, recover=35, disengage=16.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=70.3s, stage=3, recover=118, disengage=19.
+
+---
+
 ## v1.10.14-dev — 2026-05-15
 
 **Main Slimdown — pause/event overlay builder split**
