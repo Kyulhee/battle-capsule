@@ -54,6 +54,11 @@
 - **호출자**: `Player.gd`, `Bot.gd` death drop 생성 경로.
 - **역할**: 런타임으로 생성되는 death drop의 weapon/ammo/heal 표시 이름과 weapon color를 한 곳에서 제공. 초기 맵 loot/supply drop 템플릿 이름은 `src/items/*.tres`가 계속 소유.
 
+### `src/entities/bot/Bot.gd`
+- **목표 이동**: `is_targeting_loot` CHASE는 `_nav_move_toward(..., false)`로 pickup 방향 이동을 유지하고 `_update_objective_scan()`으로 시야 회전을 따로 갱신.
+- **감지 연결**: footstep/ambient awareness는 loot chase 중에도 `_scan_alert`를 걸 수 있음. 비회복성 opportunistic loot만 완전 감지된 적에게 중단될 수 있고, recovery/combat-loot는 기존 damage/gunshot override가 우선.
+- **수정 영향**: loot 추적, RECOVER, perception, gunshot/footstep awareness를 함께 확인. Telemetry hook 이름과 JSON schema를 임의로 추가하지 않음.
+
 ### `src/entities/bot/BotDoctrine.gd`
 - **읽는 파일**: 직접 scene 참조 없음 — `Bot.gd`가 넘긴 context/profile만 사용.
 - **공개 API**: `build_profile()`, `choose_combat_plan()`, `choose_supply_decision()`, `explain_profile()`.

@@ -63,6 +63,8 @@ var _combat_loot_radius: float = 15.0
 var _scan_interval_max: float = 3.0  # idle scan max interval — difficulty-scaled
 var _scan_phase: int = 0             # cycles: right flank → left flank → random
 var _scan_alert: bool = false        # true when sound/event set scan_target; use full rotation speed
+var _objective_scan_timer: float = 0.0
+var _objective_scan_offset: float = 0.0
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -419,11 +421,10 @@ func handle_chase_state(delta):
 	if not is_targeting_loot and dist <= engage_dist:
 		change_state(State.ATTACK); return
 
-	var dir = (target_actor.global_position - global_position).normalized()
-	dir.y = 0
-	rotation.y = lerp_angle(rotation.y, atan2(dir.x, dir.z) + PI, stats.rotation_speed * delta)
-
 	if is_targeting_loot:
+		_update_objective_scan(delta, target_actor.global_position)
+		if _maybe_interrupt_objective_for_enemy():
+			return
 		# Give up if stuck chasing loot too long — switch to a different target
 		if state_timer > 5.0:
 			var alt = _find_best_pickup(_loot_radius)
@@ -443,7 +444,60 @@ func handle_chase_state(delta):
 					if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_tactics("recovery_success")
 			target_actor = null; is_targeting_loot = false; _recovering = false; change_state(State.IDLE)
 	else:
+		var dir = (target_actor.global_position - global_position).normalized()
+		dir.y = 0
+		rotation.y = lerp_angle(rotation.y, atan2(dir.x, dir.z) + PI, stats.rotation_speed * delta)
 		_nav_move_toward(target_actor.global_position, delta, false)
+
+func _update_objective_scan(delta: float, objective_pos: Vector3) -> void:
+	var to_objective = objective_pos - global_position
+	to_objective.y = 0.0
+	if to_objective.length_squared() < 0.01:
+		return
+
+	var objective_yaw = atan2(to_objective.x, to_objective.z) + PI
+	if _scan_alert:
+		rotation.y = lerp_angle(rotation.y, scan_target_rotation, stats.rotation_speed * delta)
+		if abs(angle_difference(rotation.y, scan_target_rotation)) < 0.15:
+			_scan_alert = false
+		return
+
+	if _awareness_level >= 2:
+		_head_sweep_angle += 1.35 * delta
+		var sweep_limit = deg_to_rad(105.0)
+		scan_target_rotation = objective_yaw + sin(_head_sweep_angle) * sweep_limit
+		rotation.y = lerp_angle(rotation.y, scan_target_rotation, stats.rotation_speed * 0.78 * delta)
+		return
+
+	_objective_scan_timer -= delta
+	if _objective_scan_timer <= 0.0:
+		_objective_scan_timer = randf_range(_scan_interval_max * 0.45, _scan_interval_max)
+		_objective_scan_offset = randf_range(-deg_to_rad(65.0), deg_to_rad(65.0))
+		scan_target_rotation = objective_yaw + _objective_scan_offset
+
+	var rot_speed = stats.rotation_speed * (0.58 if _awareness_level >= 1 else 0.42)
+	rotation.y = lerp_angle(rotation.y, scan_target_rotation, rot_speed * delta)
+
+func _maybe_interrupt_objective_for_enemy() -> bool:
+	var enemy = _find_nearest_target()
+	if not enemy:
+		return false
+
+	# Recovery and combat-loot runs keep their objective; damage and loud gunshot
+	# overrides can still break them through the existing higher-priority paths.
+	if _recovering:
+		return false
+
+	target_actor = enemy
+	is_targeting_loot = false
+	_recovering = false
+	last_known_target_pos = enemy.global_position
+
+	if stats.current_ammo > 0:
+		change_state(State.CHASE)
+	else:
+		change_state(State.RECOVER)
+	return true
 
 func handle_attack_state(delta):
 	if not _is_target_valid(target_actor):
@@ -1270,7 +1324,9 @@ func _check_late_game():
 # making running stealthy risky near bots.
 
 func _check_footstep_sounds():
-	if current_state not in [State.IDLE, State.RECOVER]: return
+	var can_react_to_footsteps = current_state in [State.IDLE, State.RECOVER] \
+		or (current_state == State.CHASE and is_targeting_loot)
+	if not can_react_to_footsteps: return
 	var actors = get_tree().get_nodes_in_group("actors")
 	for actor in actors:
 		if actor == self or not actor is Entity or actor.is_dead: continue
@@ -1285,8 +1341,8 @@ func _check_footstep_sounds():
 		if not perception_meters.has(actor): perception_meters[actor] = 0.0
 		perception_meters[actor] = min(perception_meters[actor] + 0.4, 0.85)
 		last_known_target_pos = actor.global_position
-		# Snap idle bots toward sound source at full rotation speed
-		if current_state == State.IDLE:
+		# Turn passive or objective-focused bots toward the sound source.
+		if current_state == State.IDLE or (current_state == State.CHASE and is_targeting_loot):
 			var dir_to = (actor.global_position - global_position).normalized()
 			scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
 			_scan_alert = true
@@ -1369,7 +1425,7 @@ func _check_ambient_awareness(delta: float):
 		var boost = 0.2 if _awareness_level == 1 else 0.35
 		perception_meters[actor] = min(perception_meters[actor] + boost, 0.75)
 		last_known_target_pos = actor.global_position
-		if current_state == State.IDLE or current_state == State.RECOVER:
+		if current_state == State.IDLE or current_state == State.RECOVER or (current_state == State.CHASE and is_targeting_loot):
 			var dir_to = (actor.global_position - global_position).normalized()
 			scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
 			_scan_alert = true

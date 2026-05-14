@@ -1,8 +1,27 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-13. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
+> Last updated: 2026-05-14. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
 
 The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md). Do not load it by default.
+
+---
+
+## v1.10-dev — 2026-05-14
+
+**Bot Objective Awareness — loot movement scan**
+
+**src/entities/bot/Bot.gd**
+
+- Loot/objective chase now keeps navigation toward the pickup while rotating view through an objective-relative scan pattern.
+- Footstep and ambient awareness can now set scan alerts during loot chase, so bots can turn their view toward nearby movement without abandoning the pickup route.
+- Non-recovery opportunistic loot can still be interrupted by a fully revealed enemy; recovery/combat-loot runs keep their objective unless existing higher-priority damage or loud-gunshot overrides take over.
+- Telemetry hook names and JSON schema were not changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=104.4s, stage=4, recover=41, disengage=17.
 
 ---
 

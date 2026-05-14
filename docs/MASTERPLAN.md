@@ -61,6 +61,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 1. `MenuController`: main menu, records, help, settings orchestration.
 2. `MatchBootstrap`: config load, difficulty setup, seed/map bootstrapping.
 3. Small UI/helper/catalog splits that remove isolated static data from `Main.gd`.
+4. Data/description value binding: move gameplay numbers used in descriptions, tooltips, labels, and algorithms into shared data/schema sources. Treat this as a dedicated design pass, not ad hoc text cleanup.
 
 **Boundary rules**
 
@@ -74,6 +75,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Move at least one remaining large isolated responsibility out of `Main.gd`, preferably `MenuController` first or `MatchBootstrap` if bootstrapping becomes the lower-risk slice.
 - Keep pressure mission effects, zone state, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists.
 - Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
+- Defer broad data/description value binding unless it is explicitly selected as the next structural slice.
 
 ### v1.10.x — Item/Asset Readability Polish `S`
 
