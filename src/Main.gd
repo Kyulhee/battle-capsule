@@ -74,6 +74,7 @@ const HelpPanelBuilderScript = preload("res://src/ui/HelpPanelBuilder.gd")
 const HellEventControllerScript = preload("res://src/core/HellEventController.gd")
 const HellAnnouncementBuilderScript = preload("res://src/ui/panels/HellAnnouncementBuilder.gd")
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
+const MenuControllerScript = preload("res://src/ui/menu/MenuController.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
@@ -97,6 +98,7 @@ var debug_flags = null
 var debug_overlay = null
 var supply_controller = null
 var hell_events = null
+var menu_controller = null
 
 # Dynamic Supply
 var supply_telegraphed: bool = false
@@ -112,6 +114,8 @@ func _ready():
 	supply_controller = SupplyDropControllerScript.new()
 	hell_events = HellEventControllerScript.new()
 	hell_events.event_text_requested.connect(_show_event_text)
+	menu_controller = MenuControllerScript.new()
+	menu_controller.configure($CanvasLayer/Control)
 	asset_catalog = AssetCatalogScript.new()
 	asset_catalog.load_or_default()
 	_configure_asset_catalog()
@@ -168,12 +172,6 @@ func _ready():
 		_setup_navigation()
 		_register_loot_hotspots()
 			
-	# Connect Buttons
-	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/StartBtn.pressed.connect(_on_start_btn_pressed)
-	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/RecordsBtn.pressed.connect(_on_records_pressed)
-	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/HelpBtn.pressed.connect(_on_help_pressed)
-	$CanvasLayer/Control/MainMenuPanel/VBoxContainer/ExitBtn.pressed.connect(get_tree().quit)
-
 	var vbox = $CanvasLayer/Control/MainMenuPanel/VBoxContainer
 	_setup_menu_visuals()
 
@@ -189,19 +187,18 @@ func _ready():
 		Callable(self, "_apply_btn_style")
 	)
 
-	var exit_idx = $CanvasLayer/Control/MainMenuPanel/VBoxContainer/ExitBtn.get_index()
-	var settings_btn = Button.new()
-	settings_btn.text = "SETTINGS"
-	settings_btn.add_theme_font_size_override("font_size", 24)
-	settings_btn.pressed.connect(_on_settings_pressed)
-	$CanvasLayer/Control/MainMenuPanel/VBoxContainer.add_child(settings_btn)
-	$CanvasLayer/Control/MainMenuPanel/VBoxContainer.move_child(settings_btn, exit_idx)
-	_apply_btn_style(settings_btn)
+	menu_controller.connect_main_buttons(
+		Callable(self, "_on_start_btn_pressed"),
+		Callable(self, "_on_records_pressed"),
+		Callable(self, "_on_help_pressed"),
+		Callable(self, "_on_settings_pressed"),
+		Callable(get_tree(), "quit"),
+		Callable(self, "_apply_btn_style")
+	)
 
 	_setup_result_panel()
 
-	$CanvasLayer/Control/RecordsPanel/VBox/CloseRecordsBtn.pressed.connect(func(): _show_panel("MainMenu"))
-	$CanvasLayer/Control/HelpPanel/VBox/CloseHelpBtn.pressed.connect(func(): _show_panel("MainMenu"))
+	menu_controller.connect_secondary_close(Callable(self, "_show_panel").bind("MainMenu"))
 	_setup_secondary_panels()
 
 	if is_simulation:
@@ -318,12 +315,8 @@ func start_game():
 		_pending_artifact = {}
 
 func _show_panel(panel_name: String):
-	var control = $CanvasLayer/Control
-	for child in control.get_children():
-		if child.name.ends_with("Panel"):
-			child.visible = (child.name == panel_name + "Panel")
-		elif child.name == "HUD":
-			child.visible = (panel_name == "HUD")
+	if menu_controller:
+		menu_controller.show_panel(panel_name)
 
 func _on_records_pressed():
 	_show_panel("Records")

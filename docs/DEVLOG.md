@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.10-dev — 2026-05-14
+
+**Main Slimdown — MenuController routing split**
+
+**src/ui/menu/MenuController.gd / src/Main.gd**
+
+- Added `MenuController` under `src/ui/menu/`.
+- Moved panel visibility routing, main menu button wiring, dynamic Settings button insertion, and Records/Help close button wiring out of `Main.gd`.
+- `Main.gd` keeps menu callbacks, settings behavior, result/records/help content ownership, and a thin `_show_panel()` wrapper.
+- No scene node names, panel visibility rules, gameplay behavior, Telemetry hook names, or JSON schema were changed.
+- `Main.gd` is now 1273 lines after this split.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=59.0s, stage=2, recover=46, disengage=24.
+
+---
+
 ## v1.10.9-dev — 2026-05-14
 
 **Main Slimdown — Hell announcement panel builder split**

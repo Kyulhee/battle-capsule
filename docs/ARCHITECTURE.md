@@ -25,6 +25,7 @@
 │                      │  panels/ResultPanelBuilder   │
 │                      │  panels/ArtifactSelection     │
 │                      │  panels/HellAnnouncement      │
+│                      │  menu/MenuController          │
 ├──────────────────────┴──────────────────────────────┤
 │  Core Modules / Runtime Controllers                  │
 │  ZoneController · WeaponSlotManager · MissionTracker│
@@ -197,6 +198,7 @@
 | `src/ui/panels/ResultPanelBuilder.gd` | Result panel layout/buttons/label population | Main이 match finalization, mission evaluation, score calculation을 유지하고 결과 표시 데이터만 넘김 |
 | `src/ui/panels/ArtifactSelectionPanelBuilder.gd` | Artifact selection overlay/cards/buttons | Main이 catalog lookup, pending artifact, panel lifetime, start transition을 유지 |
 | `src/ui/panels/HellAnnouncementBuilder.gd` | Hell announcement overlay/card/rows/button | Main이 Hell modifier selection, pause/unpause, panel lifetime, dismiss fade를 유지 |
+| `src/ui/menu/MenuController.gd` | Panel visibility routing and menu button wiring | Main이 callbacks/settings/content builders를 유지하고 controller가 scene panel visibility와 button connect만 처리 |
 
 ```
 Entity (CharacterBody3D)
