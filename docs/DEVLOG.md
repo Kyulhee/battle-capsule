@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.8-dev — 2026-05-14
+
+**Main Slimdown — artifact selection panel builder split**
+
+**src/ui/panels/ArtifactSelectionPanelBuilder.gd / src/Main.gd**
+
+- Added `ArtifactSelectionPanelBuilder` under `src/ui/panels/`.
+- Moved artifact selection overlay, card layout, skip button, and card button construction out of `Main.gd`.
+- `Main.gd` keeps artifact catalog selection, `_pending_artifact`, panel lifetime, and `start_game()` transition ownership.
+- No artifact data, modifier values, description generation, apply behavior, Telemetry hook names, or JSON schema were changed.
+- `Main.gd` is now 1386 lines after this split.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=74.5s, stage=3, recover=21, disengage=19.
+
+---
+
 ## v1.10.7-dev — 2026-05-14
 
 **Main Slimdown — result panel builder split**

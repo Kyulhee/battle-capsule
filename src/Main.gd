@@ -64,6 +64,7 @@ var _result_panel_nodes: Dictionary = {}
 
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const ArtifactCatalogScript = preload("res://src/core/ArtifactCatalog.gd")
+const ArtifactSelectionPanelBuilderScript = preload("res://src/ui/panels/ArtifactSelectionPanelBuilder.gd")
 const AssetCatalogScript = preload("res://src/core/AssetCatalog.gd")
 const DifficultySelectorBuilderScript = preload("res://src/ui/DifficultySelectorBuilder.gd")
 const GameConfigScript = preload("res://src/core/GameConfig.gd")
@@ -221,117 +222,30 @@ func _on_start_btn_pressed():
 	_show_artifact_select()
 
 func _show_artifact_select():
-	if _artifact_panel:
-		_artifact_panel.queue_free()
-		_artifact_panel = null
-
+	_close_artifact_panel()
 	var catalog = ArtifactCatalogScript.starting_artifacts(difficulty as int)
-
-	# Dim overlay
-	var overlay = ColorRect.new()
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0.0, 0.0, 0.0, 0.72)
-	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	$CanvasLayer/Control.add_child(overlay)
-	_artifact_panel = overlay
-
-	var center = VBoxContainer.new()
-	center.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	center.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	center.grow_vertical = Control.GROW_DIRECTION_BOTH
-	center.add_theme_constant_override("separation", 18)
-	overlay.add_child(center)
-
-	var title = Label.new()
-	title.text = "아티팩트 선택"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
-	title.add_theme_color_override("font_outline_color", Color.BLACK)
-	title.add_theme_constant_override("outline_size", 6)
-	center.add_child(title)
-
-	var sub = Label.new()
-	sub.text = "원하는 아티팩트를 골라 시작하세요"
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.add_theme_font_size_override("font_size", 13)
-	sub.add_theme_color_override("font_color", Color(0.60, 0.60, 0.60))
-	center.add_child(sub)
-
-	var card_row = HBoxContainer.new()
-	card_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	card_row.add_theme_constant_override("separation", 14)
-	center.add_child(card_row)
-
-	for artifact in catalog:
-		card_row.add_child(_make_artifact_card(artifact))
-
-	var skip_btn = Button.new()
-	skip_btn.text = "선택하지 않기"
-	skip_btn.add_theme_font_size_override("font_size", 14)
-	skip_btn.custom_minimum_size = Vector2(150, 36)
-	_apply_btn_style(skip_btn)
-	skip_btn.pressed.connect(func():
-		_artifact_panel.queue_free(); _artifact_panel = null
-		_pending_artifact = {}
-		start_game()
+	_artifact_panel = ArtifactSelectionPanelBuilderScript.show(
+		$CanvasLayer/Control,
+		catalog,
+		Callable(self, "_on_artifact_selected"),
+		Callable(self, "_on_artifact_skipped"),
+		Callable(self, "_apply_btn_style")
 	)
-	center.add_child(skip_btn)
 
-func _make_artifact_card(artifact: Dictionary) -> Control:
-	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(148, 168)
-	var ps = StyleBoxFlat.new()
-	ps.bg_color = Color(0.10, 0.12, 0.16, 0.96)
-	ps.border_color = artifact.get("color", Color.WHITE) * 0.75
-	ps.set_border_width_all(2)
-	ps.set_corner_radius_all(6)
-	ps.content_margin_left = 12; ps.content_margin_right = 12
-	ps.content_margin_top = 14;  ps.content_margin_bottom = 14
-	panel.add_theme_stylebox_override("panel", ps)
+func _on_artifact_selected(artifact: Dictionary):
+	_close_artifact_panel()
+	_pending_artifact = artifact
+	start_game()
 
-	var vb = VBoxContainer.new()
-	vb.add_theme_constant_override("separation", 8)
-	panel.add_child(vb)
+func _on_artifact_skipped():
+	_close_artifact_panel()
+	_pending_artifact = {}
+	start_game()
 
-	var name_lbl = Label.new()
-	name_lbl.text = artifact.get("label", "")
-	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_lbl.add_theme_font_size_override("font_size", 15)
-	name_lbl.add_theme_color_override("font_color", artifact.get("color", Color.WHITE))
-	name_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	name_lbl.add_theme_constant_override("outline_size", 5)
-	vb.add_child(name_lbl)
-
-	var sep = HSeparator.new()
-	vb.add_child(sep)
-
-	for key in ["line1", "line2"]:
-		if artifact.has(key):
-			var lbl = Label.new()
-			lbl.text = artifact[key]
-			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			lbl.add_theme_font_size_override("font_size", 13)
-			lbl.add_theme_color_override("font_color", Color(0.82, 0.82, 0.82))
-			lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			vb.add_child(lbl)
-
-	var spacer = Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vb.add_child(spacer)
-
-	var pick_btn = Button.new()
-	pick_btn.text = "선택"
-	pick_btn.add_theme_font_size_override("font_size", 14)
-	_apply_btn_style(pick_btn)
-	pick_btn.pressed.connect(func():
-		_artifact_panel.queue_free(); _artifact_panel = null
-		_pending_artifact = artifact
-		start_game()
-	)
-	vb.add_child(pick_btn)
-
-	return panel
+func _close_artifact_panel():
+	if is_instance_valid(_artifact_panel):
+		_artifact_panel.queue_free()
+	_artifact_panel = null
 
 func start_game():
 	current_state = GameState.PLAYING
