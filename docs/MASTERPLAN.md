@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-13 (UI panel builder splits)
+> Last updated: 2026-05-14 (bot objective awareness + value binding plan)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -9,6 +9,8 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 **Current line**: v1.10-dev — Main slimdown and UI/catalog boundaries.
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
+
+**Next structural planning slice**: v1.10.3+ — Data/Description Value Binding.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -22,6 +24,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Preserve single-source game state ownership in `Main.gd`: `zone`, `mission_tracker`, `player_ref`, `alive_count`, and Telemetry hooks stay there for now.
 - Prefer catalog/helper/controller boundaries over broad gameplay rewrites.
 - Treat already connected item/icon assets as readability polish, not new content expansion.
+- User-facing descriptions that contain gameplay numbers should be generated from the same data used by gameplay logic whenever practical.
 - Do not start 99-player scale, new maps, mission map theming, or v1.11 complex artifact logic until v1.10 stabilization is complete.
 
 ## Active Docs
@@ -61,7 +64,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 1. `MenuController`: main menu, records, help, settings orchestration.
 2. `MatchBootstrap`: config load, difficulty setup, seed/map bootstrapping.
 3. Small UI/helper/catalog splits that remove isolated static data from `Main.gd`.
-4. Data/description value binding: move gameplay numbers used in descriptions, tooltips, labels, and algorithms into shared data/schema sources. Treat this as a dedicated design pass, not ad hoc text cleanup.
+4. Data/description value binding: move gameplay numbers used in descriptions, tooltips, labels, and algorithms into shared data/schema sources. Treat this as a dedicated structural slice, not ad hoc text cleanup.
 
 **Boundary rules**
 
@@ -75,7 +78,63 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Move at least one remaining large isolated responsibility out of `Main.gd`, preferably `MenuController` first or `MatchBootstrap` if bootstrapping becomes the lower-risk slice.
 - Keep pressure mission effects, zone state, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists.
 - Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
-- Defer broad data/description value binding unless it is explicitly selected as the next structural slice.
+- Complete or explicitly defer the first Data/Description Value Binding slice before v1.11 artifacts add more numeric descriptions.
+
+### v1.10.3+ — Data/Description Value Binding `M`
+
+**Summary**: Keep gameplay numbers, UI descriptions, labels, and algorithms connected through shared structured sources so a balance change does not require separate text edits.
+
+This is a v1.10 structural cleanup, not a balance pass. The first implementation should be a narrow vertical slice that proves the pattern before broad migration.
+
+**Problem**
+
+- Some catalog descriptions include numeric values directly in prose, for example artifact lines such as shotgun damage multipliers.
+- If gameplay modifiers and text are edited separately, future balance changes can silently make UI descriptions wrong.
+- The same risk exists outside artifacts: ammo amounts, heal amounts, weapon stats, difficulty descriptions, mission text, and help text can drift if they duplicate values owned elsewhere.
+
+**Source-of-truth direction**
+
+- `StatsData` / weapon `.tres`: weapon damage, range, ammo, fire-rate, pellet, and spread-related values.
+- `ItemData` / item `.tres`: pickup type, amount, rarity, ammo target, display name, and pickup color.
+- `GameConfig` / config JSON: match, zone, difficulty, and system tuning values that already load from config.
+- `BotDoctrine` profiles: bot behavior tuning already expressed as structured dictionaries.
+- `ArtifactCatalog` or a follow-up artifact spec helper: artifact modifier values and generated description lines should come from the same structured entry.
+
+**First vertical slice**
+
+1. Audit user-facing numeric descriptions.
+   - Start with `ArtifactCatalog.gd`.
+   - Then inspect pickup/HUD ammo strings, heal amounts, difficulty text, mission/pressure text, and help rows.
+   - Record ownership before editing behavior.
+2. Define a small formatter/helper boundary.
+   - Prefer a focused helper such as `DescriptionFormatter` or artifact-local builder functions.
+   - Avoid adding a large localization/config framework before the needed data shape is proven.
+3. Convert starting artifact descriptions first.
+   - Artifact modifier numbers should live in structured fields used by gameplay.
+   - `line1`/`line2` should be generated from those values or from templates fed by those values.
+   - The player-visible text must still be readable Korean, not raw debug data.
+4. Extend only where duplication is confirmed.
+   - Pickup/HUD ammo text should read amounts from `ItemData`, `StatsData`, or slot state, not fixed prose.
+   - Do not migrate labels that are already simple names and have no duplicated gameplay number.
+5. Keep behavior stable.
+   - No balance changes unless explicitly requested.
+   - No Telemetry event/schema changes.
+   - No `Main.gd` ownership changes unless a later slice explicitly targets them.
+
+**Explicit exclusions**
+
+- Do not replace all `.tres` resources with JSON just for uniformity.
+- Do not introduce a localization system yet.
+- Do not rewrite combat, pickup, artifact, or mission algorithms as part of the audit.
+- Do not start new artifacts while this slice is still defining the description/value contract.
+
+**Verification**
+
+- `git diff --check`
+- Godot headless quit
+- `python tools\simulate_matches.py 1` for any gameplay-code touch
+- Manual audit that converted descriptions use the same fields as the gameplay path
+- Confirm no Telemetry hook names or JSON schema changed
 
 ### v1.10.x — Item/Asset Readability Polish `S`
 
