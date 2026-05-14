@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.3-dev — 2026-05-14
+
+**Data/Description Value Binding — artifact descriptions**
+
+**src/core/ArtifactCatalog.gd / src/Main.gd / src/entities/player/Player.gd**
+
+- Starting artifact `line1`/`line2` text is now generated from structured `mods` values instead of storing gameplay numbers directly in prose.
+- Red Trigger damage/spread values and Armor Sponge heal-to-shield amounts now live in artifact modifier fields that Player combat/healing code also reads.
+- Zone Battery difficulty-specific shield regeneration moved from `Main.gd` ad hoc mutation into `ArtifactCatalog.prepare_for_difficulty()`, so selection card text and applied value share the same path.
+- No balance values, Telemetry hook names, or JSON schema were changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=85.1s, stage=3, recover=26, disengage=16.
+
+---
+
 ## v1.10-dev — 2026-05-14
 
 **Bot Objective Awareness — loot movement scan**

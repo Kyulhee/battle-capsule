@@ -12,6 +12,7 @@
 | ZoneController | `var zone` | `Main.gd` | RefCounted |
 | WeaponSlotManager | `var slots` | `Player.gd` | RefCounted |
 | MissionTracker | `var mission_tracker` | `Main.gd` | RefCounted |
+| ArtifactCatalog | starting artifact specs/descriptions | `Main.gd`, `Player.gd` | static catalog |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 
 ---
@@ -53,6 +54,12 @@
 - **읽는 파일**: 직접 scene 참조 없음.
 - **호출자**: `Player.gd`, `Bot.gd` death drop 생성 경로.
 - **역할**: 런타임으로 생성되는 death drop의 weapon/ammo/heal 표시 이름과 weapon color를 한 곳에서 제공. 초기 맵 loot/supply drop 템플릿 이름은 `src/items/*.tres`가 계속 소유.
+
+### `src/core/ArtifactCatalog.gd`
+- **읽는 파일**: 직접 scene 참조 없음.
+- **호출자**: `Main.gd` artifact selection/apply flow, `Player.gd` artifact modifier execution.
+- **역할**: 시작 아티팩트 ID/label/color/modifier와 `line1`/`line2` 설명 생성. 설명 안의 gameplay 수치는 `mods`에서 읽어 생성하고, `Player.gd`도 같은 modifier 키를 읽어 실제 효과를 적용.
+- **난이도 보정**: `prepare_for_difficulty()`가 Zone Battery regen처럼 난이도별로 달라지는 표시/적용 값을 준비한다. `Main.gd`에서 별도 ad hoc mutation을 추가하지 않는다.
 
 ### `src/entities/bot/Bot.gd`
 - **목표 이동**: `is_targeting_loot` CHASE는 `_nav_move_toward(..., false)`로 pickup 방향 이동을 유지하고 `_update_objective_scan()`으로 시야 회전을 따로 갱신.
@@ -105,6 +112,7 @@
 | `Entity.take_damage()` 시그니처 | `Entity.gd` | `Bot.gd`, `Player.gd`, `ZoneController.tick_damage()` |
 | `StatsData` 필드 추가 | `StatsData.gd` | `WeaponSlotManager.gd`, `Bot.gd`, `Player.gd` |
 | `Main.DIFFICULTY_PARAMS` | `Main.gd` | `Bot.gd` (스폰 시 1회 읽힘, 이후 변경 불가) |
+| Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |

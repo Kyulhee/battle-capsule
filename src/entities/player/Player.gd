@@ -40,6 +40,8 @@ const HEAL_REGEN_RATE: float = 10.0
 var active_artifact: Dictionary = {}
 var _artifact_mods: Dictionary = {
 	"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false, "red_trigger": false,
+	"shotgun_damage_mult": 1.0, "non_shotgun_damage_mult": 1.0,
+	"non_shotgun_spread": 1.0,
 	"move_speed_mult": 1.0,
 	"heal_mult": 1.0, "heal_to_shield": false,
 	"shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
@@ -605,7 +607,7 @@ func handle_healing():
 		if current_shield >= stats.max_shield: return
 		if stats.advanced_heals > 0:
 			stats.advanced_heals -= 1
-			receive_shield(20.0 * scarcity_mult)
+			receive_shield(_artifact_mods.get("heal_to_shield_advanced", 20.0) * scarcity_mult)
 			if Sfx: Sfx.play("heal", global_position)
 			if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 			if main and main.mission_tracker:
@@ -614,7 +616,7 @@ func handle_healing():
 			_refresh_slot_hud()
 		elif stats.heal_items > 0:
 			stats.heal_items -= 1
-			receive_shield(10.0 * scarcity_mult)
+			receive_shield(_artifact_mods.get("heal_to_shield_common", 10.0) * scarcity_mult)
 			if Sfx: Sfx.play("heal", global_position)
 			if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 			if main and main.mission_tracker: main.mission_tracker.on_pressure_heal_used()
@@ -834,7 +836,7 @@ func _melee_attack():
 		impact.global_position = hit_pos
 		var target = ray_cast.get_collider()
 		if target.has_method("take_damage"):
-			var melee_mult = 0.5 if _artifact_mods.get("red_trigger", false) else _artifact_mods.get("damage_mult", 1.0)
+			var melee_mult = _artifact_mods.get("melee_damage_mult", _artifact_mods.get("damage_mult", 1.0))
 			target.take_damage(MELEE_DAMAGE * melee_mult, "melee", "knife", self)
 			if Sfx: Sfx.play("hit", hit_pos)
 
@@ -1285,7 +1287,9 @@ func _shoot_with_slot(slot: int):
 	var shot_vec = Vector3(0, 0, -wdata.attack_range)
 	if _artifact_mods.get("spread_all_shots", false):
 		# Red Trigger: extreme spray for non-shotgun (shotgun handled via shoot_pellet)
-		var s = 4.0 if _artifact_mods.get("red_trigger", false) else _artifact_mods.get("spread_mult", 1.0)
+		var s = _artifact_mods.get("spread_mult", 1.0)
+		if _artifact_mods.get("red_trigger", false):
+			s = _artifact_mods.get("non_shotgun_spread", s)
 		shot_vec.x = randf_range(-s, s)
 		shot_vec.y = randf_range(-s * 0.25, s * 0.25)
 	elif wdata.weapon_type == "ar" or wdata.weapon_type == "pistol":
@@ -1322,7 +1326,10 @@ func _internal_shoot(target_vec: Vector3):
 			var wtype = wdata.weapon_type if wdata else stats.weapon_type
 			var dmg: float
 			if _artifact_mods.get("red_trigger", false):
-				dmg = (wdata.attack_damage if wdata else stats.attack_damage) * (1.2 if wtype == "shotgun" else 0.5)
+				var red_trigger_mult = _artifact_mods.get("non_shotgun_damage_mult", 1.0)
+				if wtype == "shotgun":
+					red_trigger_mult = _artifact_mods.get("shotgun_damage_mult", 1.0)
+				dmg = (wdata.attack_damage if wdata else stats.attack_damage) * red_trigger_mult
 			else:
 				dmg = (wdata.attack_damage if wdata else stats.attack_damage) * _artifact_mods.get("damage_mult", 1.0)
 			target.take_damage(dmg, "gun", wtype, self)
@@ -1372,6 +1379,8 @@ func apply_artifact(artifact: Dictionary):
 	active_artifact = artifact
 	_artifact_mods = {
 		"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false, "red_trigger": false,
+		"shotgun_damage_mult": 1.0, "non_shotgun_damage_mult": 1.0,
+		"non_shotgun_spread": 1.0,
 		"move_speed_mult": 1.0,
 		"heal_mult": 1.0, "heal_to_shield": false,
 		"shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,

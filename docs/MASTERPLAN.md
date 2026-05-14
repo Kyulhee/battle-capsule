@@ -12,6 +12,8 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Next structural planning slice**: v1.10.3+ — Data/Description Value Binding.
 
+**Latest completed slice**: v1.10.3 — starting artifact descriptions generated from structured modifier values.
+
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
 **Release status**: paused. Continue version-to-version development without GitHub releases unless explicitly requested.
@@ -110,9 +112,10 @@ This is a v1.10 structural cleanup, not a balance pass. The first implementation
    - Prefer a focused helper such as `DescriptionFormatter` or artifact-local builder functions.
    - Avoid adding a large localization/config framework before the needed data shape is proven.
 3. Convert starting artifact descriptions first.
-   - Artifact modifier numbers should live in structured fields used by gameplay.
-   - `line1`/`line2` should be generated from those values or from templates fed by those values.
-   - The player-visible text must still be readable Korean, not raw debug data.
+   - First pass complete for current starting artifacts.
+   - Artifact modifier numbers now live in structured fields used by gameplay.
+   - `line1`/`line2` are generated from those values.
+   - The player-visible text stays readable Korean, not raw debug data.
 4. Extend only where duplication is confirmed.
    - Pickup/HUD ammo text should read amounts from `ItemData`, `StatsData`, or slot state, not fixed prose.
    - Do not migrate labels that are already simple names and have no duplicated gameplay number.

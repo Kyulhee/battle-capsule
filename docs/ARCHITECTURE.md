@@ -47,7 +47,7 @@
 | `src/core/MapSpec.gd` | 맵 POI·장애물·월드 크기 정의 | WorldBuilder, Minimap이 읽기 전용으로 참조 |
 | `data/game_config.json` | 매치 수치, 난이도 파라미터, Hell 타이머 | `GameConfig.gd`가 로드, Main이 적용 |
 | `data/asset_catalog.json` | audio/icon/prop/cosmetic ID와 fallback | `AssetCatalog.gd`가 로드, Sfx/UI/월드가 점진 참조 |
-| `src/core/ArtifactCatalog.gd` | 시작 아티팩트 선택지와 modifier 정의 | Main 메뉴가 읽고 선택 결과만 Player modifier로 적용 |
+| `src/core/ArtifactCatalog.gd` | 시작 아티팩트 선택지, modifier 정의, modifier 기반 설명 생성 | Main 메뉴가 읽고 선택 결과를 Player modifier로 적용 |
 | `src/core/DifficultyCatalog.gd` | 난이도 label/description/color 정의 | Main 메뉴와 Records가 같은 UI 데이터를 참조 |
 | `src/core/HelpCatalog.gd` | How to Play 섹션/행 데이터 정의 | `HelpPanelBuilder.gd`가 읽어 key/icon/desc 행으로 렌더 |
 | `src/core/LootSpawner.gd` | POI 기반 루트 hotspot/위치/개수 계산 | Main이 Pickup 생성은 유지하고 계산만 위임 |

@@ -284,7 +284,7 @@ func _show_artifact_select():
 		_artifact_panel.queue_free()
 		_artifact_panel = null
 
-	var catalog = ArtifactCatalogScript.starting_artifacts()
+	var catalog = ArtifactCatalogScript.starting_artifacts(difficulty as int)
 
 	# Dim overlay
 	var overlay = ColorRect.new()
@@ -453,11 +453,7 @@ func start_game():
 
 	# Apply artifact to player (skipped in simulation)
 	if player_ref and player_ref.has_method("apply_artifact") and not is_simulation:
-		var art = _pending_artifact
-		if art.get("id", "") == "zone_battery":
-			art = art.duplicate(true)
-			var regen_by_diff = [10.0, 10.0, 5.0, 2.0]
-			art.get("mods", {})["zone_battery_regen"] = regen_by_diff[clampi(difficulty as int, 0, 3)]
+		var art = ArtifactCatalogScript.prepare_for_difficulty(_pending_artifact, difficulty as int)
 		player_ref.apply_artifact(art)
 		_pending_artifact = {}
 
