@@ -1,6 +1,6 @@
 # 배틀캡슐 아키텍처 보고서 (v1.10-dev)
 
-> 최종 업데이트: 2026-05-14
+> 최종 업데이트: 2026-05-15
 > 이 문서는 v1.10-dev 확장 기반(config/debug/asset catalog/LootSpawner/SupplyDropController/catalog/UI builders/systems match helpers/HellEventController 경계) 기준이다.
 
 ---
@@ -18,6 +18,7 @@
 │  Bot.gd              │  Pickup.gd                   │
 │  BotDoctrine.gd      │                              │
 │                      │  MenuIconFactory.gd          │
+│                      │  MenuVisualBuilder.gd        │
 │                      │  DifficultySelectorBuilder   │
 │                      │  HelpPanelBuilder.gd         │
 │                      │  RecordsPanelBuilder.gd      │
@@ -193,6 +194,7 @@
 | 파일 | 역할 | 접근 패턴 |
 |---|---|---|
 | `src/ui/MenuIconFactory.gd` | 메뉴/Records/Help에서 쓰는 절차적 픽셀 아이콘 생성 | Main UI 빌더가 `make_icon()` / `make_capsule_logo()` 호출 |
+| `src/ui/MenuVisualBuilder.gd` | 메인/보조 메뉴 배경, 로고 배치, 공통 버튼 스타일 | Main이 대상 패널/버튼만 넘기고 builder가 presentation 생성 |
 | `src/ui/DifficultySelectorBuilder.gd` | 메인 메뉴 난이도 버튼, tooltip, 압박 미션 opt-in UI 생성 | Main이 선택 상태와 callback을 넘기고 builder가 노드 생성과 highlight 갱신 |
 | `src/ui/HelpPanelBuilder.gd` | How to Play scroll content 렌더링 | Main이 Help panel root를 넘기고, builder가 `HelpCatalog` + `MenuIconFactory`로 행 생성 |
 | `src/ui/RecordsPanelBuilder.gd` | Records 탭/clear/history row 렌더링 | Main이 selected difficulty와 콜백을 유지하고, builder가 Telemetry history를 행으로 렌더 |

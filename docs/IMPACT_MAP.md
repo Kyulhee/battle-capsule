@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.10-dev / 마지막 검증: 2026-05-14
+> 기준 버전: v1.10-dev / 마지막 검증: 2026-05-15
 
 ---
 
@@ -16,6 +16,7 @@
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted runtime controller |
+| MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
 | DifficultySelectorBuilder | difficulty selector/tooltip UI | `Main.gd` | static UI builder |
 | SettingsPanelBuilder | settings modal UI | `Main.gd` | static UI builder |
 | ResultPanelBuilder | result panel layout/population | `Main.gd` | static UI builder |
@@ -89,6 +90,13 @@
 - **역할**: 난이도 버튼, hover tooltip, pressure opt-in checkbox UI, difficulty highlight 갱신.
 - **소유하지 않는 것**: 실제 `difficulty`, `pressure_opt_in_hard`, match start behavior.
 
+### `src/ui/MenuVisualBuilder.gd`
+- **읽는 파일**: 직접 scene lookup 없음. `Main.gd`가 대상 panel/button node와 logo texture를 넘김.
+- **호출자**: `Main.gd` `_setup_menu_visuals()` / `_setup_secondary_panels()` / `_apply_btn_style()`.
+- **역할**: main/secondary menu gradient backgrounds, main menu noise overlay, capsule logo placement, shared button StyleBox/color overrides.
+- **소유하지 않는 것**: panel visibility routing, menu callbacks, Help/Records content, settings behavior, scene node lookup.
+- **수정 영향**: 메뉴/보조 패널 배경이나 버튼 스타일을 바꾸면 `Main.gd` target node wiring, `MenuController.gd` panel routing, `HelpPanelBuilder.gd`/`RecordsPanelBuilder.gd` content layout을 함께 확인.
+
 ### `src/ui/SettingsPanelBuilder.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
 - **호출자**: `Main.gd` `_on_settings_pressed()`.
@@ -154,7 +162,7 @@
 ### `src/ui/HelpPanelBuilder.gd`
 - **읽는 파일**: `HelpCatalog.gd` section/row data, `MenuIconFactory.gd` procedural icons.
 - **호출자**: `Main.gd` `_setup_secondary_panels()`.
-- **소유 범위**: How to Play scroll content 생성. Help panel 표시 전환, close button 연결, 버튼 스타일은 `Main.gd`가 유지.
+- **소유 범위**: How to Play scroll content 생성. Help panel 표시 전환과 close button 연결은 `Main.gd`/`MenuController`, 버튼 스타일은 `MenuVisualBuilder`가 유지.
 
 ### `src/ui/RecordsPanelBuilder.gd`
 - **읽는 파일**: `DifficultyCatalog.gd`, `MenuIconFactory.gd`, `Telemetry.get_history_for_difficulty()`.
@@ -192,6 +200,7 @@
 | Artifact selection UI | `ArtifactSelectionPanelBuilder.gd` | `ArtifactCatalog.gd`, `Main.gd` pending/apply flow, `Player.gd` `apply_artifact()` |
 | Hell announcement UI | `HellAnnouncementBuilder.gd` | `Main.gd` Hell modifier/dismiss wiring, `HellEventController.gd` modifier description |
 | Menu panel routing | `MenuController.gd` | `Main.gd` callbacks, scene panel names, Records/Help close buttons |
+| Menu visual style | `MenuVisualBuilder.gd` | `Main.gd` target node wiring, `MenuController.gd`, `HelpPanelBuilder.gd`, `RecordsPanelBuilder.gd` |
 | Match start initialization | `MatchBootstrap.gd` | `Main.gd` state ownership, `ZoneController.gd`, `MissionTracker.gd`, Hell modifier enum compatibility |
 | Match/zone tuning config 또는 CLI alias | `MatchTuning.gd` | `Main.gd` apply path, `data/game_config.json`, `tools/simulate_matches.py`, TESTING/문서 예시 |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |

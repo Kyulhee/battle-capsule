@@ -76,6 +76,7 @@ const HellAnnouncementBuilderScript = preload("res://src/ui/panels/HellAnnouncem
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MenuControllerScript = preload("res://src/ui/menu/MenuController.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
+const MenuVisualBuilderScript = preload("res://src/ui/MenuVisualBuilder.gd")
 const MatchBootstrapScript = preload("res://src/systems/match/MatchBootstrap.gd")
 const MatchTuningScript = preload("res://src/systems/match/MatchTuning.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
@@ -1079,105 +1080,27 @@ func _setup_result_panel():
 	)
 
 func _setup_menu_visuals():
-	var panel = $CanvasLayer/Control/MainMenuPanel
-
-	# Gradient background (replace flat ColorRect color)
-	panel.color = Color(0.04, 0.06, 0.10)
-	var grad_tex = GradientTexture2D.new()
-	var grad = Gradient.new()
-	grad.set_color(0, Color(0.04, 0.06, 0.10))
-	grad.set_color(1, Color(0.05, 0.13, 0.08))
-	grad_tex.gradient = grad
-	grad_tex.fill_from = Vector2(0.5, 0.0)
-	grad_tex.fill_to = Vector2(0.5, 1.0)
-	var grad_rect = TextureRect.new()
-	grad_rect.texture = grad_tex
-	grad_rect.layout_mode = 1
-	grad_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	grad_rect.stretch_mode = TextureRect.STRETCH_SCALE
-	panel.add_child(grad_rect)
-	panel.move_child(grad_rect, 0)
-
-	# Subtle noise overlay for texture
-	var noise_tex = NoiseTexture2D.new()
-	var noise = FastNoiseLite.new()
-	noise.noise_type = FastNoiseLite.TYPE_CELLULAR
-	noise.frequency = 0.004
-	noise_tex.noise = noise
-	noise_tex.width = 512
-	noise_tex.height = 512
-	noise_tex.as_normal_map = false
-	var overlay = TextureRect.new()
-	overlay.texture = noise_tex
-	overlay.layout_mode = 1
-	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	overlay.modulate = Color(0.12, 0.18, 0.12, 0.18)
-	overlay.stretch_mode = TextureRect.STRETCH_TILE
-	panel.add_child(overlay)
-	panel.move_child(overlay, 1)
-
-	var logo_tex = MenuIconFactoryScript.make_capsule_logo(80)
-	var logo_rect = TextureRect.new()
-	logo_rect.texture = logo_tex
-	logo_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	logo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	logo_rect.layout_mode = 1
-	logo_rect.anchor_left = 0.5; logo_rect.anchor_right = 0.5
-	logo_rect.offset_left = -40.0; logo_rect.offset_right = 40.0
-	logo_rect.offset_top = 26.0; logo_rect.offset_bottom = 112.0
-	panel.add_child(logo_rect)
-
-	# StyleBoxFlat for all buttons in main menu VBox
-	for child in $CanvasLayer/Control/MainMenuPanel/VBoxContainer.get_children():
-		if child is Button:
-			_apply_btn_style(child)
+	MenuVisualBuilderScript.setup_main_menu(
+		$CanvasLayer/Control/MainMenuPanel,
+		$CanvasLayer/Control/MainMenuPanel/VBoxContainer,
+		MenuIconFactoryScript.make_capsule_logo(80)
+	)
 
 func _setup_secondary_panels():
-	# Apply gradient overlay to Records and Help panels
-	for panel_path in [
-		"CanvasLayer/Control/RecordsPanel",
-		"CanvasLayer/Control/HelpPanel"
-	]:
-		var panel = get_node(panel_path)
-		panel.color = Color(0.04, 0.06, 0.10)
-		var gr = GradientTexture2D.new()
-		var g = Gradient.new(); g.set_color(0, Color(0.04, 0.06, 0.10)); g.set_color(1, Color(0.05, 0.13, 0.08))
-		gr.gradient = g; gr.fill_from = Vector2(0.5, 0.0); gr.fill_to = Vector2(0.5, 1.0)
-		var gr_rect = TextureRect.new()
-		gr_rect.texture = gr; gr_rect.layout_mode = 1
-		gr_rect.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		gr_rect.stretch_mode = TextureRect.STRETCH_SCALE
-		panel.add_child(gr_rect); panel.move_child(gr_rect, 0)
-	# Style close buttons
-	_apply_btn_style($CanvasLayer/Control/RecordsPanel/VBox/CloseRecordsBtn)
-	_apply_btn_style($CanvasLayer/Control/HelpPanel/VBox/CloseHelpBtn)
-	# Build How to Play content
+	MenuVisualBuilderScript.setup_secondary_panels(
+		[
+			$CanvasLayer/Control/RecordsPanel,
+			$CanvasLayer/Control/HelpPanel,
+		],
+		[
+			$CanvasLayer/Control/RecordsPanel/VBox/CloseRecordsBtn,
+			$CanvasLayer/Control/HelpPanel/VBox/CloseHelpBtn,
+		]
+	)
 	HelpPanelBuilderScript.build($CanvasLayer/Control/HelpPanel/VBox)
 
 func _apply_btn_style(btn: Button):
-	var sn = StyleBoxFlat.new()
-	sn.bg_color = Color(0.08, 0.14, 0.10, 0.92)
-	sn.border_color = Color(0.25, 0.55, 0.35, 0.8)
-	sn.set_border_width_all(1); sn.set_corner_radius_all(5)
-	sn.content_margin_left = 12; sn.content_margin_right = 12
-	sn.content_margin_top = 6; sn.content_margin_bottom = 6
-	var sh = StyleBoxFlat.new()
-	sh.bg_color = Color(0.12, 0.22, 0.15, 0.98)
-	sh.border_color = Color(0.4, 0.85, 0.55, 1.0)
-	sh.set_border_width_all(2); sh.set_corner_radius_all(5)
-	sh.content_margin_left = 12; sh.content_margin_right = 12
-	sh.content_margin_top = 6; sh.content_margin_bottom = 6
-	var sp = StyleBoxFlat.new()
-	sp.bg_color = Color(0.05, 0.10, 0.07, 1.0)
-	sp.border_color = Color(0.2, 0.5, 0.3, 1.0)
-	sp.set_border_width_all(1); sp.set_corner_radius_all(5)
-	sp.content_margin_left = 12; sp.content_margin_right = 12
-	sp.content_margin_top = 6; sp.content_margin_bottom = 6
-	btn.add_theme_stylebox_override("normal", sn)
-	btn.add_theme_stylebox_override("hover", sh)
-	btn.add_theme_stylebox_override("pressed", sp)
-	btn.add_theme_color_override("font_color", Color(0.88, 0.95, 0.9))
-	btn.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0))
+	MenuVisualBuilderScript.apply_button_style(btn)
 
 # ─── DIFFICULTY ──────────────────────────────────────────────────────────────
 

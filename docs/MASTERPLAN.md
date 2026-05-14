@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-14 (MatchTuning split + modularization plan)
+> Last updated: 2026-05-15 (MenuVisualBuilder split + modularization plan)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural planning slice**: v1.10.13+ — remaining GameTuning/data-value binding or MatchBootstrap follow-up.
+**Next structural planning slice**: v1.10.14+ — remaining GameTuning/data-value binding or MatchBootstrap follow-up.
 
-**Latest completed slice**: v1.10.12 — match/zone tuning interpretation and CLI override parsing split into `src/systems/match/MatchTuning.gd`.
+**Latest completed slice**: v1.10.13 — menu/secondary panel visual styling split into `src/ui/MenuVisualBuilder.gd`.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -61,6 +61,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `MenuIconFactory`: procedural menu/records/help icon generation.
 - `HelpPanelBuilder`: How to Play panel rendering from HelpCatalog rows.
 - `RecordsPanelBuilder`: Records tabs, clear button, and history row rendering.
+- `MenuVisualBuilder`: main/secondary menu gradients, noise overlay, logo placement, and shared button styling.
 - `DifficultySelectorBuilder`: difficulty button/tooltip/pressure opt-in menu UI.
 - `SettingsPanelBuilder`: Settings modal layout and controls.
 - `ResultPanelBuilder`: result panel card/buttons/label population.
@@ -101,7 +102,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 **Completion gate before v1.11**
 
 - Finish the v1.10.x item/asset readability stabilization work or explicitly defer remaining visual-only items.
-- MenuController first pass, MatchBootstrap first pass, and MatchTuning first pass are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap/GameTuning follow-up items.
+- MenuController, MenuVisualBuilder, MatchBootstrap, and MatchTuning first passes are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap/GameTuning follow-up items.
 - Keep pressure mission effects, zone state, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists.
 - Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
 - Complete or explicitly defer the first Data/Description Value Binding slice before v1.11 artifacts add more numeric descriptions.
