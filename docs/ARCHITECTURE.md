@@ -24,6 +24,7 @@
 │                      │  SettingsPanelBuilder.gd     │
 │                      │  panels/ResultPanelBuilder   │
 │                      │  panels/ArtifactSelection     │
+│                      │  panels/HellAnnouncement      │
 ├──────────────────────┴──────────────────────────────┤
 │  Core Modules / Runtime Controllers                  │
 │  ZoneController · WeaponSlotManager · MissionTracker│
@@ -195,6 +196,7 @@
 | `src/ui/SettingsPanelBuilder.gd` | Settings modal layout/control 생성 | Main이 volume/fullscreen/save 동작 callback을 유지하고, builder가 UI 생성 |
 | `src/ui/panels/ResultPanelBuilder.gd` | Result panel layout/buttons/label population | Main이 match finalization, mission evaluation, score calculation을 유지하고 결과 표시 데이터만 넘김 |
 | `src/ui/panels/ArtifactSelectionPanelBuilder.gd` | Artifact selection overlay/cards/buttons | Main이 catalog lookup, pending artifact, panel lifetime, start transition을 유지 |
+| `src/ui/panels/HellAnnouncementBuilder.gd` | Hell announcement overlay/card/rows/button | Main이 Hell modifier selection, pause/unpause, panel lifetime, dismiss fade를 유지 |
 
 ```
 Entity (CharacterBody3D)

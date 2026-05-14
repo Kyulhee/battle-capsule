@@ -72,6 +72,7 @@ const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
 const HelpPanelBuilderScript = preload("res://src/ui/HelpPanelBuilder.gd")
 const HellEventControllerScript = preload("res://src/core/HellEventController.gd")
+const HellAnnouncementBuilderScript = preload("res://src/ui/panels/HellAnnouncementBuilder.gd")
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
@@ -1199,120 +1200,13 @@ func _update_diff_highlights():
 func _show_hell_announcement():
 	_hell_announce_active = true
 	get_tree().paused = true
-
-	# Root node — dismiss frees everything at once
-	var root = Control.new()
-	root.process_mode = Node.PROCESS_MODE_ALWAYS
-	root.layout_mode = 1
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.z_index = 20
-	_hell_announce_panel = root
-
-	# Semi-transparent overlay
-	var overlay = ColorRect.new()
-	overlay.layout_mode = 1
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.color = Color(0.0, 0.0, 0.0, 0.72)
-	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(overlay)
-
-	# Centered card
-	var center = CenterContainer.new()
-	center.layout_mode = 1
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.process_mode = Node.PROCESS_MODE_ALWAYS
-	root.add_child(center)
-
-	var card = PanelContainer.new()
-	var cs = StyleBoxFlat.new()
-	cs.bg_color = Color(0.05, 0.03, 0.07)
-	cs.border_color = Color(0.50, 0.08, 0.12)
-	cs.set_border_width_all(2)
-	cs.set_corner_radius_all(8)
-	cs.content_margin_left = 44; cs.content_margin_right = 44
-	cs.content_margin_top = 36;  cs.content_margin_bottom = 38
-	card.add_theme_stylebox_override("panel", cs)
-	card.custom_minimum_size = Vector2(640, 0)
-	center.add_child(card)
-
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 6)
-	card.add_child(vbox)
-
-	# ── 제목 ──
-	var title_lbl = Label.new()
-	title_lbl.text = "지옥 모드"
-	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_lbl.add_theme_font_size_override("font_size", 42)
-	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.20, 0.20))
-	title_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-	title_lbl.add_theme_constant_override("outline_size", 6)
-	vbox.add_child(title_lbl)
-
-	vbox.add_child(_hell_sep())
-
-	# ── 기본 패널티 ──
-	vbox.add_child(_hell_section("기본 패널티"))
-	_hell_row(vbox, "시작 체력 1",   "아이템 없이 한 번 맞으면 즉사합니다")
-	_hell_row(vbox, "치료 효율 50%", "힐 아이템 회복량이 절반입니다")
-	_hell_row(vbox, "압박 미션",     "존 전환마다 제한 시간 미션이 발동됩니다")
-
-	vbox.add_child(_hell_sep())
-
-	# ── 이번 매치 이벤트 ──
-	vbox.add_child(_hell_section("이번 매치 이벤트"))
 	var md = HellEventControllerScript.modifier_description(hell_modifier as int)
-	_hell_row(vbox, md[0], md[1])
-	_hell_row(vbox, "정전", "주기적으로 화면이 어두워지며 미니맵이 차단됩니다")
-	_hell_row(vbox, "포격", "경고 후 지정 범위에 폭탄이 쏟아집니다")
-
-	vbox.add_child(_hell_sep())
-
-	# ── 버튼 ──
-	var btn = Button.new()
-	btn.process_mode = Node.PROCESS_MODE_ALWAYS
-	btn.text = "시작하기  [SPACE / ESC]"
-	btn.add_theme_font_size_override("font_size", 18)
-	btn.pressed.connect(_dismiss_hell_announcement)
-	_apply_btn_style(btn)
-	vbox.add_child(btn)
-
-	$CanvasLayer/Control.add_child(root)
-
-func _hell_sep() -> HSeparator:
-	var s = HSeparator.new()
-	s.add_theme_constant_override("separation", 4)
-	return s
-
-func _hell_section(text: String) -> Label:
-	var lbl = Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", Color(1.0, 0.78, 0.28))
-	return lbl
-
-func _hell_row(parent: Control, key: String, desc: String):
-	var hbox = HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 10)
-	parent.add_child(hbox)
-	var key_lbl = Label.new()
-	key_lbl.text = key
-	key_lbl.add_theme_font_size_override("font_size", 14)
-	key_lbl.add_theme_color_override("font_color", Color(0.92, 0.90, 0.92))
-	key_lbl.custom_minimum_size = Vector2(108, 0)
-	hbox.add_child(key_lbl)
-	var dash = Label.new()
-	dash.text = "—"
-	dash.add_theme_font_size_override("font_size", 14)
-	dash.add_theme_color_override("font_color", Color(0.42, 0.40, 0.44))
-	hbox.add_child(dash)
-	var desc_lbl = Label.new()
-	desc_lbl.text = desc
-	desc_lbl.add_theme_font_size_override("font_size", 14)
-	desc_lbl.add_theme_color_override("font_color", Color(0.66, 0.64, 0.70))
-	desc_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hbox.add_child(desc_lbl)
+	_hell_announce_panel = HellAnnouncementBuilderScript.show(
+		$CanvasLayer/Control,
+		md,
+		Callable(self, "_dismiss_hell_announcement"),
+		Callable(self, "_apply_btn_style")
+	)
 
 func _dismiss_hell_announcement():
 	if not _hell_announce_active: return

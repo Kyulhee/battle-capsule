@@ -20,6 +20,7 @@
 | SettingsPanelBuilder | settings modal UI | `Main.gd` | static UI builder |
 | ResultPanelBuilder | result panel layout/population | `Main.gd` | static UI builder |
 | ArtifactSelectionPanelBuilder | artifact selection modal UI | `Main.gd` | static UI builder |
+| HellAnnouncementBuilder | Hell announcement modal UI | `Main.gd` | static UI builder |
 
 ---
 
@@ -103,6 +104,12 @@
 - **역할**: artifact selection overlay, artifact cards, skip/select buttons 생성.
 - **소유하지 않는 것**: `ArtifactCatalog` lookup, `_pending_artifact`, artifact apply path, `start_game()` transition.
 
+### `src/ui/panels/HellAnnouncementBuilder.gd`
+- **읽는 파일**: 직접 scene 참조 없음. 표시할 Hell modifier description array를 `Main.gd`에서 받음.
+- **호출자**: `Main.gd` `_show_hell_announcement()`.
+- **역할**: Hell announcement overlay, card, penalty/event rows, start button 생성.
+- **소유하지 않는 것**: Hell modifier selection, pause/unpause, active panel lifetime, dismiss fade, Hell runtime controller.
+
 ### `src/entities/bot/Bot.gd`
 - **목표 이동**: `is_targeting_loot` CHASE는 `_nav_move_toward(..., false)`로 pickup 방향 이동을 유지하고 `_update_objective_scan()`으로 시야 회전을 따로 갱신.
 - **감지 연결**: footstep/ambient awareness는 loot chase 중에도 `_scan_alert`를 걸 수 있음. 비회복성 opportunistic loot만 완전 감지된 적에게 중단될 수 있고, recovery/combat-loot는 기존 damage/gunshot override가 우선.
@@ -161,6 +168,7 @@
 | Settings modal UI | `SettingsPanelBuilder.gd` | `Main.gd` settings callbacks, `user://settings.cfg` key compatibility |
 | Result panel UI | `ResultPanelBuilder.gd` | `Main.gd` finalization/score data, Telemetry score fields |
 | Artifact selection UI | `ArtifactSelectionPanelBuilder.gd` | `ArtifactCatalog.gd`, `Main.gd` pending/apply flow, `Player.gd` `apply_artifact()` |
+| Hell announcement UI | `HellAnnouncementBuilder.gd` | `Main.gd` Hell modifier/dismiss wiring, `HellEventController.gd` modifier description |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |

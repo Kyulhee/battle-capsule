@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.9-dev — 2026-05-14
+
+**Main Slimdown — Hell announcement panel builder split**
+
+**src/ui/panels/HellAnnouncementBuilder.gd / src/Main.gd**
+
+- Added `HellAnnouncementBuilder` under `src/ui/panels/`.
+- Moved Hell mode announcement overlay, card layout, penalty rows, event rows, and start button construction out of `Main.gd`.
+- `Main.gd` keeps Hell modifier selection, pause/unpause state, active panel lifetime, and dismiss fade ownership.
+- No Hell modifier descriptions, Hell runtime behavior, pause/dismiss behavior, Telemetry hook names, or JSON schema were changed.
+- `Main.gd` is now 1280 lines after this split.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=85.1s, stage=3, recover=37, disengage=22.
+
+---
+
 ## v1.10.8-dev — 2026-05-14
 
 **Main Slimdown — artifact selection panel builder split**
