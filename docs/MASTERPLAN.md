@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-14 (menu UI builder split + modularization plan)
+> Last updated: 2026-05-14 (result panel builder split + modularization plan)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural planning slice**: v1.10.7+ — panel transition controller or MatchBootstrap, then broader data/value binding.
+**Next structural planning slice**: v1.10.8+ — ArtifactSelectionPanelBuilder or HellAnnouncementBuilder, then MatchBootstrap.
 
-**Latest completed slice**: v1.10.6 — difficulty selector and Settings modal UI split into UI builders.
+**Latest completed slice**: v1.10.7 — Result panel layout/population split into `src/ui/panels/ResultPanelBuilder.gd`.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -63,14 +63,15 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `RecordsPanelBuilder`: Records tabs, clear button, and history row rendering.
 - `DifficultySelectorBuilder`: difficulty button/tooltip/pressure opt-in menu UI.
 - `SettingsPanelBuilder`: Settings modal layout and controls.
+- `ResultPanelBuilder`: result panel card/buttons/label population.
 - `HellEventController`: Hell blackout/bombardment timers, overlay flashes, warning markers, damage application, and Hell event Telemetry logging.
 
 **Good next candidates**
 
-1. `MenuController`: panel visibility, main menu records/help/settings entry wiring, and shared menu styling.
-2. `MatchBootstrap`: config load, difficulty setup, artifact preparation, seed/map bootstrapping, and start-game sequencing.
-3. `GameTuning` / data-value binding slices: move gameplay numbers used by descriptions, tooltips, labels, and algorithms into shared data/schema sources.
-4. Small UI/helper/catalog splits that remove isolated static data from `Main.gd`.
+1. `ArtifactSelectionPanelBuilder` and `HellAnnouncementBuilder`: remaining modal/panel UI splits.
+2. `MenuController`: panel visibility, main menu records/help/settings entry wiring, and shared menu styling.
+3. `MatchBootstrap`: config load, difficulty setup, artifact preparation, seed/map bootstrapping, and start-game sequencing.
+4. `GameTuning` / data-value binding slices: move gameplay numbers used by descriptions, tooltips, labels, and algorithms into shared data/schema sources.
 
 **Recommended split order**
 

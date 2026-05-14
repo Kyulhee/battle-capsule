@@ -22,6 +22,7 @@
 │                      │  HelpPanelBuilder.gd         │
 │                      │  RecordsPanelBuilder.gd      │
 │                      │  SettingsPanelBuilder.gd     │
+│                      │  panels/ResultPanelBuilder   │
 ├──────────────────────┴──────────────────────────────┤
 │  Core Modules / Runtime Controllers                  │
 │  ZoneController · WeaponSlotManager · MissionTracker│
@@ -191,6 +192,7 @@
 | `src/ui/HelpPanelBuilder.gd` | How to Play scroll content 렌더링 | Main이 Help panel root를 넘기고, builder가 `HelpCatalog` + `MenuIconFactory`로 행 생성 |
 | `src/ui/RecordsPanelBuilder.gd` | Records 탭/clear/history row 렌더링 | Main이 selected difficulty와 콜백을 유지하고, builder가 Telemetry history를 행으로 렌더 |
 | `src/ui/SettingsPanelBuilder.gd` | Settings modal layout/control 생성 | Main이 volume/fullscreen/save 동작 callback을 유지하고, builder가 UI 생성 |
+| `src/ui/panels/ResultPanelBuilder.gd` | Result panel layout/buttons/label population | Main이 match finalization, mission evaluation, score calculation을 유지하고 결과 표시 데이터만 넘김 |
 
 ```
 Entity (CharacterBody3D)

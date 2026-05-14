@@ -60,13 +60,7 @@ var railgun_unlimited_until_stage: int = -1  # 레일건 무제한 (v1.4.1에서
 var _artifact_panel: Control = null
 var _pending_artifact: Dictionary = {}
 
-# Result screen UI nodes (built in _setup_result_panel)
-var _result_header_label: Label = null
-var _result_rank_label: Label = null
-var _result_stats_label: Label = null
-var _result_score_label: Label = null
-var _result_mission_label: Label = null
-var _result_sep_mission: HSeparator = null
+var _result_panel_nodes: Dictionary = {}
 
 const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const ArtifactCatalogScript = preload("res://src/core/ArtifactCatalog.gd")
@@ -81,6 +75,7 @@ const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
+const ResultPanelBuilderScript = preload("res://src/ui/panels/ResultPanelBuilder.gd")
 const SettingsPanelBuilderScript = preload("res://src/ui/SettingsPanelBuilder.gd")
 const SupplyDropControllerScript = preload("res://src/core/SupplyDropController.gd")
 const ZoneControllerScript = preload("res://src/core/ZoneController.gd")
@@ -995,35 +990,26 @@ func _end_match(final_rank: int = 1):
 
 	# Show Result Panel and populate UI
 	_show_panel("Result")
-	var result_color = Color.GOLD if is_victory else Color(1.0, 0.28, 0.28)
-	if _result_header_label:
-		_result_header_label.text = "VICTORY!" if is_victory else "ELIMINATED"
-		_result_header_label.add_theme_color_override("font_color", result_color)
-	if _result_rank_label:
-		_result_rank_label.text = "RANK  #%d" % final_rank
+	var result_score = 0
+	var result_stats_text = ""
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
-		var score = tel.calculate_score(
+		result_score = tel.calculate_score(
 			final_rank, tel.metrics.session.kills,
 			tel.metrics.session.assists, is_victory, difficulty as int
 		) + mission_bonus_score
-		if _result_stats_label:
-			_result_stats_label.text = "KILLS  %d    ASSISTS  %d    DAMAGE  %.0f    TIME  %ds" % [
-				tel.metrics.session.kills, tel.metrics.session.assists,
-				tel.metrics.combat.total_damage_dealt, int(match_timer)
-			]
-		if _result_score_label:
-			_result_score_label.text = "SCORE  %d" % score
-	if _result_mission_label:
-		if mission_result_text != "":
-			_result_mission_label.text = mission_result_text
-			_result_mission_label.add_theme_color_override("font_color",
-				Color.GOLD if mission_success else Color(0.92, 0.38, 0.38))
-			_result_mission_label.visible = true
-			if _result_sep_mission: _result_sep_mission.visible = true
-		else:
-			_result_mission_label.visible = false
-			if _result_sep_mission: _result_sep_mission.visible = false
+		result_stats_text = "KILLS  %d    ASSISTS  %d    DAMAGE  %.0f    TIME  %ds" % [
+			tel.metrics.session.kills, tel.metrics.session.assists,
+			tel.metrics.combat.total_damage_dealt, int(match_timer)
+		]
+	ResultPanelBuilderScript.populate(_result_panel_nodes, {
+		"final_rank": final_rank,
+		"is_victory": is_victory,
+		"score": result_score,
+		"stats_text": result_stats_text,
+		"mission_text": mission_result_text,
+		"mission_success": mission_success,
+	})
 
 	if is_simulation:
 		get_tree().quit()
@@ -1172,103 +1158,13 @@ func _apply_pressure_effects(effects: Array, is_reward: bool):
 # ─── MENU VISUALS ────────────────────────────────────────────────────────────
 
 func _setup_result_panel():
-	var result_panel = $CanvasLayer/Control/ResultPanel
-
-	var center = CenterContainer.new()
-	center.layout_mode = 1
-	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	result_panel.add_child(center)
-
-	var card = PanelContainer.new()
-	var card_style = StyleBoxFlat.new()
-	card_style.bg_color = Color(0.07, 0.08, 0.13)
-	card_style.border_color = Color(0.28, 0.30, 0.44)
-	card_style.set_border_width_all(2)
-	card_style.set_corner_radius_all(10)
-	card_style.content_margin_left = 52
-	card_style.content_margin_right = 52
-	card_style.content_margin_top = 40
-	card_style.content_margin_bottom = 44
-	card.add_theme_stylebox_override("panel", card_style)
-	card.custom_minimum_size = Vector2(540, 0)
-	center.add_child(card)
-
-	var vbox = VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", 10)
-	card.add_child(vbox)
-
-	_result_header_label = Label.new()
-	_result_header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_result_header_label.add_theme_font_size_override("font_size", 52)
-	_result_header_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	_result_header_label.add_theme_constant_override("outline_size", 8)
-	_result_header_label.text = "VICTORY!"
-	vbox.add_child(_result_header_label)
-
-	_result_rank_label = Label.new()
-	_result_rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_result_rank_label.add_theme_font_size_override("font_size", 28)
-	_result_rank_label.add_theme_color_override("font_color", Color(0.80, 0.82, 0.90))
-	_result_rank_label.text = "RANK  #1"
-	vbox.add_child(_result_rank_label)
-
-	var sep1 = HSeparator.new()
-	vbox.add_child(sep1)
-
-	_result_stats_label = Label.new()
-	_result_stats_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_result_stats_label.add_theme_font_size_override("font_size", 17)
-	_result_stats_label.add_theme_color_override("font_color", Color(0.72, 0.74, 0.84))
-	vbox.add_child(_result_stats_label)
-
-	_result_score_label = Label.new()
-	_result_score_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_result_score_label.add_theme_font_size_override("font_size", 24)
-	_result_score_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.3))
-	vbox.add_child(_result_score_label)
-
-	_result_sep_mission = HSeparator.new()
-	_result_sep_mission.visible = false
-	vbox.add_child(_result_sep_mission)
-
-	_result_mission_label = Label.new()
-	_result_mission_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_result_mission_label.add_theme_font_size_override("font_size", 16)
-	_result_mission_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_result_mission_label.visible = false
-	vbox.add_child(_result_mission_label)
-
-	var sep_btns = HSeparator.new()
-	vbox.add_child(sep_btns)
-
-	var btn_row = HBoxContainer.new()
-	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	btn_row.add_theme_constant_override("separation", 14)
-	vbox.add_child(btn_row)
-
-	var restart_btn = Button.new()
-	restart_btn.text = "RESTART"
-	restart_btn.add_theme_font_size_override("font_size", 20)
-	restart_btn.custom_minimum_size = Vector2(130, 42)
-	restart_btn.pressed.connect(restart_game)
-	btn_row.add_child(restart_btn)
-	_apply_btn_style(restart_btn)
-
-	var records_btn = Button.new()
-	records_btn.text = "RECORDS"
-	records_btn.add_theme_font_size_override("font_size", 20)
-	records_btn.custom_minimum_size = Vector2(130, 42)
-	records_btn.pressed.connect(_on_records_pressed)
-	btn_row.add_child(records_btn)
-	_apply_btn_style(records_btn)
-
-	var menu_btn = Button.new()
-	menu_btn.text = "MENU"
-	menu_btn.add_theme_font_size_override("font_size", 20)
-	menu_btn.custom_minimum_size = Vector2(130, 42)
-	menu_btn.pressed.connect(return_to_menu)
-	btn_row.add_child(menu_btn)
-	_apply_btn_style(menu_btn)
+	_result_panel_nodes = ResultPanelBuilderScript.build(
+		$CanvasLayer/Control/ResultPanel,
+		Callable(self, "restart_game"),
+		Callable(self, "_on_records_pressed"),
+		Callable(self, "return_to_menu"),
+		Callable(self, "_apply_btn_style")
+	)
 
 func _setup_menu_visuals():
 	var panel = $CanvasLayer/Control/MainMenuPanel

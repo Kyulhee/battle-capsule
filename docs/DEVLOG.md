@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.7-dev — 2026-05-14
+
+**Main Slimdown — result panel builder split**
+
+**src/ui/panels/ResultPanelBuilder.gd / src/Main.gd**
+
+- Added `ResultPanelBuilder` under the new `src/ui/panels/` placement for panel-specific UI builders.
+- Moved Result panel card layout, labels, result buttons, and result label population out of `Main.gd`.
+- `Main.gd` keeps match finalization, mission evaluation, score calculation, Telemetry calls, and result panel routing.
+- No score formula, mission evaluation, Telemetry hook names, JSON schema, or scene panel names were changed.
+- `Main.gd` is now 1472 lines after this split.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1` 통과: duration=60.0s, stage=2, recover=34, disengage=21.
+
+---
+
 ## v1.10.6-dev — 2026-05-14
 
 **Main Slimdown — menu UI builder split**
