@@ -8,18 +8,24 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ## v1.10.17-dev — 2026-05-15
 
-**Expansion readiness planning**
+**Expansion readiness planning + item/resource catalog boundary**
 
-**docs/MASTERPLAN.md**
+**docs/MASTERPLAN.md / src/core/ItemResourceCatalog.gd / src/Main.gd**
 
 - Defined the v1.10.17-v1.10.20 Main data/catalog closure plan.
 - Scoped v1.10 to Main-owned item/resource, runtime tuning, and presentation data boundaries.
 - Re-scoped v1.11 as a subsystem directory/data-boundary pass before content expansion.
 - Moved Complex Artifacts planning to v1.12 so artifact content does not start before the structural pass is stable.
+- Added `ItemResourceCatalog` for the pickup scene, default loot item templates, extra consumables, and supply railgun item.
+- `Main.gd` now loads item runtime references from the catalog instead of owning item resource preloads directly.
+- Current item list, advanced heal inclusion, supply railgun behavior, loot spawn behavior, and Telemetry schema remain unchanged.
 
 **검증 결과**
 
-- Documentation-only planning slice.
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=81.5s, stage=3, recover=48, disengage=21.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=86.8s, stage=3, recover=130, disengage=27.
 
 ---
 

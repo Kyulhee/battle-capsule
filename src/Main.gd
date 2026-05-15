@@ -20,21 +20,13 @@ var _hell_announce_active: bool = false
 var _hell_announce_panel: Control = null
 var _pause_panel: Control = null
 
-@export_group("Loot")
-@export var railgun_item: ItemData = preload("res://src/items/weapon_railgun.tres")
-@export var pickup_scene: PackedScene = preload("res://src/entities/pickup/Pickup.tscn")
-@export var item_templates: Array[ItemData] = [
-	preload("res://src/items/ammo_ar.tres"),
-	preload("res://src/items/ammo_shotgun.tres"),
-	preload("res://src/items/ammo_railgun.tres"),
-	preload("res://src/items/heal_pickup.tres"),
-	preload("res://src/items/weapon_ar.tres"),
-	preload("res://src/items/weapon_shotgun.tres"),
-	preload("res://src/items/armor_pickup.tres")
-]
 @export var loot_count: int = 40
 @export var spawn_radius: float = 45.0
 
+var railgun_item: ItemData = null
+var pickup_scene: PackedScene = null
+var item_templates: Array[ItemData] = []
+var extra_consumable_templates: Array[ItemData] = []
 var weapon_templates: Array[ItemData] = []
 var consumable_templates: Array[ItemData] = []
 
@@ -63,7 +55,6 @@ var _pending_artifact: Dictionary = {}
 
 var _result_panel_nodes: Dictionary = {}
 
-const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const ArtifactCatalogScript = preload("res://src/core/ArtifactCatalog.gd")
 const ArtifactSelectionPanelBuilderScript = preload("res://src/ui/panels/ArtifactSelectionPanelBuilder.gd")
 const AssetCatalogScript = preload("res://src/core/AssetCatalog.gd")
@@ -77,6 +68,7 @@ const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
 const HelpPanelBuilderScript = preload("res://src/ui/HelpPanelBuilder.gd")
 const HellEventControllerScript = preload("res://src/core/HellEventController.gd")
 const HellAnnouncementBuilderScript = preload("res://src/ui/panels/HellAnnouncementBuilder.gd")
+const ItemResourceCatalogScript = preload("res://src/core/ItemResourceCatalog.gd")
 const LootSpawnerScript = preload("res://src/core/LootSpawner.gd")
 const LootSpawnDirectorScript = preload("res://src/systems/match/LootSpawnDirector.gd")
 const MenuControllerScript = preload("res://src/ui/menu/MenuController.gd")
@@ -124,6 +116,7 @@ func _ready():
 	supply_controller = SupplyDropControllerScript.new()
 	hell_events = HellEventControllerScript.new()
 	hell_events.event_text_requested.connect(_show_event_text)
+	_configure_item_resources()
 	menu_controller = MenuControllerScript.new()
 	menu_controller.configure($CanvasLayer/Control)
 	asset_catalog = AssetCatalogScript.new()
@@ -427,6 +420,12 @@ func _configure_asset_catalog():
 	if sfx and sfx.has_method("set_asset_catalog"):
 		sfx.set_asset_catalog(asset_catalog)
 
+func _configure_item_resources():
+	pickup_scene = ItemResourceCatalogScript.pickup_scene()
+	railgun_item = ItemResourceCatalogScript.supply_railgun_item()
+	item_templates = ItemResourceCatalogScript.default_item_templates()
+	extra_consumable_templates = ItemResourceCatalogScript.extra_consumable_templates()
+
 func _apply_game_config():
 	_apply_match_tuning(MatchTuningScript.from_game_config(game_config, _current_match_tuning()))
 
@@ -640,7 +639,7 @@ func _is_clear_of_entities(pos: Vector2, min_dist: float = 3.5) -> bool:
 func _categorize_templates():
 	weapon_templates.clear()
 	consumable_templates.clear()
-	var categorized = LootSpawnDirectorScript.categorize_templates(item_templates, [HEAL_ADVANCED_ITEM])
+	var categorized = LootSpawnDirectorScript.categorize_templates(item_templates, extra_consumable_templates)
 	for template in categorized.get("weapons", []):
 		weapon_templates.append(template)
 	for template in categorized.get("consumables", []):

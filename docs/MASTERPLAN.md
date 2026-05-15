@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.10.17+ — Main-owned data/catalog closure before subsystem-wide restructuring.
+**Next structural slice**: v1.10.18 — Main-owned runtime tuning boundary.
 
-**Latest completed slice**: v1.10.16 — bot archetype id hardening, pressure effect catalog, and zone stage config data binding.
+**Latest completed slice**: v1.10.17 — item/resource catalog boundary for default loot and supply resources.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -76,6 +76,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `LootSpawnDirector`: item template categorization, pickup creation, supply pillar creation, and supply cluster creation.
 - `PressureEffectCatalog`: pressure reward/penalty ids and HUD labels.
 - `PressureEffectApplier`: pressure mission reward/penalty effect execution against explicit player/zone/actor context.
+- `ItemResourceCatalog`: default loot item templates, extra consumables, pickup scene, and supply railgun resource references.
 - `HellEventController`: Hell blackout/bombardment timers, overlay flashes, warning markers, damage application, and Hell event Telemetry logging.
 
 **Good next candidates**
@@ -119,7 +120,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current Main candidates**
 
-- Item/resource pool: `railgun_item`, `pickup_scene`, `item_templates`, and `HEAL_ADVANCED_ITEM`.
+- Item/resource pool: first pass complete through `ItemResourceCatalog`; Main keeps only runtime references loaded from the catalog.
 - Match runtime tuning: safe spawn attempts, spawn inner radius, fallback spawn range, entity clearance, obstacle clearance margin, stage loot wave scale, and supply fallback position/timer.
 - Navigation/runtime world setup: navigation mesh bake parameters and zone ring visual defaults.
 - Presentation-only values: menu logo size and Hell announcement fade are low-risk but can be deferred if they do not block content work.
@@ -130,6 +131,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Move default drop item references out of `Main.gd` into an item/resource catalog boundary.
 - Adding, removing, or swapping default item pools should not require editing `Main.gd`.
 - Preserve current item list, pickup scene, advanced heal, railgun supply behavior, and Telemetry schema.
+- First pass complete: `ItemResourceCatalog.gd` owns the pickup scene, default item templates, extra consumables, and supply railgun item. `Main.gd` loads runtime references from the catalog and still owns loot/supply state wiring.
 
 **v1.10.18 — Match Runtime Tuning Boundary**
 

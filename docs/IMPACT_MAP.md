@@ -13,6 +13,7 @@
 | WeaponSlotManager | `var slots` | `Player.gd` | RefCounted |
 | MissionTracker | `var mission_tracker` | `Main.gd` | RefCounted |
 | ArtifactCatalog | starting artifact specs/descriptions | `Main.gd`, `Player.gd` | static catalog |
+| ItemResourceCatalog | default loot resources and pickup scene | `Main.gd` | static catalog |
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted runtime controller |
@@ -53,6 +54,13 @@
 - **쓰는 파일**: `Main.gd` 만
 - **시그널**: 없음 — `tick_pressure(delta, num_detecting)` 반환값 `"success"` / `"fail"` / `""` 을 Main이 폴링
 - **훅 호출자**: `Main.gd` (`on_pressure_kill`, `on_pressure_damage`, `on_weapon_slot_used` 등), `ZoneController.gd` (`on_player_zone_tick`, `on_pressure_zone_tick`)
+
+### `src/core/ItemResourceCatalog.gd`
+- **읽는 파일**: `src/items/*.tres`, `src/entities/pickup/Pickup.tscn`.
+- **호출자**: `Main.gd` `_configure_item_resources()`.
+- **역할**: 기본 loot item templates, extra consumables, supply railgun item, pickup scene 리소스 참조를 한 곳에서 제공.
+- **소유하지 않는 것**: loot/supply state, spawn count, hotspot selection, pickup node creation, Telemetry logging.
+- **수정 영향**: 기본 드랍 pool이나 supply railgun 리소스를 바꾸면 `Main.gd` runtime references, `LootSpawnDirector.gd`, `Pickup.gd`, `ItemData.gd`, simulation loot flow를 확인.
 
 ### `src/core/HellEventController.gd`
 - **읽는 파일**: 직접 scene lookup 없음. `Main.gd`가 `game_config`, host, overlay parent, Telemetry를 주입.

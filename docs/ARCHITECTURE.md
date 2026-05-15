@@ -1,7 +1,7 @@
 # 배틀캡슐 아키텍처 보고서 (v1.10-dev)
 
 > 최종 업데이트: 2026-05-15
-> 이 문서는 v1.10-dev 확장 기반(config/debug/asset catalog/LootSpawner/SupplyDropController/catalog/UI builders/systems match helpers/HellEventController 경계) 기준이다.
+> 이 문서는 v1.10-dev 확장 기반(config/debug/asset/item resource catalog/LootSpawner/SupplyDropController/catalog/UI builders/systems match helpers/HellEventController 경계) 기준이다.
 
 ---
 
@@ -57,6 +57,7 @@
 | `src/core/MapSpec.gd` | 맵 POI·장애물·월드 크기 정의 | WorldBuilder, Minimap이 읽기 전용으로 참조 |
 | `data/game_config.json` | 매치 수치, 난이도 파라미터, Hell 타이머 | `GameConfig.gd`가 로드, Main이 적용 |
 | `data/asset_catalog.json` | audio/icon/prop/cosmetic ID와 fallback | `AssetCatalog.gd`가 로드, Sfx/UI/월드가 점진 참조 |
+| `src/core/ItemResourceCatalog.gd` | 기본 loot item templates, extra consumables, pickup scene, supply railgun 리소스 | Main이 런타임 참조를 로드하고 loot/supply state wiring은 유지 |
 | `src/core/ArtifactCatalog.gd` | 시작 아티팩트 선택지, modifier 정의, modifier 기반 설명 생성 | Main 메뉴가 읽고 선택 결과를 Player modifier로 적용 |
 | `src/core/ItemDisplayFormatter.gd` | pickup detail 및 HUD ammo 문자열 포맷 | Pickup과 Player HUD가 실제 item/slot 값을 넘겨 사용 |
 | `src/core/DifficultyCatalog.gd` | 난이도 label/description/color 정의 | Main 메뉴와 Records가 같은 UI 데이터를 참조 |
