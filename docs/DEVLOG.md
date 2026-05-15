@@ -6,6 +6,27 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.1-dev — 2026-05-15
+
+**Hell subsystem directory first pass**
+
+**src/systems/hell/HellEventController.gd / src/Main.gd / docs/MASTERPLAN.md / docs/ARCHITECTURE.md / docs/IMPACT_MAP.md**
+
+- Started v1.11 as a subsystem directory/data-boundary version.
+- Moved `HellEventController.gd` from `src/core/` to `src/systems/hell/` and updated the `Main.gd` preload path.
+- Kept `class_name`, public API, signal names, modifier ids, Telemetry event names, and runtime behavior unchanged.
+- Documented the v1.11 slice order and scoped v1.11.2 as Hell tuning data separation.
+- No Hell tuning values, gameplay behavior, or Telemetry schema changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=61.4s, stage=2, recover=36, disengage=21.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=55.9s, stage=2, recover=117, disengage=17.
+
+---
+
 ## v1.10.20-dev — 2026-05-15
 
 **Main data/catalog closure review**

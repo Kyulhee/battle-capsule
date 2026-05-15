@@ -1,6 +1,6 @@
 # Devlog Index
 
-> Last updated: 2026-05-13. Use this index before opening historical logs.
+> Last updated: 2026-05-15. Use this index before opening historical logs.
 
 ## Active Log
 
@@ -14,6 +14,7 @@
 
 | Version | Summary | Details |
 |---|---|---|
+| v1.11-dev | Subsystem directory and non-Main data-boundary pass | [v1.11.md](v1.11.md) |
 | v1.10-dev | Main slimdown, supply/loot/catalog/UI helper boundaries | [v1.10.md](v1.10.md) |
 | v1.9-dev | AssetCatalog hooks, debug logs, cosmetic/audio path hooks, scale CLI overrides | [v1.9.md](v1.9.md) |
 | v1.8-dev | GameConfig, DebugFlags, DebugOverlay, AssetCatalog, runtime icon pass, LootSpawner | [v1.8.md](v1.8.md) |

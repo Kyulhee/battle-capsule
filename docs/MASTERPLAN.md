@@ -1,18 +1,18 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-15 (v1.10.20 Main closure review)
+> Last updated: 2026-05-15 (v1.11.1 subsystem directory first pass)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
 ## Current Status
 
-**Current line**: v1.10-dev closure complete; next development line is v1.11-dev — subsystem directory + data boundaries.
+**Current line**: v1.11-dev — subsystem directory + data boundaries.
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.1 — subsystem directory/data-boundary planning.
+**Next structural slice**: v1.11.2 — Hell tuning data boundary.
 
-**Latest completed slice**: v1.10.20 — Main data/catalog closure review and explicit deferrals.
+**Latest completed slice**: v1.11.1 — Hell subsystem directory first pass.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -333,6 +333,44 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - `LootSpawnDirector.gd` and supply helpers: move supply/pillar visual and cluster tuning values into config/catalog entries.
 - UI builders: keep presentation constants close to their builder unless reused across multiple screens.
 
+**Recommended v1.11 slice order**
+
+1. Hell subsystem boundary.
+   - Move runtime controller into `src/systems/hell/`.
+   - Then move bombardment/blackout tuning and visual constants into data/config/helper boundaries.
+   - Keep Hell modifier selection and announcement wiring in `Main.gd`.
+2. Zone subsystem boundary.
+   - Move `ZoneController.gd` toward `src/systems/zone/` only after confirming all `Main`/`Bot`/`Player`/`Minimap` references.
+   - Keep zone ownership in `Main.gd`.
+3. Loot/supply subsystem boundary.
+   - Group loot hotspot calculation, supply timing, and pickup creation under `src/systems/loot/` by small path-preserving slices.
+   - Keep `Main.gd` supply minimap state and Telemetry hook calls.
+4. Mission/pressure data boundary.
+   - Move mission and pressure descriptors out of `MissionTracker.gd` into catalog/data structures before adding new mission types.
+   - Keep mission progress/evaluation APIs stable.
+5. Entity vertical slices.
+   - Split `Player.gd`/`Bot.gd` tuning by behavior domain only when a concrete data owner is clear.
+   - Do not move combat or perception behavior just to reduce line count.
+
+### v1.11.1 — Hell Subsystem Directory First Pass `S`
+
+**Summary**: Start v1.11 with a path-only domain move for the smallest runtime controller boundary.
+
+- Move `HellEventController.gd` from `src/core/` to `src/systems/hell/`.
+- Update `Main.gd` preload path and architecture/impact docs.
+- Keep `class_name HellEventController`, public API, signal names, Telemetry event names, modifier ids, and runtime behavior unchanged.
+- Do not move tuning constants in this slice; they are the next data-boundary slice.
+- First pass complete: `src/systems/hell/HellEventController.gd` is the new owner path. `Main.gd` still owns Hell modifier selection, announcement UI, and controller wiring.
+
+### v1.11.2 — Hell Tuning Data Boundary `S`
+
+**Summary**: Separate Hell event tuning values from Hell runtime algorithms without changing balance.
+
+- Move bombardment/blackout numeric defaults and marker/flash visual constants into config/helper data.
+- Preserve current fallback values exactly.
+- Keep algorithms in `HellEventController.gd` unless a helper removes real coupling.
+- Verify normal and Hell simulations because this touches runtime event behavior.
+
 **v1.11 completion gate**
 
 - Directory moves must preserve class names, preload paths, scene references, and runtime behavior.
@@ -368,6 +406,7 @@ Phase 2 remains blocked until v1.10, v1.11, and v1.12 foundations are stable.
 
 | Version | Summary |
 |---|---|
+| v1.11-dev | Subsystem directory and non-Main data/algorithm boundaries |
 | v1.10-dev | Main slimdown, UI catalogs, supply/loot calculation boundaries |
 | v1.9-dev | AssetCatalog hooks, audio/cosmetic IDs, debug logging hooks, scale-test CLI overrides |
 | v1.8-dev | GameConfig, DebugFlags, DebugOverlay, AssetCatalog, runtime core icon pass |

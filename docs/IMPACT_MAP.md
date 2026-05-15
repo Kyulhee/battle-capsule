@@ -16,7 +16,7 @@
 | ItemResourceCatalog | default loot resources and pickup scene | `Main.gd` | static catalog |
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
-| HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted runtime controller |
+| HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
 | WorldPresentationBuilder | zone ring and supply pillar world presentation | `Main.gd` | static UI/world builder |
 | DifficultySelectorBuilder | difficulty selector/tooltip UI | `Main.gd` | static UI builder |
@@ -71,12 +71,13 @@
 - **소유하지 않는 것**: loot/supply state, spawn count, hotspot selection, pickup node creation, Telemetry logging.
 - **수정 영향**: 기본 드랍 pool이나 supply railgun 리소스를 바꾸면 `Main.gd` runtime references, `LootSpawnDirector.gd`, `Pickup.gd`, `ItemData.gd`, simulation loot flow를 확인.
 
-### `src/core/HellEventController.gd`
+### `src/systems/hell/HellEventController.gd`
 - **읽는 파일**: 직접 scene lookup 없음. `Main.gd`가 `game_config`, host, overlay parent, Telemetry를 주입.
 - **호출자**: `Main.gd` `start_game()` / `_process()`에서 `configure()`, `start_match()`, `tick()` 호출.
 - **역할**: Hell blackout/bombardment timer, warning disc creation, overlay flash, bomb damage application, and `Telemetry.log_hell_event()` delegation.
 - **소유하지 않는 것**: 난이도 선택, Hell modifier enum compatibility, announcement panel, match-global state, Telemetry schema.
 - **수정 영향**: Hell tuning constants or event names 변경 시 `Main.gd` Hell wiring, `Player.gd` SCARCITY read, `Telemetry.gd` event aggregation, `data/game_config.json` Hell timer keys를 함께 확인.
+- **v1.11 상태**: path ownership first pass complete. Tuning data separation is deferred to v1.11.2.
 
 ### `src/entities/Entity.gd` (base)
 - **시그널 수신처**:
@@ -265,7 +266,7 @@
 | 난이도 파라미터 | `data/game_config.json`, `GameConfig.gd` | `Main.gd` `_get_difficulty_params()`, `Bot.gd` configure path |
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
-| Hell 정전/포격 이벤트 | `HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, `data/game_config.json` Hell keys |
+| Hell 정전/포격 이벤트 | `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, `data/game_config.json` Hell keys |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |
 | Settings modal UI | `SettingsPanelBuilder.gd` | `Main.gd` settings callbacks, `user://settings.cfg` key compatibility |
