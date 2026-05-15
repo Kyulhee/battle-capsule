@@ -6,6 +6,23 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.17-dev — 2026-05-15
+
+**Expansion readiness planning**
+
+**docs/MASTERPLAN.md**
+
+- Defined the v1.10.17-v1.10.20 Main data/catalog closure plan.
+- Scoped v1.10 to Main-owned item/resource, runtime tuning, and presentation data boundaries.
+- Re-scoped v1.11 as a subsystem directory/data-boundary pass before content expansion.
+- Moved Complex Artifacts planning to v1.12 so artifact content does not start before the structural pass is stable.
+
+**검증 결과**
+
+- Documentation-only planning slice.
+
+---
+
 ## v1.10.16-dev — 2026-05-15
 
 **Risk review fixes + first zone data binding slice**

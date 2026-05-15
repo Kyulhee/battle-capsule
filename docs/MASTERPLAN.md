@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-15 (risk review fixes + data/value binding slice)
+> Last updated: 2026-05-15 (v1.10 closure plan + v1.11 structural scope)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,7 +10,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural planning slice**: v1.10.17+ — v1.10 closure review, remaining GameTuning/data-value binding, or explicit defer list.
+**Next structural slice**: v1.10.17+ — Main-owned data/catalog closure before subsystem-wide restructuring.
 
 **Latest completed slice**: v1.10.16 — bot archetype id hardening, pressure effect catalog, and zone stage config data binding.
 
@@ -28,7 +28,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Treat already connected item/icon assets as readability polish, not new content expansion.
 - User-facing descriptions that contain gameplay numbers should be generated from the same data used by gameplay logic whenever practical.
 - New gameplay tuning values should enter through data/config/catalog/controller specs first, not as local constants inside `Main.gd`.
-- Do not start 99-player scale, new maps, mission map theming, or v1.11 complex artifact logic until v1.10 stabilization is complete.
+- Do not start 99-player scale, new maps, mission map theming, or v1.12 complex artifact logic until v1.10 and v1.11 stabilization are complete.
 
 ## Active Docs
 
@@ -80,9 +80,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Good next candidates**
 
-1. v1.10 closure review: mark remaining state-owning systems as complete/deferred before v1.11.
-2. `GameTuning` / data-value binding slices: move remaining gameplay numbers used by descriptions, tooltips, labels, and algorithms into shared data/schema sources.
-3. Match lifecycle follow-up only where ownership remains clear, such as seed/map bootstrapping or minimap sync.
+1. v1.10 Main data/catalog closure: finish high-value Main-owned data boundaries without moving global state ownership.
+2. v1.11 subsystem directory/data-boundary pass: reorganize non-Main code and split tuning values from algorithms by domain.
+3. v1.12 Complex Artifacts: begin new artifact content only after the structural passes are stable.
 
 **Recommended split order**
 
@@ -111,7 +111,49 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - MenuController, MenuVisualBuilder, PausePanelBuilder, EventTextBuilder, MatchBootstrap, MatchTuning, BotSpawnPlanner, LootSpawnDirector, and PressureEffectApplier first passes are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap/GameTuning follow-up items.
 - Keep pressure mission state, zone ownership, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists. Effect ids/labels and effect execution can live in focused catalog/helper files.
 - Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
-- Complete or explicitly defer the first Data/Description Value Binding slice before v1.11 artifacts add more numeric descriptions.
+- Complete or explicitly defer the first Data/Description Value Binding slice before v1.11 subsystem restructuring and v1.12 artifacts add more numeric descriptions.
+
+### v1.10.17-v1.10.20 — Main Data/Catalog Closure Plan `M`
+
+**Summary**: Finish the Main-owned data/catalog cleanup before touching subsystem-wide directory moves. `Main.gd` should remain the orchestrator and state owner, but routine item pool, spawn, navigation, supply fallback, and presentation tuning edits should not require reading unrelated Main sections.
+
+**Current Main candidates**
+
+- Item/resource pool: `railgun_item`, `pickup_scene`, `item_templates`, and `HEAL_ADVANCED_ITEM`.
+- Match runtime tuning: safe spawn attempts, spawn inner radius, fallback spawn range, entity clearance, obstacle clearance margin, stage loot wave scale, and supply fallback position/timer.
+- Navigation/runtime world setup: navigation mesh bake parameters and zone ring visual defaults.
+- Presentation-only values: menu logo size and Hell announcement fade are low-risk but can be deferred if they do not block content work.
+- Keep in Main: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, scene callbacks, and Telemetry hook calls.
+
+**v1.10.17 — Item/Resource Catalog Boundary**
+
+- Move default drop item references out of `Main.gd` into an item/resource catalog boundary.
+- Adding, removing, or swapping default item pools should not require editing `Main.gd`.
+- Preserve current item list, pickup scene, advanced heal, railgun supply behavior, and Telemetry schema.
+
+**v1.10.18 — Match Runtime Tuning Boundary**
+
+- Move Main-owned spawn safety, obstacle-clearance, navigation bake, stage loot-wave, and supply fallback tuning into `GameConfig`/`MatchTuning` or a small `MatchRuntimeTuning` helper.
+- Keep the algorithms in their current owners unless the move clearly reduces coupling.
+- Preserve existing defaults exactly unless a separate balance change is requested.
+
+**v1.10.19 — Main Presentation Boundary**
+
+- Move remaining Main-local visual defaults that are still edited as data, such as zone ring color/mesh sizing and small menu/announcement constants, into UI/world-view helpers or catalogs.
+- Do not move broad UI state or panel routing back into Main.
+- Defer low-value visual constants if moving them would create more indirection than benefit.
+
+**v1.10.20 — Closure Review**
+
+- Re-scan `Main.gd` for remaining non-state constants and classify each as: moved, intentionally owned by Main, or deferred to v1.11.
+- Update `ARCHITECTURE.md` and `IMPACT_MAP.md` with the final boundaries.
+- Verification gate: `git diff --check`, Godot headless quit, `python tools\simulate_matches.py 1`, and one Hell or high-bot simulation when gameplay wiring changed.
+
+**Explicit v1.10 deferrals**
+
+- Do not refactor `Player.gd`, `Bot.gd`, `MissionTracker.gd`, `HellEventController.gd`, `LootSpawnDirector.gd`, or UI builders just because they still contain tuning values.
+- Do not reorganize directory structure in v1.10 unless required by a Main boundary.
+- Do not start new artifacts, new maps, 99-player scale, or strategic prop gameplay in v1.10.
 
 ### v1.10.3+ — Data/Description Value Binding `M`
 
@@ -176,13 +218,13 @@ This is a v1.10 structural cleanup, not a balance pass. The first implementation
 
 **Summary**: Improve readability and consistency of already connected item/icon assets without adding new items, weapons, artifacts, or gameplay content.
 
-This is a stabilization step before v1.11 Complex Artifacts. It covers pickup display, item label noise, focus clarity, glow intensity, and asset fallback/export checks.
+This is a stabilization step before v1.12 Complex Artifacts. It covers pickup display, item label noise, focus clarity, glow intensity, and asset fallback/export checks.
 
 **Patch numbering guidance**
 
 - Use `v1.10.1`-style slices for localized presentation tuning that does not change asset pipeline rules. Example: weakening an over-visible pickup focus marker after screenshot review.
 - Use `v1.10.2`-style slices for small asset-pipeline rule changes that can affect multiple runtime files. Example: changing generated icon post-processing scale rules and re-syncing runtime weapon icons.
-- Keep all `v1.10.x` slices inside the existing v1.10 stabilization scope. These are not v1.11 content features.
+- Keep all `v1.10.x` slices inside the existing v1.10 stabilization scope. These are not v1.12 content features.
 
 **Scope**
 
@@ -240,9 +282,36 @@ This is a stabilization step before v1.11 Complex Artifacts. It covers pickup di
 - Do not touch v2.0 MapDefinition, v2.1 Forest 2.0, or v2.2 AI LOD work.
 - Do not start 99-player expansion, new maps, mission map theming, or new artifact implementation.
 
-## v1.11 — Complex Artifacts `M`
+## v1.11 — Subsystem Directory + Data Boundaries `M`
 
-**Summary**: After v1.10 stabilization, add second-pass artifacts that create replay variation through bounded gameplay logic.
+**Summary**: After `Main.gd` data/catalog closure, reorganize subsystem code by domain and separate reusable tuning values from algorithms outside Main. This is a structural version, not a content expansion.
+
+**Directory direction**
+
+- Keep orchestration and scene wiring in `src/Main.gd`.
+- Keep stable low-level data/config/catalog classes under `src/core/` only when they are genuinely shared.
+- Group domain systems more explicitly, for example `src/systems/match/`, `src/systems/loot/`, `src/systems/mission/`, `src/systems/zone/`, and `src/systems/hell/` when files are ready to move.
+- Keep entity execution under `src/entities/player/`, `src/entities/bot/`, and pickup/environment folders.
+- Keep UI construction under `src/ui/`, with panels/overlays/HUD helpers separated by usage.
+
+**Data/algorithm separation targets**
+
+- `MissionTracker.gd`: move mission and pressure descriptors toward catalog/data while keeping condition evaluation logic testable.
+- `Player.gd`: split heal, ammo, HUD numeric display, combat visual constants, and artifact stat reads by vertical slice.
+- `Bot.gd`: split perception, loot search, combat movement, and debug/visual constants into doctrine/profile/config boundaries without changing AI behavior.
+- `HellEventController.gd`: move remaining bombardment/blackout tuning and visual constants into config/catalog entries.
+- `LootSpawnDirector.gd` and supply helpers: move supply/pillar visual and cluster tuning values into config/catalog entries.
+- UI builders: keep presentation constants close to their builder unless reused across multiple screens.
+
+**v1.11 completion gate**
+
+- Directory moves must preserve class names, preload paths, scene references, and runtime behavior.
+- Each move should be small enough to validate with `git diff --check`, Godot headless quit, and at least one simulation.
+- No new artifact behavior, new map content, 99-player scale, or strategic prop gameplay should be implemented in v1.11 unless the structural pass is explicitly closed.
+
+## v1.12 — Complex Artifacts `M`
+
+**Summary**: After v1.10 Main stabilization and v1.11 subsystem boundaries, add second-pass artifacts that create replay variation through bounded gameplay logic.
 
 Candidate artifacts:
 
@@ -253,15 +322,15 @@ Candidate artifacts:
 - Glass Capsule: low max HP, high outgoing damage.
 - Overheat Barrel: sustained-fire damage/spread tradeoff.
 
-Do not begin until v1.10 Main boundaries and pickup/asset readability are stable.
+Do not begin until v1.10 Main boundaries, v1.11 subsystem boundaries, and pickup/asset readability are stable.
 
 ## Phase 2 Guardrails
 
-Phase 2 remains blocked until v1.10 and v1.11 foundations are stable.
+Phase 2 remains blocked until v1.10, v1.11, and v1.12 foundations are stable.
 
 | Future Area | Guardrail |
 |---|---|
-| v2.0 MapDefinition + Full Map UI | Requires config/debug foundation and v1.10 Main slimdown |
+| v2.0 MapDefinition + Full Map UI | Requires config/debug foundation, v1.10 Main slimdown, and v1.11 subsystem boundaries |
 | Forest 2.0 / City Map | Requires MapDefinition and large navigation stability checks |
 | 99-player or large-map scale | Requires AI LOD, spawn/loot density rescale, zone/pathing rescale, and performance validation |
 
