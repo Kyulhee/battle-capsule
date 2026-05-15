@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.10.18 — Main-owned runtime tuning boundary.
+**Next structural slice**: v1.10.19 — Main-owned presentation boundary.
 
-**Latest completed slice**: v1.10.17 — item/resource catalog boundary for default loot and supply resources.
+**Latest completed slice**: v1.10.18 — Main runtime spawn/navigation/loot/supply fallback tuning boundary.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -72,6 +72,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `MenuController`: panel visibility routing and main/secondary menu button wiring.
 - `MatchBootstrap`: match-start zone creation, bonus mission selection, pressure flag initialization, Hell modifier roll.
 - `MatchTuning`: `GameConfig` match/zone tuning interpretation and CLI match/difficulty override parsing.
+- `MatchRuntimeTuning`: Main-owned spawn safety, navigation bake, stage loot wave, and supply fallback tuning interpretation.
 - `BotSpawnPlanner`: weighted bot archetype plans that scale beyond the 11-bot baseline.
 - `LootSpawnDirector`: item template categorization, pickup creation, supply pillar creation, and supply cluster creation.
 - `PressureEffectCatalog`: pressure reward/penalty ids and HUD labels.
@@ -121,7 +122,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 **Current Main candidates**
 
 - Item/resource pool: first pass complete through `ItemResourceCatalog`; Main keeps only runtime references loaded from the catalog.
-- Match runtime tuning: safe spawn attempts, spawn inner radius, fallback spawn range, entity clearance, obstacle clearance margin, stage loot wave scale, and supply fallback position/timer.
+- Match runtime tuning: first pass complete through `data/game_config.json` `runtime` + `MatchRuntimeTuning`; Main applies sanitized values.
 - Navigation/runtime world setup: navigation mesh bake parameters and zone ring visual defaults.
 - Presentation-only values: menu logo size and Hell announcement fade are low-risk but can be deferred if they do not block content work.
 - Keep in Main: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, scene callbacks, and Telemetry hook calls.
@@ -138,6 +139,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Move Main-owned spawn safety, obstacle-clearance, navigation bake, stage loot-wave, and supply fallback tuning into `GameConfig`/`MatchTuning` or a small `MatchRuntimeTuning` helper.
 - Keep the algorithms in their current owners unless the move clearly reduces coupling.
 - Preserve existing defaults exactly unless a separate balance change is requested.
+- First pass complete: `data/game_config.json` `runtime` owns spawn, navigation, stage loot wave, and supply fallback values; `MatchRuntimeTuning.gd` clamps/normalizes them; `Main.gd` keeps spawn/navigation/supply algorithms and state wiring.
 
 **v1.10.19 — Main Presentation Boundary**
 

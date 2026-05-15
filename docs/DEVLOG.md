@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.18-dev — 2026-05-15
+
+**Main runtime tuning boundary**
+
+**data/game_config.json / src/core/GameConfig.gd / src/systems/match/MatchRuntimeTuning.gd / src/Main.gd**
+
+- Added `data/game_config.json` `runtime` section for Main-owned spawn safety, navigation bake, stage loot wave, and supply fallback tuning.
+- Added `MatchRuntimeTuning` to clamp/normalize runtime tuning before Main applies it.
+- `Main.gd` now reads spawn attempts, spawn inner radius, fallback spawn range/height, entity/obstacle clearance, navigation bake values, stage loot wave scale, and supply fallback position/timer from runtime tuning.
+- Spawn, navigation, loot, supply, and Telemetry behavior are intended to stay unchanged.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=70.3s, stage=3, recover=34, disengage=23.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=97.5s, stage=4, recover=120, disengage=26.
+
+---
+
 ## v1.10.17-dev — 2026-05-15
 
 **Expansion readiness planning + item/resource catalog boundary**

@@ -75,6 +75,7 @@ const MenuControllerScript = preload("res://src/ui/menu/MenuController.gd")
 const MenuIconFactoryScript = preload("res://src/ui/MenuIconFactory.gd")
 const MenuVisualBuilderScript = preload("res://src/ui/MenuVisualBuilder.gd")
 const MatchBootstrapScript = preload("res://src/systems/match/MatchBootstrap.gd")
+const MatchRuntimeTuningScript = preload("res://src/systems/match/MatchRuntimeTuning.gd")
 const MatchTuningScript = preload("res://src/systems/match/MatchTuning.gd")
 const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
 const PausePanelBuilderScript = preload("res://src/ui/panels/PausePanelBuilder.gd")
@@ -96,6 +97,7 @@ var _nav_region: NavigationRegion3D = null
 # v1.8 expansion foundation
 var asset_catalog = null
 var game_config = null
+var match_runtime_tuning: Dictionary = {}
 var debug_flags = null
 var debug_overlay = null
 var supply_controller = null
@@ -124,6 +126,7 @@ func _ready():
 	_configure_asset_catalog()
 	game_config = GameConfigScript.new()
 	game_config.load_or_default()
+	match_runtime_tuning = MatchRuntimeTuningScript.from_game_config(game_config)
 	_apply_game_config()
 	debug_flags = DebugFlagsScript.new()
 	debug_flags.load_from_cmdline(OS.get_cmdline_user_args())
@@ -495,14 +498,15 @@ func debug_log(flag: String, message: String) -> void:
 		print("[DEBUG:%s] %s" % [flag, message])
 
 func _setup_navigation():
+	var nav_tuning = MatchRuntimeTuningScript.navigation(match_runtime_tuning)
 	var nav_mesh = NavigationMesh.new()
 	nav_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
-	nav_mesh.agent_height = 1.8
-	nav_mesh.agent_radius = 0.5
-	nav_mesh.agent_max_climb = 0.3
-	nav_mesh.agent_max_slope = 45.0
-	nav_mesh.cell_size = 0.3
-	nav_mesh.cell_height = 0.25
+	nav_mesh.agent_height = float(nav_tuning["agent_height"])
+	nav_mesh.agent_radius = float(nav_tuning["agent_radius"])
+	nav_mesh.agent_max_climb = float(nav_tuning["agent_max_climb"])
+	nav_mesh.agent_max_slope = float(nav_tuning["agent_max_slope"])
+	nav_mesh.cell_size = float(nav_tuning["cell_size"])
+	nav_mesh.cell_height = float(nav_tuning["cell_height"])
 	_nav_region = NavigationRegion3D.new()
 	_nav_region.name = "NavRegion"
 	_nav_region.navigation_mesh = nav_mesh
@@ -578,7 +582,8 @@ func _on_zone_stage_changed(new_stage: int):
 					dist[aname] = dist.get(aname, 0) + 1
 			get_node("/root/Telemetry").log_archetype_alive_at_zone2(dist)
 	_print_bot_state_snapshot()
-	spawn_loot(0.1 + (new_stage * 0.1), 10)
+	var wave_tuning = MatchRuntimeTuningScript.stage_loot_wave(match_runtime_tuning, new_stage)
+	spawn_loot(float(wave_tuning["probability"]), int(wave_tuning["count_mult"]))
 	if heal_ban_until_stage > 0 and new_stage > heal_ban_until_stage:
 		heal_pickup_banned = false
 		heal_ban_until_stage = -1
@@ -620,17 +625,26 @@ func spawn_entities():
 			get_node("/root/Telemetry").log_archetype_spawn(aname)
 
 func _get_safe_spawn_pos() -> Vector3:
-	for _attempt in range(50):
+	var spawn_tuning = MatchRuntimeTuningScript.spawn(match_runtime_tuning)
+	var spawn_height = float(spawn_tuning["spawn_height"])
+	for _attempt in range(int(spawn_tuning["safe_spawn_attempts"])):
 		var angle = randf() * TAU
-		var dist = randf_range(5.0, spawn_radius)
+		var dist = randf_range(float(spawn_tuning["inner_radius"]), spawn_radius)
 		var candidate = Vector2(cos(angle) * dist, sin(angle) * dist)
 		if _is_clear_of_obstacles(candidate) and _is_clear_of_entities(candidate):
-			var pos = Vector3(candidate.x, 1.0, candidate.y)
+			var pos = Vector3(candidate.x, spawn_height, candidate.y)
 			_spawn_positions.append(pos)
 			return pos
-	return Vector3(randf_range(-10, 10), 1.0, randf_range(-10, 10))
+	var fallback_range = float(spawn_tuning["fallback_range"])
+	return Vector3(
+		randf_range(-fallback_range, fallback_range),
+		spawn_height,
+		randf_range(-fallback_range, fallback_range)
+	)
 
-func _is_clear_of_entities(pos: Vector2, min_dist: float = 3.5) -> bool:
+func _is_clear_of_entities(pos: Vector2, min_dist: float = -1.0) -> bool:
+	if min_dist < 0.0:
+		min_dist = float(MatchRuntimeTuningScript.spawn(match_runtime_tuning)["entity_clearance"])
 	for sp in _spawn_positions:
 		if Vector2(sp.x, sp.z).distance_to(pos) < min_dist:
 			return false
@@ -673,7 +687,9 @@ func _spawn_initial_loot():
 		Callable(self, "_random_loot_pos")
 	)
 
-func _is_clear_of_obstacles(pos: Vector2, margin: float = 2.0) -> bool:
+func _is_clear_of_obstacles(pos: Vector2, margin: float = -1.0) -> bool:
+	if margin < 0.0:
+		margin = float(MatchRuntimeTuningScript.spawn(match_runtime_tuning)["obstacle_clearance_margin"])
 	if not map_spec: return true
 	for o in map_spec.obstacles:
 		var type_str = o.get("type", "")
@@ -700,13 +716,19 @@ func spawn_loot(prob: float, count_mult: int = 1):
 	)
 
 func telegraph_supply_zone():
+	var supply_fallback = MatchRuntimeTuningScript.supply_fallback(match_runtime_tuning)
+	var fallback_range = float(supply_fallback["range"])
 	var drop = supply_controller.start_telegraph() if supply_controller else {
-		"pos": Vector3(randf_range(-25, 25), 1.0, randf_range(-25, 25)),
-		"timer": 8.0,
+		"pos": Vector3(
+			randf_range(-fallback_range, fallback_range),
+			float(supply_fallback["height"]),
+			randf_range(-fallback_range, fallback_range)
+		),
+		"timer": float(supply_fallback["timer"]),
 	}
 	supply_telegraphed = true
 	supply_spawned = false
-	supply_timer = float(drop.get("timer", 8.0))
+	supply_timer = float(drop.get("timer", supply_fallback["timer"]))
 	supply_pos = drop.get("pos", Vector3.ZERO)
 	debug_log("loot", "supply telegraphed at (%.1f, %.1f)" % [supply_pos.x, supply_pos.z])
 	

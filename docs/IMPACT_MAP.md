@@ -28,6 +28,7 @@
 | MenuController | panel routing and menu button wiring | `Main.gd` | RefCounted UI controller |
 | MatchBootstrap | match-start initialization helpers | `Main.gd` | static system helper |
 | MatchTuning | match/zone tuning interpretation | `Main.gd` | static system helper |
+| MatchRuntimeTuning | Main runtime spawn/navigation/loot fallback tuning | `Main.gd` | static system helper |
 | BotSpawnPlanner | bot archetype plan generation | `Main.gd` | static system helper |
 | LootSpawnDirector | loot/supply pickup creation | `Main.gd` | static system helper |
 | PressureEffectCatalog | pressure effect ids and HUD labels | `MissionTracker.gd`, `PressureEffectApplier.gd` | static catalog |
@@ -175,6 +176,13 @@
 - **소유하지 않는 것**: bot scene instancing, spawn position, AI configuration call, `alive_count`, Telemetry spawn logging.
 - **수정 영향**: bot_count 확장, archetype 비율, 새 archetype 추가 시 `BotDoctrine.gd` name/id mapping, `Bot.gd`, Telemetry archetype aggregation, `Main.gd` spawn wiring을 함께 확인.
 
+### `src/systems/match/MatchRuntimeTuning.gd`
+- **읽는 파일**: 직접 scene 참조 없음. `Main.gd`가 `GameConfig.runtime_tuning()` 결과를 넘김.
+- **호출자**: `Main.gd` `_setup_navigation()`, `_get_safe_spawn_pos()`, `_is_clear_of_entities()`, `_is_clear_of_obstacles()`, `_on_zone_stage_changed()`, `telegraph_supply_zone()`.
+- **역할**: spawn safety, navigation bake, stage loot wave, supply fallback tuning 값 clamp/normalize.
+- **소유하지 않는 것**: actual spawn algorithm, NavigationRegion node ownership, loot/supply state, Telemetry logging, CLI overrides.
+- **수정 영향**: runtime tuning key를 바꾸면 `data/game_config.json`, `GameConfig.gd`, `Main.gd` call sites, simulation spawn/loot/supply flow를 함께 확인.
+
 ### `src/systems/match/LootSpawnDirector.gd`
 - **읽는 파일**: `ItemData.gd` type enum. 직접 scene lookup 없음.
 - **호출자**: `Main.gd` `_categorize_templates()` / `_spawn_initial_loot()` / `spawn_loot()` / `telegraph_supply_zone()` / `activate_supply_zone()`.
@@ -254,6 +262,7 @@
 | Menu visual style | `MenuVisualBuilder.gd` | `Main.gd` target node wiring, `MenuController.gd`, `HelpPanelBuilder.gd`, `RecordsPanelBuilder.gd` |
 | Match start initialization | `MatchBootstrap.gd` | `Main.gd` state ownership, `ZoneController.gd`, `MissionTracker.gd`, Hell modifier enum compatibility |
 | Match/zone tuning config 또는 CLI alias | `MatchTuning.gd` | `Main.gd` apply path, `data/game_config.json`, `tools/simulate_matches.py`, TESTING/문서 예시 |
+| Main runtime tuning | `MatchRuntimeTuning.gd`, `data/game_config.json` `runtime` | `Main.gd` spawn/navigation/supply/zone-stage loot paths, `GameConfig.gd`, simulations |
 | Bot count/archetype ratio | `BotSpawnPlanner.gd` | `Main.gd` spawn wiring, `Bot.gd` archetype enum, `BotDoctrine.gd`, Telemetry archetype reports |
 | Loot/supply pickup creation | `LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
 | Pressure reward/penalty effect | `PressureEffectCatalog.gd` + `PressureEffectApplier.gd` | `MissionTracker.gd` pools/HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |

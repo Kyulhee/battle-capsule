@@ -61,6 +61,12 @@ func zone_stage_configs() -> Dictionary:
 func hell_value(key: String, fallback: Variant) -> Variant:
 	return _section_value("hell", key, fallback)
 
+func runtime_tuning() -> Dictionary:
+	var section = data.get("runtime", {})
+	if typeof(section) != TYPE_DICTIONARY:
+		return {}
+	return section.duplicate(true)
+
 func get_difficulty_params(difficulty: int) -> Dictionary:
 	var section: Dictionary = data.get("difficulty", {})
 	var params = section.get(str(difficulty), section.get(difficulty, {}))
@@ -106,5 +112,33 @@ func _default_data() -> Dictionary:
 			"bomb_initial_timer": 20.0,
 			"bomb_repeat_min": 18.0,
 			"bomb_repeat_max": 28.0
+		},
+		"runtime": {
+			"spawn": {
+				"safe_spawn_attempts": 50,
+				"inner_radius": 5.0,
+				"spawn_height": 1.0,
+				"fallback_range": 10.0,
+				"entity_clearance": 3.5,
+				"obstacle_clearance_margin": 2.0
+			},
+			"navigation": {
+				"agent_height": 1.8,
+				"agent_radius": 0.5,
+				"agent_max_climb": 0.3,
+				"agent_max_slope": 45.0,
+				"cell_size": 0.3,
+				"cell_height": 0.25
+			},
+			"loot": {
+				"stage_wave_base_prob": 0.1,
+				"stage_wave_prob_per_stage": 0.1,
+				"stage_wave_count_mult": 10
+			},
+			"supply_fallback": {
+				"range": 25.0,
+				"height": 1.0,
+				"timer": 8.0
+			}
 		}
 	}
