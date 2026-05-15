@@ -49,6 +49,15 @@ func match_value(key: String, fallback: Variant) -> Variant:
 func zone_value(key: String, fallback: Variant) -> Variant:
 	return _section_value("zone", key, fallback)
 
+func zone_stage_configs() -> Dictionary:
+	var section = data.get("zone", {})
+	if typeof(section) != TYPE_DICTIONARY:
+		return {}
+	var stages = section.get("stages", {})
+	if typeof(stages) != TYPE_DICTIONARY:
+		return {}
+	return stages.duplicate(true)
+
 func hell_value(key: String, fallback: Variant) -> Variant:
 	return _section_value("hell", key, fallback)
 
@@ -76,7 +85,12 @@ func _default_data() -> Dictionary:
 			"wait_time": 30.0,
 			"shrink_time": 20.0,
 			"damage_per_second": 2.0,
-			"initial_timer": 15.0
+			"initial_timer": 15.0,
+			"stages": {
+				"2": { "wait_time": 20.0, "shrink_time": 15.0, "damage_per_second": 5.0 },
+				"3": { "wait_time": 15.0, "shrink_time": 12.0, "damage_per_second": 10.0 },
+				"4": { "wait_time": 10.0, "shrink_time": 10.0, "damage_per_second": 15.0 }
+			}
 		},
 		"difficulty": {
 			"0": { "vision_mult": 0.75, "reaction_delay": 1.2, "aim_spread": 1.8, "loot_break_mult": 0.0, "awareness_level": 0 },

@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-15 (expansion risk reducer split + modularization plan)
+> Last updated: 2026-05-15 (risk review fixes + data/value binding slice)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural planning slice**: v1.10.16+ — v1.10 closure review, remaining GameTuning/data-value binding, or explicit defer list.
+**Next structural planning slice**: v1.10.17+ — v1.10 closure review, remaining GameTuning/data-value binding, or explicit defer list.
 
-**Latest completed slice**: v1.10.15 — pressure effects, bot archetype planning, and loot/supply pickup creation split into match helpers.
+**Latest completed slice**: v1.10.16 — bot archetype id hardening, pressure effect catalog, and zone stage config data binding.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -74,6 +74,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `MatchTuning`: `GameConfig` match/zone tuning interpretation and CLI match/difficulty override parsing.
 - `BotSpawnPlanner`: weighted bot archetype plans that scale beyond the 11-bot baseline.
 - `LootSpawnDirector`: item template categorization, pickup creation, supply pillar creation, and supply cluster creation.
+- `PressureEffectCatalog`: pressure reward/penalty ids and HUD labels.
 - `PressureEffectApplier`: pressure mission reward/penalty effect execution against explicit player/zone/actor context.
 - `HellEventController`: Hell blackout/bombardment timers, overlay flashes, warning markers, damage application, and Hell event Telemetry logging.
 
@@ -108,7 +109,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 - Finish the v1.10.x item/asset readability stabilization work or explicitly defer remaining visual-only items.
 - MenuController, MenuVisualBuilder, PausePanelBuilder, EventTextBuilder, MatchBootstrap, MatchTuning, BotSpawnPlanner, LootSpawnDirector, and PressureEffectApplier first passes are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap/GameTuning follow-up items.
-- Keep pressure mission effects, zone state, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists.
+- Keep pressure mission state, zone ownership, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists. Effect ids/labels and effect execution can live in focused catalog/helper files.
 - Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
 - Complete or explicitly defer the first Data/Description Value Binding slice before v1.11 artifacts add more numeric descriptions.
 
@@ -123,6 +124,7 @@ This is a v1.10 structural cleanup, not a balance pass. The first implementation
 - Some catalog descriptions include numeric values directly in prose, for example artifact lines such as shotgun damage multipliers.
 - If gameplay modifiers and text are edited separately, future balance changes can silently make UI descriptions wrong.
 - The same risk exists outside artifacts: ammo amounts, heal amounts, weapon stats, difficulty descriptions, mission text, and help text can drift if they duplicate values owned elsewhere.
+- The rule applies broadly: Main should wire loaded values, controllers should own algorithms, and reusable numeric tuning should move into config/resource/catalog files by vertical slice.
 
 **Source-of-truth direction**
 
@@ -148,6 +150,7 @@ This is a v1.10 structural cleanup, not a balance pass. The first implementation
    - The player-visible text stays readable Korean, not raw debug data.
 4. Extend only where duplication is confirmed.
    - First pickup/HUD pass complete: `ItemDisplayFormatter` reads pickup details from `ItemData`/`StatsData` and HUD ammo from slot state.
+   - First zone timing pass complete: stage 2+ wait/shrink/damage values are loaded from `data/game_config.json` `zone.stages`, while `ZoneController.gd` owns only lifecycle/damage algorithms.
    - Do not migrate labels that are already simple names and have no duplicated gameplay number.
 5. Keep behavior stable.
    - No balance changes unless explicitly requested.

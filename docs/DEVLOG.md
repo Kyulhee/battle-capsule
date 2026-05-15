@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.16-dev — 2026-05-15
+
+**Risk review fixes + first zone data binding slice**
+
+**src/core/PressureEffectCatalog.gd / src/core/MissionTracker.gd / src/systems/match/PressureEffectApplier.gd / src/systems/match/BotSpawnPlanner.gd / src/entities/bot/BotDoctrine.gd / src/core/ZoneController.gd / data/game_config.json / src/Main.gd**
+
+- Added `PressureEffectCatalog` as the shared pressure effect id/label source used by mission HUD text and effect execution.
+- Changed `BotSpawnPlanner` to emit archetype names instead of relying on hardcoded enum integer order; `BotDoctrine` now owns name/id conversion.
+- Moved zone stage 2+ wait/shrink/damage values into `data/game_config.json` `zone.stages`; `ZoneController.gd` now applies injected stage configs and keeps lifecycle/damage algorithms.
+- Updated architecture/impact docs so Main remains the wiring/state owner while reusable numeric tuning moves through data/catalog/helper boundaries.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal bot_count=20` 통과: duration=85.1s, stage=3, recover=44, disengage=35.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=51.4s, stage=2, recover=163, disengage=22.
+
+---
+
 ## v1.10.15-dev — 2026-05-15
 
 **Main Slimdown — expansion risk reducer split**

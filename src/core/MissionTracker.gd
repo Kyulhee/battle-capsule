@@ -2,6 +2,7 @@ extends RefCounted
 class_name MissionTracker
 
 const MissionData = preload("res://src/core/MissionData.gd")
+const PressureEffectCatalogScript = preload("res://src/core/PressureEffectCatalog.gd")
 const ACHIEVEMENTS_PATH = "user://achievements.json"
 
 # ── 보너스 미션 (기존 유지) ─────────────────────────────────────────────────
@@ -30,22 +31,7 @@ enum PressureCondition {
 	KILL_LOW_HP,        # 플레이어 HP 30% 이하에서 킬 N회
 }
 
-# ── 압박 미션 리워드/패널티 타입 ───────────────────────────────────────────
-enum PressureEffect {
-	AMMO_REFILL,        # 전 무기 탄약 풀충전
-	AMMO_CLEAR,         # 전 무기 탄약 전소
-	AMMO_ACTIVE_CLEAR,  # 활성 슬롯 탄약 전소
-	HP_RESTORE,         # HP 회복 (amount 또는 full:true)
-	HP_DAMAGE,          # HP 즉시 차감
-	SHIELD_ADD,         # 방어막 추가
-	HEAL_ADD,           # 힐 아이템 추가
-	HEAL_CLEAR,         # 힐 아이템 전소
-	HEAL_PICKUP_BAN,    # 다음 존 단계 힐 픽업 불가
-	ALL_BOTS_DETECT,    # 1존 동안 전 봇 플레이어 위치 감지
-	BOT_AGGRO,          # 가장 가까운 봇 즉시 어그로
-	ZONE_EXTEND,        # zone_timer 연장
-	RAILGUN_UNLIMITED,  # 레일건 무제한 (N존 단계)
-}
+# 압박 미션 리워드/패널티 타입과 표시 문구는 PressureEffectCatalog.gd가 소유한다.
 
 # ── HARD_POOL 정의 ─────────────────────────────────────────────────────────
 static func get_hard_pool() -> Array:
@@ -53,51 +39,51 @@ static func get_hard_pool() -> Array:
 		{
 			"id": "h_kill", "title": "계약 킬", "description": "킬 1 달성",
 			"conditions": [{"type": PressureCondition.KILL, "target": 1}],
-			"reward":  [{"type": PressureEffect.AMMO_REFILL}],
-			"penalty": [{"type": PressureEffect.AMMO_CLEAR}],
+			"reward":  [{"type": PressureEffectCatalogScript.AMMO_REFILL}],
+			"penalty": [{"type": PressureEffectCatalogScript.AMMO_CLEAR}],
 		},
 		{
 			"id": "h_no_heal", "title": "금욕", "description": "힐 사용 금지",
 			"conditions": [{"type": PressureCondition.NO_HEAL, "target": 0}],
-			"reward":  [{"type": PressureEffect.SHIELD_ADD, "amount": 50.0}],
-			"penalty": [{"type": PressureEffect.HEAL_PICKUP_BAN}],
+			"reward":  [{"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
+			"penalty": [{"type": PressureEffectCatalogScript.HEAL_PICKUP_BAN}],
 			"instant_fail_on_violation": true,
 		},
 		{
 			"id": "h_zone_dare", "title": "존 도전자", "description": "자기장 밖 5초 이상 체류",
 			"conditions": [{"type": PressureCondition.ZONE_OUTSIDE_SEC, "target": 5}],
-			"reward":  [{"type": PressureEffect.HP_RESTORE, "amount": 40.0}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "amount": 40.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "amount": 40.0}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 40.0}],
 		},
 		{
 			"id": "h_no_dmg", "title": "무결", "description": "피해 받지 않기",
 			"conditions": [{"type": PressureCondition.NO_DAMAGE, "target": 0}],
-			"reward":  [{"type": PressureEffect.SHIELD_ADD, "amount": 50.0}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "amount": 30.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 30.0}],
 		},
 		{
 			"id": "h_stealth_kill", "title": "은신 사냥", "description": "미탐지 상태로 킬 1",
 			"conditions": [{"type": PressureCondition.KILL, "target": 1, "modifier": "undetected"}],
-			"reward":  [{"type": PressureEffect.AMMO_REFILL}],
-			"penalty": [{"type": PressureEffect.ALL_BOTS_DETECT}],
+			"reward":  [{"type": PressureEffectCatalogScript.AMMO_REFILL}],
+			"penalty": [{"type": PressureEffectCatalogScript.ALL_BOTS_DETECT}],
 		},
 		{
 			"id": "h_melee_kill", "title": "칼잡이", "description": "칼로 킬 1",
 			"conditions": [{"type": PressureCondition.KILL_MELEE, "target": 1}],
-			"reward":  [{"type": PressureEffect.AMMO_REFILL}],
-			"penalty": [{"type": PressureEffect.AMMO_ACTIVE_CLEAR}],
+			"reward":  [{"type": PressureEffectCatalogScript.AMMO_REFILL}],
+			"penalty": [{"type": PressureEffectCatalogScript.AMMO_ACTIVE_CLEAR}],
 		},
 		{
 			"id": "h_target_practice", "title": "표적 생존", "description": "봇 2마리+ 감지 상태에서 10초 생존",
 			"conditions": [{"type": PressureCondition.SURVIVE_DETECTED_SEC, "target": 10}],
-			"reward":  [{"type": PressureEffect.HEAL_ADD, "count": 1}, {"type": PressureEffect.SHIELD_ADD, "amount": 30.0}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "amount": 20.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.HEAL_ADD, "count": 1}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 30.0}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 20.0}],
 		},
 		{
 			"id": "h_zone_kill", "title": "경계선", "description": "자기장 밖에서 킬 1",
 			"conditions": [{"type": PressureCondition.KILL_WHILE_ZONE_OUTSIDE, "target": 1}],
-			"reward":  [{"type": PressureEffect.HP_RESTORE, "full": true}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "amount": 40.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 40.0}],
 		},
 	]
 
@@ -108,8 +94,8 @@ static func get_hell_pool() -> Array:
 		{
 			"id": "ha_kill2", "title": "이중 계약", "description": "킬 2 달성",
 			"conditions": [{"type": PressureCondition.KILL, "target": 2}],
-			"reward":  [{"type": PressureEffect.RAILGUN_UNLIMITED, "stages": 1}],
-			"penalty": [{"type": PressureEffect.AMMO_CLEAR}, {"type": PressureEffect.HP_DAMAGE, "amount": 20.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}],
+			"penalty": [{"type": PressureEffectCatalogScript.AMMO_CLEAR}, {"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 20.0}],
 		},
 		{
 			"id": "ha_no_heal_nodmg", "title": "완벽한 금욕", "description": "힐 금지 + 피해 0",
@@ -117,8 +103,8 @@ static func get_hell_pool() -> Array:
 				{"type": PressureCondition.NO_HEAL, "target": 0},
 				{"type": PressureCondition.NO_DAMAGE, "target": 0},
 			],
-			"reward":  [{"type": PressureEffect.HP_RESTORE, "full": true}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "amount": 50.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
 			"instant_fail_on_violation": true,
 		},
 		{
@@ -127,8 +113,8 @@ static func get_hell_pool() -> Array:
 				{"type": PressureCondition.ZONE_OUTSIDE_SEC, "target": 10},
 				{"type": PressureCondition.KILL, "target": 1},
 			],
-			"reward":  [{"type": PressureEffect.HP_RESTORE, "full": true}, {"type": PressureEffect.SHIELD_ADD, "amount": 50.0}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "amount": 50.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
 		},
 		# Hell-B: 콤보 조건
 		{
@@ -137,8 +123,8 @@ static func get_hell_pool() -> Array:
 				{"type": PressureCondition.KILL, "target": 1, "modifier": "undetected"},
 				{"type": PressureCondition.NO_DAMAGE, "target": 0},
 			],
-			"reward":  [{"type": PressureEffect.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffect.HEAL_ADD, "count": 2}],
-			"penalty": [{"type": PressureEffect.ALL_BOTS_DETECT}, {"type": PressureEffect.HP_DAMAGE, "amount": 30.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HEAL_ADD, "count": 2}],
+			"penalty": [{"type": PressureEffectCatalogScript.ALL_BOTS_DETECT}, {"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 30.0}],
 		},
 		{
 			"id": "hb_no_heal_2kill", "title": "금욕 학살", "description": "힐 금지 + 킬 2",
@@ -146,8 +132,8 @@ static func get_hell_pool() -> Array:
 				{"type": PressureCondition.NO_HEAL, "target": 0},
 				{"type": PressureCondition.KILL, "target": 2},
 			],
-			"reward":  [{"type": PressureEffect.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffect.HEAL_ADD, "count": 3}],
-			"penalty": [{"type": PressureEffect.HEAL_CLEAR}, {"type": PressureEffect.HP_DAMAGE, "amount": 30.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HEAL_ADD, "count": 3}],
+			"penalty": [{"type": PressureEffectCatalogScript.HEAL_CLEAR}, {"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 30.0}],
 			"instant_fail_on_violation": true,
 		},
 		{
@@ -156,27 +142,27 @@ static func get_hell_pool() -> Array:
 				{"type": PressureCondition.KILL_MELEE, "target": 1},
 				{"type": PressureCondition.NO_DAMAGE, "target": 0},
 			],
-			"reward":  [{"type": PressureEffect.HP_RESTORE, "full": true}, {"type": PressureEffect.SHIELD_ADD, "amount": 50.0}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "amount": 40.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 40.0}],
 		},
 		# Hell-C: 특수 조건
 		{
 			"id": "hc_blood_pact", "title": "피의 계약", "description": "HP 30% 이하에서 킬 1",
 			"conditions": [{"type": PressureCondition.KILL_LOW_HP, "target": 1}],
-			"reward":  [{"type": PressureEffect.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffect.HP_RESTORE, "full": true}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "fraction": 0.5}],
+			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "fraction": 0.5}],
 		},
 		{
 			"id": "hc_berserker", "title": "광전사", "description": "봇 3마리+ 감지 상태에서 킬 1",
 			"conditions": [{"type": PressureCondition.KILL, "target": 1, "modifier": "heavily_detected"}],
-			"reward":  [{"type": PressureEffect.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffect.HP_RESTORE, "full": true}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "amount": 50.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
 		},
 		{
 			"id": "hc_zone_massacre", "title": "존 바깥의 학살", "description": "자기장 밖에서 킬 2",
 			"conditions": [{"type": PressureCondition.KILL_WHILE_ZONE_OUTSIDE, "target": 2}],
-			"reward":  [{"type": PressureEffect.HP_RESTORE, "full": true}, {"type": PressureEffect.SHIELD_ADD, "amount": 50.0}, {"type": PressureEffect.HEAL_ADD, "count": 1}],
-			"penalty": [{"type": PressureEffect.HP_DAMAGE, "amount": 50.0}],
+			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}, {"type": PressureEffectCatalogScript.HEAL_ADD, "count": 1}],
+			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
 		},
 	]
 
@@ -352,25 +338,7 @@ func get_pressure_hud_text() -> String:
 	return "⚡ %s  |  %ds\n%s\n✓ %s   ✗ %s" % [title, sec, line2, reward_txt, penalty_txt]
 
 func _format_pressure_effects(effects: Array) -> String:
-	var parts: Array = []
-	for eff in effects:
-		match int(eff["type"]):
-			PressureEffect.AMMO_REFILL:       parts.append("탄약 충전")
-			PressureEffect.AMMO_CLEAR:        parts.append("탄약 전소")
-			PressureEffect.AMMO_ACTIVE_CLEAR: parts.append("현 탄약 전소")
-			PressureEffect.HP_RESTORE:
-				if eff.get("full", false): parts.append("HP 풀회복")
-				else: parts.append("HP+%d" % int(eff.get("amount", 0)))
-			PressureEffect.HP_DAMAGE:
-				if eff.has("fraction"): parts.append("HP -%d%%" % int(eff["fraction"] * 100))
-				else: parts.append("HP-%d" % int(eff.get("amount", 0)))
-			PressureEffect.SHIELD_ADD:        parts.append("방어막+%d" % int(eff.get("amount", 0)))
-			PressureEffect.HEAL_ADD:          parts.append("힐+%d" % int(eff.get("count", 1)))
-			PressureEffect.HEAL_CLEAR:        parts.append("힐 전소")
-			PressureEffect.HEAL_PICKUP_BAN:   parts.append("힐픽업 금지")
-			PressureEffect.ALL_BOTS_DETECT:   parts.append("전봇 탐지")
-			PressureEffect.RAILGUN_UNLIMITED: parts.append("레일건 무제한")
-	return "  ".join(parts) if not parts.is_empty() else "없음"
+	return PressureEffectCatalogScript.format_effects(effects)
 
 func _get_pressure_progress_text() -> String:
 	var conditions = _active_pressure.get("conditions", [])

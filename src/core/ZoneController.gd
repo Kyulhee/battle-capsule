@@ -14,12 +14,16 @@ var shrinking: bool = false
 var wait_time: float = 30.0
 var shrink_time: float = 20.0
 var damage_per_second: float = 2.0
+var stage_configs: Dictionary = {}
 
 var _center_start: Vector2 = Vector2.ZERO
 var _radius_start: float = 50.0
 var _outside_time: Dictionary = {}
 var _warning_played: bool = false
 var _damage_tick_timer: float = 0.0
+
+func configure_stage_configs(configs: Dictionary) -> void:
+	stage_configs = configs.duplicate(true)
 
 func generate_next() -> void:
 	next_radius = current_radius * 0.6
@@ -84,7 +88,20 @@ func on_entity_died(uid: int) -> void:
 	_outside_time.erase(uid)
 
 func _apply_stage_config() -> void:
-	match stage:
-		2: wait_time = 20.0; shrink_time = 15.0; damage_per_second = 5.0
-		3: wait_time = 15.0; shrink_time = 12.0; damage_per_second = 10.0
-		4, _: wait_time = 10.0; shrink_time = 10.0; damage_per_second = 15.0
+	var config = _stage_config(stage)
+	if config.is_empty():
+		return
+	wait_time = maxf(1.0, float(config.get("wait_time", wait_time)))
+	shrink_time = maxf(1.0, float(config.get("shrink_time", shrink_time)))
+	damage_per_second = maxf(0.0, float(config.get("damage_per_second", damage_per_second)))
+
+func _stage_config(stage_index: int) -> Dictionary:
+	var exact_key = str(stage_index)
+	var config = stage_configs.get(exact_key, stage_configs.get(stage_index, {}))
+	if typeof(config) == TYPE_DICTIONARY and not config.is_empty():
+		return config
+	if stage_index >= 4:
+		config = stage_configs.get("4", stage_configs.get(4, {}))
+		if typeof(config) == TYPE_DICTIONARY:
+			return config
+	return {}

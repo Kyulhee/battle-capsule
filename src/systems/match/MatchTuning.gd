@@ -12,6 +12,7 @@ static func from_game_config(game_config, current: Dictionary) -> Dictionary:
 		"zone_shrink_time": maxf(1.0, float(game_config.zone_value("shrink_time", current.get("zone_shrink_time", 20.0)))),
 		"zone_damage": maxf(0.0, float(game_config.zone_value("damage_per_second", current.get("zone_damage", 2.0)))),
 		"zone_initial_timer": maxf(0.1, float(game_config.zone_value("initial_timer", current.get("zone_initial_timer", 15.0)))),
+		"zone_stage_configs": game_config.zone_stage_configs(),
 	}
 
 static func from_cmdline_arg(arg: String) -> Dictionary:

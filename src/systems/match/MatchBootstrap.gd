@@ -7,6 +7,7 @@ static func create_zone(
 	shrink_time: float,
 	damage_per_second: float,
 	initial_timer: float,
+	stage_configs: Dictionary,
 	on_stage_advanced: Callable,
 	on_zone_warning: Callable
 ):
@@ -14,6 +15,8 @@ static func create_zone(
 	zone.wait_time = wait_time
 	zone.shrink_time = shrink_time
 	zone.damage_per_second = damage_per_second
+	if zone.has_method("configure_stage_configs"):
+		zone.configure_stage_configs(stage_configs)
 	zone.timer = initial_timer
 	zone.generate_next()
 	if on_stage_advanced.is_valid():

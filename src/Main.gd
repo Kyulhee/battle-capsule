@@ -47,6 +47,7 @@ var zone = null
 @export var zone_shrink_time: float = 20.0
 @export var zone_damage: float = 2.0
 @export var zone_initial_timer: float = 15.0
+var zone_stage_configs: Dictionary = {}
 var alive_count: int = 0
 var game_over: bool = false
 var player_ref: Entity = null
@@ -66,6 +67,7 @@ const HEAL_ADVANCED_ITEM = preload("res://src/items/heal_advanced_pickup.tres")
 const ArtifactCatalogScript = preload("res://src/core/ArtifactCatalog.gd")
 const ArtifactSelectionPanelBuilderScript = preload("res://src/ui/panels/ArtifactSelectionPanelBuilder.gd")
 const AssetCatalogScript = preload("res://src/core/AssetCatalog.gd")
+const BotDoctrineScript = preload("res://src/entities/bot/BotDoctrine.gd")
 const BotSpawnPlannerScript = preload("res://src/systems/match/BotSpawnPlanner.gd")
 const DifficultySelectorBuilderScript = preload("res://src/ui/DifficultySelectorBuilder.gd")
 const EventTextBuilderScript = preload("res://src/ui/overlays/EventTextBuilder.gd")
@@ -263,6 +265,7 @@ func start_game():
 		zone_shrink_time,
 		zone_damage,
 		_zone_initial_timer(),
+		zone_stage_configs,
 		Callable(self, "_on_zone_stage_changed"),
 		Callable(self, "_on_zone_warning")
 	)
@@ -436,6 +439,7 @@ func _current_match_tuning() -> Dictionary:
 		"zone_shrink_time": zone_shrink_time,
 		"zone_damage": zone_damage,
 		"zone_initial_timer": zone_initial_timer,
+		"zone_stage_configs": zone_stage_configs,
 	}
 
 func _apply_match_tuning(tuning: Dictionary):
@@ -455,6 +459,8 @@ func _apply_match_tuning(tuning: Dictionary):
 		zone_damage = float(tuning["zone_damage"])
 	if tuning.has("zone_initial_timer"):
 		zone_initial_timer = float(tuning["zone_initial_timer"])
+	if tuning.has("zone_stage_configs"):
+		zone_stage_configs = tuning["zone_stage_configs"].duplicate(true)
 	if loot_spawner and loot_spawner.has_method("configure_count"):
 		loot_spawner.configure_count(loot_count)
 
@@ -569,7 +575,7 @@ func _on_zone_stage_changed(new_stage: int):
 			var dist: Dictionary = {}
 			for b in get_tree().get_nodes_in_group("actors"):
 				if is_instance_valid(b) and not b.is_in_group("players") and not b.is_dead:
-					var aname = b.BotArchetype.keys()[b.archetype]
+					var aname = BotDoctrineScript.archetype_name(int(b.archetype))
 					dist[aname] = dist.get(aname, 0) + 1
 			get_node("/root/Telemetry").log_archetype_alive_at_zone2(dist)
 	_print_bot_state_snapshot()
@@ -600,17 +606,18 @@ func spawn_entities():
 	var diff_params = _get_difficulty_params()
 	var archetype_plan = BotSpawnPlannerScript.archetype_plan(bot_count)
 	if difficulty == Difficulty.HELL and hell_modifier == HellModifier.ALL_AGGRESSIVE:
-		archetype_plan = BotSpawnPlannerScript.force_archetype(archetype_plan, 0)
+		archetype_plan = BotSpawnPlannerScript.force_archetype(archetype_plan, "AGGRESSIVE")
 	for i in range(bot_count):
 		var b = bot_scene.instantiate()
 		$Entities.add_child(b)
 		b.display_name = "Bot %d" % (i + 1)
 		b.global_position = _get_safe_spawn_pos()
 		b.died.connect(_on_bot_died.bind(b))
-		var atype = archetype_plan[i] if i < archetype_plan.size() else 0
+		var archetype_name = archetype_plan[i] if i < archetype_plan.size() else BotSpawnPlannerScript.DEFAULT_ARCHETYPE
+		var atype = BotDoctrineScript.archetype_id(archetype_name)
 		b.configure_ai(atype, diff_params)
 		if has_node("/root/Telemetry"):
-			var aname = b.BotArchetype.keys()[b.archetype]
+			var aname = BotDoctrineScript.archetype_name(int(b.archetype))
 			get_node("/root/Telemetry").log_archetype_spawn(aname)
 
 func _get_safe_spawn_pos() -> Vector3:
@@ -753,7 +760,7 @@ func _on_bot_died(bot: Entity = null):
 	if bot:
 		zone.on_entity_died(bot.get_instance_id())
 		if has_node("/root/Telemetry"):
-			var aname = bot.BotArchetype.keys()[bot.archetype]
+			var aname = BotDoctrineScript.archetype_name(int(bot.archetype))
 			get_node("/root/Telemetry").log_archetype_death(aname)
 	# Mission tracker kill hook
 	if mission_tracker and bot and bot.last_killer == player_ref:

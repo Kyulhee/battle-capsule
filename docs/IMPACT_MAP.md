@@ -29,6 +29,7 @@
 | MatchTuning | match/zone tuning interpretation | `Main.gd` | static system helper |
 | BotSpawnPlanner | bot archetype plan generation | `Main.gd` | static system helper |
 | LootSpawnDirector | loot/supply pickup creation | `Main.gd` | static system helper |
+| PressureEffectCatalog | pressure effect ids and HUD labels | `MissionTracker.gd`, `PressureEffectApplier.gd` | static catalog |
 | PressureEffectApplier | pressure reward/penalty execution | `Main.gd` | static system helper |
 
 ---
@@ -37,7 +38,7 @@
 
 ### `src/core/ZoneController.gd`
 - **읽는 파일**: `Bot.gd` (`main.zone.current_center/radius/stage`), `Minimap.gd` (`main.zone.current/next_center/radius`), `Player.gd` (`main.zone.shrinking`, `main.zone.timer`, `main.zone.is_outside()`)
-- **쓰는 파일**: `Main.gd` 만 (`zone.timer +=`, `zone.wait_time`, `zone.shrink_time`)
+- **쓰는 파일**: `Main.gd` 만 (`zone.timer +=`, `zone.wait_time`, `zone.shrink_time`). Stage별 수치는 `data/game_config.json` `zone.stages`가 소유하고, `Main.gd`/`MatchBootstrap.gd`가 controller에 주입.
 - **시그널 수신처**: `Main.gd` — `stage_advanced` → `_on_zone_stage_changed()`, `zone_warning` → `_on_zone_warning()`
 - **내부에서 호출하는 외부 API**: `entity.take_damage()` (duck-typed), `mission_tracker.on_player_zone_tick()` / `on_pressure_zone_tick()` (duck-typed)
 
@@ -162,9 +163,9 @@
 ### `src/systems/match/BotSpawnPlanner.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
 - **호출자**: `Main.gd` `spawn_entities()`.
-- **역할**: weighted bot archetype plan 생성, Hell all-aggressive modifier용 forced archetype plan 생성.
+- **역할**: weighted bot archetype name plan 생성, Hell all-aggressive modifier용 forced archetype plan 생성. 정수 id 변환은 `BotDoctrine.gd`가 담당.
 - **소유하지 않는 것**: bot scene instancing, spawn position, AI configuration call, `alive_count`, Telemetry spawn logging.
-- **수정 영향**: bot_count 확장, archetype 비율, 새 archetype 추가 시 `Bot.gd` enum/order, `BotDoctrine.gd`, Telemetry archetype aggregation, `Main.gd` spawn wiring을 함께 확인.
+- **수정 영향**: bot_count 확장, archetype 비율, 새 archetype 추가 시 `BotDoctrine.gd` name/id mapping, `Bot.gd`, Telemetry archetype aggregation, `Main.gd` spawn wiring을 함께 확인.
 
 ### `src/systems/match/LootSpawnDirector.gd`
 - **읽는 파일**: `ItemData.gd` type enum. 직접 scene lookup 없음.
@@ -174,11 +175,11 @@
 - **수정 영향**: pickup spawn quantities or supply cluster composition 변경 시 `LootSpawner.gd`, `SupplyDropController.gd`, item templates, `Pickup.gd`, `Main.gd` supply state, Minimap supply display를 함께 확인.
 
 ### `src/systems/match/PressureEffectApplier.gd`
-- **읽는 파일**: `MissionTracker.gd` PressureEffect enum. 직접 scene lookup 없음.
+- **읽는 파일**: `PressureEffectCatalog.gd` effect ids. 직접 scene lookup 없음.
 - **호출자**: `Main.gd` `_apply_pressure_effects()`.
 - **역할**: pressure reward/penalty effects execution against explicit `player`, `zone`, and `actors` context; returns Main-owned pressure state updates.
 - **소유하지 않는 것**: pressure mission selection/timing, `heal_pickup_banned`, `heal_ban_until_stage`, `railgun_unlimited_until_stage`, player/zone/actor ownership, Telemetry logging.
-- **수정 영향**: 새 PressureEffect 추가 시 `MissionTracker.gd` enum/pools/HUD formatter, `PressureEffectApplier.gd`, `Main.gd` returned state handling, `Player.gd`/`ZoneController.gd`/`Bot.gd` touched state를 함께 확인.
+- **수정 영향**: 새 pressure effect 추가 시 `PressureEffectCatalog.gd` id/format, `MissionTracker.gd` pools, `PressureEffectApplier.gd`, `Main.gd` returned state handling, `Player.gd`/`ZoneController.gd`/`Bot.gd` touched state를 함께 확인.
 
 ### `src/entities/bot/Bot.gd`
 - **목표 이동**: `is_targeting_loot` CHASE는 `_nav_move_toward(..., false)`로 pickup 방향 이동을 유지하고 `_update_objective_scan()`으로 시야 회전을 따로 갱신.
@@ -247,7 +248,7 @@
 | Match/zone tuning config 또는 CLI alias | `MatchTuning.gd` | `Main.gd` apply path, `data/game_config.json`, `tools/simulate_matches.py`, TESTING/문서 예시 |
 | Bot count/archetype ratio | `BotSpawnPlanner.gd` | `Main.gd` spawn wiring, `Bot.gd` archetype enum, `BotDoctrine.gd`, Telemetry archetype reports |
 | Loot/supply pickup creation | `LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
-| Pressure reward/penalty effect | `PressureEffectApplier.gd` | `MissionTracker.gd` enum/pools/HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |
+| Pressure reward/penalty effect | `PressureEffectCatalog.gd` + `PressureEffectApplier.gd` | `MissionTracker.gd` pools/HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |
@@ -255,5 +256,5 @@
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
 | How to Play 행 구조 | `HelpCatalog.gd` | `HelpPanelBuilder.gd`, `Main.gd` Help panel wiring |
 | Records 행 구조 | `RecordsPanelBuilder.gd` | `Telemetry.gd` match history fields, `Main.gd` Records callbacks |
-| 새 `PressureEffect` 추가 | `MissionTracker.gd` (enum) | `PressureEffectApplier.gd` (match 케이스 추가), `MissionTracker._format_pressure_effects()`, 필요 시 `Main.gd` state update 반영 |
+| 새 pressure effect 추가 | `PressureEffectCatalog.gd` | `MissionTracker.gd` pools, `PressureEffectApplier.gd` match 케이스, 필요 시 `Main.gd` state update 반영 |
 | 새 `PressureCondition` 추가 | `MissionTracker.gd` (enum + `_eval_single_condition`) | `MissionTracker.filter_feasible()` (필터 케이스 추가) |

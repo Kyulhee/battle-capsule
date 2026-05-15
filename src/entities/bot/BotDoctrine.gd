@@ -162,6 +162,15 @@ static func build_profile(archetype_id: int, difficulty_params: Dictionary = {})
 	profile["difficulty_params"] = difficulty_params.duplicate(true)
 	return profile
 
+static func archetype_id(archetype_name: String) -> int:
+	var normalized = archetype_name.strip_edges().to_upper()
+	var idx = ARCHETYPE_NAMES.find(normalized)
+	return idx if idx >= 0 else 0
+
+static func archetype_name(archetype_id: int) -> String:
+	var id = clampi(archetype_id, 0, ARCHETYPE_NAMES.size() - 1)
+	return ARCHETYPE_NAMES[id]
+
 static func _apply_difficulty_scalars(profile: Dictionary, difficulty_params: Dictionary) -> void:
 	# Difficulty is a final scalar pass so archetype identity and difficulty both survive the merge.
 	if difficulty_params.has("vision_mult"):

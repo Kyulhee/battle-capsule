@@ -1209,7 +1209,7 @@ func _combat_plan_marker() -> String:
 			return "STR"
 
 func _archetype_name() -> String:
-	return BotArchetype.keys()[archetype] if archetype >= 0 and archetype < BotArchetype.size() else "AGGRESSIVE"
+	return BOT_DOCTRINE.archetype_name(int(archetype))
 
 func _catalog_archetype_id() -> String:
 	match _archetype_name():

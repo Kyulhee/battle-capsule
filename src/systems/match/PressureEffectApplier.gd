@@ -1,7 +1,7 @@
 class_name PressureEffectApplier
 extends RefCounted
 
-const MissionTrackerScript = preload("res://src/core/MissionTracker.gd")
+const PressureEffectCatalogScript = preload("res://src/core/PressureEffectCatalog.gd")
 
 static func apply(effects: Array, context: Dictionary) -> Dictionary:
 	var player = context.get("player")
@@ -13,37 +13,41 @@ static func apply(effects: Array, context: Dictionary) -> Dictionary:
 	for effect in effects:
 		if not effect.has("type"):
 			continue
-		match int(effect["type"]):
-			MissionTrackerScript.PressureEffect.AMMO_REFILL:
+		var effect_type = int(effect["type"])
+		if not PressureEffectCatalogScript.is_known_type(effect_type):
+			push_warning("PressureEffectApplier: unknown effect type %d" % effect_type)
+			continue
+		match effect_type:
+			PressureEffectCatalogScript.AMMO_REFILL:
 				player.slots.fill_all_ammo()
-			MissionTrackerScript.PressureEffect.AMMO_CLEAR:
+			PressureEffectCatalogScript.AMMO_CLEAR:
 				player.slots.clear_all_ammo()
-			MissionTrackerScript.PressureEffect.AMMO_ACTIVE_CLEAR:
+			PressureEffectCatalogScript.AMMO_ACTIVE_CLEAR:
 				player.slots.clear_active_ammo()
-			MissionTrackerScript.PressureEffect.HP_RESTORE:
+			PressureEffectCatalogScript.HP_RESTORE:
 				_apply_hp_restore(player, effect)
-			MissionTrackerScript.PressureEffect.HP_DAMAGE:
+			PressureEffectCatalogScript.HP_DAMAGE:
 				_apply_hp_damage(player, effect)
-			MissionTrackerScript.PressureEffect.SHIELD_ADD:
+			PressureEffectCatalogScript.SHIELD_ADD:
 				_apply_shield_add(player, effect)
-			MissionTrackerScript.PressureEffect.HEAL_ADD:
+			PressureEffectCatalogScript.HEAL_ADD:
 				player.stats.heal_items += int(effect.get("count", 1))
 				player._update_hud()
-			MissionTrackerScript.PressureEffect.HEAL_CLEAR:
+			PressureEffectCatalogScript.HEAL_CLEAR:
 				player.stats.heal_items = 0
 				player.stats.advanced_heals = 0
 				player._update_hud()
-			MissionTrackerScript.PressureEffect.HEAL_PICKUP_BAN:
+			PressureEffectCatalogScript.HEAL_PICKUP_BAN:
 				updates["heal_pickup_banned"] = true
 				updates["heal_ban_until_stage"] = int(zone.stage) + 1 if zone else 1
-			MissionTrackerScript.PressureEffect.ALL_BOTS_DETECT:
+			PressureEffectCatalogScript.ALL_BOTS_DETECT:
 				_reveal_player_to_bots(player, actors)
-			MissionTrackerScript.PressureEffect.BOT_AGGRO:
+			PressureEffectCatalogScript.BOT_AGGRO:
 				_aggro_nearest_bot(player, actors)
-			MissionTrackerScript.PressureEffect.ZONE_EXTEND:
+			PressureEffectCatalogScript.ZONE_EXTEND:
 				if zone:
 					zone.timer += zone.wait_time * (float(effect.get("mult", 1.0)) - 1.0)
-			MissionTrackerScript.PressureEffect.RAILGUN_UNLIMITED:
+			PressureEffectCatalogScript.RAILGUN_UNLIMITED:
 				updates["railgun_unlimited_until_stage"] = int(zone.stage) + int(effect.get("stages", 1)) if zone else int(effect.get("stages", 1))
 	return updates
 
