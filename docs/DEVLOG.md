@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.20-dev — 2026-05-15
+
+**Main data/catalog closure review**
+
+**docs/MASTERPLAN.md / docs/ARCHITECTURE.md / docs/IMPACT_MAP.md**
+
+- Re-audited `Main.gd` after the v1.10.17-v1.10.19 data/resource/runtime/presentation splits; current line count is 1097.
+- Marked v1.10 Main-owned data/catalog/presentation cleanup structurally closed.
+- Classified remaining `Main.gd` values as intentionally Main-owned merge points/state/wiring or deferred v1.11 domain-slice work.
+- Explicitly deferred Hell start-state policy, mission/artifact feasibility glue, mission context thresholds, result text formatting, debug snapshot aggregation, and non-Main tuning/data boundaries to v1.11.
+- No runtime code, gameplay behavior, or Telemetry schema was changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=66.3s, stage=2, recover=36, disengage=25.
+
+---
+
 ## v1.10.19-dev — 2026-05-15
 
 **Main presentation defaults boundary**

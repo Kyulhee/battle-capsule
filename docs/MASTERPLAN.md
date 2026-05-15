@@ -1,20 +1,20 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-15 (v1.10.19 presentation boundary)
+> Last updated: 2026-05-15 (v1.10.20 Main closure review)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
 ## Current Status
 
-**Current line**: v1.10-dev — Main slimdown and UI/catalog boundaries.
+**Current line**: v1.10-dev closure complete; next development line is v1.11-dev — subsystem directory + data boundaries.
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.10.20 — Closure review and explicit deferrals.
+**Next structural slice**: v1.11.1 — subsystem directory/data-boundary planning.
 
-**Latest completed slice**: v1.10.19 — Main presentation defaults boundary.
+**Latest completed slice**: v1.10.20 — Main data/catalog closure review and explicit deferrals.
 
-**v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
+**v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
 **Release status**: paused. Continue version-to-version development without GitHub releases unless explicitly requested.
 
@@ -83,9 +83,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Good next candidates**
 
-1. v1.10 Main data/catalog closure: finish high-value Main-owned data boundaries without moving global state ownership.
-2. v1.11 subsystem directory/data-boundary pass: reorganize non-Main code and split tuning values from algorithms by domain.
-3. v1.12 Complex Artifacts: begin new artifact content only after the structural passes are stable.
+1. v1.11 subsystem directory/data-boundary pass: reorganize non-Main code and split tuning values from algorithms by domain.
+2. Remaining v1.10.x item/asset readability polish: only narrow visual/readability patches that do not change expansion architecture.
+3. v1.12 Complex Artifacts: begin new artifact content only after the subsystem structural pass is stable.
 
 **Recommended split order**
 
@@ -108,13 +108,13 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Preserve Telemetry event names and JSON schema unless a dedicated migration is planned.
 - Runtime controllers may receive `Main.gd`-owned references through explicit wiring, but they should not own match-global state.
 
-**Completion gate before v1.11**
+**v1.10 closure result**
 
-- Finish the v1.10.x item/asset readability stabilization work or explicitly defer remaining visual-only items.
-- MenuController, MenuVisualBuilder, PausePanelBuilder, EventTextBuilder, MatchBootstrap, MatchTuning, BotSpawnPlanner, LootSpawnDirector, and PressureEffectApplier first passes are complete; before v1.11 either complete or explicitly defer remaining MatchBootstrap/GameTuning follow-up items.
-- Keep pressure mission state, zone ownership, player reference, alive count, and Telemetry ownership in `Main.gd` unless a separate migration plan exists. Effect ids/labels and effect execution can live in focused catalog/helper files.
-- Confirm that simple item display, UI catalog, and balance/config edits can be made through data/catalog/helper files without touching unrelated `Main.gd` sections.
-- Complete or explicitly defer the first Data/Description Value Binding slice before v1.11 subsystem restructuring and v1.12 artifacts add more numeric descriptions.
+- Complete: Main-owned item/resource pool, spawn/navigation/loot/supply fallback runtime tuning, UI/panel builders, match bootstrap/tuning helpers, pressure effect execution, bot spawn planning, loot/supply pickup creation, and world/menu presentation defaults have first-pass boundaries.
+- Complete: simple item display, item resources, menu/help/records/result/pause/artifact/Hell announcement UI, and Main runtime tuning can be edited through data/catalog/helper files without reading unrelated Main systems.
+- Intentionally retained in `Main.gd`: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, scene callbacks, exported scene/count defaults, and Telemetry hook calls.
+- Deferred: remaining visual-only item/asset polish can continue as v1.10.x patches, but does not block v1.11.
+- Deferred: non-Main domain files still need their own data/algorithm separation in v1.11.
 
 ### v1.10.17-v1.10.20 — Main Data/Catalog Closure Plan `M`
 
@@ -154,6 +154,30 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Re-scan `Main.gd` for remaining non-state constants and classify each as: moved, intentionally owned by Main, or deferred to v1.11.
 - Update `ARCHITECTURE.md` and `IMPACT_MAP.md` with the final boundaries.
 - Verification gate: `git diff --check`, Godot headless quit, `python tools\simulate_matches.py 1`, and one Hell or high-bot simulation when gameplay wiring changed.
+- Closure complete: `Main.gd` is 1097 lines. Remaining numeric/default values are classified below rather than moved blindly.
+
+**Moved or already data-backed**
+
+- Default item resources and pickup scene: `ItemResourceCatalog`.
+- Match/count/zone base config and CLI overrides: `GameConfig` + `MatchTuning`.
+- Spawn safety, navigation bake, stage loot wave, supply fallback: `data/game_config.json` `runtime` + `MatchRuntimeTuning`.
+- Zone stage 2+ wait/shrink/damage values: `data/game_config.json` `zone.stages` + `ZoneController`.
+- Menu/panel presentation and world presentation defaults: UI builders and `WorldPresentationBuilder`.
+
+**Intentionally retained in Main**
+
+- Scene references and match entry defaults: `player_scene`, `bot_scene`, `bot_count`, `loot_count`, `spawn_radius`, base zone exports. These are inspector/CLI/config merge points, not final hardcoded balance ownership.
+- Match-global state: `current_state`, `difficulty`, `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `match_timer`, pressure state flags, supply minimap state.
+- Wiring-only node paths, callbacks, Telemetry hook calls, and autoload lookups.
+- Debug/simulation conveniences: screenshot trigger, bot snapshot print, simulation time scale.
+
+**Deferred to v1.11**
+
+- Hell start-state policy currently applied in `spawn_entities()` should move toward Hell modifier/config data when Hell systems are directory-separated.
+- Mission/artifact feasibility glue such as `_is_bonus_mission_feasible()` should move toward mission/artifact compatibility data.
+- Mission context thresholds such as supply proximity and perception completion should move into mission/pressure specs when `MissionTracker` is split.
+- Result text formatting and debug snapshot aggregation can move to UI/debug helpers when those domains are reorganized.
+- Remaining non-Main tuning in `Player.gd`, `Bot.gd`, `MissionTracker.gd`, `HellEventController.gd`, `LootSpawnDirector.gd`, and UI builders belongs to v1.11 vertical slices.
 
 **Explicit v1.10 deferrals**
 

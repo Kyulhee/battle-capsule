@@ -39,6 +39,13 @@
 
 ## 파일별 양방향 참조
 
+### `src/Main.gd`
+- **현재 역할**: match-global orchestrator. v1.10.20 기준 1097줄.
+- **의도적으로 소유**: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, supply minimap state, scene callbacks, exported scene/count defaults, Telemetry hook calls.
+- **data/config-backed merge points**: `bot_count`, `loot_count`, `spawn_radius`, base zone exports are loaded/overridden through `GameConfig`/`MatchTuning` and CLI parsing before match start.
+- **분리 완료**: item/resource references, runtime spawn/navigation/loot/supply fallback tuning, menu/panel builders, match bootstrap/tuning helpers, pressure effect execution, bot spawn planning, loot/supply pickup creation, zone/supply world presentation.
+- **v1.11 이월**: Hell start-state policy, mission/artifact feasibility glue, mission context thresholds, result text formatting, debug snapshot aggregation, and non-Main tuning/data boundaries in Player/Bot/Mission/Hell/Loot/UI helpers.
+
 ### `src/core/ZoneController.gd`
 - **읽는 파일**: `Bot.gd` (`main.zone.current_center/radius/stage`), `Minimap.gd` (`main.zone.current/next_center/radius`), `Player.gd` (`main.zone.shrinking`, `main.zone.timer`, `main.zone.is_outside()`)
 - **쓰는 파일**: `Main.gd` 만 (`zone.timer +=`, `zone.wait_time`, `zone.shrink_time`). Stage별 수치는 `data/game_config.json` `zone.stages`가 소유하고, `Main.gd`/`MatchBootstrap.gd`가 controller에 주입.

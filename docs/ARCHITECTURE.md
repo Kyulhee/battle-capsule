@@ -1,7 +1,8 @@
-# 배틀캡슐 아키텍처 보고서 (v1.10-dev)
+# 배틀캡슐 아키텍처 보고서 (v1.10 closure / v1.11 ready)
 
 > 최종 업데이트: 2026-05-15
 > 이 문서는 v1.10-dev 확장 기반(config/debug/asset/item resource catalog/LootSpawner/SupplyDropController/catalog/UI/world presentation builders/systems match helpers/HellEventController 경계) 기준이다.
+> `Main.gd`는 v1.10.20 기준 1097줄이며, match-global state/wiring orchestrator로 남긴다.
 
 ---
 
@@ -277,6 +278,11 @@ v1.8~v1.10 분리 기준:
 - 첫 분리 후보는 `LootSpawner`, `SupplyDropController`, `MenuController`, `MatchBootstrap` 순서다.
 - `zone`, `mission_tracker`, `player_ref`, `alive_count`, Telemetry hook의 single source는 유지한다.
 - 새 gameplay tuning 숫자는 `Main.gd` 지역 상수보다 data/config/catalog/controller spec에 먼저 둔다.
+
+v1.10.20 closure 기준:
+- `Main.gd`에 남은 exported count/zone defaults는 `GameConfig`/CLI 적용 전 merge points로 유지한다.
+- `current_state`, `difficulty`, pressure flags, supply minimap state, `game_over`, `match_timer`, scene callbacks, and Telemetry hook calls are intentionally Main-owned.
+- Hell start-state policy, mission/artifact feasibility glue, mission context thresholds, result text formatting, and debug snapshot aggregation are deferred to v1.11 domain slices.
 
 ---
 
