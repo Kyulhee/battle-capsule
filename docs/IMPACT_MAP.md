@@ -18,6 +18,7 @@
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted runtime controller |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
+| WorldPresentationBuilder | zone ring and supply pillar world presentation | `Main.gd` | static UI/world builder |
 | DifficultySelectorBuilder | difficulty selector/tooltip UI | `Main.gd` | static UI builder |
 | SettingsPanelBuilder | settings modal UI | `Main.gd` | static UI builder |
 | ResultPanelBuilder | result panel layout/population | `Main.gd` | static UI builder |
@@ -112,6 +113,13 @@
 - **소유하지 않는 것**: panel visibility routing, menu callbacks, Help/Records content, settings behavior, scene node lookup.
 - **수정 영향**: 메뉴/보조 패널 배경이나 버튼 스타일을 바꾸면 `Main.gd` target node wiring, `MenuController.gd` panel routing, `HelpPanelBuilder.gd`/`RecordsPanelBuilder.gd` content layout을 함께 확인.
 
+### `src/ui/WorldPresentationBuilder.gd`
+- **읽는 파일**: 직접 scene lookup 없음. `Main.gd`가 zone controller와 supply pillar node를 넘김.
+- **호출자**: `Main.gd` `_ready()` / `_process()` / `telegraph_supply_zone()`.
+- **역할**: zone ring mesh/material defaults, zone ring position/scale sync, supply pillar drop Y-range interpolation.
+- **소유하지 않는 것**: zone lifecycle/state, supply telegraph/spawn state, minimap state, loot/supply algorithms, Telemetry schema.
+- **수정 영향**: zone ring color/mesh/radius styling이나 supply pillar drop visual을 바꾸면 `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` supply pillar creation을 함께 확인.
+
 ### `src/ui/SettingsPanelBuilder.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
 - **호출자**: `Main.gd` `_on_settings_pressed()`.
@@ -140,8 +148,8 @@
 ### `src/ui/panels/HellAnnouncementBuilder.gd`
 - **읽는 파일**: 직접 scene 참조 없음. 표시할 Hell modifier description array를 `Main.gd`에서 받음.
 - **호출자**: `Main.gd` `_show_hell_announcement()`.
-- **역할**: Hell announcement overlay, card, penalty/event rows, start button 생성.
-- **소유하지 않는 것**: Hell modifier selection, pause/unpause, active panel lifetime, dismiss fade, Hell runtime controller.
+- **역할**: Hell announcement overlay, card, penalty/event rows, start button 생성, dismiss fade duration default 제공.
+- **소유하지 않는 것**: Hell modifier selection, pause/unpause, active panel lifetime, Hell runtime controller.
 
 ### `src/ui/overlays/EventTextBuilder.gd`
 - **읽는 파일**: 직접 scene lookup 없음. `Main.gd`가 parent node, message, color를 넘김.
@@ -252,6 +260,7 @@
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
 | Hell 정전/포격 이벤트 | `HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, `data/game_config.json` Hell keys |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
+| Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |
 | Settings modal UI | `SettingsPanelBuilder.gd` | `Main.gd` settings callbacks, `user://settings.cfg` key compatibility |
 | Result panel UI | `ResultPanelBuilder.gd` | `Main.gd` finalization/score data, Telemetry score fields |
 | Pause overlay UI | `PausePanelBuilder.gd` | `Main.gd` pause state/input callbacks, `MenuVisualBuilder.gd` shared button style |

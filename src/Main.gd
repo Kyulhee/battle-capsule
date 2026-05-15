@@ -84,6 +84,7 @@ const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
 const ResultPanelBuilderScript = preload("res://src/ui/panels/ResultPanelBuilder.gd")
 const SettingsPanelBuilderScript = preload("res://src/ui/SettingsPanelBuilder.gd")
 const SupplyDropControllerScript = preload("res://src/core/SupplyDropController.gd")
+const WorldPresentationBuilderScript = preload("res://src/ui/WorldPresentationBuilder.gd")
 const ZoneControllerScript = preload("res://src/core/ZoneController.gd")
 
 # MapSpec & Builder
@@ -155,20 +156,8 @@ func _ready():
 	_load_map_spec()
 	_show_panel("MainMenu")
 	
-	# Create World Zone Ring
-	zone_ring = MeshInstance3D.new()
-	var torus = TorusMesh.new()
-	torus.inner_radius = 0.98
-	torus.outer_radius = 1.0
-	zone_ring.mesh = torus
-	var mat = StandardMaterial3D.new()
-	mat.albedo_color = Color(0.2, 0.6, 1.0, 0.8)
-	mat.emission_enabled = true
-	mat.emission = Color(0.2, 0.6, 1.0)
-	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	zone_ring.mesh.surface_set_material(0, mat)
+	zone_ring = WorldPresentationBuilderScript.create_zone_ring()
 	add_child(zone_ring)
-	zone_ring.position.y = 0.1
 	
 	if map_spec:
 		print("[MAIN] MapSpec loaded successfully: ", map_spec.metadata.get("name", "Unknown"))
@@ -544,11 +533,7 @@ func _process(delta):
 		hell_events.tick(delta, match_timer, zone)
 	_process_pressure_mission(delta)
 	
-	# Update Zone Visuals
-	if zone_ring:
-		zone_ring.scale = Vector3(zone.current_radius, 1, zone.current_radius)
-		zone_ring.position.x = zone.current_center.x
-		zone_ring.position.z = zone.current_center.y
+	WorldPresentationBuilderScript.sync_zone_ring(zone_ring, zone)
 
 	if zone.stage == 2 and not supply_telegraphed:
 		telegraph_supply_zone()
@@ -558,7 +543,7 @@ func _process(delta):
 		# Move pillar down over time
 		if supply_pillar:
 			var t = supply_controller.pillar_progress(supply_timer) if supply_controller else 1.0
-			supply_pillar.global_position.y = lerp(50.0, 0.0, t)
+			WorldPresentationBuilderScript.update_supply_pillar_drop(supply_pillar, t)
 			
 		if supply_timer <= 0:
 			activate_supply_zone()
@@ -1012,7 +997,7 @@ func _setup_menu_visuals():
 	MenuVisualBuilderScript.setup_main_menu(
 		$CanvasLayer/Control/MainMenuPanel,
 		$CanvasLayer/Control/MainMenuPanel/VBoxContainer,
-		MenuIconFactoryScript.make_capsule_logo(80)
+		MenuVisualBuilderScript.make_main_logo(MenuIconFactoryScript)
 	)
 
 func _setup_secondary_panels():
@@ -1062,7 +1047,7 @@ func _dismiss_hell_announcement():
 	_hell_announce_active = false
 	if is_instance_valid(_hell_announce_panel):
 		var tw = _hell_announce_panel.create_tween()
-		tw.tween_property(_hell_announce_panel, "modulate:a", 0.0, 0.3)
+		tw.tween_property(_hell_announce_panel, "modulate:a", 0.0, HellAnnouncementBuilderScript.dismiss_fade_seconds())
 		tw.tween_callback(_hell_announce_panel.queue_free)
 		_hell_announce_panel = null
 	get_tree().paused = false

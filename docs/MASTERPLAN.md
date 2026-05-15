@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-15 (v1.10 closure plan + v1.11 structural scope)
+> Last updated: 2026-05-15 (v1.10.19 presentation boundary)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.10.19 — Main-owned presentation boundary.
+**Next structural slice**: v1.10.20 — Closure review and explicit deferrals.
 
-**Latest completed slice**: v1.10.18 — Main runtime spawn/navigation/loot/supply fallback tuning boundary.
+**Latest completed slice**: v1.10.19 — Main presentation defaults boundary.
 
 **v1.10 completion status**: not complete. Completed slices below are incremental boundaries, not a finished Main slimdown release.
 
@@ -62,6 +62,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - `HelpPanelBuilder`: How to Play panel rendering from HelpCatalog rows.
 - `RecordsPanelBuilder`: Records tabs, clear button, and history row rendering.
 - `MenuVisualBuilder`: main/secondary menu gradients, noise overlay, logo placement, and shared button styling.
+- `WorldPresentationBuilder`: world presentation defaults for the zone ring and supply pillar drop animation.
 - `DifficultySelectorBuilder`: difficulty button/tooltip/pressure opt-in menu UI.
 - `SettingsPanelBuilder`: Settings modal layout and controls.
 - `ResultPanelBuilder`: result panel card/buttons/label population.
@@ -123,8 +124,8 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 - Item/resource pool: first pass complete through `ItemResourceCatalog`; Main keeps only runtime references loaded from the catalog.
 - Match runtime tuning: first pass complete through `data/game_config.json` `runtime` + `MatchRuntimeTuning`; Main applies sanitized values.
-- Navigation/runtime world setup: navigation mesh bake parameters and zone ring visual defaults.
-- Presentation-only values: menu logo size and Hell announcement fade are low-risk but can be deferred if they do not block content work.
+- Navigation/runtime world setup: navigation mesh bake parameters are config-backed; zone ring visual defaults are in `WorldPresentationBuilder`.
+- Presentation-only values: first pass complete for zone ring, supply pillar drop Y range, menu logo size, and Hell announcement dismiss fade.
 - Keep in Main: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, scene callbacks, and Telemetry hook calls.
 
 **v1.10.17 — Item/Resource Catalog Boundary**
@@ -146,6 +147,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 - Move remaining Main-local visual defaults that are still edited as data, such as zone ring color/mesh sizing and small menu/announcement constants, into UI/world-view helpers or catalogs.
 - Do not move broad UI state or panel routing back into Main.
 - Defer low-value visual constants if moving them would create more indirection than benefit.
+- First pass complete: `WorldPresentationBuilder.gd` owns zone ring mesh/material defaults and supply pillar drop Y range; `MenuVisualBuilder.gd` owns the main logo size; `HellAnnouncementBuilder.gd` owns the dismiss fade duration. `Main.gd` now calls these helpers while keeping world/UI state wiring.
 
 **v1.10.20 — Closure Review**
 

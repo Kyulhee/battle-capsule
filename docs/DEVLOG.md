@@ -6,6 +6,27 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.10.19-dev — 2026-05-15
+
+**Main presentation defaults boundary**
+
+**src/ui/WorldPresentationBuilder.gd / src/ui/MenuVisualBuilder.gd / src/ui/panels/HellAnnouncementBuilder.gd / src/Main.gd**
+
+- Added `WorldPresentationBuilder` for zone ring mesh/material defaults, zone ring sync, and supply pillar drop visual interpolation.
+- Moved main logo size into `MenuVisualBuilder` and Hell announcement dismiss fade duration into `HellAnnouncementBuilder`.
+- `Main.gd` now delegates these presentation defaults while keeping zone, supply, UI lifetime, and match state wiring.
+- Updated architecture/impact/masterplan docs for the new presentation boundary.
+- No zone lifecycle, supply logic, gameplay behavior, or Telemetry schema was changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=77.5s, stage=3, recover=34, disengage=23.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=73.5s, stage=3, recover=111, disengage=20.
+
+---
+
 ## v1.10.18-dev — 2026-05-15
 
 **Main runtime tuning boundary**

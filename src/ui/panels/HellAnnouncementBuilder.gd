@@ -1,6 +1,11 @@
 class_name HellAnnouncementBuilder
 extends RefCounted
 
+const DISMISS_FADE_SECONDS := 0.3
+
+static func dismiss_fade_seconds() -> float:
+	return DISMISS_FADE_SECONDS
+
 static func show(
 	parent: Control,
 	modifier_description: Array,

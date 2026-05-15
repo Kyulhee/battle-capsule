@@ -3,6 +3,12 @@ extends RefCounted
 
 const PANEL_TOP_COLOR := Color(0.04, 0.06, 0.10)
 const PANEL_BOTTOM_COLOR := Color(0.05, 0.13, 0.08)
+const MAIN_LOGO_SIZE := 80
+
+static func make_main_logo(icon_factory_script) -> Texture2D:
+	if icon_factory_script != null and icon_factory_script.has_method("make_capsule_logo"):
+		return icon_factory_script.make_capsule_logo(MAIN_LOGO_SIZE)
+	return null
 
 static func setup_main_menu(panel: ColorRect, button_container: Node, logo_texture: Texture2D):
 	if not panel:
