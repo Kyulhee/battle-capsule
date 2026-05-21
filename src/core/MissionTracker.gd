@@ -1,8 +1,8 @@
 extends RefCounted
 class_name MissionTracker
 
-const MissionData = preload("res://src/core/MissionData.gd")
 const MissionCatalogScript = preload("res://src/systems/mission/MissionCatalog.gd")
+const MissionEvaluatorScript = preload("res://src/systems/mission/MissionEvaluator.gd")
 const MissionHudFormatterScript = preload("res://src/systems/mission/MissionHudFormatter.gd")
 const ACHIEVEMENTS_PATH = "user://achievements.json"
 
@@ -270,49 +270,7 @@ func on_player_zone_tick(is_outside: bool):
 func evaluate(tel: Node, final_rank: int, player_hp: float, difficulty: int) -> bool:
 	if active_mission == null:
 		return false
-	var m = active_mission
-	var won: bool = final_rank == 1
-	var kills: int = tel.metrics.session.kills if tel else 0
-
-	match m.condition_type:
-		MissionData.ConditionType.FIRST_KILL:
-			return kills >= 1
-		MissionData.ConditionType.WIN_HIGH_HP:
-			return won and player_hp >= m.target_value
-		MissionData.ConditionType.WIN_WITH_HEALS:
-			return won and _medkits_used >= int(m.target_value)
-		MissionData.ConditionType.SURVIVE_NO_KILLS:
-			var duration: float = tel.metrics.core.duration if tel else 0.0
-			return kills == 0 and duration >= m.target_value
-		MissionData.ConditionType.WIN_PISTOL_ONLY:
-			return won and not _used_non_pistol
-		MissionData.ConditionType.KILL_LAST_WITH_MELEE:
-			return won and _last_kill_weapon == "knife"
-		MissionData.ConditionType.KILLS_WITH_WEAPON:
-			var wkills: int = 0
-			if tel:
-				wkills = tel.metrics.combat.kills_by_weapon.get(m.weapon_filter, 0)
-			return wkills >= int(m.target_value)
-		MissionData.ConditionType.KILL_IN_BUSH:
-			return _kills_in_bush >= int(m.target_value)
-		MissionData.ConditionType.WIN_AFTER_ZONE_OUTSIDE:
-			return won and _player_max_outside_sec >= m.target_value
-		MissionData.ConditionType.KILL_NEAR_SUPPLY:
-			return _kills_near_supply >= int(m.target_value)
-		MissionData.ConditionType.KILL_UNDETECTED:
-			return _kills_undetected >= int(m.target_value)
-		MissionData.ConditionType.KILL_WHILE_DETECTED:
-			return _kills_while_detected >= int(m.target_value)
-		MissionData.ConditionType.WIN_ON_DIFFICULTY:
-			return won and difficulty == int(m.target_value)
-		MissionData.ConditionType.KILL_WITH_ALL_WEAPONS:
-			if not tel: return false
-			var wk: Dictionary = tel.metrics.combat.kills_by_weapon
-			return wk.get("pistol", 0) >= 1 and wk.get("ar", 0) >= 1 \
-				and wk.get("shotgun", 0) >= 1 and wk.get("railgun", 0) >= 1
-		MissionData.ConditionType.WIN_ONE_SLOT:
-			return won and _max_gun_slots_used <= 1
-	return false
+	return MissionEvaluatorScript.evaluate(active_mission, _bonus_eval_context(tel, final_rank, player_hp, difficulty))
 
 func get_hud_text(tel: Node) -> String:
 	if active_mission == null:
@@ -320,19 +278,34 @@ func get_hud_text(tel: Node) -> String:
 	return MissionHudFormatterScript.bonus_hud_text(active_mission, _bonus_hud_context(tel))
 
 func _bonus_hud_context(tel: Node) -> Dictionary:
-	var kills: int = tel.metrics.session.kills if tel else 0
+	var context = _bonus_state_context(tel)
 	var current_hp: float = 0.0
-	var kills_by_weapon: Dictionary = {}
 	if tel:
-		kills_by_weapon = tel.metrics.combat.kills_by_weapon
 		var main_node = tel.get_node_or_null("/root/Main")
 		if main_node and is_instance_valid(main_node.player_ref):
 			current_hp = main_node.player_ref.current_health
+	context["current_hp"] = current_hp
+	return context
+
+func _bonus_eval_context(tel: Node, final_rank: int, player_hp: float, difficulty: int) -> Dictionary:
+	var context = _bonus_state_context(tel)
+	context["won"] = final_rank == 1
+	context["final_rank"] = final_rank
+	context["player_hp"] = player_hp
+	context["difficulty"] = difficulty
+	return context
+
+func _bonus_state_context(tel: Node) -> Dictionary:
+	var kills: int = tel.metrics.session.kills if tel else 0
+	var duration: float = tel.metrics.core.duration if tel else 0.0
+	var kills_by_weapon: Dictionary = {}
+	if tel:
+		kills_by_weapon = tel.metrics.combat.kills_by_weapon
 
 	return {
 		"has_telemetry": tel != null,
 		"kills": kills,
-		"current_hp": current_hp,
+		"duration": duration,
 		"kills_by_weapon": kills_by_weapon,
 		"medkits_used": _medkits_used,
 		"used_non_pistol": _used_non_pistol,
@@ -347,14 +320,7 @@ func _bonus_hud_context(tel: Node) -> Dictionary:
 
 func get_early_fail_status(tel: Node) -> bool:
 	if not active_mission: return false
-	match active_mission.condition_type:
-		MissionData.ConditionType.WIN_PISTOL_ONLY:
-			return _used_non_pistol
-		MissionData.ConditionType.SURVIVE_NO_KILLS:
-			return tel != null and tel.metrics.session.kills >= 1
-		MissionData.ConditionType.WIN_ONE_SLOT:
-			return _max_gun_slots_used > 1
-	return false
+	return MissionEvaluatorScript.early_fail_status(active_mission, _bonus_state_context(tel))
 
 # ── 배지 저장 ─────────────────────────────────────────────────────────────
 func save_badge(mission_id: String):

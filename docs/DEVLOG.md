@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.8-dev — 2026-05-22
+
+**Mission evaluator first pass**
+
+**src/systems/mission/MissionEvaluator.gd / src/core/MissionTracker.gd**
+
+- Added `MissionEvaluator.gd` for bonus mission completion and early-fail condition checks.
+- `MissionTracker.gd` now keeps mission hooks/counters and builds explicit final-rank/player-HP/Telemetry context for evaluator calls.
+- Kept public `evaluate()` and `get_early_fail_status()` APIs, mission completion rules, badge persistence, result flow, pressure evaluation, and Telemetry schema unchanged.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=63.3s, stage=2, recover=20, disengage=21.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=73.8s, stage=3, recover=64, disengage=26.
+
+---
+
 ## v1.11.7-dev — 2026-05-22
 
 **Bonus mission HUD formatter first pass**

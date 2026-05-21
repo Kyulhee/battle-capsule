@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-22 (v1.11.7 Bonus mission HUD formatter first pass)
+> Last updated: 2026-05-22 (v1.11.8 Mission evaluator first pass)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.8 — Mission evaluation/data-spec boundary review.
+**Next structural slice**: v1.11.9 — MissionTracker system path move review.
 
-**Latest completed slice**: v1.11.7 — Bonus mission HUD formatter first pass.
+**Latest completed slice**: v1.11.8 — Mission evaluator first pass.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -329,6 +329,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - `MissionTracker.gd`: move mission and pressure descriptors toward catalog/data while keeping condition evaluation logic testable.
 - `MissionCatalog.gd`: first mission/pressure descriptor catalog boundary; `MissionTracker` still owns progress/evaluation/HUD state.
 - `MissionHudFormatter.gd`: mission/pressure HUD formatting boundary; `MissionTracker` still owns counters, evaluation, and badge state.
+- `MissionEvaluator.gd`: bonus mission completion/early-fail evaluation boundary; `MissionTracker` still owns hooks, counters, context gathering, and badge state.
 - `Player.gd`: split heal, ammo, HUD numeric display, combat visual constants, and artifact stat reads by vertical slice.
 - `Bot.gd`: split perception, loot search, combat movement, and debug/visual constants into doctrine/profile/config boundaries without changing AI behavior.
 - `HellEventController.gd`: move remaining bombardment/blackout tuning and visual constants into config/catalog entries.
@@ -354,7 +355,8 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Move mission and pressure descriptors out of `MissionTracker.gd` into catalog/data structures before adding new mission types.
    - Keep mission progress/evaluation APIs stable.
    - First pass complete: `MissionCatalog.gd` owns bonus mission list construction and hard/Hell pressure descriptor pools; `MissionTracker.gd` keeps public static wrappers plus feasibility/progress/evaluation logic.
-   - Mission HUD first pass complete: `MissionHudFormatter.gd` owns pressure and bonus mission HUD string formatting while `MissionTracker.gd` passes state snapshots and keeps runtime evaluation.
+   - Mission HUD first pass complete: `MissionHudFormatter.gd` owns pressure and bonus mission HUD string formatting while `MissionTracker.gd` passes state snapshots.
+   - Mission evaluation first pass complete: `MissionEvaluator.gd` owns bonus mission completion/early-fail rules while `MissionTracker.gd` passes explicit state context and keeps public APIs.
 5. Entity vertical slices.
    - Split `Player.gd`/`Bot.gd` tuning by behavior domain only when a concrete data owner is clear.
    - Do not move combat or perception behavior just to reduce line count.
@@ -425,6 +427,15 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Keep `MissionTracker.gd` as the owner of bonus mission hooks, counters, Telemetry/player HP context gathering, mission evaluation, early-fail checks, badge persistence, and public `get_hud_text()` API.
 - Preserve all current mission HUD strings, including the no-Telemetry fallback for all-weapon mission text.
 - Do not move `evaluate()` or `get_early_fail_status()` in this slice; evaluation/data-spec work remains a separate review.
+
+### v1.11.8 — Mission Evaluator First Pass `S`
+
+**Summary**: Move bonus mission completion and early-fail rules out of `MissionTracker.gd` without changing public mission APIs.
+
+- Add `src/systems/mission/MissionEvaluator.gd` for bonus mission `evaluate()` and `early_fail_status()` condition checks.
+- Keep `MissionTracker.gd` as the owner of mission hooks, counters, Telemetry/player HP context gathering, badge persistence, and public `evaluate()` / `get_early_fail_status()` wrappers.
+- Preserve all current mission completion rules and no-Telemetry fallback behavior.
+- Do not move pressure condition evaluation in this slice; pressure runtime counters and success/fail flow remain in `MissionTracker.gd`.
 
 **v1.11 completion gate**
 
