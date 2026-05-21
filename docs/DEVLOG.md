@@ -1,8 +1,29 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-15. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
+> Last updated: 2026-05-21. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
 
 The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md). Do not load it by default.
+
+---
+
+## v1.11.2-dev — 2026-05-21
+
+**Hell tuning data boundary**
+
+**data/game_config.json / src/core/GameConfig.gd / src/systems/hell/HellTuning.gd / src/systems/hell/HellEventController.gd**
+
+- Added `HellTuning` for sanitized Hell timer, blackout, bombardment, barrage, standard bombardment, and marker visual values.
+- Expanded `data/game_config.json` `hell` into structured `timers`, `blackout`, `bombardment`, `barrage`, `standard`, and `disc` sections with the existing values.
+- Added `GameConfig.hell_tuning()` while keeping `hell_value()` for compatibility.
+- Updated `HellEventController` to read tuning through `HellTuning` instead of owning local bombardment/blackout constants.
+- Preserved Hell modifier ids, event names, damage/timing/color values, gameplay behavior, and Telemetry schema.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=79.5s, stage=3, recover=30, disengage=21.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=40.4s, stage=2, recover=110, disengage=17.
 
 ---
 

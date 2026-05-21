@@ -61,6 +61,12 @@ func zone_stage_configs() -> Dictionary:
 func hell_value(key: String, fallback: Variant) -> Variant:
 	return _section_value("hell", key, fallback)
 
+func hell_tuning() -> Dictionary:
+	var section = data.get("hell", {})
+	if typeof(section) != TYPE_DICTIONARY:
+		return {}
+	return section.duplicate(true)
+
 func runtime_tuning() -> Dictionary:
 	var section = data.get("runtime", {})
 	if typeof(section) != TYPE_DICTIONARY:
@@ -105,13 +111,60 @@ func _default_data() -> Dictionary:
 			"3": { "vision_mult": 1.5, "reaction_delay": 0.0, "aim_spread": 0.5, "loot_break_mult": 2.0, "awareness_level": 2, "combat_loot_floor": 0.40, "combat_loot_radius": 25.0, "idle_scan_interval_max": 0.9 }
 		},
 		"hell": {
-			"blackout_initial_min": 12.0,
-			"blackout_initial_max": 20.0,
-			"blackout_repeat_min": 15.0,
-			"blackout_repeat_max": 28.0,
-			"bomb_initial_timer": 20.0,
-			"bomb_repeat_min": 18.0,
-			"bomb_repeat_max": 28.0
+			"timers": {
+				"blackout_initial_min": 12.0,
+				"blackout_initial_max": 20.0,
+				"blackout_repeat_min": 15.0,
+				"blackout_repeat_max": 28.0,
+				"bomb_initial_timer": 20.0,
+				"bomb_repeat_min": 18.0,
+				"bomb_repeat_max": 28.0,
+				"bomb_start_after": 10.0
+			},
+			"blackout": {
+				"hold_min": 2.0,
+				"hold_max": 4.0,
+				"fade_in_alpha": 0.88,
+				"fade_in_seconds": 0.3,
+				"fade_out_alpha": 0.0,
+				"fade_out_seconds": 0.5
+			},
+			"bombardment": {
+				"center_radius_mult": 0.85,
+				"center_height": 0.05,
+				"event_text": "BOMBARDMENT INCOMING",
+				"event_text_color": [1.0, 0.35, 0.0, 1.0]
+			},
+			"barrage": {
+				"outer_radius": 14.0,
+				"pellet_radius": 2.5,
+				"pellet_damage": 22.0,
+				"pellet_count": 10,
+				"base_delay": 0.7,
+				"pellet_gap": 0.06,
+				"outer_color": [1.0, 0.1, 0.1, 0.3],
+				"pellet_color": [1.0, 0.45, 0.0, 0.75],
+				"flash_color": [0.9, 0.3, 0.0, 0.5],
+				"flash_duration": 0.3
+			},
+			"standard": {
+				"zone_radius": 15.0,
+				"bomb_radius": 3.0,
+				"bomb_damage": 18.0,
+				"warn_delay": 1.5,
+				"pellet_count": 10,
+				"pellet_gap": 0.18,
+				"marker_color": [1.0, 0.1, 0.1, 0.55],
+				"flash_color": [0.9, 0.3, 0.0, 0.4],
+				"flash_duration": 0.25,
+				"completion_delay": 0.05
+			},
+			"disc": {
+				"height": 0.12,
+				"emission_green_mult": 0.4,
+				"emission_blue": 0.0,
+				"emission_energy": 1.2
+			}
 		},
 		"runtime": {
 			"spawn": {

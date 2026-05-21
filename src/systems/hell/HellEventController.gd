@@ -3,6 +3,8 @@ extends RefCounted
 
 signal event_text_requested(message: String, color: Color)
 
+const HellTuningScript = preload("res://src/systems/hell/HellTuning.gd")
+
 const MOD_SCARCITY := 0
 const MOD_BARRAGE := 1
 const MOD_ALL_AGGRESSIVE := 2
@@ -13,25 +15,11 @@ const MODIFIER_DESCRIPTIONS := {
 	MOD_ALL_AGGRESSIVE: ["전원 경계", "모든 봇이 처음부터 당신을 추적합니다"],
 }
 
-const BARRAGE_OUTER_RADIUS := 14.0
-const BARRAGE_PELLET_RADIUS := 2.5
-const BARRAGE_PELLET_DAMAGE := 22.0
-const BARRAGE_PELLET_COUNT := 10
-const BARRAGE_BASE_DELAY := 0.7
-const BARRAGE_PELLET_GAP := 0.06
-
-# Standard bombardment stays low-damage until bot dodge AI exists.
-const STANDARD_ZONE_RADIUS := 15.0
-const STANDARD_BOMB_RADIUS := 3.0
-const STANDARD_BOMB_DAMAGE := 18.0
-const STANDARD_WARN_DELAY := 1.5
-const STANDARD_PELLET_COUNT := 10
-const STANDARD_PELLET_GAP := 0.18
-
 var modifier: int = MOD_SCARCITY
 
 var _host: Node = null
 var _game_config = null
+var _tuning: Dictionary = HellTuningScript.from_game_config(null)
 var _telemetry: Node = null
 var _overlay: ColorRect = null
 var _blackout_timer: float = 0.0
@@ -43,14 +31,16 @@ static func modifier_description(modifier_value: int) -> Array:
 
 func configure(game_config_ref) -> void:
 	_game_config = game_config_ref
+	_tuning = HellTuningScript.from_game_config(game_config_ref)
 
 func start_match(host: Node, modifier_value: int, overlay_parent: Control, telemetry: Node = null) -> void:
 	_host = host
 	_telemetry = telemetry
 	modifier = modifier_value
 	_blackout_active = false
-	_blackout_timer = _hell_range("blackout_initial_min", "blackout_initial_max", 12.0, 20.0)
-	_bomb_timer = _hell_value("bomb_initial_timer", 20.0)
+	var timers = HellTuningScript.timers(_tuning)
+	_blackout_timer = randf_range(float(timers["blackout_initial_min"]), float(timers["blackout_initial_max"]))
+	_bomb_timer = float(timers["bomb_initial_timer"])
 	_create_overlay(overlay_parent)
 
 func tick(delta: float, match_timer: float, zone_controller) -> void:
@@ -60,10 +50,11 @@ func tick(delta: float, match_timer: float, zone_controller) -> void:
 		_blackout_timer -= delta
 		if _blackout_timer <= 0.0:
 			_trigger_blackout()
-	if match_timer > 10.0:
+	var timers = HellTuningScript.timers(_tuning)
+	if match_timer > float(timers["bomb_start_after"]):
 		_bomb_timer -= delta
 		if _bomb_timer <= 0.0:
-			_bomb_timer = _hell_range("bomb_repeat_min", "bomb_repeat_max", 18.0, 28.0)
+			_bomb_timer = randf_range(float(timers["bomb_repeat_min"]), float(timers["bomb_repeat_max"]))
 			_start_bombardment(zone_controller)
 
 func clear() -> void:
@@ -92,28 +83,33 @@ func _trigger_blackout() -> void:
 	if _blackout_active or not is_instance_valid(_overlay) or not _host:
 		return
 	_blackout_active = true
-	var hold = randf_range(2.0, 4.0)
+	var blackout = HellTuningScript.blackout(_tuning)
+	var timers = HellTuningScript.timers(_tuning)
+	var hold = randf_range(float(blackout["hold_min"]), float(blackout["hold_max"]))
 	var tw = _host.create_tween()
-	tw.tween_property(_overlay, "color:a", 0.88, 0.3)
+	tw.tween_property(_overlay, "color:a", float(blackout["fade_in_alpha"]), float(blackout["fade_in_seconds"]))
 	tw.tween_interval(hold)
-	tw.tween_property(_overlay, "color:a", 0.0, 0.5)
+	tw.tween_property(_overlay, "color:a", float(blackout["fade_out_alpha"]), float(blackout["fade_out_seconds"]))
 	tw.tween_callback(func():
 		_blackout_active = false
-		_blackout_timer = _hell_range("blackout_repeat_min", "blackout_repeat_max", 15.0, 28.0)
+		_blackout_timer = randf_range(float(timers["blackout_repeat_min"]), float(timers["blackout_repeat_max"]))
 	)
 	_log_hell_event("blackout")
 
 func _start_bombardment(zone_controller) -> void:
 	if not _host:
 		return
-	event_text_requested.emit("BOMBARDMENT INCOMING", Color(1.0, 0.35, 0.0))
+	var bomb = HellTuningScript.bombardment(_tuning)
+	var event_text_color: Color = bomb["event_text_color"]
+	event_text_requested.emit(str(bomb["event_text"]), event_text_color)
 	_log_hell_event("bombardment_warned")
 
 	var angle = randf() * TAU
-	var dist = randf() * zone_controller.current_radius * 0.85
+	var dist = randf() * zone_controller.current_radius * float(bomb["center_radius_mult"])
+	var center_height = float(bomb["center_height"])
 	var center = Vector3(
 		zone_controller.current_center.x + cos(angle) * dist,
-		0.05,
+		center_height,
 		zone_controller.current_center.y + sin(angle) * dist
 	)
 
@@ -123,53 +119,72 @@ func _start_bombardment(zone_controller) -> void:
 		_start_standard_bombardment(center)
 
 func _start_barrage(center: Vector3) -> void:
-	var outer = _make_bomb_disc(BARRAGE_OUTER_RADIUS, Color(1.0, 0.1, 0.1, 0.3))
+	var barrage = HellTuningScript.barrage(_tuning)
+	var outer_radius = float(barrage["outer_radius"])
+	var pellet_radius = float(barrage["pellet_radius"])
+	var pellet_damage = float(barrage["pellet_damage"])
+	var pellet_count = int(barrage["pellet_count"])
+	var base_delay = float(barrage["base_delay"])
+	var pellet_gap = float(barrage["pellet_gap"])
+	var outer_color: Color = barrage["outer_color"]
+	var pellet_color: Color = barrage["pellet_color"]
+	var flash_color: Color = barrage["flash_color"]
+	var outer = _make_bomb_disc(outer_radius, outer_color)
 	_host.add_child(outer)
 	outer.global_position = center
 
-	for i in range(BARRAGE_PELLET_COUNT):
+	for i in range(pellet_count):
 		var pa = randf() * TAU
-		var pr = randf() * BARRAGE_OUTER_RADIUS
-		var pos = Vector3(center.x + cos(pa) * pr, 0.05, center.z + sin(pa) * pr)
-		var disc = _make_bomb_disc(BARRAGE_PELLET_RADIUS, Color(1.0, 0.45, 0.0, 0.75))
+		var pr = randf() * outer_radius
+		var pos = Vector3(center.x + cos(pa) * pr, center.y, center.z + sin(pa) * pr)
+		var disc = _make_bomb_disc(pellet_radius, pellet_color)
 		_host.add_child(disc)
 		disc.global_position = pos
-		var delay = BARRAGE_BASE_DELAY + i * BARRAGE_PELLET_GAP
+		var delay = base_delay + i * pellet_gap
 		_host.get_tree().create_timer(delay).timeout.connect(func():
 			if is_instance_valid(disc):
 				disc.queue_free()
-			_damage_actors_in_radius(pos, BARRAGE_PELLET_RADIUS, BARRAGE_PELLET_DAMAGE)
+			_damage_actors_in_radius(pos, pellet_radius, pellet_damage)
 		)
 
-	_host.get_tree().create_timer(BARRAGE_BASE_DELAY + BARRAGE_PELLET_COUNT * BARRAGE_PELLET_GAP).timeout.connect(func():
+	_host.get_tree().create_timer(base_delay + pellet_count * pellet_gap).timeout.connect(func():
 		if is_instance_valid(outer):
 			outer.queue_free()
-		_flash_overlay(Color(0.9, 0.3, 0.0, 0.5), 0.3)
+		_flash_overlay(flash_color, float(barrage["flash_duration"]))
 		_log_hell_event("bombardment_hit")
 	)
 
 func _start_standard_bombardment(center: Vector3) -> void:
-	for i in range(STANDARD_PELLET_COUNT):
+	var standard = HellTuningScript.standard(_tuning)
+	var zone_radius = float(standard["zone_radius"])
+	var bomb_radius = float(standard["bomb_radius"])
+	var bomb_damage = float(standard["bomb_damage"])
+	var warn_delay = float(standard["warn_delay"])
+	var pellet_count = int(standard["pellet_count"])
+	var pellet_gap = float(standard["pellet_gap"])
+	var marker_color: Color = standard["marker_color"]
+	var flash_color: Color = standard["flash_color"]
+	for i in range(pellet_count):
 		var spread_a = randf() * TAU
-		var spread_r = randf_range(0.0, STANDARD_ZONE_RADIUS)
+		var spread_r = randf_range(0.0, zone_radius)
 		var pos = Vector3(
 			center.x + cos(spread_a) * spread_r,
-			0.05,
+			center.y,
 			center.z + sin(spread_a) * spread_r
 		)
-		var disc = _make_bomb_disc(STANDARD_BOMB_RADIUS, Color(1.0, 0.1, 0.1, 0.55))
+		var disc = _make_bomb_disc(bomb_radius, marker_color)
 		_host.add_child(disc)
 		disc.global_position = pos
-		var fire_at = STANDARD_WARN_DELAY + i * STANDARD_PELLET_GAP
+		var fire_at = warn_delay + i * pellet_gap
 		_host.get_tree().create_timer(fire_at).timeout.connect(func():
 			if is_instance_valid(disc):
 				disc.queue_free()
-			_damage_actors_in_radius(pos, STANDARD_BOMB_RADIUS, STANDARD_BOMB_DAMAGE)
-			_flash_overlay(Color(0.9, 0.3, 0.0, 0.4), 0.25)
+			_damage_actors_in_radius(pos, bomb_radius, bomb_damage)
+			_flash_overlay(flash_color, float(standard["flash_duration"]))
 		)
 
 	_host.get_tree().create_timer(
-		STANDARD_WARN_DELAY + (STANDARD_PELLET_COUNT - 1) * STANDARD_PELLET_GAP + 0.05
+		warn_delay + (pellet_count - 1) * pellet_gap + float(standard["completion_delay"])
 	).timeout.connect(func():
 		_log_hell_event("bombardment_hit")
 	)
@@ -192,30 +207,21 @@ func _flash_overlay(color: Color, duration: float) -> void:
 	_host.create_tween().tween_property(_overlay, "color:a", 0.0, duration)
 
 func _make_bomb_disc(radius: float, color: Color) -> MeshInstance3D:
+	var disc = HellTuningScript.disc(_tuning)
 	var marker = MeshInstance3D.new()
 	var mesh = CylinderMesh.new()
 	mesh.top_radius = radius
 	mesh.bottom_radius = radius
-	mesh.height = 0.12
+	mesh.height = float(disc["height"])
 	var mat = StandardMaterial3D.new()
 	mat.albedo_color = color
 	mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mat.emission_enabled = true
-	mat.emission = Color(color.r, color.g * 0.4, 0.0)
-	mat.emission_energy_multiplier = 1.2
+	mat.emission = Color(color.r, color.g * float(disc["emission_green_mult"]), float(disc["emission_blue"]))
+	mat.emission_energy_multiplier = float(disc["emission_energy"])
 	mesh.surface_set_material(0, mat)
 	marker.mesh = mesh
 	return marker
-
-func _hell_range(min_key: String, max_key: String, fallback_min: float, fallback_max: float) -> float:
-	if not _game_config:
-		return randf_range(fallback_min, fallback_max)
-	var a = float(_game_config.hell_value(min_key, fallback_min))
-	var b = float(_game_config.hell_value(max_key, fallback_max))
-	return randf_range(minf(a, b), maxf(a, b))
-
-func _hell_value(key: String, fallback: float) -> float:
-	return float(_game_config.hell_value(key, fallback)) if _game_config else fallback
 
 func _log_hell_event(event: String) -> void:
 	if _telemetry and _telemetry.has_method("log_hell_event"):

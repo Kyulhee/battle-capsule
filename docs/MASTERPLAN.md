@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-15 (v1.11.1 subsystem directory first pass)
+> Last updated: 2026-05-21 (v1.11.2 Hell tuning data boundary)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.2 — Hell tuning data boundary.
+**Next structural slice**: v1.11.3 — Zone subsystem boundary planning.
 
-**Latest completed slice**: v1.11.1 — Hell subsystem directory first pass.
+**Latest completed slice**: v1.11.2 — Hell tuning data boundary.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -330,6 +330,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - `Player.gd`: split heal, ammo, HUD numeric display, combat visual constants, and artifact stat reads by vertical slice.
 - `Bot.gd`: split perception, loot search, combat movement, and debug/visual constants into doctrine/profile/config boundaries without changing AI behavior.
 - `HellEventController.gd`: move remaining bombardment/blackout tuning and visual constants into config/catalog entries.
+- `HellTuning.gd`: first Hell tuning data boundary; reads `data/game_config.json` `hell` sections and normalizes timers, blackout, bombardment, barrage, standard bombardment, and marker visual values.
 - `LootSpawnDirector.gd` and supply helpers: move supply/pillar visual and cluster tuning values into config/catalog entries.
 - UI builders: keep presentation constants close to their builder unless reused across multiple screens.
 
@@ -370,6 +371,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Preserve current fallback values exactly.
 - Keep algorithms in `HellEventController.gd` unless a helper removes real coupling.
 - Verify normal and Hell simulations because this touches runtime event behavior.
+- First pass complete: `HellTuning.gd` owns the fallback defaults and sanitization; `data/game_config.json` owns override-ready Hell timer/blackout/bombardment/barrage/standard/disc sections; `HellEventController.gd` owns runtime algorithms only.
 
 **v1.11 completion gate**
 

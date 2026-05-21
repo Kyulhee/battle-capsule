@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.10-dev / 마지막 검증: 2026-05-15
+> 기준 버전: v1.11-dev / 마지막 검증: 2026-05-21
 
 ---
 
@@ -17,6 +17,7 @@
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
+| HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
 | WorldPresentationBuilder | zone ring and supply pillar world presentation | `Main.gd` | static UI/world builder |
 | DifficultySelectorBuilder | difficulty selector/tooltip UI | `Main.gd` | static UI builder |
@@ -77,7 +78,14 @@
 - **역할**: Hell blackout/bombardment timer, warning disc creation, overlay flash, bomb damage application, and `Telemetry.log_hell_event()` delegation.
 - **소유하지 않는 것**: 난이도 선택, Hell modifier enum compatibility, announcement panel, match-global state, Telemetry schema.
 - **수정 영향**: Hell tuning constants or event names 변경 시 `Main.gd` Hell wiring, `Player.gd` SCARCITY read, `Telemetry.gd` event aggregation, `data/game_config.json` Hell timer keys를 함께 확인.
-- **v1.11 상태**: path ownership first pass complete. Tuning data separation is deferred to v1.11.2.
+- **v1.11 상태**: path ownership first pass complete. Tuning values are read through `HellTuning.gd`; runtime algorithms remain here.
+
+### `src/systems/hell/HellTuning.gd`
+- **읽는 파일**: 직접 scene lookup 없음. `GameConfig.hell_tuning()` 결과 또는 fallback defaults만 처리.
+- **호출자**: `HellEventController.gd` `configure()` 및 runtime section access.
+- **역할**: Hell timers, blackout fade/hold, bombardment center/event text, barrage/standard bomb values, disc visual defaults sanitize/normalize.
+- **소유하지 않는 것**: Hell runtime timers, overlay nodes, actor damage application, Telemetry logging, Hell modifier selection.
+- **수정 영향**: Hell tuning key를 바꾸면 `data/game_config.json`, `GameConfig.gd` default data, `HellEventController.gd` section reads, Hell simulation을 함께 확인.
 
 ### `src/entities/Entity.gd` (base)
 - **시그널 수신처**:
@@ -266,7 +274,7 @@
 | 난이도 파라미터 | `data/game_config.json`, `GameConfig.gd` | `Main.gd` `_get_difficulty_params()`, `Bot.gd` configure path |
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
-| Hell 정전/포격 이벤트 | `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, `data/game_config.json` Hell keys |
+| Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |
 | Settings modal UI | `SettingsPanelBuilder.gd` | `Main.gd` settings callbacks, `user://settings.cfg` key compatibility |
