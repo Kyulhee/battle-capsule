@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-22 (v1.11.5 Mission/pressure descriptor catalog first pass)
+> Last updated: 2026-05-22 (v1.11.6 Pressure HUD formatter first pass)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.6 — MissionTracker evaluation/HUD formatter boundary review.
+**Next structural slice**: v1.11.7 — Bonus mission HUD/evaluation boundary review.
 
-**Latest completed slice**: v1.11.5 — Mission/pressure descriptor catalog first pass.
+**Latest completed slice**: v1.11.6 — Pressure HUD formatter first pass.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -328,6 +328,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 
 - `MissionTracker.gd`: move mission and pressure descriptors toward catalog/data while keeping condition evaluation logic testable.
 - `MissionCatalog.gd`: first mission/pressure descriptor catalog boundary; `MissionTracker` still owns progress/evaluation/HUD state.
+- `MissionHudFormatter.gd`: first pressure HUD formatting boundary; `MissionTracker` still owns pressure counters and evaluation.
 - `Player.gd`: split heal, ammo, HUD numeric display, combat visual constants, and artifact stat reads by vertical slice.
 - `Bot.gd`: split perception, loot search, combat movement, and debug/visual constants into doctrine/profile/config boundaries without changing AI behavior.
 - `HellEventController.gd`: move remaining bombardment/blackout tuning and visual constants into config/catalog entries.
@@ -353,6 +354,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Move mission and pressure descriptors out of `MissionTracker.gd` into catalog/data structures before adding new mission types.
    - Keep mission progress/evaluation APIs stable.
    - First pass complete: `MissionCatalog.gd` owns bonus mission list construction and hard/Hell pressure descriptor pools; `MissionTracker.gd` keeps public static wrappers plus feasibility/progress/evaluation logic.
+   - Pressure HUD first pass complete: `MissionHudFormatter.gd` owns pressure HUD string/effect/progress formatting while `MissionTracker.gd` passes state snapshots and keeps runtime evaluation.
 5. Entity vertical slices.
    - Split `Player.gd`/`Bot.gd` tuning by behavior domain only when a concrete data owner is clear.
    - Do not move combat or perception behavior just to reduce line count.
@@ -405,6 +407,15 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Keep `MissionTracker.gd` as the owner of mission state, pressure condition enum, feasibility filtering, progress counters, evaluation, HUD text, badge persistence, and public static accessors.
 - Keep `Main.gd`, `MatchBootstrap.gd`, pressure effect ids, mission ids, condition ids, reward/penalty descriptors, and Telemetry-facing flow unchanged.
 - First pass complete: callers can keep using `MissionTracker.get_all_missions()`, `get_hard_pool()`, and `get_hell_pool()` while descriptor edits now route to `MissionCatalog.gd`.
+
+### v1.11.6 — Pressure HUD Formatter First Pass `S`
+
+**Summary**: Move pressure HUD string assembly out of `MissionTracker.gd` without changing pressure condition evaluation.
+
+- Add `src/systems/mission/MissionHudFormatter.gd` for pressure HUD title/deadline/progress/reward/penalty text.
+- Keep `MissionTracker.gd` as the owner of pressure state, counters, condition enum, condition evaluation, and public `get_pressure_hud_text()` API.
+- Keep `Player.gd` HUD label flow, pressure descriptor values, effect labels, and Telemetry-facing behavior unchanged.
+- Do not move bonus mission HUD/evaluation in this slice; that remains a separate review because it touches Telemetry reads and player HP lookup.
 
 **v1.11 completion gate**
 

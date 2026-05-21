@@ -3,7 +3,7 @@ class_name MissionTracker
 
 const MissionData = preload("res://src/core/MissionData.gd")
 const MissionCatalogScript = preload("res://src/systems/mission/MissionCatalog.gd")
-const PressureEffectCatalogScript = preload("res://src/core/PressureEffectCatalog.gd")
+const MissionHudFormatterScript = preload("res://src/systems/mission/MissionHudFormatter.gd")
 const ACHIEVEMENTS_PATH = "user://achievements.json"
 
 # ── 보너스 미션 (기존 유지) ─────────────────────────────────────────────────
@@ -215,45 +215,26 @@ func on_pressure_zone_tick(is_outside: bool, delta: float):
 func get_pressure_hud_text() -> String:
 	if not pressure_active or _active_pressure.is_empty():
 		return ""
-	var title = _active_pressure.get("title", "")
-	var desc = _active_pressure.get("description", "")
-	var sec = int(ceil(pressure_deadline))
-	var progress = _get_pressure_progress_text()
-	var line2 = desc if progress == "" else "%s  [%s]" % [desc, progress]
-	var reward_txt = _format_pressure_effects(_active_pressure.get("reward", []))
-	var penalty_txt = _format_pressure_effects(_active_pressure.get("penalty", []))
-	return "⚡ %s  |  %ds\n%s\n✓ %s   ✗ %s" % [title, sec, line2, reward_txt, penalty_txt]
+	return MissionHudFormatterScript.pressure_hud_text(
+		_active_pressure,
+		pressure_deadline,
+		_pressure_counter_snapshot(),
+		_pressure_condition_ids()
+	)
 
-func _format_pressure_effects(effects: Array) -> String:
-	return PressureEffectCatalogScript.format_effects(effects)
-
-func _get_pressure_progress_text() -> String:
-	var conditions = _active_pressure.get("conditions", [])
-	if conditions.is_empty(): return ""
-	var parts: Array = []
-	for cond in conditions:
-		var t = int(cond.get("target", 1))
-		var mod = cond.get("modifier", "")
-		match int(cond["type"]):
-			PressureCondition.KILL:
-				var cur = _p_kills_undetected if mod == "undetected" \
-					else (_p_kills_heavily_detected if mod == "heavily_detected" else _p_kills_total)
-				parts.append("킬 %d/%d" % [cur, t])
-			PressureCondition.NO_DAMAGE:
-				parts.append("무피해 ✓" if _p_damage_taken == 0.0 else "피해 발생 ✗")
-			PressureCondition.NO_HEAL:
-				parts.append("힐 미사용 ✓" if not _p_heals_violated else "힐 사용 ✗")
-			PressureCondition.ZONE_OUTSIDE_SEC:
-				parts.append("존 밖 %.0f/%ds" % [_p_outside_zone_sec, t])
-			PressureCondition.KILL_MELEE:
-				parts.append("칼 킬 %d/%d" % [_p_kills_melee, t])
-			PressureCondition.SURVIVE_DETECTED_SEC:
-				parts.append("감지 생존 %.0f/%ds" % [_p_detected_sec, t])
-			PressureCondition.KILL_WHILE_ZONE_OUTSIDE:
-				parts.append("존 밖 킬 %d/%d" % [_p_kills_outside_zone, t])
-			PressureCondition.KILL_LOW_HP:
-				parts.append("저HP 킬 %d/%d" % [_p_kills_low_hp, t])
-	return "  ".join(parts)
+func _pressure_counter_snapshot() -> Dictionary:
+	return {
+		"kills_total": _p_kills_total,
+		"kills_undetected": _p_kills_undetected,
+		"kills_melee": _p_kills_melee,
+		"kills_outside_zone": _p_kills_outside_zone,
+		"kills_low_hp": _p_kills_low_hp,
+		"kills_heavily_detected": _p_kills_heavily_detected,
+		"damage_taken": _p_damage_taken,
+		"outside_zone_sec": _p_outside_zone_sec,
+		"heals_violated": _p_heals_violated,
+		"detected_sec": _p_detected_sec,
+	}
 
 # ── 보너스 미션 훅 (기존 유지) ────────────────────────────────────────────
 func on_player_medkit_used():

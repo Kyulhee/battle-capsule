@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.6-dev — 2026-05-22
+
+**Pressure HUD formatter first pass**
+
+**src/systems/mission/MissionHudFormatter.gd / src/core/MissionTracker.gd**
+
+- Added `MissionHudFormatter.gd` for pressure HUD title/deadline/progress/reward/penalty string assembly.
+- `MissionTracker.gd` now passes an explicit pressure counter snapshot and condition id mapping to the formatter.
+- Kept pressure condition evaluation, success/fail timing, public `get_pressure_hud_text()` API, Player HUD label flow, effect ids/labels, and Telemetry schema unchanged.
+- Bonus mission HUD/evaluation remains in `MissionTracker.gd` for a separate slice because it still reads Telemetry and player HP context.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=57.7s, stage=2, recover=29, disengage=20.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=83.1s, stage=3, recover=113, disengage=23.
+
+---
+
 ## v1.11.5-dev — 2026-05-22
 
 **Mission/pressure descriptor catalog first pass**
