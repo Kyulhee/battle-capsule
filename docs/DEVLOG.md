@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.3-dev — 2026-05-21
+
+**Zone subsystem directory first pass**
+
+**src/systems/zone/ZoneController.gd / src/Main.gd / docs/MASTERPLAN.md / docs/ARCHITECTURE.md / docs/IMPACT_MAP.md**
+
+- Moved `ZoneController.gd` from `src/core/` to `src/systems/zone/` with its Godot script uid file.
+- Updated `Main.gd` preload path to the new zone system location.
+- Kept `class_name`, public API, signals, stage config behavior, outside damage behavior, and `main.zone` read pattern unchanged.
+- `Main.gd` still owns the zone instance and Telemetry-facing zone flow.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=76.5s, stage=3, recover=36, disengage=12.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=78.4s, stage=3, recover=147, disengage=24.
+
+---
+
 ## v1.11.2-dev — 2026-05-21
 
 **Hell tuning data boundary**

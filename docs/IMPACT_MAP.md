@@ -9,7 +9,7 @@
 
 | 모듈 | 소유 변수 | 소유자 파일 | 타입 |
 |---|---|---|---|
-| ZoneController | `var zone` | `Main.gd` | RefCounted |
+| ZoneController | `var zone` | `Main.gd` | RefCounted zone system controller |
 | WeaponSlotManager | `var slots` | `Player.gd` | RefCounted |
 | MissionTracker | `var mission_tracker` | `Main.gd` | RefCounted |
 | ArtifactCatalog | starting artifact specs/descriptions | `Main.gd`, `Player.gd` | static catalog |
@@ -47,11 +47,12 @@
 - **분리 완료**: item/resource references, runtime spawn/navigation/loot/supply fallback tuning, menu/panel builders, match bootstrap/tuning helpers, pressure effect execution, bot spawn planning, loot/supply pickup creation, zone/supply world presentation.
 - **v1.11 이월**: Hell start-state policy, mission/artifact feasibility glue, mission context thresholds, result text formatting, debug snapshot aggregation, and non-Main tuning/data boundaries in Player/Bot/Mission/Hell/Loot/UI helpers.
 
-### `src/core/ZoneController.gd`
+### `src/systems/zone/ZoneController.gd`
 - **읽는 파일**: `Bot.gd` (`main.zone.current_center/radius/stage`), `Minimap.gd` (`main.zone.current/next_center/radius`), `Player.gd` (`main.zone.shrinking`, `main.zone.timer`, `main.zone.is_outside()`)
 - **쓰는 파일**: `Main.gd` 만 (`zone.timer +=`, `zone.wait_time`, `zone.shrink_time`). Stage별 수치는 `data/game_config.json` `zone.stages`가 소유하고, `Main.gd`/`MatchBootstrap.gd`가 controller에 주입.
 - **시그널 수신처**: `Main.gd` — `stage_advanced` → `_on_zone_stage_changed()`, `zone_warning` → `_on_zone_warning()`
 - **내부에서 호출하는 외부 API**: `entity.take_damage()` (duck-typed), `mission_tracker.on_player_zone_tick()` / `on_pressure_zone_tick()` (duck-typed)
+- **v1.11 상태**: path ownership first pass complete. `Main.gd` still owns the instance; other systems continue to read `main.zone`.
 
 ### `src/core/WeaponSlotManager.gd`
 - **읽는 파일**: `Player.gd` (소유, 모든 접근), `Main.gd` (`player_ref.slots.fill_all_ammo()` / `clear_all_ammo()` / `clear_active_ammo()`)

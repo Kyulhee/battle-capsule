@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-21 (v1.11.2 Hell tuning data boundary)
+> Last updated: 2026-05-21 (v1.11.3 Zone subsystem directory first pass)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.3 — Zone subsystem boundary planning.
+**Next structural slice**: v1.11.4 — Loot/supply subsystem boundary planning.
 
-**Latest completed slice**: v1.11.2 — Hell tuning data boundary.
+**Latest completed slice**: v1.11.3 — Zone subsystem directory first pass.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -343,6 +343,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 2. Zone subsystem boundary.
    - Move `ZoneController.gd` toward `src/systems/zone/` only after confirming all `Main`/`Bot`/`Player`/`Minimap` references.
    - Keep zone ownership in `Main.gd`.
+   - First pass complete: path ownership moved to `src/systems/zone/ZoneController.gd`; public API and runtime `main.zone` reads are unchanged.
 3. Loot/supply subsystem boundary.
    - Group loot hotspot calculation, supply timing, and pickup creation under `src/systems/loot/` by small path-preserving slices.
    - Keep `Main.gd` supply minimap state and Telemetry hook calls.
@@ -372,6 +373,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Keep algorithms in `HellEventController.gd` unless a helper removes real coupling.
 - Verify normal and Hell simulations because this touches runtime event behavior.
 - First pass complete: `HellTuning.gd` owns the fallback defaults and sanitization; `data/game_config.json` owns override-ready Hell timer/blackout/bombardment/barrage/standard/disc sections; `HellEventController.gd` owns runtime algorithms only.
+
+### v1.11.3 — Zone Subsystem Directory First Pass `S`
+
+**Summary**: Move the existing zone lifecycle controller into a domain system path without changing state ownership or behavior.
+
+- Move `ZoneController.gd` from `src/core/` to `src/systems/zone/`.
+- Move the Godot script uid file with it.
+- Update `Main.gd` preload path and architecture/impact docs.
+- Keep `class_name ZoneController`, public API, signals, stage config behavior, damage behavior, and Telemetry-facing flow unchanged.
+- Keep `Main.gd` as the owner of `zone`; `Bot.gd`, `Player.gd`, `Minimap.gd`, `DebugOverlay.gd`, and `WorldPresentationBuilder.gd` continue to read `main.zone`.
 
 **v1.11 completion gate**
 

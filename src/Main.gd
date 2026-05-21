@@ -85,7 +85,7 @@ const ResultPanelBuilderScript = preload("res://src/ui/panels/ResultPanelBuilder
 const SettingsPanelBuilderScript = preload("res://src/ui/SettingsPanelBuilder.gd")
 const SupplyDropControllerScript = preload("res://src/core/SupplyDropController.gd")
 const WorldPresentationBuilderScript = preload("res://src/ui/WorldPresentationBuilder.gd")
-const ZoneControllerScript = preload("res://src/core/ZoneController.gd")
+const ZoneControllerScript = preload("res://src/systems/zone/ZoneController.gd")
 
 # MapSpec & Builder
 const MapSpecScript = preload("res://src/core/MapSpec.gd")
