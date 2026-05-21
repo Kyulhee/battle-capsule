@@ -2,6 +2,7 @@ extends RefCounted
 class_name MissionTracker
 
 const MissionData = preload("res://src/core/MissionData.gd")
+const MissionCatalogScript = preload("res://src/systems/mission/MissionCatalog.gd")
 const PressureEffectCatalogScript = preload("res://src/core/PressureEffectCatalog.gd")
 const ACHIEVEMENTS_PATH = "user://achievements.json"
 
@@ -32,139 +33,25 @@ enum PressureCondition {
 }
 
 # 압박 미션 리워드/패널티 타입과 표시 문구는 PressureEffectCatalog.gd가 소유한다.
+# 미션/압박 디스크립터 목록은 MissionCatalog.gd가 소유한다.
 
-# ── HARD_POOL 정의 ─────────────────────────────────────────────────────────
+static func _pressure_condition_ids() -> Dictionary:
+	return {
+		"KILL": PressureCondition.KILL,
+		"NO_DAMAGE": PressureCondition.NO_DAMAGE,
+		"NO_HEAL": PressureCondition.NO_HEAL,
+		"ZONE_OUTSIDE_SEC": PressureCondition.ZONE_OUTSIDE_SEC,
+		"KILL_MELEE": PressureCondition.KILL_MELEE,
+		"SURVIVE_DETECTED_SEC": PressureCondition.SURVIVE_DETECTED_SEC,
+		"KILL_WHILE_ZONE_OUTSIDE": PressureCondition.KILL_WHILE_ZONE_OUTSIDE,
+		"KILL_LOW_HP": PressureCondition.KILL_LOW_HP,
+	}
+
 static func get_hard_pool() -> Array:
-	return [
-		{
-			"id": "h_kill", "title": "계약 킬", "description": "킬 1 달성",
-			"conditions": [{"type": PressureCondition.KILL, "target": 1}],
-			"reward":  [{"type": PressureEffectCatalogScript.AMMO_REFILL}],
-			"penalty": [{"type": PressureEffectCatalogScript.AMMO_CLEAR}],
-		},
-		{
-			"id": "h_no_heal", "title": "금욕", "description": "힐 사용 금지",
-			"conditions": [{"type": PressureCondition.NO_HEAL, "target": 0}],
-			"reward":  [{"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
-			"penalty": [{"type": PressureEffectCatalogScript.HEAL_PICKUP_BAN}],
-			"instant_fail_on_violation": true,
-		},
-		{
-			"id": "h_zone_dare", "title": "존 도전자", "description": "자기장 밖 5초 이상 체류",
-			"conditions": [{"type": PressureCondition.ZONE_OUTSIDE_SEC, "target": 5}],
-			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "amount": 40.0}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 40.0}],
-		},
-		{
-			"id": "h_no_dmg", "title": "무결", "description": "피해 받지 않기",
-			"conditions": [{"type": PressureCondition.NO_DAMAGE, "target": 0}],
-			"reward":  [{"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 30.0}],
-		},
-		{
-			"id": "h_stealth_kill", "title": "은신 사냥", "description": "미탐지 상태로 킬 1",
-			"conditions": [{"type": PressureCondition.KILL, "target": 1, "modifier": "undetected"}],
-			"reward":  [{"type": PressureEffectCatalogScript.AMMO_REFILL}],
-			"penalty": [{"type": PressureEffectCatalogScript.ALL_BOTS_DETECT}],
-		},
-		{
-			"id": "h_melee_kill", "title": "칼잡이", "description": "칼로 킬 1",
-			"conditions": [{"type": PressureCondition.KILL_MELEE, "target": 1}],
-			"reward":  [{"type": PressureEffectCatalogScript.AMMO_REFILL}],
-			"penalty": [{"type": PressureEffectCatalogScript.AMMO_ACTIVE_CLEAR}],
-		},
-		{
-			"id": "h_target_practice", "title": "표적 생존", "description": "봇 2마리+ 감지 상태에서 10초 생존",
-			"conditions": [{"type": PressureCondition.SURVIVE_DETECTED_SEC, "target": 10}],
-			"reward":  [{"type": PressureEffectCatalogScript.HEAL_ADD, "count": 1}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 30.0}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 20.0}],
-		},
-		{
-			"id": "h_zone_kill", "title": "경계선", "description": "자기장 밖에서 킬 1",
-			"conditions": [{"type": PressureCondition.KILL_WHILE_ZONE_OUTSIDE, "target": 1}],
-			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 40.0}],
-		},
-	]
+	return MissionCatalogScript.pressure_hard_pool(_pressure_condition_ids())
 
-# ── HELL_POOL 정의 ─────────────────────────────────────────────────────────
 static func get_hell_pool() -> Array:
-	return [
-		# Hell-A: 조건 강화
-		{
-			"id": "ha_kill2", "title": "이중 계약", "description": "킬 2 달성",
-			"conditions": [{"type": PressureCondition.KILL, "target": 2}],
-			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}],
-			"penalty": [{"type": PressureEffectCatalogScript.AMMO_CLEAR}, {"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 20.0}],
-		},
-		{
-			"id": "ha_no_heal_nodmg", "title": "완벽한 금욕", "description": "힐 금지 + 피해 0",
-			"conditions": [
-				{"type": PressureCondition.NO_HEAL, "target": 0},
-				{"type": PressureCondition.NO_DAMAGE, "target": 0},
-			],
-			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
-			"instant_fail_on_violation": true,
-		},
-		{
-			"id": "ha_zone_dare_long", "title": "지옥 존", "description": "자기장 밖 10초 + 킬 1",
-			"conditions": [
-				{"type": PressureCondition.ZONE_OUTSIDE_SEC, "target": 10},
-				{"type": PressureCondition.KILL, "target": 1},
-			],
-			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
-		},
-		# Hell-B: 콤보 조건
-		{
-			"id": "hb_stealth_clean", "title": "완벽한 암살", "description": "미탐지 킬 1 + 피해 0",
-			"conditions": [
-				{"type": PressureCondition.KILL, "target": 1, "modifier": "undetected"},
-				{"type": PressureCondition.NO_DAMAGE, "target": 0},
-			],
-			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HEAL_ADD, "count": 2}],
-			"penalty": [{"type": PressureEffectCatalogScript.ALL_BOTS_DETECT}, {"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 30.0}],
-		},
-		{
-			"id": "hb_no_heal_2kill", "title": "금욕 학살", "description": "힐 금지 + 킬 2",
-			"conditions": [
-				{"type": PressureCondition.NO_HEAL, "target": 0},
-				{"type": PressureCondition.KILL, "target": 2},
-			],
-			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HEAL_ADD, "count": 3}],
-			"penalty": [{"type": PressureEffectCatalogScript.HEAL_CLEAR}, {"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 30.0}],
-			"instant_fail_on_violation": true,
-		},
-		{
-			"id": "hb_melee_nodmg", "title": "무적 칼잡이", "description": "칼 킬 1 + 피해 0",
-			"conditions": [
-				{"type": PressureCondition.KILL_MELEE, "target": 1},
-				{"type": PressureCondition.NO_DAMAGE, "target": 0},
-			],
-			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 40.0}],
-		},
-		# Hell-C: 특수 조건
-		{
-			"id": "hc_blood_pact", "title": "피의 계약", "description": "HP 30% 이하에서 킬 1",
-			"conditions": [{"type": PressureCondition.KILL_LOW_HP, "target": 1}],
-			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "fraction": 0.5}],
-		},
-		{
-			"id": "hc_berserker", "title": "광전사", "description": "봇 3마리+ 감지 상태에서 킬 1",
-			"conditions": [{"type": PressureCondition.KILL, "target": 1, "modifier": "heavily_detected"}],
-			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
-		},
-		{
-			"id": "hc_zone_massacre", "title": "존 바깥의 학살", "description": "자기장 밖에서 킬 2",
-			"conditions": [{"type": PressureCondition.KILL_WHILE_ZONE_OUTSIDE, "target": 2}],
-			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}, {"type": PressureEffectCatalogScript.HEAL_ADD, "count": 1}],
-			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
-		},
-	]
+	return MissionCatalogScript.pressure_hell_pool(_pressure_condition_ids())
 
 # ── 압박 미션 필터링 ────────────────────────────────────────────────────────
 static func filter_feasible(pool: Array, zone_stage: int, bot_alive: int) -> Array:
@@ -553,116 +440,6 @@ func load_achievements() -> Dictionary:
 	f.close()
 	return result if result is Dictionary else {}
 
-# ── 보너스 미션 목록 (기존 유지) ─────────────────────────────────────────
+# ── 보너스 미션 목록 ─────────────────────────────────────────────────────
 static func get_all_missions() -> Array:
-	var list: Array = []
-	var m: MissionData
-
-	m = MissionData.new()
-	m.id = "first_blood"; m.title = "FIRST BLOOD"
-	m.description = "이번 매치에서 1킬 이상 달성"
-	m.condition_type = MissionData.ConditionType.FIRST_KILL
-	m.target_value = 1; m.badge_label = "첫 피"; m.badge_color = Color(0.85, 0.15, 0.15)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "clean_win"; m.title = "CLEAN WIN"
-	m.description = "HP 50% 이상으로 1등"
-	m.condition_type = MissionData.ConditionType.WIN_HIGH_HP
-	m.target_value = 50; m.badge_label = "무결"; m.badge_color = Color(0.2, 0.9, 0.3)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "medic_run"; m.title = "MEDIC RUN"
-	m.description = "구급상자(◆) 3회 이상 사용 후 1등"
-	m.condition_type = MissionData.ConditionType.WIN_WITH_HEALS
-	m.target_value = 3; m.badge_label = "메딕"; m.badge_color = Color(0.9, 0.9, 0.2)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "scavenger"; m.title = "SCAVENGER"
-	m.description = "피스톨·AR·샷건·레일건으로 각각 1킬 이상 달성"
-	m.condition_type = MissionData.ConditionType.KILL_WITH_ALL_WEAPONS
-	m.score_bonus = 1000; m.badge_label = "약탈자"; m.badge_color = Color(0.7, 0.5, 0.2)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "survivor"; m.title = "SURVIVOR"
-	m.description = "킬 없이 90초 이상 생존"
-	m.condition_type = MissionData.ConditionType.SURVIVE_NO_KILLS
-	m.target_value = 90; m.badge_label = "생존자"; m.badge_color = Color(0.3, 0.7, 0.9)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "pistol_only"; m.title = "PISTOL ONLY"
-	m.description = "권총만 사용해서 1등"
-	m.condition_type = MissionData.ConditionType.WIN_PISTOL_ONLY
-	m.target_value = 1; m.badge_label = "권총왕"; m.badge_color = Color(0.6, 0.6, 0.9)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "knife_finish"; m.title = "KNIFE FINISH"
-	m.description = "마지막 킬을 칼로 끝내고 1등"
-	m.condition_type = MissionData.ConditionType.KILL_LAST_WITH_MELEE
-	m.target_value = 1; m.badge_label = "칼잡이"; m.badge_color = Color(0.8, 0.3, 0.5)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "shotgun_rush"; m.title = "SHOTGUN RUSH"
-	m.description = "샷건으로 3킬 이상"
-	m.condition_type = MissionData.ConditionType.KILLS_WITH_WEAPON
-	m.target_value = 3; m.weapon_filter = "shotgun"
-	m.badge_label = "산탄"; m.badge_color = Color(0.9, 0.5, 0.1)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "railgun_moment"; m.title = "RAILGUN MOMENT"
-	m.description = "레일건으로 1킬 이상"
-	m.condition_type = MissionData.ConditionType.KILLS_WITH_WEAPON
-	m.target_value = 1; m.weapon_filter = "railgun"
-	m.badge_label = "레일"; m.badge_color = Color(0.2, 0.8, 0.9)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "bush_hunter"; m.title = "BUSH HUNTER"
-	m.description = "수풀 안/근처에서 2킬 이상"
-	m.condition_type = MissionData.ConditionType.KILL_IN_BUSH
-	m.target_value = 2; m.badge_label = "덤불"; m.badge_color = Color(0.2, 0.6, 0.2)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "zone_walker"; m.title = "ZONE WALKER"
-	m.description = "자기장 밖에서 10초 이상 버티고 1등"
-	m.condition_type = MissionData.ConditionType.WIN_AFTER_ZONE_OUTSIDE
-	m.target_value = 10; m.badge_label = "존워커"; m.badge_color = Color(0.8, 0.2, 0.9)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "supply_thief"; m.title = "SUPPLY THIEF"
-	m.description = "보급 캡슐 근처(12m)에서 1킬 이상"
-	m.condition_type = MissionData.ConditionType.KILL_NEAR_SUPPLY
-	m.target_value = 1; m.badge_label = "약탈"; m.badge_color = Color(0.9, 0.8, 0.1)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "ambush"; m.title = "AMBUSH"
-	m.description = "봇이 인식하기 전(awareness < 1.0)에 1킬 이상"
-	m.condition_type = MissionData.ConditionType.KILL_UNDETECTED
-	m.target_value = 1; m.badge_label = "매복"; m.badge_color = Color(0.15, 0.15, 0.7)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "outnumbered"; m.title = "OUTNUMBERED"
-	m.description = "봇 2명 이상 감지 상태에서 1킬 이상"
-	m.condition_type = MissionData.ConditionType.KILL_WHILE_DETECTED
-	m.target_value = 1; m.badge_label = "다굴"; m.badge_color = Color(0.9, 0.3, 0.2)
-	list.append(m)
-
-	m = MissionData.new()
-	m.id = "one_slot_run"; m.title = "ONE SLOT RUN"
-	m.description = "총기 슬롯 1개 이하만 사용하고 1등"
-	m.condition_type = MissionData.ConditionType.WIN_ONE_SLOT
-	m.score_bonus = 800; m.badge_label = "미니멀"; m.badge_color = Color(0.85, 0.85, 0.85)
-	list.append(m)
-
-	return list
+	return MissionCatalogScript.bonus_missions()

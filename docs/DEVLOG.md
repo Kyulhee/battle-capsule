@@ -1,8 +1,27 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-21. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
+> Last updated: 2026-05-22. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
 
 The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md). Do not load it by default.
+
+---
+
+## v1.11.5-dev — 2026-05-22
+
+**Mission/pressure descriptor catalog first pass**
+
+**src/systems/mission/MissionCatalog.gd / src/core/MissionTracker.gd**
+
+- Added `MissionCatalog.gd` as the descriptor/list construction owner for bonus missions and hard/Hell pressure mission pools.
+- `MissionTracker.gd` now delegates `get_all_missions()`, `get_hard_pool()`, and `get_hell_pool()` to the catalog while keeping its public API stable.
+- Kept mission/pressure ids, condition enum values, reward/penalty descriptors, feasibility filtering, progress/evaluation logic, HUD formatting, badge persistence, Main pressure flow, and Telemetry schema unchanged.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=63.8s, stage=2, recover=34, disengage=22.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=45.1s, stage=2, recover=83, disengage=18.
 
 ---
 

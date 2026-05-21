@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.11-dev / 마지막 검증: 2026-05-21
+> 기준 버전: v1.11-dev / 마지막 검증: 2026-05-22
 
 ---
 
@@ -12,6 +12,7 @@
 | ZoneController | `var zone` | `Main.gd` | RefCounted zone system controller |
 | WeaponSlotManager | `var slots` | `Player.gd` | RefCounted |
 | MissionTracker | `var mission_tracker` | `Main.gd` | RefCounted |
+| MissionCatalog | bonus/pressure descriptor pools | `MissionTracker.gd` | static mission catalog |
 | ArtifactCatalog | starting artifact specs/descriptions | `Main.gd`, `Player.gd` | static catalog |
 | ItemResourceCatalog | default loot resources and pickup scene | `Main.gd` | static catalog |
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
@@ -63,10 +64,20 @@
 - **외부 진입점**: `Pickup.gd` → `Player.receive_weapon()` / `receive_ammo()` 래퍼 → `slots.*()` (Pickup은 WeaponSlotManager를 직접 참조하지 않음)
 
 ### `src/core/MissionTracker.gd`
-- **읽는 파일**: `Main.gd` (소유), `ZoneController.gd` (`tick_damage` 내 duck-typed)
+- **읽는 파일**: `MissionCatalog.gd` (bonus/pressure descriptor construction), `PressureEffectCatalog.gd` (pressure HUD effect formatting)
+- **호출자**: `Main.gd` (소유), `MatchBootstrap.gd` (`get_all_missions()`), `ZoneController.gd` (`tick_damage` 내 duck-typed)
 - **쓰는 파일**: `Main.gd` 만
 - **시그널**: 없음 — `tick_pressure(delta, num_detecting)` 반환값 `"success"` / `"fail"` / `""` 을 Main이 폴링
 - **훅 호출자**: `Main.gd` (`on_pressure_kill`, `on_pressure_damage`, `on_weapon_slot_used` 등), `ZoneController.gd` (`on_player_zone_tick`, `on_pressure_zone_tick`)
+- **소유 범위**: mission/pressure runtime state, `PressureCondition` enum, feasibility filtering, progress counters, evaluation, HUD formatting, badge persistence.
+- **소유하지 않는 것**: bonus mission list construction, hard/Hell pressure descriptor pool construction.
+
+### `src/systems/mission/MissionCatalog.gd`
+- **읽는 파일**: `MissionData.gd`, `PressureEffectCatalog.gd`.
+- **호출자**: `MissionTracker.gd` public static wrappers.
+- **역할**: bonus mission list construction, hard/Hell pressure descriptor pools, mission/pressure ids, reward/penalty descriptor composition.
+- **소유하지 않는 것**: active mission state, pressure runtime counters, feasibility filtering, pressure condition evaluation, HUD progress text, badge persistence, Main pressure trigger flow.
+- **수정 영향**: 새 bonus mission이나 pressure descriptor 추가 시 `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure state updates, simulations를 함께 확인.
 
 ### `src/core/ItemResourceCatalog.gd`
 - **읽는 파일**: `src/items/*.tres`, `src/entities/pickup/Pickup.tscn`.
@@ -236,7 +247,7 @@
 - **호출자**: `Main.gd` `_apply_pressure_effects()`.
 - **역할**: pressure reward/penalty effects execution against explicit `player`, `zone`, and `actors` context; returns Main-owned pressure state updates.
 - **소유하지 않는 것**: pressure mission selection/timing, `heal_pickup_banned`, `heal_ban_until_stage`, `railgun_unlimited_until_stage`, player/zone/actor ownership, Telemetry logging.
-- **수정 영향**: 새 pressure effect 추가 시 `PressureEffectCatalog.gd` id/format, `MissionTracker.gd` pools, `PressureEffectApplier.gd`, `Main.gd` returned state handling, `Player.gd`/`ZoneController.gd`/`Bot.gd` touched state를 함께 확인.
+- **수정 영향**: 새 pressure effect 추가 시 `PressureEffectCatalog.gd` id/format, `MissionCatalog.gd` descriptor pools, `PressureEffectApplier.gd`, `Main.gd` returned state handling, `Player.gd`/`ZoneController.gd`/`Bot.gd` touched state를 함께 확인.
 
 ### `src/entities/bot/Bot.gd`
 - **목표 이동**: `is_targeting_loot` CHASE는 `_nav_move_toward(..., false)`로 pickup 방향 이동을 유지하고 `_update_objective_scan()`으로 시야 회전을 따로 갱신.
@@ -307,7 +318,8 @@
 | Main runtime tuning | `MatchRuntimeTuning.gd`, `data/game_config.json` `runtime` | `Main.gd` spawn/navigation/supply/zone-stage loot paths, `GameConfig.gd`, simulations |
 | Bot count/archetype ratio | `BotSpawnPlanner.gd` | `Main.gd` spawn wiring, `Bot.gd` archetype enum, `BotDoctrine.gd`, Telemetry archetype reports |
 | Loot/supply pickup creation | `src/systems/loot/LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
-| Pressure reward/penalty effect | `PressureEffectCatalog.gd` + `PressureEffectApplier.gd` | `MissionTracker.gd` pools/HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |
+| Mission/pressure descriptor | `src/systems/mission/MissionCatalog.gd` | `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure trigger flow |
+| Pressure reward/penalty effect | `PressureEffectCatalog.gd` + `PressureEffectApplier.gd` | `MissionCatalog.gd` descriptor pools, `MissionTracker.gd` HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
 | `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |
@@ -315,5 +327,5 @@
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
 | How to Play 행 구조 | `HelpCatalog.gd` | `HelpPanelBuilder.gd`, `Main.gd` Help panel wiring |
 | Records 행 구조 | `RecordsPanelBuilder.gd` | `Telemetry.gd` match history fields, `Main.gd` Records callbacks |
-| 새 pressure effect 추가 | `PressureEffectCatalog.gd` | `MissionTracker.gd` pools, `PressureEffectApplier.gd` match 케이스, 필요 시 `Main.gd` state update 반영 |
-| 새 `PressureCondition` 추가 | `MissionTracker.gd` (enum + `_eval_single_condition`) | `MissionTracker.filter_feasible()` (필터 케이스 추가) |
+| 새 pressure effect 추가 | `PressureEffectCatalog.gd` | `MissionCatalog.gd` descriptor pools, `PressureEffectApplier.gd` match 케이스, 필요 시 `Main.gd` state update 반영 |
+| 새 `PressureCondition` 추가 | `MissionTracker.gd` (enum + `_eval_single_condition`) | `MissionTracker.filter_feasible()`와 progress HUD, `MissionCatalog.gd` condition mapping |
