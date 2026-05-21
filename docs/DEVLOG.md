@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.4-dev — 2026-05-21
+
+**Loot/supply subsystem directory first pass**
+
+**src/systems/loot/LootSpawner.gd / SupplyDropController.gd / LootSpawnDirector.gd / src/Main.gd**
+
+- Moved `LootSpawner.gd` and `SupplyDropController.gd` from `src/core/` to `src/systems/loot/`.
+- Moved `LootSpawnDirector.gd` from `src/systems/match/` to `src/systems/loot/`.
+- Updated `Main.gd` preload paths and architecture/impact docs.
+- Kept `class_name`, public APIs, loot/supply quantities, supply timing, supply pillar creation, Telemetry hook calls, and Main-owned supply minimap state unchanged.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=58.7s, stage=2, recover=51, disengage=19.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=70.5s, stage=3, recover=86, disengage=16.
+
+---
+
 ## v1.11.3-dev — 2026-05-21
 
 **Zone subsystem directory first pass**

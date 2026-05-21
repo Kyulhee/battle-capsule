@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-21 (v1.11.3 Zone subsystem directory first pass)
+> Last updated: 2026-05-21 (v1.11.4 Loot/supply subsystem directory first pass)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.4 — Loot/supply subsystem boundary planning.
+**Next structural slice**: v1.11.5 — Mission/pressure descriptor data-boundary planning.
 
-**Latest completed slice**: v1.11.3 — Zone subsystem directory first pass.
+**Latest completed slice**: v1.11.4 — Loot/supply subsystem directory first pass.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -347,6 +347,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 3. Loot/supply subsystem boundary.
    - Group loot hotspot calculation, supply timing, and pickup creation under `src/systems/loot/` by small path-preserving slices.
    - Keep `Main.gd` supply minimap state and Telemetry hook calls.
+   - First pass complete: `LootSpawner`, `SupplyDropController`, and `LootSpawnDirector` now live under `src/systems/loot/`; public APIs and Main state ownership are unchanged.
 4. Mission/pressure data boundary.
    - Move mission and pressure descriptors out of `MissionTracker.gd` into catalog/data structures before adding new mission types.
    - Keep mission progress/evaluation APIs stable.
@@ -383,6 +384,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Update `Main.gd` preload path and architecture/impact docs.
 - Keep `class_name ZoneController`, public API, signals, stage config behavior, damage behavior, and Telemetry-facing flow unchanged.
 - Keep `Main.gd` as the owner of `zone`; `Bot.gd`, `Player.gd`, `Minimap.gd`, `DebugOverlay.gd`, and `WorldPresentationBuilder.gd` continue to read `main.zone`.
+
+### v1.11.4 — Loot/Supply Subsystem Directory First Pass `S`
+
+**Summary**: Group existing loot/supply calculation and pickup creation helpers into one loot system path without changing behavior.
+
+- Move `LootSpawner.gd` from `src/core/` to `src/systems/loot/`.
+- Move `SupplyDropController.gd` from `src/core/` to `src/systems/loot/`.
+- Move `LootSpawnDirector.gd` from `src/systems/match/` to `src/systems/loot/`.
+- Update `Main.gd` preload paths and architecture/impact docs.
+- Keep `class_name`, public APIs, pickup quantities, supply timing, supply pillar creation, Telemetry hook calls, and Main-owned supply minimap state unchanged.
 
 **v1.11 completion gate**
 

@@ -32,7 +32,9 @@
 | MatchTuning | match/zone tuning interpretation | `Main.gd` | static system helper |
 | MatchRuntimeTuning | Main runtime spawn/navigation/loot fallback tuning | `Main.gd` | static system helper |
 | BotSpawnPlanner | bot archetype plan generation | `Main.gd` | static system helper |
-| LootSpawnDirector | loot/supply pickup creation | `Main.gd` | static system helper |
+| LootSpawner | loot hotspot and position calculation | `Main.gd` | RefCounted loot system helper |
+| SupplyDropController | supply drop timing and cluster calculation | `Main.gd` | RefCounted loot system helper |
+| LootSpawnDirector | loot/supply pickup creation | `Main.gd` | static loot system helper |
 | PressureEffectCatalog | pressure effect ids and HUD labels | `MissionTracker.gd`, `PressureEffectApplier.gd` | static catalog |
 | PressureEffectApplier | pressure reward/penalty execution | `Main.gd` | static system helper |
 
@@ -208,7 +210,21 @@
 - **소유하지 않는 것**: actual spawn algorithm, NavigationRegion node ownership, loot/supply state, Telemetry logging, CLI overrides.
 - **수정 영향**: runtime tuning key를 바꾸면 `data/game_config.json`, `GameConfig.gd`, `Main.gd` call sites, simulation spawn/loot/supply flow를 함께 확인.
 
-### `src/systems/match/LootSpawnDirector.gd`
+### `src/systems/loot/LootSpawner.gd`
+- **읽는 파일**: direct scene lookup 없음. `Main.gd`가 `MapSpec`을 넘김.
+- **호출자**: `Main.gd` loot hotspot registration, position choice, spawn count calculation.
+- **역할**: POI 기반 loot hotspot 등록, density-weighted hotspot choice, random loot position sampling, initial weapon/consumable count calculation.
+- **소유하지 않는 것**: pickup node creation, item templates, supply state, Telemetry logging.
+- **수정 영향**: loot density/position/count rule 변경 시 `Main.gd`, `MapSpec`, `LootSpawnDirector.gd`, pickup/simulation flow를 함께 확인.
+
+### `src/systems/loot/SupplyDropController.gd`
+- **읽는 파일**: direct scene lookup 없음.
+- **호출자**: `Main.gd` supply telegraph, pillar progress, supply cluster count/offset.
+- **역할**: supply drop timing, random position roll, pillar progress, cluster consumable count, cluster offset.
+- **소유하지 않는 것**: minimap state, supply pillar node creation, pickup creation, Telemetry logging.
+- **수정 영향**: supply timing/position/cluster rule 변경 시 `Main.gd`, `LootSpawnDirector.gd`, `Minimap.gd`, simulation supply flow를 함께 확인.
+
+### `src/systems/loot/LootSpawnDirector.gd`
 - **읽는 파일**: `ItemData.gd` type enum. 직접 scene lookup 없음.
 - **호출자**: `Main.gd` `_categorize_templates()` / `_spawn_initial_loot()` / `spawn_loot()` / `telegraph_supply_zone()` / `activate_supply_zone()`.
 - **역할**: item template category split, initial loot pickup creation, dynamic loot wave pickup creation, supply pillar creation, supply cluster pickup creation.
@@ -290,7 +306,7 @@
 | Match/zone tuning config 또는 CLI alias | `MatchTuning.gd` | `Main.gd` apply path, `data/game_config.json`, `tools/simulate_matches.py`, TESTING/문서 예시 |
 | Main runtime tuning | `MatchRuntimeTuning.gd`, `data/game_config.json` `runtime` | `Main.gd` spawn/navigation/supply/zone-stage loot paths, `GameConfig.gd`, simulations |
 | Bot count/archetype ratio | `BotSpawnPlanner.gd` | `Main.gd` spawn wiring, `Bot.gd` archetype enum, `BotDoctrine.gd`, Telemetry archetype reports |
-| Loot/supply pickup creation | `LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
+| Loot/supply pickup creation | `src/systems/loot/LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
 | Pressure reward/penalty effect | `PressureEffectCatalog.gd` + `PressureEffectApplier.gd` | `MissionTracker.gd` pools/HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
