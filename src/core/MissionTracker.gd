@@ -317,72 +317,33 @@ func evaluate(tel: Node, final_rank: int, player_hp: float, difficulty: int) -> 
 func get_hud_text(tel: Node) -> String:
 	if active_mission == null:
 		return ""
-	var m = active_mission
-	var kills: int = tel.metrics.session.kills if tel else 0
+	return MissionHudFormatterScript.bonus_hud_text(active_mission, _bonus_hud_context(tel))
 
-	match m.condition_type:
-		MissionData.ConditionType.FIRST_KILL:
-			return "%s\n킬 횟수  %d / 1" % [m.title, kills]
-		MissionData.ConditionType.WIN_HIGH_HP:
-			var cur_hp: float = 0.0
-			if tel:
-				var main_node = tel.get_node_or_null("/root/Main")
-				if main_node and is_instance_valid(main_node.player_ref):
-					cur_hp = main_node.player_ref.current_health
-			return "%s\n현재 HP %.0f — 우승 시 HP %.0f 이상 필요" % [m.title, cur_hp, m.target_value]
-		MissionData.ConditionType.WIN_WITH_HEALS:
-			return "%s\n구급상자(◆) 사용  %d / %d" % [m.title, _medkits_used, int(m.target_value)]
-		MissionData.ConditionType.SURVIVE_NO_KILLS:
-			if kills >= 1:
-				return "%s\n✗ 킬 발생 — 실패 확정" % m.title
-			return "%s\n킬 없이 90초 생존 — 현재 킬 0회" % m.title
-		MissionData.ConditionType.WIN_PISTOL_ONLY:
-			if _used_non_pistol:
-				return "%s\n✗ 다른 무기 사용됨 — 실패 확정" % m.title
-			return "%s\n권총만 사용 중 ✓" % m.title
-		MissionData.ConditionType.KILL_LAST_WITH_MELEE:
-			var wnames = {"knife": "칼 ✓", "pistol": "피스톨", "ar": "돌격소총", "shotgun": "샷건", "railgun": "레일건"}
-			if _last_kill_weapon == "":
-				return "%s\n칼로 마지막 킬 달성 — 아직 킬 없음" % m.title
-			return "%s\n칼로 마지막 킬 달성 — 현재 %s" % [m.title, wnames.get(_last_kill_weapon, _last_kill_weapon)]
-		MissionData.ConditionType.KILLS_WITH_WEAPON:
-			var wkills: int = tel.metrics.combat.kills_by_weapon.get(m.weapon_filter, 0) if tel else 0
-			var wnames2 = {"pistol": "피스톨", "ar": "돌격소총", "shotgun": "샷건", "railgun": "레일건", "knife": "칼"}
-			return "%s\n%s 킬  %d / %d" % [m.title, wnames2.get(m.weapon_filter, m.weapon_filter), wkills, int(m.target_value)]
-		MissionData.ConditionType.KILL_IN_BUSH:
-			return "%s\n수풀 안/근처 킬  %d / %d" % [m.title, _kills_in_bush, int(m.target_value)]
-		MissionData.ConditionType.WIN_AFTER_ZONE_OUTSIDE:
-			return "%s\n자기장 밖 최장 체류  %.0f초 / %.0f초" % [m.title, _player_max_outside_sec, m.target_value]
-		MissionData.ConditionType.KILL_NEAR_SUPPLY:
-			return "%s\n보급 캡슐 근처(12m) 킬  %d / %d" % [m.title, _kills_near_supply, int(m.target_value)]
-		MissionData.ConditionType.KILL_UNDETECTED:
-			return "%s\n봇 미탐지 상태에서 킬  %d / %d" % [m.title, _kills_undetected, int(m.target_value)]
-		MissionData.ConditionType.KILL_WHILE_DETECTED:
-			return "%s\n봇 2명 이상 감지 상태에서 킬  %d / %d" % [m.title, _kills_while_detected, int(m.target_value)]
-		MissionData.ConditionType.WIN_ON_DIFFICULTY:
-			var diff_names = ["쉬움", "보통", "어려움", "지옥"]
-			return "%s\n%s 난이도로 1등 달성 필요" % [m.title, diff_names[int(m.target_value)] if int(m.target_value) < diff_names.size() else "?"]
-		MissionData.ConditionType.KILL_WITH_ALL_WEAPONS:
-			if not tel:
-				return "%s\n모든 총으로 각각 1킬 이상 달성" % m.title
-			var wk: Dictionary = tel.metrics.combat.kills_by_weapon
-			var gun_labels = [["pistol", "피스톨"], ["ar", "돌격소총"], ["shotgun", "샷건"], ["railgun", "레일건"]]
-			var done: Array = []
-			var todo: Array = []
-			for g in gun_labels:
-				if wk.get(g[0], 0) >= 1: done.append(g[1])
-				else: todo.append(g[1])
-			var status = ""
-			if done.size() > 0: status += "✓ " + "  ".join(done)
-			if todo.size() > 0:
-				if status != "": status += "   /   "
-				status += "✗ " + "  ".join(todo)
-			return "%s\n%s" % [m.title, status]
-		MissionData.ConditionType.WIN_ONE_SLOT:
-			if _max_gun_slots_used > 1:
-				return "%s\n✗ 총기 2종 이상 소지 — 실패 확정" % m.title
-			return "%s\n총기 슬롯 %d/1 사용 중 ✓" % [m.title, _max_gun_slots_used]
-	return m.title
+func _bonus_hud_context(tel: Node) -> Dictionary:
+	var kills: int = tel.metrics.session.kills if tel else 0
+	var current_hp: float = 0.0
+	var kills_by_weapon: Dictionary = {}
+	if tel:
+		kills_by_weapon = tel.metrics.combat.kills_by_weapon
+		var main_node = tel.get_node_or_null("/root/Main")
+		if main_node and is_instance_valid(main_node.player_ref):
+			current_hp = main_node.player_ref.current_health
+
+	return {
+		"has_telemetry": tel != null,
+		"kills": kills,
+		"current_hp": current_hp,
+		"kills_by_weapon": kills_by_weapon,
+		"medkits_used": _medkits_used,
+		"used_non_pistol": _used_non_pistol,
+		"last_kill_weapon": _last_kill_weapon,
+		"kills_in_bush": _kills_in_bush,
+		"kills_near_supply": _kills_near_supply,
+		"kills_undetected": _kills_undetected,
+		"kills_while_detected": _kills_while_detected,
+		"player_max_outside_sec": _player_max_outside_sec,
+		"max_gun_slots_used": _max_gun_slots_used,
+	}
 
 func get_early_fail_status(tel: Node) -> bool:
 	if not active_mission: return false

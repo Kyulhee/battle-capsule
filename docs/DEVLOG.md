@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.7-dev — 2026-05-22
+
+**Bonus mission HUD formatter first pass**
+
+**src/systems/mission/MissionHudFormatter.gd / src/core/MissionTracker.gd**
+
+- Extended `MissionHudFormatter.gd` to format bonus mission HUD text from explicit context data.
+- `MissionTracker.gd` now keeps Telemetry/player HP context gathering and delegates `get_hud_text()` string assembly to the formatter.
+- Preserved current mission HUD strings, including the no-Telemetry fallback for all-weapon mission text.
+- Kept mission completion evaluation, early-fail checks, badge persistence, Player HUD label flow, and Telemetry schema unchanged.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=58.9s, stage=2, recover=30, disengage=18.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=51.5s, stage=2, recover=132, disengage=24.
+
+---
+
 ## v1.11.6-dev — 2026-05-22
 
 **Pressure HUD formatter first pass**
