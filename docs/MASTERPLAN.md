@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-23 (v1.11.11 Mission badge store first pass)
+> Last updated: 2026-05-23 (v1.11.12 Mission subsystem closure review)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.12 — Mission subsystem closure review.
+**Next structural slice**: v1.11.13 — Player entity data-boundary first pass.
 
-**Latest completed slice**: v1.11.11 — Mission badge store first pass.
+**Latest completed slice**: v1.11.12 — Mission subsystem closure review.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -362,6 +362,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Path ownership first pass complete: `MissionTracker.gd` moved to `src/systems/mission/`; class name, public APIs, and Main-owned instance are unchanged.
    - Pressure condition first pass complete: `PressureConditionEvaluator.gd` owns pressure descriptor feasibility and pressure condition completion checks while `MissionTracker.gd` passes condition ids and counter snapshots.
    - Badge store first pass complete: `MissionBadgeStore.gd` owns `user://achievements.json` read/write while `MissionTracker.gd` keeps public badge wrapper APIs.
+   - Closure review complete: `MissionTracker.gd` is now 257 lines and intentionally owns active mission/pressure state, counters, hooks, public wrappers, and context assembly. New mission data, HUD strings, bonus evaluation, pressure condition checks, and badge file I/O have separate owners.
 5. Entity vertical slices.
    - Split `Player.gd`/`Bot.gd` tuning by behavior domain only when a concrete data owner is clear.
    - Do not move combat or perception behavior just to reduce line count.
@@ -468,6 +469,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Keep `MissionTracker.gd` public `save_badge()`, `has_badge()`, and `load_achievements()` wrappers.
 - Preserve achievement JSON path, `badges` array shape, duplicate-prevention behavior, result flow, and Telemetry schema.
 - Do not move active mission state or badge award timing in this slice.
+
+### v1.11.12 — Mission Subsystem Closure Review `S`
+
+**Summary**: Close the mission subsystem structural pass before starting entity vertical slices.
+
+- Re-audit `src/systems/mission/MissionTracker.gd` after descriptor, HUD, evaluator, pressure condition, badge store, and path ownership slices.
+- Mark as intentionally retained in `MissionTracker.gd`: active mission/pressure state, counters, hooks, pressure deadline/instant-fail state, public wrappers, and context assembly for helper calls.
+- Mark as split owners: `MissionCatalog.gd`, `MissionHudFormatter.gd`, `MissionEvaluator.gd`, `PressureConditionEvaluator.gd`, and `MissionBadgeStore.gd`.
+- No runtime code, mission behavior, pressure behavior, or Telemetry schema changes in this closure slice.
+- Next v1.11 work should move to entity vertical slices, starting with Player-owned values and UI/combat display boundaries.
 
 **v1.11 completion gate**
 

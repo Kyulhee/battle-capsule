@@ -182,6 +182,8 @@ v1.11.10 기준 압박 미션 descriptor feasibility와 condition completion 판
 
 v1.11.11 기준 achievement badge JSON read/write는 `src/systems/mission/MissionBadgeStore.gd`가 소유한다. `MissionTracker`는 public `save_badge()` / `has_badge()` / `load_achievements()` wrappers를 유지한다.
 
+v1.11.12 closure 기준 `MissionTracker.gd`는 257줄이며, intentionally retained responsibilities are active mission/pressure state, counters, hooks, public wrappers, pressure timing/instant-fail state, and context assembly for mission helper calls. Mission descriptors, HUD strings, bonus mission evaluation, pressure condition checks, and badge file I/O now have separate mission subsystem owners.
+
 ---
 
 #### HellEventController (`src/systems/hell/HellEventController.gd`)

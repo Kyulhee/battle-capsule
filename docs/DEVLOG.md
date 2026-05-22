@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.12-dev — 2026-05-23
+
+**Mission subsystem closure review**
+
+**docs/MASTERPLAN.md / docs/ARCHITECTURE.md / docs/IMPACT_MAP.md**
+
+- Re-audited `src/systems/mission/MissionTracker.gd` after the mission catalog, HUD formatter, evaluator, pressure condition evaluator, badge store, and path ownership slices.
+- Marked `MissionTracker.gd` at 257 lines and intentionally retained active mission/pressure state, counters, hooks, public wrappers, pressure timing/instant-fail state, and context assembly.
+- Documented split mission subsystem owners: `MissionCatalog.gd`, `MissionHudFormatter.gd`, `MissionEvaluator.gd`, `PressureConditionEvaluator.gd`, and `MissionBadgeStore.gd`.
+- Scoped the next v1.11 work toward Player entity data-boundary slices.
+- No runtime code, mission behavior, pressure behavior, or Telemetry schema was changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- Runtime simulation은 생략: docs-only closure review이며 runtime code 변경 없음.
+
+---
+
 ## v1.11.11-dev — 2026-05-23
 
 **Mission badge store first pass**

@@ -75,6 +75,7 @@
 - **훅 호출자**: `Main.gd` (`on_pressure_kill`, `on_pressure_damage`, `on_weapon_slot_used` 등), `ZoneController.gd` (`on_player_zone_tick`, `on_pressure_zone_tick`)
 - **소유 범위**: mission/pressure runtime state, `PressureCondition` enum ids, progress counters, pressure timing, pressure instant-fail flag, mission/pressure context gathering, badge wrapper APIs.
 - **소유하지 않는 것**: badge JSON file I/O, bonus mission list construction, hard/Hell pressure descriptor pool construction, bonus mission completion/early-fail rules, pressure feasibility/completion condition checks, bonus/pressure HUD string/effect/progress assembly.
+- **v1.11.12 closure**: 257 lines. Further splitting should require a concrete behavior/state migration plan, not line-count cleanup.
 
 ### `src/systems/mission/MissionBadgeStore.gd`
 - **읽는 파일**: `user://achievements.json`.
