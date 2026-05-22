@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.14-dev — 2026-05-23
+
+**Player HUD/status builder continuation**
+
+**src/ui/player/PlayerHudBuilder.gd / src/entities/player/Player.gd**
+
+- Extended `PlayerHudBuilder.gd` beyond the top HUD to build health/shield rows, status counters, artifact label, bottom slot HUD nodes, and zone warning overlay.
+- `Player.gd` now receives node/style references from the builder while keeping runtime value updates, slot selection/ammo styling, weapon icon loading/fallbacks, player state, combat, movement, artifact behavior, and Sfx/Telemetry hooks.
+- Moved Player-local status icon helper functions into the HUD builder.
+- Preserved existing CanvasLayer child order and did not change slot behavior, mission/pressure text, Telemetry schema, or combat constants.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=67.3s, stage=2, recover=35, disengage=18.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=43.4s, stage=2, recover=127, disengage=18.
+
+---
+
 ## v1.11.13-dev — 2026-05-23
 
 **Player HUD builder first pass**

@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-23 (v1.11.13 Player HUD builder first pass)
+> Last updated: 2026-05-23 (v1.11.14 Player HUD/status builder continuation)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.14 — Player HUD/status boundary continuation.
+**Next structural slice**: v1.11.15 — Player slot display state boundary review.
 
-**Latest completed slice**: v1.11.13 — Player HUD builder first pass.
+**Latest completed slice**: v1.11.14 — Player HUD/status builder continuation.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -366,7 +366,8 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 5. Entity vertical slices.
    - Split `Player.gd`/`Bot.gd` tuning by behavior domain only when a concrete data owner is clear.
    - Do not move combat or perception behavior just to reduce line count.
-   - Player HUD first pass complete: `src/ui/player/PlayerHudBuilder.gd` owns top HUD node construction/styling for zone, mission, pressure, flash, and kill feed nodes. `Player.gd` still owns runtime HUD values, health/slot UI, combat state, and player behavior.
+   - Player HUD first pass complete: `src/ui/player/PlayerHudBuilder.gd` owns top HUD node construction/styling for zone, mission, pressure, flash, and kill feed nodes.
+   - Player HUD/status continuation complete: `PlayerHudBuilder.gd` also owns health/shield/stat HUD, slot HUD node construction, and zone warning overlay construction. `Player.gd` still owns runtime HUD values, slot state styling updates, weapon icon loading, combat state, and player behavior.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -490,6 +491,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Preserve the existing CanvasLayer child order for the extracted nodes so top HUD z-order and runtime label behavior remain unchanged.
 - Do not move shot heat, melee, occluder fade, heal regen, slot HUD, or combat tuning in this slice.
 - Next Player slice should continue with another concrete UI/data boundary before touching combat constants.
+
+### v1.11.14 — Player HUD/Status Builder Continuation `S`
+
+**Summary**: Extend the Player HUD construction boundary without moving gameplay or slot behavior.
+
+- Extend `src/ui/player/PlayerHudBuilder.gd` to build health/shield rows, status counters, artifact label, bottom slot HUD nodes, and zone warning overlay.
+- Keep `Player.gd` as the owner of health/shield/stat value updates, slot selection/ammo state, slot active/empty styling, weapon icon loading/fallbacks, pickup focus, combat, movement, artifact behavior, and Sfx/Telemetry hooks.
+- Preserve existing CanvasLayer child order for top HUD, status HUD, slot HUD, and zone warning overlay.
+- Do not move `_refresh_slot_hud()`, `_make_weapon_icon()`, shot heat, melee, occluder fade, heal regen, or artifact modifier logic in this slice.
+- Next Player slice should review slot display state styling/icon ownership separately because it touches asset catalog lookups and inventory state.
 
 **v1.11 completion gate**
 
