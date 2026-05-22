@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.10-dev — 2026-05-23
+
+**Pressure condition evaluator first pass**
+
+**src/systems/mission/PressureConditionEvaluator.gd / src/systems/mission/MissionTracker.gd**
+
+- Added `PressureConditionEvaluator.gd` for pressure descriptor feasibility and active pressure condition completion checks.
+- `MissionTracker.gd` now delegates `filter_feasible()` and pressure completion checks while keeping `PressureCondition` ids, counters, active pressure state, deadline timing, instant-fail flag, hooks, and public APIs.
+- Kept pressure success/fail behavior, pressure descriptor ids, Main pressure trigger/effect flow, and Telemetry schema unchanged.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=76.4s, stage=3, recover=30, disengage=21.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=46.5s, stage=2, recover=93, disengage=19.
+
+---
+
 ## v1.11.9-dev — 2026-05-22
 
 **MissionTracker system path move**

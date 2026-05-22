@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-22 (v1.11.9 MissionTracker system path move)
+> Last updated: 2026-05-23 (v1.11.10 Pressure condition evaluator first pass)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.10 — Pressure condition evaluator boundary review.
+**Next structural slice**: v1.11.11 — MissionTracker residual responsibility review.
 
-**Latest completed slice**: v1.11.9 — MissionTracker system path move.
+**Latest completed slice**: v1.11.10 — Pressure condition evaluator first pass.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -330,6 +330,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - `MissionCatalog.gd`: first mission/pressure descriptor catalog boundary; `MissionTracker` still owns progress/evaluation/HUD state.
 - `MissionHudFormatter.gd`: mission/pressure HUD formatting boundary; `MissionTracker` still owns counters, evaluation, and badge state.
 - `MissionEvaluator.gd`: bonus mission completion/early-fail evaluation boundary; `MissionTracker` still owns hooks, counters, context gathering, and badge state.
+- `PressureConditionEvaluator.gd`: pressure descriptor feasibility and condition completion boundary; `MissionTracker` still owns pressure counters, timing, hooks, and active state.
 - `Player.gd`: split heal, ammo, HUD numeric display, combat visual constants, and artifact stat reads by vertical slice.
 - `Bot.gd`: split perception, loot search, combat movement, and debug/visual constants into doctrine/profile/config boundaries without changing AI behavior.
 - `HellEventController.gd`: move remaining bombardment/blackout tuning and visual constants into config/catalog entries.
@@ -358,6 +359,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Mission HUD first pass complete: `MissionHudFormatter.gd` owns pressure and bonus mission HUD string formatting while `MissionTracker.gd` passes state snapshots.
    - Mission evaluation first pass complete: `MissionEvaluator.gd` owns bonus mission completion/early-fail rules while `MissionTracker.gd` passes explicit state context and keeps public APIs.
    - Path ownership first pass complete: `MissionTracker.gd` moved to `src/systems/mission/`; class name, public APIs, and Main-owned instance are unchanged.
+   - Pressure condition first pass complete: `PressureConditionEvaluator.gd` owns pressure descriptor feasibility and pressure condition completion checks while `MissionTracker.gd` passes condition ids and counter snapshots.
 5. Entity vertical slices.
    - Split `Player.gd`/`Bot.gd` tuning by behavior domain only when a concrete data owner is clear.
    - Do not move combat or perception behavior just to reduce line count.
@@ -446,6 +448,15 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Update `Main.gd` preload path.
 - Keep `class_name MissionTracker`, public APIs, mission/pressure state ownership, hooks, descriptors, evaluation, HUD behavior, badge persistence, and Telemetry-facing flow unchanged.
 - Do not move pressure condition evaluation in this slice; it remains the next explicit boundary review.
+
+### v1.11.10 — Pressure Condition Evaluator First Pass `S`
+
+**Summary**: Move pressure descriptor feasibility and pressure condition completion rules out of `MissionTracker.gd`.
+
+- Add `src/systems/mission/PressureConditionEvaluator.gd`.
+- Keep `MissionTracker.gd` as the owner of `PressureCondition` ids, active pressure state, counters, hooks, deadline timing, instant-fail flag, and public pressure APIs.
+- Preserve `filter_feasible()`, `tick_pressure()`, pressure success/fail behavior, pressure descriptor ids, and Telemetry-facing flow.
+- Do not move pressure runtime state or Main pressure trigger/effect application in this slice.
 
 **v1.11 completion gate**
 

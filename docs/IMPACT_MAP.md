@@ -15,6 +15,7 @@
 | MissionCatalog | bonus/pressure descriptor pools | `MissionTracker.gd` | static mission catalog |
 | MissionEvaluator | bonus mission completion and early-fail rules | `MissionTracker.gd` | static mission evaluator |
 | MissionHudFormatter | mission/pressure HUD strings | `MissionTracker.gd` | static mission formatter |
+| PressureConditionEvaluator | pressure feasibility and completion rules | `MissionTracker.gd` | static pressure evaluator |
 | ArtifactCatalog | starting artifact specs/descriptions | `Main.gd`, `Player.gd` | static catalog |
 | ItemResourceCatalog | default loot resources and pickup scene | `Main.gd` | static catalog |
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
@@ -66,13 +67,13 @@
 - **외부 진입점**: `Pickup.gd` → `Player.receive_weapon()` / `receive_ammo()` 래퍼 → `slots.*()` (Pickup은 WeaponSlotManager를 직접 참조하지 않음)
 
 ### `src/systems/mission/MissionTracker.gd`
-- **읽는 파일**: `MissionCatalog.gd` (bonus/pressure descriptor construction), `MissionEvaluator.gd` (bonus mission evaluation), `MissionHudFormatter.gd` (bonus/pressure HUD formatting)
+- **읽는 파일**: `MissionCatalog.gd` (bonus/pressure descriptor construction), `MissionEvaluator.gd` (bonus mission evaluation), `MissionHudFormatter.gd` (bonus/pressure HUD formatting), `PressureConditionEvaluator.gd` (pressure condition checks)
 - **호출자**: `Main.gd` (소유), `MatchBootstrap.gd` (`get_all_missions()`), `ZoneController.gd` (`tick_damage` 내 duck-typed)
 - **쓰는 파일**: `Main.gd` 만
 - **시그널**: 없음 — `tick_pressure(delta, num_detecting)` 반환값 `"success"` / `"fail"` / `""` 을 Main이 폴링
 - **훅 호출자**: `Main.gd` (`on_pressure_kill`, `on_pressure_damage`, `on_weapon_slot_used` 등), `ZoneController.gd` (`on_player_zone_tick`, `on_pressure_zone_tick`)
-- **소유 범위**: mission/pressure runtime state, `PressureCondition` enum, feasibility filtering, progress counters, pressure evaluation, badge persistence, mission/pressure context gathering.
-- **소유하지 않는 것**: bonus mission list construction, hard/Hell pressure descriptor pool construction, bonus mission completion/early-fail rules, bonus/pressure HUD string/effect/progress assembly.
+- **소유 범위**: mission/pressure runtime state, `PressureCondition` enum ids, progress counters, pressure timing, pressure instant-fail flag, badge persistence, mission/pressure context gathering.
+- **소유하지 않는 것**: bonus mission list construction, hard/Hell pressure descriptor pool construction, bonus mission completion/early-fail rules, pressure feasibility/completion condition checks, bonus/pressure HUD string/effect/progress assembly.
 
 ### `src/systems/mission/MissionCatalog.gd`
 - **읽는 파일**: `MissionData.gd`, `PressureEffectCatalog.gd`.
@@ -94,6 +95,13 @@
 - **역할**: bonus mission HUD strings and pressure HUD title/deadline/progress/reward/penalty string assembly from explicit context dictionaries.
 - **소유하지 않는 것**: bonus/pressure counters, mission completion evaluation, pressure success/fail result, early-fail checks, Player HUD label node placement, Telemetry.
 - **수정 영향**: mission/pressure HUD 문구/진행도 포맷 변경 시 `MissionTracker.gd` context snapshot keys, `MissionData.gd` condition ids, `PressureEffectCatalog.gd` effect labels, `Player.gd` HUD label behavior를 함께 확인.
+
+### `src/systems/mission/PressureConditionEvaluator.gd`
+- **읽는 파일**: 직접 scene lookup 없음. `MissionTracker.gd`가 descriptor, counter snapshot, condition id mapping을 넘김.
+- **호출자**: `MissionTracker.gd` `filter_feasible()` / `_evaluate_pressure_conditions()`.
+- **역할**: pressure descriptor feasibility and active pressure condition completion checks.
+- **소유하지 않는 것**: active pressure state, pressure counters, deadline ticking, instant-fail mutation, reward/penalty application, Telemetry.
+- **수정 영향**: 새 pressure condition이나 feasibility rule 변경 시 `MissionTracker.gd` counter hooks/snapshot, `MissionCatalog.gd` descriptors, `MissionHudFormatter.gd` progress text, pressure simulations를 함께 확인.
 
 ### `src/core/ItemResourceCatalog.gd`
 - **읽는 파일**: `src/items/*.tres`, `src/entities/pickup/Pickup.tscn`.
@@ -336,6 +344,7 @@
 | Loot/supply pickup creation | `src/systems/loot/LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
 | Mission/pressure descriptor | `src/systems/mission/MissionCatalog.gd` | `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure trigger flow |
 | Bonus mission evaluation | `src/systems/mission/MissionEvaluator.gd` | `MissionTracker.gd` evaluation context, `MissionCatalog.gd`, `MissionHudFormatter.gd`, `Main.gd` result mission flow |
+| Pressure condition evaluation | `src/systems/mission/PressureConditionEvaluator.gd` | `MissionTracker.gd` pressure counter snapshot/hooks, `MissionCatalog.gd`, `MissionHudFormatter.gd`, pressure simulations |
 | Pressure HUD text | `src/systems/mission/MissionHudFormatter.gd` | `MissionTracker.gd` pressure counter snapshot, `PressureEffectCatalog.gd`, `Player.gd` HUD label behavior |
 | Bonus mission HUD text | `src/systems/mission/MissionHudFormatter.gd` | `MissionTracker.gd` bonus HUD context, `MissionData.gd`, `Player.gd` mission HUD label behavior |
 | Pressure reward/penalty effect | `PressureEffectCatalog.gd` + `PressureEffectApplier.gd` | `MissionCatalog.gd` descriptor pools, `MissionTracker.gd` HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |
@@ -347,4 +356,4 @@
 | How to Play 행 구조 | `HelpCatalog.gd` | `HelpPanelBuilder.gd`, `Main.gd` Help panel wiring |
 | Records 행 구조 | `RecordsPanelBuilder.gd` | `Telemetry.gd` match history fields, `Main.gd` Records callbacks |
 | 새 pressure effect 추가 | `PressureEffectCatalog.gd` | `MissionCatalog.gd` descriptor pools, `PressureEffectApplier.gd` match 케이스, 필요 시 `Main.gd` state update 반영 |
-| 새 `PressureCondition` 추가 | `MissionTracker.gd` (enum + `_eval_single_condition`) | `MissionTracker.filter_feasible()`, `MissionCatalog.gd` condition mapping, `MissionHudFormatter.gd` progress HUD |
+| 새 `PressureCondition` 추가 | `MissionTracker.gd` enum + `PressureConditionEvaluator.gd` | `MissionCatalog.gd` condition mapping, `MissionHudFormatter.gd` progress HUD, MissionTracker counter hooks |

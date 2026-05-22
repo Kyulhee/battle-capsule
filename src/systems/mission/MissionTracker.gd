@@ -4,6 +4,7 @@ class_name MissionTracker
 const MissionCatalogScript = preload("res://src/systems/mission/MissionCatalog.gd")
 const MissionEvaluatorScript = preload("res://src/systems/mission/MissionEvaluator.gd")
 const MissionHudFormatterScript = preload("res://src/systems/mission/MissionHudFormatter.gd")
+const PressureConditionEvaluatorScript = preload("res://src/systems/mission/PressureConditionEvaluator.gd")
 const ACHIEVEMENTS_PATH = "user://achievements.json"
 
 # ── 보너스 미션 (기존 유지) ─────────────────────────────────────────────────
@@ -55,22 +56,7 @@ static func get_hell_pool() -> Array:
 
 # ── 압박 미션 필터링 ────────────────────────────────────────────────────────
 static func filter_feasible(pool: Array, zone_stage: int, bot_alive: int) -> Array:
-	return pool.filter(func(d): return _is_descriptor_feasible(d, zone_stage, bot_alive))
-
-static func _is_descriptor_feasible(descriptor: Dictionary, zone_stage: int, bot_alive: int) -> bool:
-	for cond in descriptor.get("conditions", []):
-		var target: int = int(cond.get("target", 1))
-		match int(cond["type"]):
-			PressureCondition.KILL, \
-			PressureCondition.KILL_MELEE, \
-			PressureCondition.KILL_WHILE_ZONE_OUTSIDE, \
-			PressureCondition.KILL_LOW_HP:
-				if bot_alive < target: return false
-			PressureCondition.SURVIVE_DETECTED_SEC:
-				if bot_alive < 2: return false
-			PressureCondition.ZONE_OUTSIDE_SEC:
-				if zone_stage >= 3 and target >= 10: return false
-	return true
+	return PressureConditionEvaluatorScript.filter_feasible(pool, zone_stage, bot_alive, _pressure_condition_ids())
 
 # ── 압박 미션 상태 ─────────────────────────────────────────────────────────
 var pressure_active: bool = false
@@ -149,35 +135,11 @@ func tick_pressure(delta: float, num_detecting_player: int) -> String:
 	return ""
 
 func _evaluate_pressure_conditions() -> bool:
-	for cond in _active_pressure.get("conditions", []):
-		if not _eval_single_condition(cond):
-			return false
-	return true
-
-func _eval_single_condition(cond: Dictionary) -> bool:
-	var target: int = int(cond.get("target", 1))
-	var modifier: String = cond.get("modifier", "")
-	match int(cond["type"]):
-		PressureCondition.KILL:
-			match modifier:
-				"undetected":        return _p_kills_undetected >= target
-				"heavily_detected":  return _p_kills_heavily_detected >= target
-				_:                   return _p_kills_total >= target
-		PressureCondition.NO_DAMAGE:
-			return _p_damage_taken == 0.0
-		PressureCondition.NO_HEAL:
-			return not _p_heals_violated
-		PressureCondition.ZONE_OUTSIDE_SEC:
-			return _p_outside_zone_sec >= float(target)
-		PressureCondition.KILL_MELEE:
-			return _p_kills_melee >= target
-		PressureCondition.SURVIVE_DETECTED_SEC:
-			return _p_detected_sec >= float(target)
-		PressureCondition.KILL_WHILE_ZONE_OUTSIDE:
-			return _p_kills_outside_zone >= target
-		PressureCondition.KILL_LOW_HP:
-			return _p_kills_low_hp >= target
-	return false
+	return PressureConditionEvaluatorScript.evaluate_conditions(
+		_active_pressure,
+		_pressure_counter_snapshot(),
+		_pressure_condition_ids()
+	)
 
 # ── 압박 미션 훅 ──────────────────────────────────────────────────────────
 func on_pressure_kill(weapon: String, undetected: bool, outside_zone: bool, player_hp_ratio: float, num_detecting: int):
