@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.15-dev — 2026-05-23
+
+**Player slot HUD renderer**
+
+**src/ui/player/PlayerSlotHudRenderer.gd / src/entities/player/Player.gd**
+
+- Added `PlayerSlotHudRenderer.gd` for active/normal/out-of-ammo slot panel styling, slot ammo text, and ammo warning colors.
+- `Player.gd` now delegates `_refresh_slot_hud()` while keeping `WeaponSlotManager` ownership, slot signal wiring, reload-progress override text, weapon icon loading/fallbacks, player state, combat, movement, artifact behavior, and Sfx/Telemetry hooks.
+- The renderer receives weapon icons through an explicit `Callable` and does not read `AssetCatalog` or the scene tree.
+- Preserved slot labels, active-slot highlight, empty-slot behavior, out-of-ammo coloring, and `ItemDisplayFormatter` ammo text.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=60.9s, stage=2, recover=28, disengage=21.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=67.1s, stage=2, recover=167, disengage=20.
+
+---
+
 ## v1.11.14-dev — 2026-05-23
 
 **Player HUD/status builder continuation**

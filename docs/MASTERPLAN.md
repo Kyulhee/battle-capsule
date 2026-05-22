@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-23 (v1.11.14 Player HUD/status builder continuation)
+> Last updated: 2026-05-23 (v1.11.15 Player slot HUD renderer)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.15 — Player slot display state boundary review.
+**Next structural slice**: v1.11.16 — Player weapon icon resolver boundary review.
 
-**Latest completed slice**: v1.11.14 — Player HUD/status builder continuation.
+**Latest completed slice**: v1.11.15 — Player slot HUD renderer.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -368,6 +368,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Do not move combat or perception behavior just to reduce line count.
    - Player HUD first pass complete: `src/ui/player/PlayerHudBuilder.gd` owns top HUD node construction/styling for zone, mission, pressure, flash, and kill feed nodes.
    - Player HUD/status continuation complete: `PlayerHudBuilder.gd` also owns health/shield/stat HUD, slot HUD node construction, and zone warning overlay construction. `Player.gd` still owns runtime HUD values, slot state styling updates, weapon icon loading, combat state, and player behavior.
+   - Player slot HUD renderer complete: `PlayerSlotHudRenderer.gd` owns active/empty/normal slot panel styling, slot ammo text, and slot ammo warning colors. `Player.gd` still owns `WeaponSlotManager`, weapon icon loading/fallbacks, and reload-progress overlay text.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -501,6 +502,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Preserve existing CanvasLayer child order for top HUD, status HUD, slot HUD, and zone warning overlay.
 - Do not move `_refresh_slot_hud()`, `_make_weapon_icon()`, shot heat, melee, occluder fade, heal regen, or artifact modifier logic in this slice.
 - Next Player slice should review slot display state styling/icon ownership separately because it touches asset catalog lookups and inventory state.
+
+### v1.11.15 — Player Slot HUD Renderer `S`
+
+**Summary**: Move slot display state rendering out of `Player.gd` while keeping inventory and icon ownership stable.
+
+- Add `src/ui/player/PlayerSlotHudRenderer.gd` for active/normal/empty slot panel styles, slot ammo text, and ammo warning colors.
+- Keep `Player.gd` as the owner of `WeaponSlotManager`, slot signal wiring, slot state changes, reload-progress HUD override, weapon icon loading/fallback generation, combat, movement, artifact behavior, and Sfx/Telemetry hooks.
+- Pass icon lookup through an explicit `Callable` so the renderer does not read `AssetCatalog` or the scene tree.
+- Preserve existing slot labels, active-slot highlight, out-of-ammo coloring, empty-slot behavior, and `ItemDisplayFormatter` ammo text.
+- Next Player slice should review `_make_weapon_icon()` / `_load_catalog_icon()` as a separate icon resolver boundary.
 
 **v1.11 completion gate**
 

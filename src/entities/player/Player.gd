@@ -68,6 +68,7 @@ const PICKUP_SCN = preload("res://src/entities/pickup/Pickup.tscn")
 const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const ItemDisplayFormatterScript = preload("res://src/core/ItemDisplayFormatter.gd")
 const PlayerHudBuilderScript = preload("res://src/ui/player/PlayerHudBuilder.gd")
+const PlayerSlotHudRendererScript = preload("res://src/ui/player/PlayerSlotHudRenderer.gd")
 const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
@@ -552,55 +553,13 @@ func _melee_attack():
 			if Sfx: Sfx.play("hit", hit_pos)
 
 func _refresh_slot_hud():
-	if slot_panels.is_empty(): return
-	var active_style = StyleBoxFlat.new()
-	active_style.bg_color = Color(0.25, 0.25, 0.25, 0.9)
-	active_style.border_color = Color.WHITE
-	active_style.set_border_width_all(2)
-	active_style.set_corner_radius_all(4)
-
-	var normal_style = StyleBoxFlat.new()
-	normal_style.bg_color = Color(0.12, 0.12, 0.12, 0.8)
-	normal_style.set_corner_radius_all(4)
-
-	var empty_style = StyleBoxFlat.new()
-	empty_style.bg_color = Color(0.25, 0.05, 0.05, 0.85)
-	empty_style.set_corner_radius_all(4)
-
-	for i in range(5):
-		var panel = slot_panels[i]
-		var out_of_ammo = (i >= 1) and slots.weapon_slots[i] != null and slots.slot_ammo[i] <= 0 and slots.slot_reserve[i] <= 0
-
-		if i == slots.active_slot:
-			panel.add_theme_stylebox_override("panel", active_style)
-		elif out_of_ammo:
-			panel.add_theme_stylebox_override("panel", empty_style)
-		else:
-			panel.add_theme_stylebox_override("panel", normal_style)
-
-		if not slot_icon_rects.is_empty():
-			if i == 0:
-				slot_icon_rects[i].texture = _make_weapon_icon("knife")
-			elif slots.weapon_slots[i] == null:
-				slot_icon_rects[i].texture = _make_weapon_icon("")
-			else:
-				slot_icon_rects[i].texture = _make_weapon_icon(slots.weapon_slots[i].weapon_type)
-		if i == 0:
-			slot_ammo_labels[i].text = ""
-			slot_ammo_labels[i].modulate = Color.WHITE
-		elif slots.weapon_slots[i] == null:
-			slot_ammo_labels[i].text = ""
-		else:
-			var ammo  = slots.slot_ammo[i]
-			var max_a = slots.weapon_slots[i].max_ammo
-			var res   = slots.slot_reserve[i]
-			slot_ammo_labels[i].text = ItemDisplayFormatterScript.slot_ammo_text(ammo, max_a, res)
-			if ammo <= 0 and res <= 0:
-				slot_ammo_labels[i].modulate = Color.RED
-			elif ammo <= max_a / 4:
-				slot_ammo_labels[i].modulate = Color.YELLOW
-			else:
-				slot_ammo_labels[i].modulate = Color.WHITE
+	PlayerSlotHudRendererScript.refresh(
+		slot_panels,
+		slot_icon_rects,
+		slot_ammo_labels,
+		slots,
+		Callable(self, "_make_weapon_icon")
+	)
 
 func _load_catalog_icon(icon_id: String) -> Texture2D:
 	if _catalog_icon_cache.has(icon_id):

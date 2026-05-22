@@ -22,6 +22,7 @@
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 | PlayerHudBuilder | Player HUD node/style construction | `Player.gd` | static UI builder |
+| PlayerSlotHudRenderer | Player slot panel/ammo display refresh | `Player.gd` | static UI renderer |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
@@ -170,6 +171,13 @@
 - **역할**: zone timer, mission HUD, pressure HUD, mission/pressure flash panel, kill feed container, health/shield/stat HUD, slot HUD nodes, and zone warning overlay construction/styling.
 - **소유하지 않는 것**: HUD text/value updates, mission/pressure state reads, kill feed message population, slot selection/ammo styling updates, weapon icon loading/fallbacks, player combat/movement/state.
 - **수정 영향**: Player HUD position/style/z-order를 바꾸면 `Player.gd` `_process()` label updates, `_update_status_hud()`, `_refresh_slot_hud()`, `show_pressure_flash()`, kill feed path, and zone warning alpha update를 함께 확인.
+
+### `src/ui/player/PlayerSlotHudRenderer.gd`
+- **읽는 파일**: `ItemDisplayFormatter.gd`. 직접 scene lookup 없음.
+- **호출자**: `Player.gd` `_refresh_slot_hud()`.
+- **역할**: slot active/normal/out-of-ammo panel styling, slot ammo text formatting, ammo warning color application, and slot icon texture assignment via caller-provided icon `Callable`.
+- **소유하지 않는 것**: `WeaponSlotManager` state, slot switching/reload behavior, reload-progress override text, AssetCatalog icon lookup, procedural weapon icon fallback, combat state.
+- **수정 영향**: slot highlight, ammo color, or ammo text behavior를 바꾸면 `Player.gd` `_refresh_slot_hud()` call path, reload-progress HUD override, `WeaponSlotManager` arrays, and `ItemDisplayFormatter.gd`를 함께 확인.
 
 ### `src/ui/DifficultySelectorBuilder.gd`
 - **읽는 파일**: `DifficultyCatalog.gd`.
@@ -344,6 +352,7 @@
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
 | Player HUD layout/style | `src/ui/player/PlayerHudBuilder.gd` | `Player.gd` HUD references, mission/pressure label updates, status updates, slot refresh, flash tween, kill feed population, zone warning alpha update |
+| Player slot display state | `src/ui/player/PlayerSlotHudRenderer.gd` | `Player.gd` slot arrays, `_make_weapon_icon()`, reload-progress HUD override, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd` |
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |
