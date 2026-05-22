@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-23 (v1.11.12 Mission subsystem closure review)
+> Last updated: 2026-05-23 (v1.11.13 Player HUD builder first pass)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.13 — Player entity data-boundary first pass.
+**Next structural slice**: v1.11.14 — Player HUD/status boundary continuation.
 
-**Latest completed slice**: v1.11.12 — Mission subsystem closure review.
+**Latest completed slice**: v1.11.13 — Player HUD builder first pass.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -366,6 +366,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 5. Entity vertical slices.
    - Split `Player.gd`/`Bot.gd` tuning by behavior domain only when a concrete data owner is clear.
    - Do not move combat or perception behavior just to reduce line count.
+   - Player HUD first pass complete: `src/ui/player/PlayerHudBuilder.gd` owns top HUD node construction/styling for zone, mission, pressure, flash, and kill feed nodes. `Player.gd` still owns runtime HUD values, health/slot UI, combat state, and player behavior.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -479,6 +480,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Mark as split owners: `MissionCatalog.gd`, `MissionHudFormatter.gd`, `MissionEvaluator.gd`, `PressureConditionEvaluator.gd`, and `MissionBadgeStore.gd`.
 - No runtime code, mission behavior, pressure behavior, or Telemetry schema changes in this closure slice.
 - Next v1.11 work should move to entity vertical slices, starting with Player-owned values and UI/combat display boundaries.
+
+### v1.11.13 — Player HUD Builder First Pass `S`
+
+**Summary**: Start entity vertical slices by moving low-risk top HUD construction out of `Player.gd`.
+
+- Add `src/ui/player/PlayerHudBuilder.gd` for zone timer, mission HUD label, pressure HUD label, mission/pressure flash panel, and kill feed node construction/styling.
+- Keep `Player.gd` as the owner of player state, HUD value updates, health/shield UI, weapon slot UI, pickup focus, combat, movement, artifact application, and Sfx/Telemetry hooks.
+- Preserve the existing CanvasLayer child order for the extracted nodes so top HUD z-order and runtime label behavior remain unchanged.
+- Do not move shot heat, melee, occluder fade, heal regen, slot HUD, or combat tuning in this slice.
+- Next Player slice should continue with another concrete UI/data boundary before touching combat constants.
 
 **v1.11 completion gate**
 

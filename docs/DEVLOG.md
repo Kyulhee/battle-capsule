@@ -1,8 +1,28 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-22. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
+> Last updated: 2026-05-23. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
 
 The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md). Do not load it by default.
+
+---
+
+## v1.11.13-dev — 2026-05-23
+
+**Player HUD builder first pass**
+
+**src/ui/player/PlayerHudBuilder.gd / src/entities/player/Player.gd**
+
+- Added `PlayerHudBuilder.gd` for Player top HUD node construction/styling.
+- Moved zone timer, mission HUD, pressure HUD, mission/pressure flash panel, and kill feed container creation out of `Player.gd`.
+- Kept `Player.gd` as the owner of HUD value updates, flash/kill feed population, health/shield/stat/slot HUD, player state, combat, movement, artifact behavior, and Sfx/Telemetry hooks.
+- Preserved existing top HUD node order and did not change mission/pressure text, Telemetry schema, combat constants, or slot behavior.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=79.2s, stage=3, recover=44, disengage=14.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=70.4s, stage=3, recover=134, disengage=19.
 
 ---
 

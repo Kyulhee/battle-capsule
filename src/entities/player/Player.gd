@@ -67,6 +67,7 @@ const PISTOL_STATS = preload("res://src/core/pistol_stats.tres")
 const PICKUP_SCN = preload("res://src/entities/pickup/Pickup.tscn")
 const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const ItemDisplayFormatterScript = preload("res://src/core/ItemDisplayFormatter.gd")
+const PlayerHudBuilderScript = preload("res://src/ui/player/PlayerHudBuilder.gd")
 const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
@@ -101,80 +102,13 @@ func _ready():
 	super._ready()
 	_apply_cosmetic_tint()
 
-	# Zone timer (B구역 — top-center)
-	zone_timer_label = Label.new()
-	zone_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	zone_timer_label.add_theme_font_size_override("font_size", 26)
-	zone_timer_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	zone_timer_label.add_theme_constant_override("outline_size", 8)
-	var zone_panel = PanelContainer.new()
-	$CanvasLayer/Control.add_child(zone_panel)
-	zone_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	zone_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	zone_panel.position.y += 6
-	var ps = StyleBoxFlat.new()
-	ps.bg_color = Color(0.0, 0.0, 0.0, 0.55)
-	ps.set_corner_radius_all(6)
-	ps.content_margin_left = 14; ps.content_margin_right = 14
-	ps.content_margin_top = 4;   ps.content_margin_bottom = 4
-	zone_panel.add_theme_stylebox_override("panel", ps)
-	zone_panel.add_child(zone_timer_label)
-
-	# Mission HUD (below zone timer)
-	mission_hud_label = Label.new()
-	mission_hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	mission_hud_label.add_theme_font_size_override("font_size", 15)
-	mission_hud_label.add_theme_color_override("font_color", Color(1.0, 0.88, 0.3))
-	mission_hud_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	mission_hud_label.add_theme_constant_override("outline_size", 6)
-	mission_hud_label.visible = false
-	$CanvasLayer/Control.add_child(mission_hud_label)
-	mission_hud_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	mission_hud_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	mission_hud_label.position.y += 46
-
-	# Pressure Mission HUD (center-top, urgent style)
-	pressure_hud_label = Label.new()
-	pressure_hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pressure_hud_label.add_theme_font_size_override("font_size", 15)
-	pressure_hud_label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.1))
-	pressure_hud_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	pressure_hud_label.add_theme_constant_override("outline_size", 8)
-	pressure_hud_label.visible = false
-	$CanvasLayer/Control.add_child(pressure_hud_label)
-	pressure_hud_label.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	pressure_hud_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	pressure_hud_label.position.y += 96
-
-	# Pressure / mission flash message (center screen)
-	_flash_panel = PanelContainer.new()
-	_flash_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	_flash_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_flash_panel.grow_vertical = Control.GROW_DIRECTION_END
-	_flash_panel.position.y += 110
-	var flash_style = StyleBoxFlat.new()
-	flash_style.bg_color = Color(0.05, 0.05, 0.05, 0.78)
-	flash_style.set_corner_radius_all(6)
-	flash_style.content_margin_left = 18; flash_style.content_margin_right = 18
-	flash_style.content_margin_top = 7;   flash_style.content_margin_bottom = 7
-	_flash_panel.add_theme_stylebox_override("panel", flash_style)
-	_flash_label = Label.new()
-	_flash_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_flash_label.add_theme_font_size_override("font_size", 16)
-	_flash_label.add_theme_color_override("font_outline_color", Color.BLACK)
-	_flash_label.add_theme_constant_override("outline_size", 6)
-	_flash_panel.add_child(_flash_label)
-	_flash_panel.modulate.a = 0.0
-	$CanvasLayer/Control.add_child(_flash_panel)
-
-	# Kill feed (top-right)
-	kill_feed_container = VBoxContainer.new()
-	$CanvasLayer/Control.add_child(kill_feed_container)
-	kill_feed_container.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-	kill_feed_container.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	kill_feed_container.position.x -= 220
-	kill_feed_container.position.y += 280
-	kill_feed_container.custom_minimum_size = Vector2(200, 0)
+	var top_hud = PlayerHudBuilderScript.build_top_hud($CanvasLayer/Control)
+	zone_timer_label = top_hud["zone_timer_label"] as Label
+	mission_hud_label = top_hud["mission_hud_label"] as Label
+	pressure_hud_label = top_hud["pressure_hud_label"] as Label
+	_flash_panel = top_hud["flash_panel"] as PanelContainer
+	_flash_label = top_hud["flash_label"] as Label
+	kill_feed_container = top_hud["kill_feed_container"] as VBoxContainer
 
 	if hud_label: hud_label.visible = false
 	var hud_a = VBoxContainer.new()

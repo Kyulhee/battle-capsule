@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.11-dev / 마지막 검증: 2026-05-22
+> 기준 버전: v1.11-dev / 마지막 검증: 2026-05-23
 
 ---
 
@@ -21,6 +21,7 @@
 | ItemResourceCatalog | default loot resources and pickup scene | `Main.gd` | static catalog |
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
+| PlayerHudBuilder | Player top HUD node/style construction | `Player.gd` | static UI builder |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
@@ -162,6 +163,13 @@
 - **읽는 파일**: 직접 scene 참조 없음.
 - **호출자**: `Pickup.gd` label name/detail, `Player.gd` slot ammo and reload-progress HUD text.
 - **역할**: pickup detail과 HUD ammo 문자열을 `ItemData`, `StatsData`, `WeaponSlotManager` slot state에서 받은 값으로 생성한다. 포맷 변경은 이 helper에서 시작하고, collection/inventory 동작은 건드리지 않는다.
+
+### `src/ui/player/PlayerHudBuilder.gd`
+- **읽는 파일**: 직접 scene lookup 없음. `Player.gd`가 `$CanvasLayer/Control` root를 넘김.
+- **호출자**: `Player.gd` `_ready()`.
+- **역할**: zone timer, mission HUD, pressure HUD, mission/pressure flash panel, and kill feed container node construction/styling.
+- **소유하지 않는 것**: HUD text/value updates, mission/pressure state reads, kill feed message population, health/shield/stat/slot HUD, player combat/movement/state.
+- **수정 영향**: top HUD position/style/z-order를 바꾸면 `Player.gd` `_process()` label updates, `show_pressure_flash()`, and kill feed path를 함께 확인.
 
 ### `src/ui/DifficultySelectorBuilder.gd`
 - **읽는 파일**: `DifficultyCatalog.gd`.
@@ -335,6 +343,7 @@
 | 난이도 파라미터 | `data/game_config.json`, `GameConfig.gd` | `Main.gd` `_get_difficulty_params()`, `Bot.gd` configure path |
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
+| Player top HUD layout/style | `src/ui/player/PlayerHudBuilder.gd` | `Player.gd` top HUD references, mission/pressure label updates, flash tween, kill feed population |
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |
