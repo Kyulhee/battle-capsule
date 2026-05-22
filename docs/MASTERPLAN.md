@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-23 (v1.11.16 Player weapon icon resolver)
+> Last updated: 2026-05-23 (v1.11.17 Player tuning constants boundary)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.17 — Player remaining value-boundary audit.
+**Next structural slice**: v1.11.18 — Player occluder fade helper review.
 
-**Latest completed slice**: v1.11.16 — Player weapon icon resolver.
+**Latest completed slice**: v1.11.17 — Player tuning constants boundary.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -370,6 +370,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Player HUD/status continuation complete: `PlayerHudBuilder.gd` also owns health/shield/stat HUD, slot HUD node construction, and zone warning overlay construction. `Player.gd` still owns runtime HUD values, slot state styling updates, weapon icon loading, combat state, and player behavior.
    - Player slot HUD renderer complete: `PlayerSlotHudRenderer.gd` owns active/empty/normal slot panel styling, slot ammo text, and slot ammo warning colors. `Player.gd` still owns `WeaponSlotManager`, weapon icon loading/fallbacks, and reload-progress overlay text.
    - Player weapon icon resolver complete: `PlayerWeaponIconResolver.gd` owns weapon HUD icon cache, AssetCatalog icon path loading, and procedural fallback icon generation. `Player.gd` still owns scene-tree catalog lookup and passes the catalog explicitly.
+   - Player tuning constants boundary complete: `PlayerTuning.gd` owns footstep, heal regen, shot heat/spread, melee, and occluder fade numeric constants. `Player.gd` still owns algorithms and runtime state.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -523,6 +524,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Keep `PlayerSlotHudRenderer.gd` as the owner of slot style/ammo display state, and keep `WeaponSlotManager` ownership and slot behavior in `Player.gd`.
 - Preserve weapon icon ids, fallback shapes/colors, slot HUD icon behavior, and existing missing-asset fallback behavior.
 - Do not move reload-progress HUD override text, shot heat, melee, occluder fade, heal regen, or artifact modifier logic in this slice.
+
+### v1.11.17 — Player Tuning Constants Boundary `S`
+
+**Summary**: Move Player-owned numeric tuning constants out of `Player.gd` without changing algorithms.
+
+- Add `src/entities/player/PlayerTuning.gd` for footstep interval, heal regen rate, shot heat/spread tuning, melee tuning, and occluder fade tuning constants.
+- Keep `Player.gd` as the owner of movement/combat/heal/occluder algorithms, runtime state, artifact modifiers, slot state, and HUD value updates.
+- Preserve all current numeric values exactly.
+- Do not introduce JSON loading in this slice; this is a local code-owner boundary before any data-file migration.
+- Next Player slice should review the occluder fade algorithm as a separate helper candidate because it is self-contained but larger than a simple constants move.
 
 **v1.11 completion gate**
 

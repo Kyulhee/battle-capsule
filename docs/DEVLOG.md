@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.17-dev — 2026-05-23
+
+**Player tuning constants boundary**
+
+**src/entities/player/PlayerTuning.gd / src/entities/player/Player.gd**
+
+- Added `PlayerTuning.gd` for footstep interval, heal regen rate, shot heat/spread tuning, melee tuning, and occluder fade tuning constants.
+- `Player.gd` now references the tuning owner while keeping movement/combat/heal/occluder algorithms, runtime state, artifact modifiers, slot state, and HUD value updates.
+- Preserved all current numeric values exactly and did not introduce JSON loading in this slice.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=97.7s, stage=4, recover=30, disengage=20.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=88.0s, stage=3, recover=57, disengage=20.
+
+---
+
 ## v1.11.16-dev — 2026-05-23
 
 **Player weapon icon resolver**

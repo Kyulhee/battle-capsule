@@ -24,6 +24,7 @@
 | PlayerHudBuilder | Player HUD node/style construction | `Player.gd` | static UI builder |
 | PlayerSlotHudRenderer | Player slot panel/ammo display refresh | `Player.gd` | static UI renderer |
 | PlayerWeaponIconResolver | Player weapon HUD icon cache/loading/fallbacks | `Player.gd` | RefCounted UI resolver |
+| PlayerTuning | Player movement/combat/heal/occluder tuning constants | `Player.gd` | static tuning constants |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
@@ -186,6 +187,13 @@
 - **역할**: weapon HUD icon cache, AssetCatalog path loading, image-file fallback loading, and procedural pixel fallback icon generation.
 - **소유하지 않는 것**: scene-tree lookup, slot state/style, ammo text, weapon inventory behavior, asset catalog data ownership.
 - **수정 영향**: weapon HUD icon id, fallback color/shape, or icon loading behavior를 바꾸면 `data/asset_catalog.json`, selected assets under `assets/`, `PlayerSlotHudRenderer.gd`, and slot HUD visual verification을 함께 확인.
+
+### `src/entities/player/PlayerTuning.gd`
+- **읽는 파일**: 직접 scene lookup 없음.
+- **호출자**: `Player.gd`.
+- **역할**: footstep interval, heal regen rate, shot heat/spread constants, melee constants, and occluder fade constants.
+- **소유하지 않는 것**: movement/combat/heal/occluder algorithms, artifact modifier application, runtime state, data-file loading.
+- **수정 영향**: Player tuning value를 바꾸면 movement/fire/melee/heal/occluder behavior, normal/Hell simulations, and relevant player visual checks를 함께 확인.
 
 ### `src/ui/DifficultySelectorBuilder.gd`
 - **읽는 파일**: `DifficultyCatalog.gd`.
@@ -362,6 +370,7 @@
 | Player HUD layout/style | `src/ui/player/PlayerHudBuilder.gd` | `Player.gd` HUD references, mission/pressure label updates, status updates, slot refresh, flash tween, kill feed population, zone warning alpha update |
 | Player slot display state | `src/ui/player/PlayerSlotHudRenderer.gd` | `Player.gd` slot arrays, `PlayerWeaponIconResolver.gd`, reload-progress HUD override, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd` |
 | Player weapon HUD icons | `src/ui/player/PlayerWeaponIconResolver.gd` | `Player.gd` asset catalog pass-through, `data/asset_catalog.json`, selected icon assets, `PlayerSlotHudRenderer.gd` |
+| Player tuning constants | `src/entities/player/PlayerTuning.gd` | `Player.gd` movement/combat/heal/occluder algorithms, simulations |
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |

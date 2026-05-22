@@ -7,7 +7,6 @@ extends Entity
 var fire_cooldown: float = 0.0
 var is_crouching: bool = false
 var footstep_timer: float = 0.0
-const FOOTSTEP_INTERVAL: float = 0.38
 var _mesh_origin_y: float = 0.0
 
 @onready var interaction_area = $InteractionArea
@@ -27,14 +26,7 @@ var _zone_warning_style: StyleBoxFlat = null
 var _zone_warning_pulse: float = 0.0
 
 var _occluder_fade_states: Dictionary = {}
-const OCCLUDER_FADE_ALPHA: float = 0.35
-const OCCLUDER_FADE_LINGER: float = 0.22
-const OCCLUDER_FADE_IN_SPEED: float = 18.0
-const OCCLUDER_FADE_OUT_SPEED: float = 8.0
-const OCCLUDER_RAY_STEP: float = 0.16
-const OCCLUDER_MAX_RAY_HITS: int = 8
 var _heal_regen: float = 0.0
-const HEAL_REGEN_RATE: float = 10.0
 
 # ── Artifact System ──────────────────────────────────────────────────────────
 var active_artifact: Dictionary = {}
@@ -52,12 +44,6 @@ var _artifact_label: Label = null
 
 # ── Shot Heat (AR / Pistol spread heat-up) ──────────────────────────────────
 var _shot_heat: float = 0.0
-const HEAT_MAX: float = 1.0
-const HEAT_PER_SHOT_AR: float = 0.30
-const HEAT_PER_SHOT_PISTOL: float = 0.20
-const HEAT_DECAY: float = 0.55
-const BASE_SPREAD_AR: float = 0.5
-const BASE_SPREAD_PISTOL: float = 0.25
 
 const MUZZLE_FLASH_SCN = preload("res://src/fx/MuzzleFlash.tscn")
 const IMPACT_EFFECT_SCN = preload("res://src/fx/ImpactEffect.tscn")
@@ -70,13 +56,11 @@ const ItemDisplayFormatterScript = preload("res://src/core/ItemDisplayFormatter.
 const PlayerHudBuilderScript = preload("res://src/ui/player/PlayerHudBuilder.gd")
 const PlayerSlotHudRendererScript = preload("res://src/ui/player/PlayerSlotHudRenderer.gd")
 const PlayerWeaponIconResolverScript = preload("res://src/ui/player/PlayerWeaponIconResolver.gd")
+const PlayerTuningScript = preload("res://src/entities/player/PlayerTuning.gd")
 const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
 # slot 0 = knife (melee, always available), slots 1-4 = ranged weapons
-const MELEE_RANGE: float = 1.8
-const MELEE_DAMAGE: float = 14.0
-const MELEE_RATE: float = 0.55
 
 var _hp_bar:        ProgressBar  = null
 var _sh_bar:        ProgressBar  = null
@@ -190,9 +174,9 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 func _physics_process(delta):
 	if is_dead: return
 	if fire_cooldown > 0: fire_cooldown -= delta
-	if _shot_heat > 0.0: _shot_heat = maxf(0.0, _shot_heat - HEAT_DECAY * delta)
+	if _shot_heat > 0.0: _shot_heat = maxf(0.0, _shot_heat - PlayerTuningScript.HEAT_DECAY * delta)
 	if _heal_regen > 0:
-		var tick = min(HEAL_REGEN_RATE * delta, min(_heal_regen, stats.max_health - current_health))
+		var tick = min(PlayerTuningScript.HEAL_REGEN_RATE * delta, min(_heal_regen, stats.max_health - current_health))
 		if tick > 0:
 			current_health += tick
 			_heal_regen -= tick
@@ -227,7 +211,7 @@ func _physics_process(delta):
 	if is_on_floor() and Vector2(velocity.x, velocity.z).length() > 1.0:
 		footstep_timer -= delta
 		if footstep_timer <= 0:
-			footstep_timer = FOOTSTEP_INTERVAL
+			footstep_timer = PlayerTuningScript.FOOTSTEP_INTERVAL
 			if Sfx and Sfx.has_method("play_footstep"):
 				Sfx.play_footstep(_current_surface_id(), global_position)
 			elif Sfx:
@@ -538,9 +522,9 @@ func _notify_mission_tracker_fire(weapon_type: String):
 func _melee_attack():
 	reveal()
 	_notify_mission_tracker_fire("knife")
-	fire_cooldown = MELEE_RATE
+	fire_cooldown = PlayerTuningScript.MELEE_RATE
 	if Sfx: Sfx.play("melee")
-	ray_cast.target_position = Vector3(0, 0, -MELEE_RANGE)
+	ray_cast.target_position = Vector3(0, 0, -PlayerTuningScript.MELEE_RANGE)
 	ray_cast.force_raycast_update()
 	if ray_cast.is_colliding():
 		var hit_pos = ray_cast.get_collision_point()
@@ -550,7 +534,7 @@ func _melee_attack():
 		var target = ray_cast.get_collider()
 		if target.has_method("take_damage"):
 			var melee_mult = _artifact_mods.get("melee_damage_mult", _artifact_mods.get("damage_mult", 1.0))
-			target.take_damage(MELEE_DAMAGE * melee_mult, "melee", "knife", self)
+			target.take_damage(PlayerTuningScript.MELEE_DAMAGE * melee_mult, "melee", "knife", self)
 			if Sfx: Sfx.play("hit", hit_pos)
 
 func _refresh_slot_hud():
@@ -608,7 +592,7 @@ func _trace_occluders(space_state: PhysicsDirectSpaceState3D, ray_start: Vector3
 	var dir = ray_delta.normalized()
 	var ray_from = ray_start
 	var exclude: Array = [self]
-	for _i in range(OCCLUDER_MAX_RAY_HITS):
+	for _i in range(PlayerTuningScript.OCCLUDER_MAX_RAY_HITS):
 		var query = PhysicsRayQueryParameters3D.create(ray_from, target_pos)
 		query.exclude = exclude
 		query.collision_mask = 1
@@ -619,8 +603,8 @@ func _trace_occluders(space_state: PhysicsDirectSpaceState3D, ray_start: Vector3
 			active_meshes[mesh] = true
 		if collider is CollisionObject3D:
 			exclude.append(collider)
-		ray_from = result["position"] + dir * OCCLUDER_RAY_STEP
-		if ray_from.distance_squared_to(target_pos) <= OCCLUDER_RAY_STEP * OCCLUDER_RAY_STEP:
+		ray_from = result["position"] + dir * PlayerTuningScript.OCCLUDER_RAY_STEP
+		if ray_from.distance_squared_to(target_pos) <= PlayerTuningScript.OCCLUDER_RAY_STEP * PlayerTuningScript.OCCLUDER_RAY_STEP:
 			break
 
 func _get_occluder_meshes(collider) -> Array:
@@ -650,7 +634,7 @@ func _update_occluder_fades(active_meshes: Dictionary, delta: float):
 		var state = _get_or_create_occluder_state(mesh)
 		if state.is_empty():
 			continue
-		state["linger"] = OCCLUDER_FADE_LINGER
+		state["linger"] = PlayerTuningScript.OCCLUDER_FADE_LINGER
 		_occluder_fade_states[mesh] = state
 
 	var to_restore: Array = []
@@ -665,9 +649,9 @@ func _update_occluder_fades(active_meshes: Dictionary, delta: float):
 			state["linger"] = maxf(0.0, float(state.get("linger", 0.0)) - delta)
 
 		var original_alpha = float(state.get("original_alpha", 1.0))
-		var target_alpha = OCCLUDER_FADE_ALPHA if active or float(state.get("linger", 0.0)) > 0.0 else original_alpha
+		var target_alpha = PlayerTuningScript.OCCLUDER_FADE_ALPHA if active or float(state.get("linger", 0.0)) > 0.0 else original_alpha
 		var current_alpha = float(state.get("alpha", original_alpha))
-		var speed = OCCLUDER_FADE_IN_SPEED if target_alpha < current_alpha else OCCLUDER_FADE_OUT_SPEED
+		var speed = PlayerTuningScript.OCCLUDER_FADE_IN_SPEED if target_alpha < current_alpha else PlayerTuningScript.OCCLUDER_FADE_OUT_SPEED
 		var next_alpha = lerpf(current_alpha, target_alpha, minf(1.0, speed * delta))
 
 		state["alpha"] = next_alpha
@@ -889,8 +873,9 @@ func _shoot_with_slot(slot: int):
 		shot_vec.y = randf_range(-s * 0.25, s * 0.25)
 	elif wdata.weapon_type == "ar" or wdata.weapon_type == "pistol":
 		var is_ar = wdata.weapon_type == "ar"
-		_shot_heat = minf(HEAT_MAX, _shot_heat + (HEAT_PER_SHOT_AR if is_ar else HEAT_PER_SHOT_PISTOL))
-		var base = BASE_SPREAD_AR if is_ar else BASE_SPREAD_PISTOL
+		var heat_gain = PlayerTuningScript.HEAT_PER_SHOT_AR if is_ar else PlayerTuningScript.HEAT_PER_SHOT_PISTOL
+		_shot_heat = minf(PlayerTuningScript.HEAT_MAX, _shot_heat + heat_gain)
+		var base = PlayerTuningScript.BASE_SPREAD_AR if is_ar else PlayerTuningScript.BASE_SPREAD_PISTOL
 		var heat_spread = base + _shot_heat * (3.5 if is_ar else 2.3)
 		shot_vec.x = randf_range(-heat_spread, heat_spread)
 		shot_vec.y = randf_range(-heat_spread * 0.15, heat_spread * 0.15)
