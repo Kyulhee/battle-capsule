@@ -23,6 +23,7 @@
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 | PlayerHudBuilder | Player HUD node/style construction | `Player.gd` | static UI builder |
 | PlayerSlotHudRenderer | Player slot panel/ammo display refresh | `Player.gd` | static UI renderer |
+| PlayerWeaponIconResolver | Player weapon HUD icon cache/loading/fallbacks | `Player.gd` | RefCounted UI resolver |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
@@ -177,7 +178,14 @@
 - **호출자**: `Player.gd` `_refresh_slot_hud()`.
 - **역할**: slot active/normal/out-of-ammo panel styling, slot ammo text formatting, ammo warning color application, and slot icon texture assignment via caller-provided icon `Callable`.
 - **소유하지 않는 것**: `WeaponSlotManager` state, slot switching/reload behavior, reload-progress override text, AssetCatalog icon lookup, procedural weapon icon fallback, combat state.
-- **수정 영향**: slot highlight, ammo color, or ammo text behavior를 바꾸면 `Player.gd` `_refresh_slot_hud()` call path, reload-progress HUD override, `WeaponSlotManager` arrays, and `ItemDisplayFormatter.gd`를 함께 확인.
+- **수정 영향**: slot highlight, ammo color, or ammo text behavior를 바꾸면 `Player.gd` `_refresh_slot_hud()` call path, reload-progress HUD override, `WeaponSlotManager` arrays, `PlayerWeaponIconResolver.gd`, and `ItemDisplayFormatter.gd`를 함께 확인.
+
+### `src/ui/player/PlayerWeaponIconResolver.gd`
+- **읽는 파일**: caller가 넘긴 `AssetCatalog`-compatible object only. 직접 scene lookup 없음.
+- **호출자**: `Player.gd` `_refresh_slot_hud()`가 `PlayerSlotHudRenderer.gd`에 넘기는 icon `Callable`.
+- **역할**: weapon HUD icon cache, AssetCatalog path loading, image-file fallback loading, and procedural pixel fallback icon generation.
+- **소유하지 않는 것**: scene-tree lookup, slot state/style, ammo text, weapon inventory behavior, asset catalog data ownership.
+- **수정 영향**: weapon HUD icon id, fallback color/shape, or icon loading behavior를 바꾸면 `data/asset_catalog.json`, selected assets under `assets/`, `PlayerSlotHudRenderer.gd`, and slot HUD visual verification을 함께 확인.
 
 ### `src/ui/DifficultySelectorBuilder.gd`
 - **읽는 파일**: `DifficultyCatalog.gd`.
@@ -352,7 +360,8 @@
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
 | Player HUD layout/style | `src/ui/player/PlayerHudBuilder.gd` | `Player.gd` HUD references, mission/pressure label updates, status updates, slot refresh, flash tween, kill feed population, zone warning alpha update |
-| Player slot display state | `src/ui/player/PlayerSlotHudRenderer.gd` | `Player.gd` slot arrays, `_make_weapon_icon()`, reload-progress HUD override, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd` |
+| Player slot display state | `src/ui/player/PlayerSlotHudRenderer.gd` | `Player.gd` slot arrays, `PlayerWeaponIconResolver.gd`, reload-progress HUD override, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd` |
+| Player weapon HUD icons | `src/ui/player/PlayerWeaponIconResolver.gd` | `Player.gd` asset catalog pass-through, `data/asset_catalog.json`, selected icon assets, `PlayerSlotHudRenderer.gd` |
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |

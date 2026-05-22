@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-23 (v1.11.15 Player slot HUD renderer)
+> Last updated: 2026-05-23 (v1.11.16 Player weapon icon resolver)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.16 — Player weapon icon resolver boundary review.
+**Next structural slice**: v1.11.17 — Player remaining value-boundary audit.
 
-**Latest completed slice**: v1.11.15 — Player slot HUD renderer.
+**Latest completed slice**: v1.11.16 — Player weapon icon resolver.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -369,6 +369,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Player HUD first pass complete: `src/ui/player/PlayerHudBuilder.gd` owns top HUD node construction/styling for zone, mission, pressure, flash, and kill feed nodes.
    - Player HUD/status continuation complete: `PlayerHudBuilder.gd` also owns health/shield/stat HUD, slot HUD node construction, and zone warning overlay construction. `Player.gd` still owns runtime HUD values, slot state styling updates, weapon icon loading, combat state, and player behavior.
    - Player slot HUD renderer complete: `PlayerSlotHudRenderer.gd` owns active/empty/normal slot panel styling, slot ammo text, and slot ammo warning colors. `Player.gd` still owns `WeaponSlotManager`, weapon icon loading/fallbacks, and reload-progress overlay text.
+   - Player weapon icon resolver complete: `PlayerWeaponIconResolver.gd` owns weapon HUD icon cache, AssetCatalog icon path loading, and procedural fallback icon generation. `Player.gd` still owns scene-tree catalog lookup and passes the catalog explicitly.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -512,6 +513,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Pass icon lookup through an explicit `Callable` so the renderer does not read `AssetCatalog` or the scene tree.
 - Preserve existing slot labels, active-slot highlight, out-of-ammo coloring, empty-slot behavior, and `ItemDisplayFormatter` ammo text.
 - Next Player slice should review `_make_weapon_icon()` / `_load_catalog_icon()` as a separate icon resolver boundary.
+
+### v1.11.16 — Player Weapon Icon Resolver `S`
+
+**Summary**: Move weapon HUD icon lookup/cache/fallback generation out of `Player.gd`.
+
+- Add `src/ui/player/PlayerWeaponIconResolver.gd` for weapon icon cache, AssetCatalog icon path loading, image-file fallback loading, and procedural pixel fallback generation.
+- Keep `Player.gd` as the owner of scene-tree access: it obtains `main.asset_catalog` and passes it explicitly to the resolver through the slot HUD renderer callback.
+- Keep `PlayerSlotHudRenderer.gd` as the owner of slot style/ammo display state, and keep `WeaponSlotManager` ownership and slot behavior in `Player.gd`.
+- Preserve weapon icon ids, fallback shapes/colors, slot HUD icon behavior, and existing missing-asset fallback behavior.
+- Do not move reload-progress HUD override text, shot heat, melee, occluder fade, heal regen, or artifact modifier logic in this slice.
 
 **v1.11 completion gate**
 

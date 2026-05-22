@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.16-dev — 2026-05-23
+
+**Player weapon icon resolver**
+
+**src/ui/player/PlayerWeaponIconResolver.gd / src/entities/player/Player.gd**
+
+- Added `PlayerWeaponIconResolver.gd` for weapon HUD icon cache, AssetCatalog path loading, image-file fallback loading, and procedural pixel fallback generation.
+- `Player.gd` now passes `main.asset_catalog` explicitly through the slot HUD renderer icon callback while keeping scene-tree lookup, `WeaponSlotManager` ownership, slot behavior, reload-progress override text, player state, combat, movement, and artifact behavior.
+- Preserved weapon icon ids, fallback shapes/colors, slot HUD icon behavior, and missing-asset fallback behavior.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=73.1s, stage=3, recover=15, disengage=15.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=70.3s, stage=3, recover=102, disengage=26.
+
+---
+
 ## v1.11.15-dev — 2026-05-23
 
 **Player slot HUD renderer**
