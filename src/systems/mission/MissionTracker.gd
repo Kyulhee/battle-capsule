@@ -2,10 +2,10 @@ extends RefCounted
 class_name MissionTracker
 
 const MissionCatalogScript = preload("res://src/systems/mission/MissionCatalog.gd")
+const MissionBadgeStoreScript = preload("res://src/systems/mission/MissionBadgeStore.gd")
 const MissionEvaluatorScript = preload("res://src/systems/mission/MissionEvaluator.gd")
 const MissionHudFormatterScript = preload("res://src/systems/mission/MissionHudFormatter.gd")
 const PressureConditionEvaluatorScript = preload("res://src/systems/mission/PressureConditionEvaluator.gd")
-const ACHIEVEMENTS_PATH = "user://achievements.json"
 
 # ── 보너스 미션 (기존 유지) ─────────────────────────────────────────────────
 var active_mission = null  # MissionData
@@ -286,29 +286,13 @@ func get_early_fail_status(tel: Node) -> bool:
 
 # ── 배지 저장 ─────────────────────────────────────────────────────────────
 func save_badge(mission_id: String):
-	var data = load_achievements()
-	if not data.has("badges"):
-		data["badges"] = []
-	if not mission_id in data["badges"]:
-		data["badges"].append(mission_id)
-	var f = FileAccess.open(ACHIEVEMENTS_PATH, FileAccess.WRITE)
-	if f:
-		f.store_string(JSON.stringify(data, "\t"))
-		f.close()
+	MissionBadgeStoreScript.save_badge(mission_id)
 
 func has_badge(mission_id: String) -> bool:
-	var data = load_achievements()
-	return data.get("badges", []).has(mission_id)
+	return MissionBadgeStoreScript.has_badge(mission_id)
 
 func load_achievements() -> Dictionary:
-	if not FileAccess.file_exists(ACHIEVEMENTS_PATH):
-		return {}
-	var f = FileAccess.open(ACHIEVEMENTS_PATH, FileAccess.READ)
-	if not f:
-		return {}
-	var result = JSON.parse_string(f.get_as_text())
-	f.close()
-	return result if result is Dictionary else {}
+	return MissionBadgeStoreScript.load_achievements()
 
 # ── 보너스 미션 목록 ─────────────────────────────────────────────────────
 static func get_all_missions() -> Array:

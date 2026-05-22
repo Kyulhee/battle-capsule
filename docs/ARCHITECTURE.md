@@ -65,6 +65,7 @@
 | `src/core/ItemDisplayFormatter.gd` | pickup detail 및 HUD ammo 문자열 포맷 | Pickup과 Player HUD가 실제 item/slot 값을 넘겨 사용 |
 | `src/core/DifficultyCatalog.gd` | 난이도 label/description/color 정의 | Main 메뉴와 Records가 같은 UI 데이터를 참조 |
 | `src/core/HelpCatalog.gd` | How to Play 섹션/행 데이터 정의 | `HelpPanelBuilder.gd`가 읽어 key/icon/desc 행으로 렌더 |
+| `src/systems/mission/MissionBadgeStore.gd` | 미션 achievement badge JSON read/write | MissionTracker public badge wrappers가 사용 |
 | `src/systems/mission/MissionCatalog.gd` | 보너스 미션 목록과 hard/Hell 압박 미션 descriptor pool | MissionTracker public static wrappers가 읽고, 평가는 MissionTracker가 수행 |
 | `src/systems/mission/MissionEvaluator.gd` | 보너스 미션 completion/early-fail 판정 | MissionTracker가 명시적 state context를 넘겨 사용 |
 | `src/systems/mission/MissionHudFormatter.gd` | 보너스/압박 미션 HUD 문자열 포맷 | MissionTracker가 mission/pressure state snapshot을 넘겨 사용 |
@@ -178,6 +179,8 @@ v1.11.8 기준 보너스 미션 completion/early-fail 판정은 `src/systems/mis
 v1.11.9 기준 `MissionTracker.gd`는 `src/core/`에서 `src/systems/mission/`으로 이동했다. `class_name MissionTracker`, public API, Main-owned `mission_tracker` instance, and runtime hooks are unchanged.
 
 v1.11.10 기준 압박 미션 descriptor feasibility와 condition completion 판정은 `src/systems/mission/PressureConditionEvaluator.gd`가 소유한다. `MissionTracker`는 `PressureCondition` ids, active pressure state, counters, hooks, deadline, instant-fail flag를 계속 소유한다.
+
+v1.11.11 기준 achievement badge JSON read/write는 `src/systems/mission/MissionBadgeStore.gd`가 소유한다. `MissionTracker`는 public `save_badge()` / `has_badge()` / `load_achievements()` wrappers를 유지한다.
 
 ---
 
@@ -332,7 +335,8 @@ Bot ──reads──► main.zone.current_center/radius/stage
 ZoneController ──calls──► entity.take_damage()      (duck-typed)
                ──calls──► mission_tracker.on_*()    (duck-typed)
 
-MissionTracker ──uses──► MissionCatalog descriptor pools + filter_feasible()
+MissionTracker ──uses──► MissionBadgeStore badge persistence
+               ──uses──► MissionCatalog descriptor pools + filter_feasible()
                ──uses──► MissionEvaluator bonus mission rules
                ──uses──► MissionHudFormatter mission/pressure HUD strings
                ──uses──► PressureConditionEvaluator pressure feasibility/completion

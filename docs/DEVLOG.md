@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.11-dev — 2026-05-23
+
+**Mission badge store first pass**
+
+**src/systems/mission/MissionBadgeStore.gd / src/systems/mission/MissionTracker.gd**
+
+- Added `MissionBadgeStore.gd` for `user://achievements.json` badge persistence.
+- `MissionTracker.gd` now delegates `save_badge()`, `has_badge()`, and `load_achievements()` while keeping those public wrapper APIs.
+- Preserved achievement JSON path, `badges` array shape, duplicate-prevention behavior, result flow, and Telemetry schema.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=65.2s, stage=2, recover=27, disengage=16.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=72.4s, stage=3, recover=102, disengage=18.
+
+---
+
 ## v1.11.10-dev — 2026-05-23
 
 **Pressure condition evaluator first pass**

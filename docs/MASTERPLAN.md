@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-23 (v1.11.10 Pressure condition evaluator first pass)
+> Last updated: 2026-05-23 (v1.11.11 Mission badge store first pass)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.11 — MissionTracker residual responsibility review.
+**Next structural slice**: v1.11.12 — Mission subsystem closure review.
 
-**Latest completed slice**: v1.11.10 — Pressure condition evaluator first pass.
+**Latest completed slice**: v1.11.11 — Mission badge store first pass.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -331,6 +331,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - `MissionHudFormatter.gd`: mission/pressure HUD formatting boundary; `MissionTracker` still owns counters, evaluation, and badge state.
 - `MissionEvaluator.gd`: bonus mission completion/early-fail evaluation boundary; `MissionTracker` still owns hooks, counters, context gathering, and badge state.
 - `PressureConditionEvaluator.gd`: pressure descriptor feasibility and condition completion boundary; `MissionTracker` still owns pressure counters, timing, hooks, and active state.
+- `MissionBadgeStore.gd`: achievement badge persistence boundary; `MissionTracker` still exposes badge wrapper APIs.
 - `Player.gd`: split heal, ammo, HUD numeric display, combat visual constants, and artifact stat reads by vertical slice.
 - `Bot.gd`: split perception, loot search, combat movement, and debug/visual constants into doctrine/profile/config boundaries without changing AI behavior.
 - `HellEventController.gd`: move remaining bombardment/blackout tuning and visual constants into config/catalog entries.
@@ -360,6 +361,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Mission evaluation first pass complete: `MissionEvaluator.gd` owns bonus mission completion/early-fail rules while `MissionTracker.gd` passes explicit state context and keeps public APIs.
    - Path ownership first pass complete: `MissionTracker.gd` moved to `src/systems/mission/`; class name, public APIs, and Main-owned instance are unchanged.
    - Pressure condition first pass complete: `PressureConditionEvaluator.gd` owns pressure descriptor feasibility and pressure condition completion checks while `MissionTracker.gd` passes condition ids and counter snapshots.
+   - Badge store first pass complete: `MissionBadgeStore.gd` owns `user://achievements.json` read/write while `MissionTracker.gd` keeps public badge wrapper APIs.
 5. Entity vertical slices.
    - Split `Player.gd`/`Bot.gd` tuning by behavior domain only when a concrete data owner is clear.
    - Do not move combat or perception behavior just to reduce line count.
@@ -457,6 +459,15 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Keep `MissionTracker.gd` as the owner of `PressureCondition` ids, active pressure state, counters, hooks, deadline timing, instant-fail flag, and public pressure APIs.
 - Preserve `filter_feasible()`, `tick_pressure()`, pressure success/fail behavior, pressure descriptor ids, and Telemetry-facing flow.
 - Do not move pressure runtime state or Main pressure trigger/effect application in this slice.
+
+### v1.11.11 — Mission Badge Store First Pass `S`
+
+**Summary**: Move mission achievement badge file I/O out of `MissionTracker.gd`.
+
+- Add `src/systems/mission/MissionBadgeStore.gd` for `user://achievements.json` read/write.
+- Keep `MissionTracker.gd` public `save_badge()`, `has_badge()`, and `load_achievements()` wrappers.
+- Preserve achievement JSON path, `badges` array shape, duplicate-prevention behavior, result flow, and Telemetry schema.
+- Do not move active mission state or badge award timing in this slice.
 
 **v1.11 completion gate**
 
