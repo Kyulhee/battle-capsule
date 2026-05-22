@@ -65,7 +65,7 @@
 - **시그널 수신처**: `Player.gd` — `slot_switched` → `_on_slot_switched()`, `reload_started` → `Sfx.play("reload")`, `reload_done` → `_on_reload_done()`, `inventory_changed` → `_refresh_slot_hud()`, `gun_count_changed` → `_on_gun_count_changed()`
 - **외부 진입점**: `Pickup.gd` → `Player.receive_weapon()` / `receive_ammo()` 래퍼 → `slots.*()` (Pickup은 WeaponSlotManager를 직접 참조하지 않음)
 
-### `src/core/MissionTracker.gd`
+### `src/systems/mission/MissionTracker.gd`
 - **읽는 파일**: `MissionCatalog.gd` (bonus/pressure descriptor construction), `MissionEvaluator.gd` (bonus mission evaluation), `MissionHudFormatter.gd` (bonus/pressure HUD formatting)
 - **호출자**: `Main.gd` (소유), `MatchBootstrap.gd` (`get_all_missions()`), `ZoneController.gd` (`tick_damage` 내 duck-typed)
 - **쓰는 파일**: `Main.gd` 만

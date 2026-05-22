@@ -6,11 +6,30 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.9-dev — 2026-05-22
+
+**MissionTracker system path move**
+
+**src/systems/mission/MissionTracker.gd / src/Main.gd**
+
+- Moved `MissionTracker.gd` and its `.uid` from `src/core/` to `src/systems/mission/`.
+- Updated `Main.gd` preload path to the mission system location.
+- Kept `class_name MissionTracker`, public APIs, mission/pressure state ownership, hooks, descriptors, evaluation, HUD behavior, badge persistence, and Telemetry-facing flow unchanged.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=83.7s, stage=3, recover=27, disengage=21.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=75.5s, stage=3, recover=133, disengage=28.
+
+---
+
 ## v1.11.8-dev — 2026-05-22
 
 **Mission evaluator first pass**
 
-**src/systems/mission/MissionEvaluator.gd / src/core/MissionTracker.gd**
+**src/systems/mission/MissionEvaluator.gd / src/systems/mission/MissionTracker.gd**
 
 - Added `MissionEvaluator.gd` for bonus mission completion and early-fail condition checks.
 - `MissionTracker.gd` now keeps mission hooks/counters and builds explicit final-rank/player-HP/Telemetry context for evaluator calls.
@@ -29,7 +48,7 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 **Bonus mission HUD formatter first pass**
 
-**src/systems/mission/MissionHudFormatter.gd / src/core/MissionTracker.gd**
+**src/systems/mission/MissionHudFormatter.gd / src/systems/mission/MissionTracker.gd**
 
 - Extended `MissionHudFormatter.gd` to format bonus mission HUD text from explicit context data.
 - `MissionTracker.gd` now keeps Telemetry/player HP context gathering and delegates `get_hud_text()` string assembly to the formatter.
@@ -49,7 +68,7 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 **Pressure HUD formatter first pass**
 
-**src/systems/mission/MissionHudFormatter.gd / src/core/MissionTracker.gd**
+**src/systems/mission/MissionHudFormatter.gd / src/systems/mission/MissionTracker.gd**
 
 - Added `MissionHudFormatter.gd` for pressure HUD title/deadline/progress/reward/penalty string assembly.
 - `MissionTracker.gd` now passes an explicit pressure counter snapshot and condition id mapping to the formatter.
@@ -69,7 +88,7 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 **Mission/pressure descriptor catalog first pass**
 
-**src/systems/mission/MissionCatalog.gd / src/core/MissionTracker.gd**
+**src/systems/mission/MissionCatalog.gd / src/systems/mission/MissionTracker.gd**
 
 - Added `MissionCatalog.gd` as the descriptor/list construction owner for bonus missions and hard/Hell pressure mission pools.
 - `MissionTracker.gd` now delegates `get_all_missions()`, `get_hard_pool()`, and `get_hell_pool()` to the catalog while keeping its public API stable.
@@ -254,7 +273,7 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 **Risk review fixes + first zone data binding slice**
 
-**src/core/PressureEffectCatalog.gd / src/core/MissionTracker.gd / src/systems/match/PressureEffectApplier.gd / src/systems/match/BotSpawnPlanner.gd / src/entities/bot/BotDoctrine.gd / src/core/ZoneController.gd / data/game_config.json / src/Main.gd**
+**src/core/PressureEffectCatalog.gd / src/systems/mission/MissionTracker.gd / src/systems/match/PressureEffectApplier.gd / src/systems/match/BotSpawnPlanner.gd / src/entities/bot/BotDoctrine.gd / src/systems/zone/ZoneController.gd / data/game_config.json / src/Main.gd**
 
 - Added `PressureEffectCatalog` as the shared pressure effect id/label source used by mission HUD text and effect execution.
 - Changed `BotSpawnPlanner` to emit archetype names instead of relying on hardcoded enum integer order; `BotDoctrine` now owns name/id conversion.
