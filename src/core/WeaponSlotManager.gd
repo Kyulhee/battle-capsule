@@ -1,6 +1,8 @@
 class_name WeaponSlotManager
 extends RefCounted
 
+const WeaponSlotTuningScript = preload("res://src/core/WeaponSlotTuning.gd")
+
 signal slot_switched(slot: int, wdata, ammo: int)
 signal reload_started()
 signal reload_done()
@@ -115,20 +117,12 @@ func clear_active_ammo() -> void:
 
 func get_reload_time() -> float:
 	var wdata = weapon_slots[active_slot]
-	if not wdata: return 1.5
-	match wdata.weapon_type:
-		"shotgun": return 2.8
-		"railgun": return 4.5
-		"ar":      return 2.0
-		_:         return 1.3
+	if not wdata:
+		return WeaponSlotTuningScript.NO_WEAPON_RELOAD_TIME
+	return WeaponSlotTuningScript.reload_time(wdata.weapon_type)
 
 static func get_reserve_max(wtype: String) -> int:
-	match wtype:
-		"pistol":  return 30
-		"ar":      return 60
-		"shotgun": return 12
-		"railgun": return 4
-		_:         return 30
+	return WeaponSlotTuningScript.reserve_max(wtype)
 
 func _emit_gun_count() -> void:
 	var count = 0

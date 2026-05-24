@@ -17,6 +17,7 @@
 | MissionEvaluator | bonus mission completion and early-fail rules | `MissionTracker.gd` | static mission evaluator |
 | MissionHudFormatter | mission/pressure HUD strings | `MissionTracker.gd` | static mission formatter |
 | PressureConditionEvaluator | pressure feasibility and completion rules | `MissionTracker.gd` | static pressure evaluator |
+| WeaponSlotTuning | reload times and reserve-ammo caps | `WeaponSlotManager.gd` | static tuning helper |
 | ArtifactCatalog | starting artifact specs/descriptions | `Main.gd`, `Player.gd` | static catalog |
 | ItemResourceCatalog | default loot resources and pickup scene | `Main.gd` | static catalog |
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
@@ -72,9 +73,17 @@
 
 ### `src/core/WeaponSlotManager.gd`
 - **읽는 파일**: `Player.gd` (소유, 모든 접근), `Main.gd` (`player_ref.slots.fill_all_ammo()` / `clear_all_ammo()` / `clear_active_ammo()`)
+- **tuning 경계**: reload times and reserve-ammo caps live in `WeaponSlotTuning.gd`; `WeaponSlotManager.gd` keeps slot arrays, active slot, reload timers, reload transfer state, signals, public APIs, and inventory/reload algorithms.
 - **쓰는 파일**: `Player.gd` 만
 - **시그널 수신처**: `Player.gd` — `slot_switched` → `_on_slot_switched()`, `reload_started` → `Sfx.play("reload")`, `reload_done` → `_on_reload_done()`, `inventory_changed` → `_refresh_slot_hud()`, `gun_count_changed` → `_on_gun_count_changed()`
 - **외부 진입점**: `Pickup.gd` → `Player.receive_weapon()` / `receive_ammo()` 래퍼 → `slots.*()` (Pickup은 WeaponSlotManager를 직접 참조하지 않음)
+
+### `src/core/WeaponSlotTuning.gd`
+- **읽는 파일**: 직접 scene lookup 없음.
+- **호출자**: `WeaponSlotManager.gd` `get_reload_time()` / `get_reserve_max()`.
+- **역할**: no-weapon reload fallback, unknown-weapon reload fallback, weapon-specific reload times, weapon-specific reserve-ammo caps, and reserve fallback.
+- **소유하지 않는 것**: slot inventory state, reload transfer algorithm, signals, Player HUD rendering, pickup collection, pressure effect execution.
+- **수정 영향**: reload time이나 reserve cap을 바꾸면 `WeaponSlotManager.gd`, Player slot HUD ammo text, pressure ammo effects, and normal/Hell simulations를 함께 확인.
 
 ### `src/systems/mission/MissionTracker.gd`
 - **읽는 파일**: `MissionBadgeStore.gd` (badge persistence), `MissionCatalog.gd` (bonus/pressure descriptor construction), `MissionEvaluator.gd` (bonus mission evaluation), `MissionHudFormatter.gd` (bonus/pressure HUD formatting), `PressureConditionEvaluator.gd` (pressure condition checks)
@@ -413,6 +422,7 @@
 |---|---|---|
 | `ZoneController` 공개 API | `ZoneController.gd` | `Main.gd`, `Bot.gd`, `Player.gd`, `Minimap.gd` |
 | `WeaponSlotManager` 공개 API | `WeaponSlotManager.gd` | `Player.gd` (시그널 연결), `Main.gd` (`player_ref.slots.*`) |
+| Weapon slot tuning values | `src/core/WeaponSlotTuning.gd` | `WeaponSlotManager.gd`, Player HUD ammo text, pressure ammo effects, simulations |
 | `MissionTracker` 훅 추가/변경 | `MissionTracker.gd` | `Main.gd` (훅 호출 추가), 존 관련이면 `ZoneController.gd` |
 | `Entity.take_damage()` 시그니처 | `Entity.gd` | `Bot.gd`, `Player.gd`, `ZoneController.tick_damage()` |
 | `StatsData` 필드 추가 | `StatsData.gd` | `WeaponSlotManager.gd`, `Bot.gd`, `Player.gd` |

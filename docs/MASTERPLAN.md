@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-24 (v1.11.25 Entity data-boundary planning)
+> Last updated: 2026-05-24 (v1.11.26 Weapon slot tuning boundary)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.26 — Weapon slot tuning boundary.
+**Next structural slice**: v1.11.27 — Pickup presentation boundary.
 
-**Latest completed slice**: v1.11.25 — Entity data-boundary planning.
+**Latest completed slice**: v1.11.26 — Weapon slot tuning boundary.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -327,6 +327,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 **Data/algorithm separation targets**
 
 - `MissionTracker.gd`: move mission and pressure descriptors toward catalog/data while keeping condition evaluation logic testable.
+- `WeaponSlotManager.gd`: first reload/reserve tuning boundary complete; inventory and reload state stay in `WeaponSlotManager`, values live in `WeaponSlotTuning`.
 - `MissionCatalog.gd`: first mission/pressure descriptor catalog boundary; `MissionTracker` still owns progress/evaluation/HUD state.
 - `MissionHudFormatter.gd`: mission/pressure HUD formatting boundary; `MissionTracker` still owns counters, evaluation, and badge state.
 - `MissionEvaluator.gd`: bonus mission completion/early-fail evaluation boundary; `MissionTracker` still owns hooks, counters, context gathering, and badge state.
@@ -637,6 +638,17 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - v1.11.26: Add a `WeaponSlotTuning` helper for reload times and reserve-ammo caps.
 - Preserve existing reload times, reserve caps, public `WeaponSlotManager` APIs, pressure effect behavior, Player HUD text, and Telemetry schema.
 - Do not convert to JSON in the first pass unless the helper boundary proves insufficient.
+
+### v1.11.26 — Weapon Slot Tuning Boundary `S`
+
+**Summary**: Move weapon reload-time and reserve-ammo cap values out of `WeaponSlotManager.gd` without changing inventory behavior.
+
+- Add `src/core/WeaponSlotTuning.gd` for reload times, no-weapon reload fallback, unknown-weapon reload fallback, reserve-ammo caps, and reserve fallback.
+- Keep `WeaponSlotManager.gd` as the owner of slot arrays, active slot, reload timers, reload transfer state, public APIs, signals, and inventory/reload algorithms.
+- Preserve current values exactly: no-weapon reload 1.5s, unknown-weapon reload 1.3s, shotgun 2.8s, railgun 4.5s, AR 2.0s, reserve caps pistol 30 / AR 60 / shotgun 12 / railgun 4 / fallback 30.
+- Preserve Player HUD ammo text, pressure ammo effects, reload behavior, and Telemetry schema.
+- Do not convert these values to JSON in this slice; `WeaponSlotTuning.gd` is the first code-owner boundary.
+- Next slice should review `Pickup.gd` presentation concerns before touching collection side effects.
 
 **v1.11 completion gate**
 

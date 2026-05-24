@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.26-dev — 2026-05-24
+
+**Weapon slot tuning boundary**
+
+**src/core/WeaponSlotTuning.gd / src/core/WeaponSlotManager.gd**
+
+- Added `WeaponSlotTuning.gd` for weapon reload times, reload fallbacks, reserve-ammo caps, and reserve fallback.
+- `WeaponSlotManager.gd` now delegates reload-time and reserve-cap values while keeping slot arrays, active slot, reload timers, reload transfer state, signals, public APIs, and inventory/reload algorithms.
+- Preserved current values exactly: no-weapon reload 1.5s, unknown-weapon reload 1.3s, shotgun 2.8s, railgun 4.5s, AR 2.0s, reserve caps pistol 30 / AR 60 / shotgun 12 / railgun 4 / fallback 30.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=60.7s, stage=2, recover=33, disengage=21.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=60.7s, stage=2, recover=80, disengage=24.
+
+---
+
 ## v1.11.25-dev — 2026-05-24
 
 **Entity data-boundary planning**
