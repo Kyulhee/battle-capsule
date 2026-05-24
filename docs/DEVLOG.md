@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.21-dev — 2026-05-24
+
+**Bot debug label builder**
+
+**src/entities/bot/BotDebugLabelBuilder.gd / src/entities/bot/Bot.gd**
+
+- Added `BotDebugLabelBuilder.gd` for state label and archetype marker `Label3D` construction/styling.
+- `Bot.gd` now keeps label references and continues to own state label text, archetype marker text/color, visibility, reveal checks, AI state machine, combat, perception, and Telemetry hooks.
+- Preserved label positions, sizes, outline sizes, billboard/double-sided settings, and initial hidden state.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=58.7s, stage=2, recover=18, disengage=15.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=48.7s, stage=2, recover=186, disengage=23.
+
+---
+
 ## v1.11.20-dev — 2026-05-24
 
 **Bot tuning constants boundary**

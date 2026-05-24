@@ -27,6 +27,7 @@
 | PlayerTuning | Player movement/combat/heal/occluder tuning constants | `Player.gd` | static tuning constants |
 | PlayerOccluderFader | Player occluder ray tracing/fade material state | `Player.gd` | RefCounted helper |
 | BotTuning | Bot melee/retreat/perception/debug tuning constants | `Bot.gd` | static tuning constants |
+| BotDebugLabelBuilder | Bot state/archetype Label3D construction | `Bot.gd` | static visual helper |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
@@ -166,6 +167,13 @@
 - **역할**: bot melee, attack-bout reposition, retreat counterfire, Hard gunshot awareness, and debug marker constants.
 - **소유하지 않는 것**: AI state machine, doctrine profile application, movement/combat/recovery algorithms, perception checks, archetype/difficulty runtime state.
 - **수정 영향**: Bot tuning value를 바꾸면 `Bot.gd` melee/retreat/perception/debug paths, `BotDoctrine.gd`, and normal/Hell simulations를 함께 확인.
+
+### `src/entities/bot/BotDebugLabelBuilder.gd`
+- **읽는 파일**: 직접 scene lookup 없음.
+- **호출자**: `Bot.gd` `_ready()`.
+- **역할**: state label and archetype marker `Label3D` node construction/styling.
+- **소유하지 않는 것**: state/archetype marker text, color updates, visibility, reveal checks, AI behavior, visual skin application.
+- **수정 영향**: Bot debug marker position/style을 바꾸면 `Bot.gd` `_update_state_label()`, `_update_archetype_marker()`, marker visibility, and visual checks를 함께 확인.
 
 ### `src/core/DropDisplayCatalog.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
@@ -396,6 +404,7 @@
 | Player tuning constants | `src/entities/player/PlayerTuning.gd` | `Player.gd` movement/combat/heal/occluder algorithms, simulations |
 | Player occluder fade behavior | `src/entities/player/PlayerOccluderFader.gd` | `Player.gd` camera lookup, `PlayerTuning.gd`, occluder group tagging/materials |
 | Bot tuning constants | `src/entities/bot/BotTuning.gd` | `Bot.gd` state machine/combat/perception paths, `BotDoctrine.gd`, simulations |
+| Bot debug marker layout | `src/entities/bot/BotDebugLabelBuilder.gd` | `Bot.gd` state/archetype marker text and visibility paths |
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |

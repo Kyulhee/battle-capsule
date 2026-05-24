@@ -8,6 +8,7 @@ const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const BOT_DOCTRINE       = preload("res://src/entities/bot/BotDoctrine.gd")
 const BOT_VISUAL_KIT     = preload("res://src/entities/bot/BotVisualKit.gd")
 const BOT_TUNING         = preload("res://src/entities/bot/BotTuning.gd")
+const BOT_DEBUG_LABEL_BUILDER = preload("res://src/entities/bot/BotDebugLabelBuilder.gd")
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -119,24 +120,9 @@ func _ready():
 	add_to_group("bots")
 	# 아키타입은 Main.gd에서 스폰 후 배정. 여기서는 기본값만 유지.
 	died.connect(_on_died_zone_log)
-	_state_label = Label3D.new()
-	_state_label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_state_label.double_sided = true
-	_state_label.font_size = 52
-	_state_label.pixel_size = 0.006
-	_state_label.outline_size = 10
-	_state_label.position = Vector3(0, 2.4, 0)
-	_state_label.visible = false
-	add_child(_state_label)
-	_archetype_marker = Label3D.new()
-	_archetype_marker.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	_archetype_marker.double_sided = true
-	_archetype_marker.font_size = 38
-	_archetype_marker.pixel_size = 0.006
-	_archetype_marker.outline_size = 8
-	_archetype_marker.position = Vector3(0, 2.85, 0)
-	_archetype_marker.visible = false
-	add_child(_archetype_marker)
+	var debug_labels = BOT_DEBUG_LABEL_BUILDER.build_labels(self)
+	_state_label = debug_labels["state_label"] as Label3D
+	_archetype_marker = debug_labels["archetype_marker"] as Label3D
 	_update_archetype_marker()
 	_nav_agent = NavigationAgent3D.new()
 	_nav_agent.path_desired_distance = 0.5
