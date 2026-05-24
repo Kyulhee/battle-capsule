@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-23 (v1.11.17 Player tuning constants boundary)
+> Last updated: 2026-05-24 (v1.11.18 Player occluder fader helper)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.18 — Player occluder fade helper review.
+**Next structural slice**: v1.11.19 — Player remaining boundary closure review.
 
-**Latest completed slice**: v1.11.17 — Player tuning constants boundary.
+**Latest completed slice**: v1.11.18 — Player occluder fader helper.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -371,6 +371,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Player slot HUD renderer complete: `PlayerSlotHudRenderer.gd` owns active/empty/normal slot panel styling, slot ammo text, and slot ammo warning colors. `Player.gd` still owns `WeaponSlotManager`, weapon icon loading/fallbacks, and reload-progress overlay text.
    - Player weapon icon resolver complete: `PlayerWeaponIconResolver.gd` owns weapon HUD icon cache, AssetCatalog icon path loading, and procedural fallback icon generation. `Player.gd` still owns scene-tree catalog lookup and passes the catalog explicitly.
    - Player tuning constants boundary complete: `PlayerTuning.gd` owns footstep, heal regen, shot heat/spread, melee, and occluder fade numeric constants. `Player.gd` still owns algorithms and runtime state.
+   - Player occluder fade helper complete: `PlayerOccluderFader.gd` owns occluder ray sampling, fade material state, and material restore behavior. `Player.gd` passes itself/camera and keeps only lifecycle delegation.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -534,6 +535,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Preserve all current numeric values exactly.
 - Do not introduce JSON loading in this slice; this is a local code-owner boundary before any data-file migration.
 - Next Player slice should review the occluder fade algorithm as a separate helper candidate because it is self-contained but larger than a simple constants move.
+
+### v1.11.18 — Player Occluder Fader Helper `S`
+
+**Summary**: Move wall/occluder fade scanning and material restore state out of `Player.gd`.
+
+- Add `src/entities/player/PlayerOccluderFader.gd` for camera-to-player sample rays, occluder mesh discovery, fade material state, and restore behavior.
+- Keep `Player.gd` as the owner of camera lookup, lifecycle calls, movement/combat/heal state, artifact modifiers, HUD updates, and zone warning logic.
+- Keep occluder tuning values in `PlayerTuning.gd`.
+- Preserve current ray sample points, collision mask, fade material behavior, linger timing, and exit-tree restore behavior.
+- Next Player slice should be a closure review of remaining Player responsibilities before starting Bot/entity follow-up slices.
 
 **v1.11 completion gate**
 

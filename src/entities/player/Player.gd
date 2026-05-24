@@ -25,7 +25,6 @@ var camera_shake_decay: float = 5.0
 var _zone_warning_style: StyleBoxFlat = null
 var _zone_warning_pulse: float = 0.0
 
-var _occluder_fade_states: Dictionary = {}
 var _heal_regen: float = 0.0
 
 # ── Artifact System ──────────────────────────────────────────────────────────
@@ -57,6 +56,7 @@ const PlayerHudBuilderScript = preload("res://src/ui/player/PlayerHudBuilder.gd"
 const PlayerSlotHudRendererScript = preload("res://src/ui/player/PlayerSlotHudRenderer.gd")
 const PlayerWeaponIconResolverScript = preload("res://src/ui/player/PlayerWeaponIconResolver.gd")
 const PlayerTuningScript = preload("res://src/entities/player/PlayerTuning.gd")
+const PlayerOccluderFaderScript = preload("res://src/entities/player/PlayerOccluderFader.gd")
 const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
@@ -79,6 +79,7 @@ var slot_panels: Array = []
 var slot_icon_rects: Array = []
 var slot_ammo_labels: Array = []
 var _weapon_icon_resolver = PlayerWeaponIconResolverScript.new()
+var _occluder_fader = PlayerOccluderFaderScript.new()
 var _focused_pickup: Pickup = null
 
 func _ready():
@@ -553,180 +554,15 @@ func _get_asset_catalog():
 	return null
 
 func _exit_tree():
-	_restore_all_occluders()
+	_occluder_fader.restore_all()
 
 func _handle_wall_transparency(delta: float):
 	var camera = camera_pivot.get_node_or_null("Camera3D")
 	if not camera:
-		_restore_all_occluders()
+		_occluder_fader.restore_all()
 		return
 
-	var cam_pos = camera.global_position
-	var space_state = get_world_3d().direct_space_state
-	var active_meshes: Dictionary = {}
-	for target_pos in _get_occluder_sample_points(camera):
-		_trace_occluders(space_state, cam_pos, target_pos, active_meshes)
-
-	_update_occluder_fades(active_meshes, delta)
-
-func _get_occluder_sample_points(camera: Camera3D) -> Array:
-	var right = camera.global_transform.basis.x
-	right.y = 0.0
-	if right.length_squared() < 0.001:
-		right = Vector3.RIGHT
-	right = right.normalized()
-
-	var base = global_position
-	return [
-		base + Vector3(0.0, 1.45, 0.0),
-		base + Vector3(0.0, 1.00, 0.0),
-		base + Vector3(0.0, 0.95, 0.0) + right * 0.38,
-		base + Vector3(0.0, 0.95, 0.0) - right * 0.38,
-		base + Vector3(0.0, 0.45, 0.0),
-	]
-
-func _trace_occluders(space_state: PhysicsDirectSpaceState3D, ray_start: Vector3, target_pos: Vector3, active_meshes: Dictionary):
-	var ray_delta = target_pos - ray_start
-	if ray_delta.length_squared() < 0.001:
-		return
-	var dir = ray_delta.normalized()
-	var ray_from = ray_start
-	var exclude: Array = [self]
-	for _i in range(PlayerTuningScript.OCCLUDER_MAX_RAY_HITS):
-		var query = PhysicsRayQueryParameters3D.create(ray_from, target_pos)
-		query.exclude = exclude
-		query.collision_mask = 1
-		var result = space_state.intersect_ray(query)
-		if not result: break
-		var collider = result.get("collider")
-		for mesh in _get_occluder_meshes(collider):
-			active_meshes[mesh] = true
-		if collider is CollisionObject3D:
-			exclude.append(collider)
-		ray_from = result["position"] + dir * PlayerTuningScript.OCCLUDER_RAY_STEP
-		if ray_from.distance_squared_to(target_pos) <= PlayerTuningScript.OCCLUDER_RAY_STEP * PlayerTuningScript.OCCLUDER_RAY_STEP:
-			break
-
-func _get_occluder_meshes(collider) -> Array:
-	var meshes: Array = []
-	if not collider is Node:
-		return meshes
-	var node: Node = collider
-	var checks: Array = [node]
-	var parent = node.get_parent()
-	if parent:
-		checks.append(parent)
-	for check in checks:
-		if check and check.is_in_group("occluder"):
-			_append_mesh_instances(check, meshes)
-	return meshes
-
-func _append_mesh_instances(node: Node, out: Array):
-	if node is MeshInstance3D and is_instance_valid(node):
-		out.append(node)
-	for child in node.get_children():
-		_append_mesh_instances(child, out)
-
-func _update_occluder_fades(active_meshes: Dictionary, delta: float):
-	for mesh in active_meshes.keys():
-		if not is_instance_valid(mesh):
-			continue
-		var state = _get_or_create_occluder_state(mesh)
-		if state.is_empty():
-			continue
-		state["linger"] = PlayerTuningScript.OCCLUDER_FADE_LINGER
-		_occluder_fade_states[mesh] = state
-
-	var to_restore: Array = []
-	for mesh in _occluder_fade_states.keys():
-		if not is_instance_valid(mesh):
-			to_restore.append(mesh)
-			continue
-
-		var state: Dictionary = _occluder_fade_states[mesh]
-		var active = active_meshes.has(mesh)
-		if not active:
-			state["linger"] = maxf(0.0, float(state.get("linger", 0.0)) - delta)
-
-		var original_alpha = float(state.get("original_alpha", 1.0))
-		var target_alpha = PlayerTuningScript.OCCLUDER_FADE_ALPHA if active or float(state.get("linger", 0.0)) > 0.0 else original_alpha
-		var current_alpha = float(state.get("alpha", original_alpha))
-		var speed = PlayerTuningScript.OCCLUDER_FADE_IN_SPEED if target_alpha < current_alpha else PlayerTuningScript.OCCLUDER_FADE_OUT_SPEED
-		var next_alpha = lerpf(current_alpha, target_alpha, minf(1.0, speed * delta))
-
-		state["alpha"] = next_alpha
-		_apply_occluder_fade_material(mesh, state, next_alpha)
-		_occluder_fade_states[mesh] = state
-
-		if not active and float(state.get("linger", 0.0)) <= 0.0 and absf(next_alpha - original_alpha) <= 0.02:
-			to_restore.append(mesh)
-
-	for mesh in to_restore:
-		_restore_occluder(mesh)
-
-func _get_or_create_occluder_state(mesh: MeshInstance3D) -> Dictionary:
-	if _occluder_fade_states.has(mesh):
-		return _occluder_fade_states[mesh]
-
-	var original_override = mesh.get_surface_override_material(0)
-	var source_mat: Material = original_override
-	if not source_mat and mesh.mesh:
-		source_mat = mesh.mesh.surface_get_material(0)
-
-	var original_alpha = 1.0
-	if source_mat is BaseMaterial3D:
-		original_alpha = source_mat.albedo_color.a
-
-	var fade_mat: Material = null
-	if source_mat:
-		fade_mat = source_mat.duplicate()
-	if not fade_mat or not (fade_mat is BaseMaterial3D):
-		var fallback = StandardMaterial3D.new()
-		fallback.albedo_color = Color(0.42, 0.42, 0.42, original_alpha)
-		fade_mat = fallback
-
-	if fade_mat is BaseMaterial3D:
-		fade_mat.resource_local_to_scene = true
-		fade_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-		var c = fade_mat.albedo_color
-		c.a = original_alpha
-		fade_mat.albedo_color = c
-
-	return {
-		"had_override": original_override != null,
-		"original_override": original_override,
-		"original_alpha": original_alpha,
-		"fade_mat": fade_mat,
-		"alpha": original_alpha,
-		"linger": 0.0,
-	}
-
-func _apply_occluder_fade_material(mesh: MeshInstance3D, state: Dictionary, alpha: float):
-	var fade_mat = state.get("fade_mat")
-	if not fade_mat:
-		return
-	if fade_mat is BaseMaterial3D:
-		var c = fade_mat.albedo_color
-		c.a = alpha
-		fade_mat.albedo_color = c
-	mesh.set_surface_override_material(0, fade_mat)
-
-func _restore_occluder(mesh):
-	if not _occluder_fade_states.has(mesh):
-		return
-	var state: Dictionary = _occluder_fade_states[mesh]
-	_occluder_fade_states.erase(mesh)
-	if not is_instance_valid(mesh):
-		return
-	if bool(state.get("had_override", false)):
-		mesh.set_surface_override_material(0, state.get("original_override"))
-	else:
-		mesh.set_surface_override_material(0, null)
-
-func _restore_all_occluders():
-	var meshes = _occluder_fade_states.keys()
-	for mesh in meshes:
-		_restore_occluder(mesh)
+	_occluder_fader.tick(self, camera, delta)
 
 func _update_zone_warning(delta: float):
 	if not _zone_warning_style: return

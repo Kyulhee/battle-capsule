@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.18-dev — 2026-05-24
+
+**Player occluder fader helper**
+
+**src/entities/player/PlayerOccluderFader.gd / src/entities/player/Player.gd**
+
+- Added `PlayerOccluderFader.gd` for camera-to-player occluder ray sampling, occluder mesh discovery, fade material state, and restore behavior.
+- `Player.gd` now delegates wall transparency updates with `self` and the camera node while keeping camera lookup, movement/combat/heal state, artifact modifiers, HUD updates, and zone warning logic.
+- Kept occluder tuning values in `PlayerTuning.gd` and preserved ray sample points, collision mask, fade material behavior, linger timing, and exit-tree restore behavior.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=70.4s, stage=3, recover=36, disengage=22.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=64.0s, stage=2, recover=110, disengage=23.
+
+---
+
 ## v1.11.17-dev — 2026-05-23
 
 **Player tuning constants boundary**

@@ -25,6 +25,7 @@
 | PlayerSlotHudRenderer | Player slot panel/ammo display refresh | `Player.gd` | static UI renderer |
 | PlayerWeaponIconResolver | Player weapon HUD icon cache/loading/fallbacks | `Player.gd` | RefCounted UI resolver |
 | PlayerTuning | Player movement/combat/heal/occluder tuning constants | `Player.gd` | static tuning constants |
+| PlayerOccluderFader | Player occluder ray tracing/fade material state | `Player.gd` | RefCounted helper |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
@@ -194,6 +195,13 @@
 - **역할**: footstep interval, heal regen rate, shot heat/spread constants, melee constants, and occluder fade constants.
 - **소유하지 않는 것**: movement/combat/heal/occluder algorithms, artifact modifier application, runtime state, data-file loading.
 - **수정 영향**: Player tuning value를 바꾸면 movement/fire/melee/heal/occluder behavior, normal/Hell simulations, and relevant player visual checks를 함께 확인.
+
+### `src/entities/player/PlayerOccluderFader.gd`
+- **읽는 파일**: `PlayerTuning.gd`. Direct scene lookup 없음.
+- **호출자**: `Player.gd` `_handle_wall_transparency()` and `_exit_tree()`.
+- **역할**: camera-to-player occluder ray samples, occluder group mesh discovery, fade material creation/update, linger state, and restore-on-exit behavior.
+- **소유하지 않는 것**: camera node lookup, player movement/combat state, occluder group assignment in world assets, tuning constants.
+- **수정 영향**: wall transparency/occluder behavior를 바꾸면 `Player.gd` camera path, occluder group tagging, `PlayerTuning.gd` fade constants, and visual/headless checks를 함께 확인.
 
 ### `src/ui/DifficultySelectorBuilder.gd`
 - **읽는 파일**: `DifficultyCatalog.gd`.
@@ -371,6 +379,7 @@
 | Player slot display state | `src/ui/player/PlayerSlotHudRenderer.gd` | `Player.gd` slot arrays, `PlayerWeaponIconResolver.gd`, reload-progress HUD override, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd` |
 | Player weapon HUD icons | `src/ui/player/PlayerWeaponIconResolver.gd` | `Player.gd` asset catalog pass-through, `data/asset_catalog.json`, selected icon assets, `PlayerSlotHudRenderer.gd` |
 | Player tuning constants | `src/entities/player/PlayerTuning.gd` | `Player.gd` movement/combat/heal/occluder algorithms, simulations |
+| Player occluder fade behavior | `src/entities/player/PlayerOccluderFader.gd` | `Player.gd` camera lookup, `PlayerTuning.gd`, occluder group tagging/materials |
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |
