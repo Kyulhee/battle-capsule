@@ -278,6 +278,8 @@ Entity (CharacterBody3D)
                            _disengage_threshold 등
 ```
 
+v1.11.19 closure 기준 `Player.gd`는 832줄이며, intentionally retained responsibilities are movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, and Sfx/Telemetry hooks. Player HUD construction, slot rendering, weapon HUD icon resolution, tuning constants, and occluder fade state now have separate owners.
+
 **Bot이 Main을 참조하는 방법**: `get_tree().get_root().get_node("Main")`으로 런타임 조회. `main.zone`, `main.alive_count`, `main.zone.stage` 읽기만 함.
 
 ---

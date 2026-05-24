@@ -146,6 +146,12 @@
   - `health_changed` / `shield_changed` → `Main.gd` 에서도 직접 `.emit()` 호출 (압박 미션 효과 적용 시)
 - **인식 API**: `_can_i_see(target)`는 actor perception, `can_sense_item(world_pos)`는 아이템 표시/플레이어 상호작용/봇 루팅 후보 필터에 공통 사용.
 
+### `src/entities/player/Player.gd`
+- **현재 역할**: Player entity runtime owner. v1.11.19 기준 832줄.
+- **의도적으로 소유**: movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, Sfx/Telemetry hooks.
+- **분리 완료**: HUD construction (`PlayerHudBuilder.gd`), slot display state (`PlayerSlotHudRenderer.gd`), weapon HUD icon loading/fallbacks (`PlayerWeaponIconResolver.gd`), player tuning constants (`PlayerTuning.gd`), occluder fade state/material restore (`PlayerOccluderFader.gd`).
+- **수정 영향**: movement/combat/heal/artifact/pickup behavior 변경 시 `PlayerTuning.gd`, `ArtifactCatalog.gd`, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd`, and simulations를 함께 확인.
+
 ### `src/entities/bot/Bot.gd`
 - **Main 참조 방법**: `get_tree().get_root().get_node("Main")` 런타임 조회 — 읽기 전용
 - **읽는 Main 필드**: `main.zone.current_center`, `main.zone.current_radius`, `main.zone.stage`, `main.alive_count`

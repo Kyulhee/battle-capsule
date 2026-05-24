@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-24 (v1.11.18 Player occluder fader helper)
+> Last updated: 2026-05-24 (v1.11.19 Player pass closure review)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.19 — Player remaining boundary closure review.
+**Next structural slice**: v1.11.20 — Bot entity data-boundary first pass.
 
-**Latest completed slice**: v1.11.18 — Player occluder fader helper.
+**Latest completed slice**: v1.11.19 — Player pass closure review.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -372,6 +372,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Player weapon icon resolver complete: `PlayerWeaponIconResolver.gd` owns weapon HUD icon cache, AssetCatalog icon path loading, and procedural fallback icon generation. `Player.gd` still owns scene-tree catalog lookup and passes the catalog explicitly.
    - Player tuning constants boundary complete: `PlayerTuning.gd` owns footstep, heal regen, shot heat/spread, melee, and occluder fade numeric constants. `Player.gd` still owns algorithms and runtime state.
    - Player occluder fade helper complete: `PlayerOccluderFader.gd` owns occluder ray sampling, fade material state, and material restore behavior. `Player.gd` passes itself/camera and keeps only lifecycle delegation.
+   - Player pass closure complete: `Player.gd` is now 832 lines and intentionally retains movement/combat/heal/artifact/pickup/kill feed/zone warning runtime state and orchestration. Further Player extraction should wait for a concrete behavior/data owner, not line count alone.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -545,6 +546,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Keep occluder tuning values in `PlayerTuning.gd`.
 - Preserve current ray sample points, collision mask, fade material behavior, linger timing, and exit-tree restore behavior.
 - Next Player slice should be a closure review of remaining Player responsibilities before starting Bot/entity follow-up slices.
+
+### v1.11.19 — Player Pass Closure Review `S`
+
+**Summary**: Close the Player entity structural pass before starting Bot vertical slices.
+
+- Re-audit `src/entities/player/Player.gd` after HUD builder, slot renderer, weapon icon resolver, tuning constants, and occluder fader slices.
+- Mark as intentionally retained in `Player.gd`: movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, and Sfx/Telemetry hooks.
+- Mark as split owners: `PlayerHudBuilder.gd`, `PlayerSlotHudRenderer.gd`, `PlayerWeaponIconResolver.gd`, `PlayerTuning.gd`, and `PlayerOccluderFader.gd`.
+- No runtime code or Telemetry schema changes in this closure slice.
+- Next entity work should move to Bot vertical slices, starting with perception/combat display/tuning boundaries only where a concrete owner is clear.
 
 **v1.11 completion gate**
 

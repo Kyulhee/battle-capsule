@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.19-dev — 2026-05-24
+
+**Player pass closure review**
+
+**docs/MASTERPLAN.md / docs/ARCHITECTURE.md / docs/IMPACT_MAP.md / docs/devlog/v1.11.md**
+
+- Re-audited `src/entities/player/Player.gd` after the HUD builder, slot renderer, weapon icon resolver, tuning constants, and occluder fader slices.
+- Marked `Player.gd` at 832 lines and intentionally retained movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, and Sfx/Telemetry hooks.
+- Documented split Player-side owners: `PlayerHudBuilder.gd`, `PlayerSlotHudRenderer.gd`, `PlayerWeaponIconResolver.gd`, `PlayerTuning.gd`, and `PlayerOccluderFader.gd`.
+- Scoped the next entity work toward Bot data-boundary slices.
+- No runtime code or Telemetry schema was changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- Runtime simulation은 생략: docs-only closure review이며 runtime code 변경 없음.
+
+---
+
 ## v1.11.18-dev — 2026-05-24
 
 **Player occluder fader helper**
