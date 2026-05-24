@@ -1,0 +1,18 @@
+extends RefCounted
+
+const MELEE_RANGE: float = 1.8
+const MELEE_DAMAGE: float = 20.0
+
+const ATTACK_BOUT_REPOSITION_LIMIT: float = 16.0
+
+const RETREAT_THREAT_SCAN_RANGE: float = 10.0
+const RETREAT_COUNTERFIRE_MAX_RANGE: float = 16.0
+const RETREAT_MELEE_COUNTER_RANGE: float = 2.35
+const RETREAT_COUNTERFIRE_SPREAD: float = 0.34
+const RETREAT_COUNTERFIRE_MIN_COOLDOWN: float = 0.85
+
+const HARD_GUNSHOT_MIN_RANGE: float = 25.0
+const HARD_GUNSHOT_CLOSE_COMMIT_RANGE: float = 18.0
+
+const DEBUG_ARCHETYPE_MARKERS: bool = false
+const DEBUG_PRINT: bool = false

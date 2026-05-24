@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-24 (v1.11.19 Player pass closure review)
+> Last updated: 2026-05-24 (v1.11.20 Bot tuning constants boundary)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.20 — Bot entity data-boundary first pass.
+**Next structural slice**: v1.11.21 — Bot debug/visual label helper review.
 
-**Latest completed slice**: v1.11.19 — Player pass closure review.
+**Latest completed slice**: v1.11.20 — Bot tuning constants boundary.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -373,6 +373,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Player tuning constants boundary complete: `PlayerTuning.gd` owns footstep, heal regen, shot heat/spread, melee, and occluder fade numeric constants. `Player.gd` still owns algorithms and runtime state.
    - Player occluder fade helper complete: `PlayerOccluderFader.gd` owns occluder ray sampling, fade material state, and material restore behavior. `Player.gd` passes itself/camera and keeps only lifecycle delegation.
    - Player pass closure complete: `Player.gd` is now 832 lines and intentionally retains movement/combat/heal/artifact/pickup/kill feed/zone warning runtime state and orchestration. Further Player extraction should wait for a concrete behavior/data owner, not line count alone.
+   - Bot tuning constants boundary complete: `BotTuning.gd` owns melee, retreat counterfire, attack-bout reposition, hard gunshot, and debug marker constants. `Bot.gd` still owns AI state machine, movement/combat/recovery algorithms, perception hooks, and runtime state.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -556,6 +557,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Mark as split owners: `PlayerHudBuilder.gd`, `PlayerSlotHudRenderer.gd`, `PlayerWeaponIconResolver.gd`, `PlayerTuning.gd`, and `PlayerOccluderFader.gd`.
 - No runtime code or Telemetry schema changes in this closure slice.
 - Next entity work should move to Bot vertical slices, starting with perception/combat display/tuning boundaries only where a concrete owner is clear.
+
+### v1.11.20 — Bot Tuning Constants Boundary `S`
+
+**Summary**: Start Bot entity vertical slices by moving low-risk numeric/debug constants out of `Bot.gd`.
+
+- Add `src/entities/bot/BotTuning.gd` for melee, attack-bout reposition, retreat counterfire, Hard gunshot awareness, and debug marker constants.
+- Keep `Bot.gd` as the owner of AI state machine, target selection, movement, combat, recovery/disengage behavior, perception checks, loot decisions, archetype/difficulty runtime state, and Telemetry hooks.
+- Preserve all current numeric/debug values exactly.
+- Do not move doctrine profile application, visual skin application, state label creation, perception logic, or combat movement algorithms in this slice.
+- Next Bot slice should review debug/state/archetype marker label construction before touching AI behavior.
 
 **v1.11 completion gate**
 

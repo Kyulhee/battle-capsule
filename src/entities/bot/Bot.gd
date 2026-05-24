@@ -7,18 +7,7 @@ const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
 const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const BOT_DOCTRINE       = preload("res://src/entities/bot/BotDoctrine.gd")
 const BOT_VISUAL_KIT     = preload("res://src/entities/bot/BotVisualKit.gd")
-
-const MELEE_RANGE: float  = 1.8
-const MELEE_DAMAGE: float = 20.0
-const ATTACK_BOUT_REPOSITION_LIMIT: float = 16.0
-const RETREAT_THREAT_SCAN_RANGE: float = 10.0
-const RETREAT_COUNTERFIRE_MAX_RANGE: float = 16.0
-const RETREAT_MELEE_COUNTER_RANGE: float = 2.35
-const RETREAT_COUNTERFIRE_SPREAD: float = 0.34
-const RETREAT_COUNTERFIRE_MIN_COOLDOWN: float = 0.85
-const DEBUG_ARCHETYPE_MARKERS: bool = false
-const HARD_GUNSHOT_MIN_RANGE: float = 25.0
-const HARD_GUNSHOT_CLOSE_COMMIT_RANGE: float = 18.0
+const BOT_TUNING         = preload("res://src/entities/bot/BotTuning.gd")
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -74,8 +63,6 @@ var _stuck_override_timer: float = 0.0
 # Zone tracking
 var _zone_outside_timer: float = 0.0  # continuous seconds spent outside zone
 var _zone_thrash_cooldown: float = 0.0  # throttle random thrash bursts in ZONE_ESCAPE
-
-const DEBUG_PRINT = false
 
 var _state_label: Label3D = null
 var _archetype_marker: Label3D = null
@@ -272,7 +259,7 @@ func _update_stuck(delta):
 	if Vector2(velocity.x, velocity.z).length() < 0.35:
 		_stuck_timer += delta
 		if _stuck_timer >= 1.0:
-			var threat = _find_retreat_threat(RETREAT_THREAT_SCAN_RANGE)
+			var threat = _find_retreat_threat(BOT_TUNING.RETREAT_THREAT_SCAN_RANGE)
 			_stuck_override_dir = _pick_stuck_escape_dir(threat)
 			_stuck_override_timer = 1.2
 			_stuck_timer = 0.0
@@ -523,7 +510,7 @@ func handle_attack_state(delta):
 		dir_to.y = 0
 		_move_or_unstick(dir_to, delta, true)
 		rotation.y = lerp_angle(rotation.y, atan2(dir_to.x, dir_to.z) + PI, stats.rotation_speed * delta)
-		if fire_cooldown <= 0 and global_position.distance_to(target_actor.global_position) <= MELEE_RANGE * 1.2:
+		if fire_cooldown <= 0 and global_position.distance_to(target_actor.global_position) <= BOT_TUNING.MELEE_RANGE * 1.2:
 			_bot_melee()
 		return
 
@@ -608,7 +595,7 @@ func handle_attack_state(delta):
 
 	# Human-like reset: prolonged face-to-face trades should break into a
 	# short reposition instead of becoming a stationary DPS contest.
-	if attack_bout_timer > ATTACK_BOUT_REPOSITION_LIMIT and _disengage_cooldown <= 0.0:
+	if attack_bout_timer > BOT_TUNING.ATTACK_BOUT_REPOSITION_LIMIT and _disengage_cooldown <= 0.0:
 		if has_node("/root/Telemetry"):
 			var tel = get_node("/root/Telemetry")
 			tel.log_combat_audit("attack_disengage")
@@ -644,7 +631,7 @@ func handle_recover_state(delta):
 	# Knife retaliation: if an enemy closes in while bot is unarmed, don't just stand there
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
 		var nearby_enemy = _find_nearest_target()
-		if nearby_enemy and global_position.distance_to(nearby_enemy.global_position) < MELEE_RANGE * 2.5:
+		if nearby_enemy and global_position.distance_to(nearby_enemy.global_position) < BOT_TUNING.MELEE_RANGE * 2.5:
 			target_actor = nearby_enemy
 			_knife_mode = true
 			change_state(State.ATTACK)
@@ -737,7 +724,7 @@ func handle_zone_escape_state(delta):
 	if self_2d.distance_to(zone_c) < main.zone.current_radius * 0.75:
 		change_state(State.IDLE); return
 	var zone_center_3d = Vector3(zone_c.x, global_position.y, zone_c.y)
-	var threat = _find_retreat_threat(RETREAT_THREAT_SCAN_RANGE)
+	var threat = _find_retreat_threat(BOT_TUNING.RETREAT_THREAT_SCAN_RANGE)
 	var countering = threat != null
 	# When stuck, use wall-slide escape direction rather than random stuck override
 	if _stuck_override_timer > 0:
@@ -802,7 +789,7 @@ func _find_retreat_threat(max_range: float) -> Entity:
 		var dist = global_position.distance_to(actor.global_position)
 		if dist > max_range: continue
 		var perceived = perception_meters.get(actor, 0.0)
-		var close = dist <= RETREAT_MELEE_COUNTER_RANGE * 2.0
+		var close = dist <= BOT_TUNING.RETREAT_MELEE_COUNTER_RANGE * 2.0
 		var visible = perceived >= 0.75 or close or _can_i_see(actor)
 		if not visible: continue
 		var score = dist - perceived * 2.0
@@ -819,25 +806,25 @@ func _try_retreat_counteraction(threat: Entity, delta: float, gun_event: String)
 	if not _is_target_valid(threat):
 		return false
 	var dist = global_position.distance_to(threat.global_position)
-	if dist > RETREAT_THREAT_SCAN_RANGE:
+	if dist > BOT_TUNING.RETREAT_THREAT_SCAN_RANGE:
 		return false
 	target_actor = threat
 	last_known_target_pos = threat.global_position
 	_face_retreat_threat(threat, delta)
 
-	if fire_cooldown <= 0.0 and dist <= MELEE_RANGE * 1.05:
+	if fire_cooldown <= 0.0 and dist <= BOT_TUNING.MELEE_RANGE * 1.05:
 		_bot_melee()
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_tactics("retreat_melee_counter")
 		return true
 
-	if stats.current_ammo <= 0 and reserve_ammo > 0 and dist > MELEE_RANGE * 2.0:
+	if stats.current_ammo <= 0 and reserve_ammo > 0 and dist > BOT_TUNING.MELEE_RANGE * 2.0:
 		var before = stats.current_ammo
 		_try_reload()
 		if stats.current_ammo > before and has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_tactics("reserve_reload")
 
-	var fire_range = minf(stats.attack_range, RETREAT_COUNTERFIRE_MAX_RANGE)
+	var fire_range = minf(stats.attack_range, BOT_TUNING.RETREAT_COUNTERFIRE_MAX_RANGE)
 	if fire_cooldown <= 0.0 and stats.current_ammo > 0 and dist <= fire_range \
 			and stats.weapon_type != "" and stats.weapon_type != "knife" and has_los_to(threat):
 		_retreat_fire_at(threat, gun_event)
@@ -855,7 +842,7 @@ func _retreat_fire_at(threat: Entity, event: String):
 	if stats.current_ammo <= 0 or not ray_cast:
 		return
 	stats.current_ammo -= 1
-	fire_cooldown = maxf(stats.fire_rate * 1.85, RETREAT_COUNTERFIRE_MIN_COOLDOWN)
+	fire_cooldown = maxf(stats.fire_rate * 1.85, BOT_TUNING.RETREAT_COUNTERFIRE_MIN_COOLDOWN)
 	reveal()
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
@@ -867,7 +854,7 @@ func _retreat_fire_at(threat: Entity, event: String):
 		flash.position = Vector3(0, 0.5, -0.5)
 
 	var target_point = threat.global_position + Vector3(0, 1.0, 0)
-	var spread = RETREAT_COUNTERFIRE_SPREAD * _aim_spread_mult
+	var spread = BOT_TUNING.RETREAT_COUNTERFIRE_SPREAD * _aim_spread_mult
 	if current_state == State.ZONE_ESCAPE:
 		spread *= 1.4
 	var pellets = max(1, stats.pellet_count) if stats.weapon_type == "shotgun" else 1
@@ -946,10 +933,10 @@ func handle_disengage_state(delta):
 
 	var nearest_threat = _find_nearest_target()
 	if not nearest_threat: change_state(State.IDLE); return
-	var counter_threat = _find_retreat_threat(RETREAT_THREAT_SCAN_RANGE)
+	var counter_threat = _find_retreat_threat(BOT_TUNING.RETREAT_THREAT_SCAN_RANGE)
 	if not counter_threat:
 		counter_threat = nearest_threat
-	var countering = counter_threat != null and global_position.distance_to(counter_threat.global_position) <= RETREAT_THREAT_SCAN_RANGE
+	var countering = counter_threat != null and global_position.distance_to(counter_threat.global_position) <= BOT_TUNING.RETREAT_THREAT_SCAN_RANGE
 
 	# Heavily outnumbered (4+): scatter in unique directions rather than pile onto one cover spot
 	if _count_visible_enemies() >= 4:
@@ -1180,7 +1167,7 @@ func _update_archetype_marker():
 func _update_archetype_marker_visibility():
 	if not _archetype_marker:
 		return
-	if not DEBUG_ARCHETYPE_MARKERS or is_dead:
+	if not BOT_TUNING.DEBUG_ARCHETYPE_MARKERS or is_dead:
 		_archetype_marker.visible = false
 		return
 	var player = get_tree().get_first_node_in_group("players")
@@ -1358,10 +1345,10 @@ func _check_gunshot_sounds():
 		if actor == self or not actor is Entity or actor.is_dead: continue
 		if actor.reveal_timer <= 1.7: continue  # didn't just fire
 		var dist = global_position.distance_to(actor.global_position)
-		var range_limit = maxf(HARD_GUNSHOT_MIN_RANGE, stats.vision_range) if _awareness_level >= 2 else 15.0
+		var range_limit = maxf(BOT_TUNING.HARD_GUNSHOT_MIN_RANGE, stats.vision_range) if _awareness_level >= 2 else 15.0
 		if dist > range_limit: continue
 		if not perception_meters.has(actor): perception_meters[actor] = 0.0
-		var direct_noise_lock = _awareness_level >= 2 and (has_los_to(actor) or dist <= HARD_GUNSHOT_CLOSE_COMMIT_RANGE)
+		var direct_noise_lock = _awareness_level >= 2 and (has_los_to(actor) or dist <= BOT_TUNING.HARD_GUNSHOT_CLOSE_COMMIT_RANGE)
 		var max_awareness = 1.0 if direct_noise_lock else 0.75
 		var boost = 1.0 if direct_noise_lock else (0.65 if _awareness_level >= 2 else 0.5)
 		perception_meters[actor] = min(perception_meters[actor] + boost, max_awareness)
@@ -1740,9 +1727,9 @@ func _is_target_valid(t: Variant) -> bool:
 func _bot_melee():
 	fire_cooldown = 0.65
 	if not _is_target_valid(target_actor): return
-	if global_position.distance_to(target_actor.global_position) > MELEE_RANGE: return
-	target_actor.take_damage(MELEE_DAMAGE, "melee", "knife", self)
-	_engagement_dmg_dealt += MELEE_DAMAGE  # melee is guaranteed on hit
+	if global_position.distance_to(target_actor.global_position) > BOT_TUNING.MELEE_RANGE: return
+	target_actor.take_damage(BOT_TUNING.MELEE_DAMAGE, "melee", "knife", self)
+	_engagement_dmg_dealt += BOT_TUNING.MELEE_DAMAGE  # melee is guaranteed on hit
 	var impact = IMPACT_EFFECT_SCN.instantiate()
 	get_tree().root.add_child(impact)
 	impact.global_position = target_actor.global_position + Vector3(0, 0.8, 0)
@@ -1963,7 +1950,7 @@ func change_state(new_state: State):
 		_strafe_timer = 0.0
 		_strafe_dir = 1.0 if randf() < 0.5 else -1.0
 		_peek_side = _strafe_dir
-	if DEBUG_PRINT:
+	if BOT_TUNING.DEBUG_PRINT:
 		print("[BOT] %s → %s (ammo=%d reserve=%d hp=%.0f)" % [
 			State.keys()[current_state], State.keys()[new_state],
 			stats.current_ammo, reserve_ammo, current_health

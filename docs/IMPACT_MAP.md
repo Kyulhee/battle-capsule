@@ -26,6 +26,7 @@
 | PlayerWeaponIconResolver | Player weapon HUD icon cache/loading/fallbacks | `Player.gd` | RefCounted UI resolver |
 | PlayerTuning | Player movement/combat/heal/occluder tuning constants | `Player.gd` | static tuning constants |
 | PlayerOccluderFader | Player occluder ray tracing/fade material state | `Player.gd` | RefCounted helper |
+| BotTuning | Bot melee/retreat/perception/debug tuning constants | `Bot.gd` | static tuning constants |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
@@ -156,7 +157,15 @@
 - **Main 참조 방법**: `get_tree().get_root().get_node("Main")` 런타임 조회 — 읽기 전용
 - **읽는 Main 필드**: `main.zone.current_center`, `main.zone.current_radius`, `main.zone.stage`, `main.alive_count`
 - **전술 계층**: State/movement/firing 실행은 `Bot.gd`, 전술 선택과 profile merge는 `BotDoctrine.gd`.
+- **tuning 경계**: `BotTuning.gd` owns melee/retreat counterfire/attack-bout/hard gunshot/debug constants. `Bot.gd` still owns the state machine and runtime behavior.
 - **Death drop 표시**: `DropDisplayCatalog`에서 무기/탄약/회복 아이템 표시 이름과 death-drop 색상을 가져옴.
+
+### `src/entities/bot/BotTuning.gd`
+- **읽는 파일**: 직접 scene lookup 없음.
+- **호출자**: `Bot.gd`.
+- **역할**: bot melee, attack-bout reposition, retreat counterfire, Hard gunshot awareness, and debug marker constants.
+- **소유하지 않는 것**: AI state machine, doctrine profile application, movement/combat/recovery algorithms, perception checks, archetype/difficulty runtime state.
+- **수정 영향**: Bot tuning value를 바꾸면 `Bot.gd` melee/retreat/perception/debug paths, `BotDoctrine.gd`, and normal/Hell simulations를 함께 확인.
 
 ### `src/core/DropDisplayCatalog.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
@@ -386,6 +395,7 @@
 | Player weapon HUD icons | `src/ui/player/PlayerWeaponIconResolver.gd` | `Player.gd` asset catalog pass-through, `data/asset_catalog.json`, selected icon assets, `PlayerSlotHudRenderer.gd` |
 | Player tuning constants | `src/entities/player/PlayerTuning.gd` | `Player.gd` movement/combat/heal/occluder algorithms, simulations |
 | Player occluder fade behavior | `src/entities/player/PlayerOccluderFader.gd` | `Player.gd` camera lookup, `PlayerTuning.gd`, occluder group tagging/materials |
+| Bot tuning constants | `src/entities/bot/BotTuning.gd` | `Bot.gd` state machine/combat/perception paths, `BotDoctrine.gd`, simulations |
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |

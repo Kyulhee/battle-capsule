@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.20-dev — 2026-05-24
+
+**Bot tuning constants boundary**
+
+**src/entities/bot/BotTuning.gd / src/entities/bot/Bot.gd**
+
+- Added `BotTuning.gd` for melee, attack-bout reposition, retreat counterfire, Hard gunshot awareness, and debug marker constants.
+- `Bot.gd` now references the tuning owner while keeping AI state machine, target selection, movement, combat, recovery/disengage behavior, perception checks, loot decisions, archetype/difficulty runtime state, and Telemetry hooks.
+- Preserved all current numeric/debug values exactly.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=87.7s, stage=3, recover=31, disengage=27.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=80.9s, stage=3, recover=124, disengage=21.
+
+---
+
 ## v1.11.19-dev — 2026-05-24
 
 **Player pass closure review**
