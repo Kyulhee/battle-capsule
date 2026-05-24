@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.24-dev — 2026-05-24
+
+**Bot pass closure review**
+
+**docs/MASTERPLAN.md / docs/ARCHITECTURE.md / docs/IMPACT_MAP.md / docs/devlog/v1.11.md**
+
+- Re-audited `src/entities/bot/Bot.gd` after the tuning, debug label builder, marker formatter, and visual skin controller slices.
+- `Bot.gd` is 1908 lines and intentionally retains AI state machine/runtime timers, navigation/stuck handling, objective/loot/supply decisions, recovery/disengage/zone escape behavior, perception/noise checks, combat movement and firing/melee execution, damage/death/drop handling, crouch body mesh updates, Sfx/Telemetry hooks, and Main-owned zone/alive-count/AssetCatalog reads.
+- Split Bot-side owners are now documented: `BotDoctrine.gd`, `BotTuning.gd`, `BotDebugLabelBuilder.gd`, `BotMarkerFormatter.gd`, `BotVisualKit.gd`, and `BotVisualSkinController.gd`.
+- No runtime code, AI behavior, visual behavior, or Telemetry schema changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- Runtime simulation skipped because this is a docs-only closure review.
+
+---
+
 ## v1.11.23-dev — 2026-05-24
 
 **Bot visual skin controller**

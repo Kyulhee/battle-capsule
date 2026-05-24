@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-24 (v1.11.23 Bot visual skin controller)
+> Last updated: 2026-05-24 (v1.11.24 Bot pass closure review)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.24 — Bot pass closure review.
+**Next structural slice**: v1.11.25 — entity data-boundary planning.
 
-**Latest completed slice**: v1.11.23 — Bot visual skin controller.
+**Latest completed slice**: v1.11.24 — Bot pass closure review.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -377,6 +377,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Bot debug label builder complete: `BotDebugLabelBuilder.gd` owns state/archetype Label3D construction and base styling. `Bot.gd` still owns label text, visibility, archetype marker content, and reveal logic.
    - Bot marker formatter complete: `BotMarkerFormatter.gd` owns state label specs, archetype marker text, combat-plan marker abbreviations, archetype fallback colors, and cosmetic catalog ids. `Bot.gd` still owns marker visibility, reveal checks, AssetCatalog lookup, visual skin delegation, AI state machine, and Telemetry hooks.
    - Bot visual skin controller complete: `BotVisualSkinController.gd` owns `ArchetypeSkin` root application/sync/hide lifecycle. `BotVisualKit.gd` still owns primitive skin part construction, while `Bot.gd` keeps AI state, crouch body mesh changes, AssetCatalog lookup, and visual skin delegation.
+   - Bot pass closure complete: `Bot.gd` is 1908 lines and intentionally retains AI state machine/runtime state, navigation and combat execution, perception/noise checks, loot/supply decisions, death/drop behavior, Sfx/Telemetry hooks, and Main-owned zone/alive-count reads. Further Bot splitting should require a dedicated behavior-test plan, not line count alone.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -601,6 +602,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Keep `Bot.gd` as the owner of AI state, crouch body mesh updates, AssetCatalog lookup, doctrine profile application, combat, perception, and Telemetry hooks.
 - Preserve current skin node name, skin part geometry, catalog tint behavior, crouch offsets/scales, and death hiding behavior.
 - Next Bot slice should close the Bot pass by re-auditing retained responsibilities before moving to another entity/data boundary.
+
+### v1.11.24 — Bot Pass Closure Review `S`
+
+**Summary**: Close the Bot entity structural pass and document why the remaining Bot code stays together for now.
+
+- Re-audit `src/entities/bot/Bot.gd` after tuning, debug label builder, marker formatter, and visual skin controller slices.
+- Mark as intentionally retained in `Bot.gd`: AI state machine and timers, navigation/stuck handling, objective/loot/supply decisions, recovery/disengage/zone escape behavior, perception/noise/ambient awareness checks, combat movement and firing/melee execution, damage/death/drop handling, crouch body mesh updates, Sfx/Telemetry hooks, and Main-owned zone/alive-count/AssetCatalog reads.
+- Mark as split owners: `BotDoctrine.gd`, `BotTuning.gd`, `BotDebugLabelBuilder.gd`, `BotMarkerFormatter.gd`, `BotVisualKit.gd`, and `BotVisualSkinController.gd`.
+- No runtime code, AI behavior, visual behavior, or Telemetry schema changes in this closure slice.
+- Further Bot extraction should wait for explicit behavior coverage because perception, movement, loot, and combat execution share mutable runtime state.
 
 **v1.11 completion gate**
 

@@ -157,12 +157,15 @@
 - **수정 영향**: movement/combat/heal/artifact/pickup behavior 변경 시 `PlayerTuning.gd`, `ArtifactCatalog.gd`, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd`, and simulations를 함께 확인.
 
 ### `src/entities/bot/Bot.gd`
+- **현재 역할**: Bot entity runtime owner. v1.11.24 기준 1908줄.
 - **Main 참조 방법**: `get_tree().get_root().get_node("Main")` 런타임 조회 — 읽기 전용
 - **읽는 Main 필드**: `main.zone.current_center`, `main.zone.current_radius`, `main.zone.stage`, `main.alive_count`
 - **전술 계층**: State/movement/firing 실행은 `Bot.gd`, 전술 선택과 profile merge는 `BotDoctrine.gd`.
 - **tuning 경계**: `BotTuning.gd` owns melee/retreat counterfire/attack-bout/hard gunshot/debug constants. `Bot.gd` still owns the state machine and runtime behavior.
 - **marker/skin 경계**: `BotDebugLabelBuilder.gd` owns Label3D node construction; `BotMarkerFormatter.gd` owns marker text/color/catalog id mapping; `BotVisualSkinController.gd` owns archetype skin root apply/sync/hide lifecycle. `Bot.gd` still owns visibility, reveal checks, crouch body mesh updates, AssetCatalog lookup, and AI state.
+- **의도적으로 소유**: AI state machine and timers, navigation/stuck handling, objective/loot/supply decisions, recovery/disengage/zone escape behavior, perception/noise/ambient awareness checks, combat movement and firing/melee execution, damage/death/drop handling, Sfx/Telemetry hooks.
 - **Death drop 표시**: `DropDisplayCatalog`에서 무기/탄약/회복 아이템 표시 이름과 death-drop 색상을 가져옴.
+- **closure note**: Further Bot extraction should require explicit behavior coverage because perception, movement, loot, and combat execution share mutable runtime state.
 
 ### `src/entities/bot/BotTuning.gd`
 - **읽는 파일**: 직접 scene lookup 없음.

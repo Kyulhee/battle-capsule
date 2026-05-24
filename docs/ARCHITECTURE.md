@@ -286,7 +286,7 @@ v1.11.19 closure 기준 `Player.gd`는 832줄이며, intentionally retained resp
 
 **Bot이 Main을 참조하는 방법**: `get_tree().get_root().get_node("Main")`으로 런타임 조회. `main.zone`, `main.alive_count`, `main.zone.stage` 읽기만 함.
 
-v1.11.23 기준 Bot debug marker 노드 생성은 `BotDebugLabelBuilder.gd`, marker text/color/catalog id mapping은 `BotMarkerFormatter.gd`, archetype skin root lifecycle은 `BotVisualSkinController.gd`가 소유한다. `BotVisualKit.gd`는 primitive skin part construction을 유지한다. `Bot.gd`는 AI state, crouch body mesh updates, reveal/visibility checks, AssetCatalog 조회, skin delegation, and Telemetry hooks를 유지한다.
+v1.11.24 closure 기준 `Bot.gd`는 1908줄이며, intentionally retained responsibilities are AI state machine and runtime timers, navigation/stuck handling, objective/loot/supply decisions, recovery/disengage/zone escape behavior, perception/noise/ambient awareness checks, combat movement and firing/melee execution, damage/death/drop handling, crouch body mesh updates, Sfx/Telemetry hooks, and Main-owned zone/alive-count/AssetCatalog reads. Bot debug marker 노드 생성은 `BotDebugLabelBuilder.gd`, marker text/color/catalog id mapping은 `BotMarkerFormatter.gd`, archetype skin root lifecycle은 `BotVisualSkinController.gd`가 소유한다. `BotVisualKit.gd`는 primitive skin part construction을 유지한다.
 
 ---
 
