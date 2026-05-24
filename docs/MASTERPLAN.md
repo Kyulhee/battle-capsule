@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-24 (v1.11.24 Bot pass closure review)
+> Last updated: 2026-05-24 (v1.11.25 Entity data-boundary planning)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.25 — entity data-boundary planning.
+**Next structural slice**: v1.11.26 — Weapon slot tuning boundary.
 
-**Latest completed slice**: v1.11.24 — Bot pass closure review.
+**Latest completed slice**: v1.11.25 — Entity data-boundary planning.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -612,6 +612,31 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Mark as split owners: `BotDoctrine.gd`, `BotTuning.gd`, `BotDebugLabelBuilder.gd`, `BotMarkerFormatter.gd`, `BotVisualKit.gd`, and `BotVisualSkinController.gd`.
 - No runtime code, AI behavior, visual behavior, or Telemetry schema changes in this closure slice.
 - Further Bot extraction should wait for explicit behavior coverage because perception, movement, loot, and combat execution share mutable runtime state.
+
+### v1.11.25 — Entity Data-Boundary Planning `S`
+
+**Summary**: Choose the next post-Player/Bot structural work based on value drift risk and runtime blast radius.
+
+**Audit result**
+
+1. `WeaponSlotManager.gd` is the next best concrete slice.
+   - It still owns reload times and reserve-ammo caps directly in `get_reload_time()` / `get_reserve_max()`.
+   - These values affect Player HUD ammo display, pressure effects, reload behavior, and future balance tuning.
+   - Moving the values to a small tuning helper is low risk because `WeaponSlotManager` can keep inventory arrays, reload state, public APIs, and algorithms.
+2. `Pickup.gd` is the next visual/presentation candidate after weapon tuning.
+   - It mixes pickup mesh shape, glow/light tuning, label LOD/focus policy, icon loading, collection side effects, Telemetry logging, and debug logging.
+   - Split only presentation pieces first; collection side effects should remain until a dedicated item-effect boundary exists.
+3. `MissionCatalog.gd` still has numeric prose and target values close together.
+   - This is acceptable short term because mission descriptor construction and MissionData targets are already in one domain file.
+   - A broader mission-data resource/json migration should wait until new mission content is planned.
+4. `PressureEffectApplier.gd` has fallback effect amounts, but active values mostly come from descriptors.
+   - Review later with pressure-effect data specs rather than as a standalone cleanup.
+
+**Next concrete slice**
+
+- v1.11.26: Add a `WeaponSlotTuning` helper for reload times and reserve-ammo caps.
+- Preserve existing reload times, reserve caps, public `WeaponSlotManager` APIs, pressure effect behavior, Player HUD text, and Telemetry schema.
+- Do not convert to JSON in the first pass unless the helper boundary proves insufficient.
 
 **v1.11 completion gate**
 

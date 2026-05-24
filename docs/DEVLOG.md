@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.25-dev — 2026-05-24
+
+**Entity data-boundary planning**
+
+**docs/MASTERPLAN.md / docs/devlog/v1.11.md**
+
+- Audited remaining post-Player/Bot entity/data-boundary candidates.
+- Selected `WeaponSlotManager.gd` as the next concrete slice because reload times and reserve-ammo caps are still direct code values while the inventory/reload algorithms can remain stable.
+- Deferred `Pickup.gd` presentation splitting until after weapon tuning; collection side effects stay in `Pickup.gd` until a dedicated item-effect boundary exists.
+- Deferred broader mission numeric prose/data migration until new mission content is planned.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- Runtime simulation skipped because this is a docs-only planning slice.
+
+---
+
 ## v1.11.24-dev — 2026-05-24
 
 **Bot pass closure review**
