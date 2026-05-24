@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-24 (v1.11.21 Bot debug label builder)
+> Last updated: 2026-05-24 (v1.11.22 Bot marker formatter)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.22 — Bot visual/state marker boundary review.
+**Next structural slice**: v1.11.23 — Bot visual skin boundary review.
 
-**Latest completed slice**: v1.11.21 — Bot debug label builder.
+**Latest completed slice**: v1.11.22 — Bot marker formatter.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -375,6 +375,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Player pass closure complete: `Player.gd` is now 832 lines and intentionally retains movement/combat/heal/artifact/pickup/kill feed/zone warning runtime state and orchestration. Further Player extraction should wait for a concrete behavior/data owner, not line count alone.
    - Bot tuning constants boundary complete: `BotTuning.gd` owns melee, retreat counterfire, attack-bout reposition, hard gunshot, and debug marker constants. `Bot.gd` still owns AI state machine, movement/combat/recovery algorithms, perception hooks, and runtime state.
    - Bot debug label builder complete: `BotDebugLabelBuilder.gd` owns state/archetype Label3D construction and base styling. `Bot.gd` still owns label text, visibility, archetype marker content, and reveal logic.
+   - Bot marker formatter complete: `BotMarkerFormatter.gd` owns state label specs, archetype marker text, combat-plan marker abbreviations, archetype fallback colors, and cosmetic catalog ids. `Bot.gd` still owns marker visibility, reveal checks, AssetCatalog lookup, visual skin application, AI state machine, and Telemetry hooks.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -578,6 +579,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Preserve label positions, sizes, outline sizes, billboard/double-sided settings, and initial hidden state.
 - Do not move visual skin application, archetype marker text formatting, doctrine profile application, or AI behavior in this slice.
 - Next Bot slice should review visual/state marker content ownership separately.
+
+### v1.11.22 — Bot Marker Formatter `S`
+
+**Summary**: Move Bot state/archetype marker content mapping out of `Bot.gd` without changing marker visibility or AI behavior.
+
+- Add `src/entities/bot/BotMarkerFormatter.gd` for state label text/color specs, archetype marker prefixes, combat-plan marker abbreviations, archetype fallback colors, and cosmetic catalog ids.
+- Keep `Bot.gd` as the owner of `Label3D` references, marker visibility, reveal checks, AssetCatalog scene lookup, visual skin application, AI state machine, combat, perception, and Telemetry hooks.
+- Preserve current marker text, colors, catalog ids, and state visibility behavior.
+- Do not move visual skin construction, doctrine profile application, target selection, or movement/combat algorithms in this slice.
+- Next Bot slice should review visual skin application/catalog tint ownership separately.
 
 **v1.11 completion gate**
 

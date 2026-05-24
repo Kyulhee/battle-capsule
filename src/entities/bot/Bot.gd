@@ -9,6 +9,7 @@ const BOT_DOCTRINE       = preload("res://src/entities/bot/BotDoctrine.gd")
 const BOT_VISUAL_KIT     = preload("res://src/entities/bot/BotVisualKit.gd")
 const BOT_TUNING         = preload("res://src/entities/bot/BotTuning.gd")
 const BOT_DEBUG_LABEL_BUILDER = preload("res://src/entities/bot/BotDebugLabelBuilder.gd")
+const BOT_MARKER_FORMATTER = preload("res://src/entities/bot/BotMarkerFormatter.gd")
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -1103,21 +1104,17 @@ func _clamp_to_safe_zone(pos: Vector3) -> Vector3:
 # ─── STATE INDICATOR ─────────────────────────────────────────────────────────
 
 func _update_state_label():
-	if not _state_label: return
-	if is_dead: _state_label.visible = false; return
-	match current_state:
-		State.CHASE:
-			_state_label.text = "?"
-			_state_label.modulate = Color(1.0, 0.90, 0.0)
-		State.ATTACK:
-			_state_label.text = "!"
-			_state_label.modulate = Color(1.0, 0.18, 0.12)
-		State.DISENGAGE:
-			_state_label.text = "?"
-			_state_label.modulate = Color(1.0, 0.60, 0.0)
-		_:
-			_state_label.visible = false
-			return
+	if not _state_label:
+		return
+	if is_dead:
+		_state_label.visible = false
+		return
+	var spec = BOT_MARKER_FORMATTER.state_label_spec(State.keys()[current_state])
+	if spec.is_empty():
+		_state_label.visible = false
+		return
+	_state_label.text = spec.get("text", "")
+	_state_label.modulate = spec.get("color", Color(1.0, 1.0, 1.0))
 	_state_label.visible = true
 
 func _update_state_label_visibility():
@@ -1133,22 +1130,9 @@ func _update_archetype_marker():
 	if not _archetype_marker:
 		return
 	var name = _archetype_name()
-	match name:
-		"AGGRESSIVE":
-			_archetype_marker.text = _archetype_marker_text("AGG")
-			_archetype_marker.modulate = _catalog_archetype_accent(Color(1.0, 0.22, 0.12))
-		"DEFENSIVE":
-			_archetype_marker.text = _archetype_marker_text("DEF")
-			_archetype_marker.modulate = _catalog_archetype_accent(Color(0.25, 0.62, 1.0))
-		"SNIPER":
-			_archetype_marker.text = _archetype_marker_text("SNP")
-			_archetype_marker.modulate = _catalog_archetype_accent(Color(0.88, 0.52, 1.0))
-		"OPPORTUNIST":
-			_archetype_marker.text = _archetype_marker_text("OPP")
-			_archetype_marker.modulate = _catalog_archetype_accent(Color(0.25, 1.0, 0.48))
-		_:
-			_archetype_marker.text = _archetype_marker_text("BOT")
-			_archetype_marker.modulate = Color(1.0, 1.0, 1.0)
+	var fallback = BOT_MARKER_FORMATTER.archetype_fallback_color(name)
+	_archetype_marker.text = BOT_MARKER_FORMATTER.archetype_marker_text(name, _combat_plan)
+	_archetype_marker.modulate = _catalog_archetype_accent(name, fallback)
 
 func _update_archetype_marker_visibility():
 	if not _archetype_marker:
@@ -1163,44 +1147,22 @@ func _update_archetype_marker_visibility():
 	_update_archetype_marker()
 	_archetype_marker.visible = is_revealed_to(player)
 
-func _archetype_marker_text(prefix: String) -> String:
-	return "%s %s" % [prefix, _combat_plan_marker()]
-
-func _combat_plan_marker() -> String:
-	match _combat_plan:
-		BOT_DOCTRINE.PLAN_ADVANCE:
-			return "ADV"
-		BOT_DOCTRINE.PLAN_KITE:
-			return "KITE"
-		BOT_DOCTRINE.PLAN_PEEK_COVER:
-			return "PEEK"
-		BOT_DOCTRINE.PLAN_REPOSITION:
-			return "FLK"
-		BOT_DOCTRINE.PLAN_HOLD_ANGLE:
-			return "HOLD"
-		_:
-			return "STR"
-
 func _archetype_name() -> String:
 	return BOT_DOCTRINE.archetype_name(int(archetype))
 
-func _catalog_archetype_id() -> String:
-	match _archetype_name():
-		"DEFENSIVE":
-			return "bot.defensive"
-		"SNIPER":
-			return "bot.sniper"
-		"OPPORTUNIST":
-			return "bot.opportunist"
-	return "bot.aggressive"
+func _catalog_archetype_id(archetype_name: String = "") -> String:
+	var resolved_name = archetype_name
+	if resolved_name.is_empty():
+		resolved_name = _archetype_name()
+	return BOT_MARKER_FORMATTER.archetype_catalog_id(resolved_name)
 
-func _catalog_archetype_accent(fallback: Color) -> Color:
+func _catalog_archetype_accent(archetype_name: String, fallback: Color) -> Color:
 	var main = get_tree().root.get_node_or_null("Main")
 	if not main:
 		return fallback
 	var catalog = main.get("asset_catalog")
 	if catalog and catalog.has_method("get_cosmetic_tint"):
-		return catalog.get_cosmetic_tint(_catalog_archetype_id(), "accent_tint", fallback)
+		return catalog.get_cosmetic_tint(_catalog_archetype_id(archetype_name), "accent_tint", fallback)
 	return fallback
 
 func _log_doctrine_state_time(delta: float):

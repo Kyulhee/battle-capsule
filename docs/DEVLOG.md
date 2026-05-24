@@ -1,8 +1,27 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-23. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
+> Last updated: 2026-05-24. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
 
 The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md). Do not load it by default.
+
+---
+
+## v1.11.22-dev — 2026-05-24
+
+**Bot marker formatter**
+
+**src/entities/bot/BotMarkerFormatter.gd / src/entities/bot/Bot.gd**
+
+- Added `BotMarkerFormatter.gd` for state label specs, archetype marker text, combat-plan marker abbreviations, fallback colors, and cosmetic catalog ids.
+- `Bot.gd` now delegates marker content mapping while keeping `Label3D` references, marker visibility, reveal checks, AssetCatalog lookup, visual skin application, AI behavior, and Telemetry hooks.
+- Preserved current marker text, colors, catalog ids, and visibility behavior.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=68.3s, stage=2, recover=34, disengage=22.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=68.6s, stage=2, recover=123, disengage=16.
 
 ---
 

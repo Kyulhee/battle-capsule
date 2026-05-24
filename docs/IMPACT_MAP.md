@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.11-dev / 마지막 검증: 2026-05-23
+> 기준 버전: v1.11-dev / 마지막 검증: 2026-05-24
 
 ---
 
@@ -28,6 +28,7 @@
 | PlayerOccluderFader | Player occluder ray tracing/fade material state | `Player.gd` | RefCounted helper |
 | BotTuning | Bot melee/retreat/perception/debug tuning constants | `Bot.gd` | static tuning constants |
 | BotDebugLabelBuilder | Bot state/archetype Label3D construction | `Bot.gd` | static visual helper |
+| BotMarkerFormatter | Bot state/archetype marker text/color/catalog id mapping | `Bot.gd` | static formatter |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
@@ -159,6 +160,7 @@
 - **읽는 Main 필드**: `main.zone.current_center`, `main.zone.current_radius`, `main.zone.stage`, `main.alive_count`
 - **전술 계층**: State/movement/firing 실행은 `Bot.gd`, 전술 선택과 profile merge는 `BotDoctrine.gd`.
 - **tuning 경계**: `BotTuning.gd` owns melee/retreat counterfire/attack-bout/hard gunshot/debug constants. `Bot.gd` still owns the state machine and runtime behavior.
+- **marker 경계**: `BotDebugLabelBuilder.gd` owns Label3D node construction; `BotMarkerFormatter.gd` owns marker text/color/catalog id mapping. `Bot.gd` still owns visibility, reveal checks, AssetCatalog lookup, and AI state.
 - **Death drop 표시**: `DropDisplayCatalog`에서 무기/탄약/회복 아이템 표시 이름과 death-drop 색상을 가져옴.
 
 ### `src/entities/bot/BotTuning.gd`
@@ -172,8 +174,15 @@
 - **읽는 파일**: 직접 scene lookup 없음.
 - **호출자**: `Bot.gd` `_ready()`.
 - **역할**: state label and archetype marker `Label3D` node construction/styling.
-- **소유하지 않는 것**: state/archetype marker text, color updates, visibility, reveal checks, AI behavior, visual skin application.
-- **수정 영향**: Bot debug marker position/style을 바꾸면 `Bot.gd` `_update_state_label()`, `_update_archetype_marker()`, marker visibility, and visual checks를 함께 확인.
+- **소유하지 않는 것**: state/archetype marker text, color updates, catalog ids, visibility, reveal checks, AI behavior, visual skin application.
+- **수정 영향**: Bot debug marker position/style을 바꾸면 `Bot.gd` marker visibility, `BotMarkerFormatter.gd` content specs, and visual checks를 함께 확인.
+
+### `src/entities/bot/BotMarkerFormatter.gd`
+- **읽는 파일**: `BotDoctrine.gd` combat plan constants. 직접 scene lookup 없음.
+- **호출자**: `Bot.gd` `_update_state_label()` / `_update_archetype_marker()`.
+- **역할**: state label specs, archetype marker prefixes, combat-plan marker abbreviations, archetype fallback colors, and cosmetic catalog ids.
+- **소유하지 않는 것**: `Label3D` node construction, marker visibility/reveal checks, AssetCatalog lookup, visual skin construction, AI behavior, Telemetry.
+- **수정 영향**: Bot marker text/color/catalog id를 바꾸면 `Bot.gd` marker update paths, `BotVisualKit.gd` cosmetic ids, `data/asset_catalog.json`, and visual/headless checks를 함께 확인.
 
 ### `src/core/DropDisplayCatalog.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
@@ -404,7 +413,8 @@
 | Player tuning constants | `src/entities/player/PlayerTuning.gd` | `Player.gd` movement/combat/heal/occluder algorithms, simulations |
 | Player occluder fade behavior | `src/entities/player/PlayerOccluderFader.gd` | `Player.gd` camera lookup, `PlayerTuning.gd`, occluder group tagging/materials |
 | Bot tuning constants | `src/entities/bot/BotTuning.gd` | `Bot.gd` state machine/combat/perception paths, `BotDoctrine.gd`, simulations |
-| Bot debug marker layout | `src/entities/bot/BotDebugLabelBuilder.gd` | `Bot.gd` state/archetype marker text and visibility paths |
+| Bot debug marker layout | `src/entities/bot/BotDebugLabelBuilder.gd` | `Bot.gd` marker visibility paths and visual checks |
+| Bot marker content mapping | `src/entities/bot/BotMarkerFormatter.gd` | `Bot.gd` state/archetype marker updates, `BotDoctrine.gd`, cosmetic catalog tint ids |
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |
