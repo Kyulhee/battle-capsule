@@ -56,6 +56,10 @@ static func archetype_catalog_id(archetype_name: String) -> String:
 	return _archetype_spec(archetype_name).get("catalog_id", "bot.aggressive")
 
 
+static func archetype_catalog_id_for_id(archetype_id: int) -> String:
+	return archetype_catalog_id(BOT_DOCTRINE.archetype_name(archetype_id))
+
+
 static func archetype_fallback_color(archetype_name: String) -> Color:
 	return _archetype_spec(archetype_name).get("fallback_color", Color(1.0, 1.0, 1.0))
 

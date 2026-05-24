@@ -6,10 +6,10 @@ const PICKUP_SCN         = preload("res://src/entities/pickup/Pickup.tscn")
 const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
 const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const BOT_DOCTRINE       = preload("res://src/entities/bot/BotDoctrine.gd")
-const BOT_VISUAL_KIT     = preload("res://src/entities/bot/BotVisualKit.gd")
 const BOT_TUNING         = preload("res://src/entities/bot/BotTuning.gd")
 const BOT_DEBUG_LABEL_BUILDER = preload("res://src/entities/bot/BotDebugLabelBuilder.gd")
 const BOT_MARKER_FORMATTER = preload("res://src/entities/bot/BotMarkerFormatter.gd")
+const BOT_VISUAL_SKIN_CONTROLLER = preload("res://src/entities/bot/BotVisualSkinController.gd")
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -68,7 +68,7 @@ var _zone_thrash_cooldown: float = 0.0  # throttle random thrash bursts in ZONE_
 
 var _state_label: Label3D = null
 var _archetype_marker: Label3D = null
-var _skin_root: Node3D = null
+var _visual_skin = BOT_VISUAL_SKIN_CONTROLLER.new()
 var _doctrine_profile: Dictionary = {}
 var _difficulty_params: Dictionary = {}
 var _base_attack_range: float = -1.0
@@ -201,7 +201,7 @@ func _physics_process(delta):
 	if has_node("MeshInstance3D"):
 		$MeshInstance3D.scale.y = 0.62 if is_crouching else 1.0
 		$MeshInstance3D.position.y = _mesh_origin_y - 0.19 if is_crouching else _mesh_origin_y
-	_sync_visual_skin()
+	_visual_skin.sync(self)
 
 func use_heal():
 	if stats.advanced_heals > 0:
@@ -1157,13 +1157,16 @@ func _catalog_archetype_id(archetype_name: String = "") -> String:
 	return BOT_MARKER_FORMATTER.archetype_catalog_id(resolved_name)
 
 func _catalog_archetype_accent(archetype_name: String, fallback: Color) -> Color:
-	var main = get_tree().root.get_node_or_null("Main")
-	if not main:
-		return fallback
-	var catalog = main.get("asset_catalog")
+	var catalog = _asset_catalog()
 	if catalog and catalog.has_method("get_cosmetic_tint"):
 		return catalog.get_cosmetic_tint(_catalog_archetype_id(archetype_name), "accent_tint", fallback)
 	return fallback
+
+func _asset_catalog():
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		return null
+	return main.get("asset_catalog")
 
 func _log_doctrine_state_time(delta: float):
 	if not has_node("/root/Telemetry"):
@@ -1219,25 +1222,7 @@ func _ensure_doctrine_profile():
 		configure_ai(int(archetype), _difficulty_params)
 
 func _apply_visual_skin():
-	if not BOT_VISUAL_KIT:
-		return
-	var catalog = null
-	var main = get_tree().root.get_node_or_null("Main")
-	if main:
-		catalog = main.get("asset_catalog")
-	_skin_root = BOT_VISUAL_KIT.apply_skin(self, int(archetype), get_instance_id(), catalog)
-	_sync_visual_skin()
-
-func _sync_visual_skin():
-	if not _skin_root:
-		return
-	_skin_root.visible = has_node("MeshInstance3D") and $MeshInstance3D.visible and not is_dead
-	if is_crouching:
-		_skin_root.position = Vector3(0.0, 0.08, 0.0)
-		_skin_root.scale = Vector3(0.92, 0.72, 0.92)
-	else:
-		_skin_root.position = Vector3.ZERO
-		_skin_root.scale = Vector3.ONE
+	_visual_skin.apply(self, int(archetype), _asset_catalog())
 
 # ─── LATE GAME SHIFT ─────────────────────────────────────────────────────────
 # When alive_count ≤ 3, bots escalate: tighter scans, harder to disengage,
@@ -1689,7 +1674,7 @@ func _bot_melee():
 func die(killer: Node3D = null):
 	if _state_label: _state_label.visible = false
 	if _archetype_marker: _archetype_marker.visible = false
-	if _skin_root: _skin_root.visible = false
+	_visual_skin.hide()
 	_drop_weapon()
 	_drop_ammo()
 	_drop_heals()

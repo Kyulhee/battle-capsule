@@ -1,6 +1,7 @@
 extends RefCounted
 
 const SKIN_NODE_NAME := "ArchetypeSkin"
+const BOT_MARKER_FORMATTER = preload("res://src/entities/bot/BotMarkerFormatter.gd")
 
 const ARCHETYPE_AGGRESSIVE := 0
 const ARCHETYPE_DEFENSIVE := 1
@@ -55,20 +56,10 @@ static func _spec_for_archetype(archetype_id: int) -> Dictionary:
 static func _apply_catalog_tints(spec: Dictionary, archetype_id: int, asset_catalog) -> void:
 	if not asset_catalog or not asset_catalog.has_method("get_cosmetic_tint"):
 		return
-	var cosmetic_id = _catalog_id_for_archetype(archetype_id)
+	var cosmetic_id = BOT_MARKER_FORMATTER.archetype_catalog_id_for_id(archetype_id)
 	spec["body"] = asset_catalog.get_cosmetic_tint(cosmetic_id, "body_tint", spec["body"])
 	spec["accent"] = asset_catalog.get_cosmetic_tint(cosmetic_id, "accent_tint", spec["accent"])
 	spec["dark"] = spec["body"].darkened(0.72)
-
-static func _catalog_id_for_archetype(archetype_id: int) -> String:
-	match archetype_id:
-		ARCHETYPE_DEFENSIVE:
-			return "bot.defensive"
-		ARCHETYPE_SNIPER:
-			return "bot.sniper"
-		ARCHETYPE_OPPORTUNIST:
-			return "bot.opportunist"
-	return "bot.aggressive"
 
 static func _add_body_band(root: Node3D, spec: Dictionary) -> void:
 	_add_box(root, "BodyTintBand", Vector3(0.0, 1.05, -0.552), Vector3(0.62, 0.105, 0.035), spec.body)

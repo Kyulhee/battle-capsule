@@ -29,6 +29,7 @@
 | BotTuning | Bot melee/retreat/perception/debug tuning constants | `Bot.gd` | static tuning constants |
 | BotDebugLabelBuilder | Bot state/archetype Label3D construction | `Bot.gd` | static visual helper |
 | BotMarkerFormatter | Bot state/archetype marker text/color/catalog id mapping | `Bot.gd` | static formatter |
+| BotVisualSkinController | Bot archetype skin root apply/sync/hide lifecycle | `Bot.gd` | RefCounted visual helper |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
@@ -160,7 +161,7 @@
 - **읽는 Main 필드**: `main.zone.current_center`, `main.zone.current_radius`, `main.zone.stage`, `main.alive_count`
 - **전술 계층**: State/movement/firing 실행은 `Bot.gd`, 전술 선택과 profile merge는 `BotDoctrine.gd`.
 - **tuning 경계**: `BotTuning.gd` owns melee/retreat counterfire/attack-bout/hard gunshot/debug constants. `Bot.gd` still owns the state machine and runtime behavior.
-- **marker 경계**: `BotDebugLabelBuilder.gd` owns Label3D node construction; `BotMarkerFormatter.gd` owns marker text/color/catalog id mapping. `Bot.gd` still owns visibility, reveal checks, AssetCatalog lookup, and AI state.
+- **marker/skin 경계**: `BotDebugLabelBuilder.gd` owns Label3D node construction; `BotMarkerFormatter.gd` owns marker text/color/catalog id mapping; `BotVisualSkinController.gd` owns archetype skin root apply/sync/hide lifecycle. `Bot.gd` still owns visibility, reveal checks, crouch body mesh updates, AssetCatalog lookup, and AI state.
 - **Death drop 표시**: `DropDisplayCatalog`에서 무기/탄약/회복 아이템 표시 이름과 death-drop 색상을 가져옴.
 
 ### `src/entities/bot/BotTuning.gd`
@@ -179,10 +180,17 @@
 
 ### `src/entities/bot/BotMarkerFormatter.gd`
 - **읽는 파일**: `BotDoctrine.gd` combat plan constants. 직접 scene lookup 없음.
-- **호출자**: `Bot.gd` `_update_state_label()` / `_update_archetype_marker()`.
+- **호출자**: `Bot.gd` `_update_state_label()` / `_update_archetype_marker()`, `BotVisualKit.gd` catalog tint lookup.
 - **역할**: state label specs, archetype marker prefixes, combat-plan marker abbreviations, archetype fallback colors, and cosmetic catalog ids.
 - **소유하지 않는 것**: `Label3D` node construction, marker visibility/reveal checks, AssetCatalog lookup, visual skin construction, AI behavior, Telemetry.
 - **수정 영향**: Bot marker text/color/catalog id를 바꾸면 `Bot.gd` marker update paths, `BotVisualKit.gd` cosmetic ids, `data/asset_catalog.json`, and visual/headless checks를 함께 확인.
+
+### `src/entities/bot/BotVisualSkinController.gd`
+- **읽는 파일**: `BotVisualKit.gd`. 직접 scene lookup 없음.
+- **호출자**: `Bot.gd` `_apply_visual_skin()`, crouch sync path, and `die()`.
+- **역할**: `ArchetypeSkin` root application, visibility sync with the body mesh/death state, crouch position/scale sync, and death hide behavior.
+- **소유하지 않는 것**: primitive skin part construction, material defaults, AssetCatalog lookup, AI state, crouch decision, body mesh scale/position changes, Telemetry.
+- **수정 영향**: Bot skin visibility/position/scale를 바꾸면 `Bot.gd` crouch/death paths, `BotVisualKit.gd` generated parts, and visual/headless checks를 함께 확인.
 
 ### `src/core/DropDisplayCatalog.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
@@ -365,8 +373,9 @@
 - **수정 영향**: plan 문자열을 변경하면 `Bot.gd` 실행부, `Telemetry.gd`, `tools/analyze_results.py`를 함께 확인.
 
 ### `src/entities/bot/BotVisualKit.gd`
-- **읽는 파일**: 직접 scene 참조 없음 — `Bot.gd`가 `apply_skin(bot, archetype_id, seed)` 호출.
+- **읽는 파일**: `BotMarkerFormatter.gd` cosmetic catalog id mapping. 직접 scene 참조 없음 — `BotVisualSkinController.gd`가 `apply_skin(bot, archetype_id, seed, asset_catalog)` 호출.
 - **소유 노드**: 각 Bot 하위 `ArchetypeSkin` Node3D와 primitive MeshInstance3D 파츠.
+- **catalog id**: `BotMarkerFormatter.gd`의 bot cosmetic id mapping을 재사용해 marker tint와 skin tint id drift를 피한다.
 - **수정 영향**: material override를 몸통 MeshInstance3D에 직접 적용하면 headless 종료 오류가 날 수 있으므로 얼굴/머리 파츠 중심으로 유지.
 
 ### `src/entities/pickup/Pickup.gd`
@@ -415,6 +424,7 @@
 | Bot tuning constants | `src/entities/bot/BotTuning.gd` | `Bot.gd` state machine/combat/perception paths, `BotDoctrine.gd`, simulations |
 | Bot debug marker layout | `src/entities/bot/BotDebugLabelBuilder.gd` | `Bot.gd` marker visibility paths and visual checks |
 | Bot marker content mapping | `src/entities/bot/BotMarkerFormatter.gd` | `Bot.gd` state/archetype marker updates, `BotDoctrine.gd`, cosmetic catalog tint ids |
+| Bot visual skin lifecycle | `src/entities/bot/BotVisualSkinController.gd` | `Bot.gd` crouch/death visual sync, `BotVisualKit.gd`, visual checks |
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |

@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-24 (v1.11.22 Bot marker formatter)
+> Last updated: 2026-05-24 (v1.11.23 Bot visual skin controller)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.23 — Bot visual skin boundary review.
+**Next structural slice**: v1.11.24 — Bot pass closure review.
 
-**Latest completed slice**: v1.11.22 — Bot marker formatter.
+**Latest completed slice**: v1.11.23 — Bot visual skin controller.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -375,7 +375,8 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
    - Player pass closure complete: `Player.gd` is now 832 lines and intentionally retains movement/combat/heal/artifact/pickup/kill feed/zone warning runtime state and orchestration. Further Player extraction should wait for a concrete behavior/data owner, not line count alone.
    - Bot tuning constants boundary complete: `BotTuning.gd` owns melee, retreat counterfire, attack-bout reposition, hard gunshot, and debug marker constants. `Bot.gd` still owns AI state machine, movement/combat/recovery algorithms, perception hooks, and runtime state.
    - Bot debug label builder complete: `BotDebugLabelBuilder.gd` owns state/archetype Label3D construction and base styling. `Bot.gd` still owns label text, visibility, archetype marker content, and reveal logic.
-   - Bot marker formatter complete: `BotMarkerFormatter.gd` owns state label specs, archetype marker text, combat-plan marker abbreviations, archetype fallback colors, and cosmetic catalog ids. `Bot.gd` still owns marker visibility, reveal checks, AssetCatalog lookup, visual skin application, AI state machine, and Telemetry hooks.
+   - Bot marker formatter complete: `BotMarkerFormatter.gd` owns state label specs, archetype marker text, combat-plan marker abbreviations, archetype fallback colors, and cosmetic catalog ids. `Bot.gd` still owns marker visibility, reveal checks, AssetCatalog lookup, visual skin delegation, AI state machine, and Telemetry hooks.
+   - Bot visual skin controller complete: `BotVisualSkinController.gd` owns `ArchetypeSkin` root application/sync/hide lifecycle. `BotVisualKit.gd` still owns primitive skin part construction, while `Bot.gd` keeps AI state, crouch body mesh changes, AssetCatalog lookup, and visual skin delegation.
 
 ### v1.11.1 — Hell Subsystem Directory First Pass `S`
 
@@ -589,6 +590,17 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Preserve current marker text, colors, catalog ids, and state visibility behavior.
 - Do not move visual skin construction, doctrine profile application, target selection, or movement/combat algorithms in this slice.
 - Next Bot slice should review visual skin application/catalog tint ownership separately.
+
+### v1.11.23 — Bot Visual Skin Controller `S`
+
+**Summary**: Move Bot archetype skin root lifecycle out of `Bot.gd` without changing visual construction or AI behavior.
+
+- Add `src/entities/bot/BotVisualSkinController.gd` for applying `BotVisualKit`, syncing skin visibility/position/scale with body mesh/crouch/death state, and hiding the skin on death.
+- Keep `BotVisualKit.gd` as the owner of primitive skin part construction and material defaults.
+- Reuse `BotMarkerFormatter.gd` for bot cosmetic catalog ids so marker tint and skin tint do not duplicate id mapping.
+- Keep `Bot.gd` as the owner of AI state, crouch body mesh updates, AssetCatalog lookup, doctrine profile application, combat, perception, and Telemetry hooks.
+- Preserve current skin node name, skin part geometry, catalog tint behavior, crouch offsets/scales, and death hiding behavior.
+- Next Bot slice should close the Bot pass by re-auditing retained responsibilities before moving to another entity/data boundary.
 
 **v1.11 completion gate**
 

@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.23-dev — 2026-05-24
+
+**Bot visual skin controller**
+
+**src/entities/bot/BotVisualSkinController.gd / src/entities/bot/BotVisualKit.gd / src/entities/bot/Bot.gd**
+
+- Added `BotVisualSkinController.gd` for `ArchetypeSkin` root apply/sync/hide lifecycle.
+- `Bot.gd` now delegates skin root visibility, crouch offset/scale sync, and death hiding while keeping crouch decisions, body mesh updates, AssetCatalog lookup, AI behavior, and Telemetry hooks.
+- `BotVisualKit.gd` now reuses `BotMarkerFormatter.gd` cosmetic catalog ids so marker tint and skin tint ids stay aligned.
+- Preserved current skin part geometry, catalog tint behavior, crouch offsets/scales, and death hiding behavior.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=86.6s, stage=3, recover=27, disengage=19.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=48.0s, stage=2, recover=98, disengage=22.
+
+---
+
 ## v1.11.22-dev — 2026-05-24
 
 **Bot marker formatter**
