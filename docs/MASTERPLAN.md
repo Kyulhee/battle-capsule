@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-25 (v1.11.30 Mission numeric description audit)
+> Last updated: 2026-05-25 (v1.11.31 Bonus mission description formatter)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.31 — bonus mission description formatter.
+**Next structural slice**: v1.11.32 — pressure mission description formatter planning.
 
-**Latest completed slice**: v1.11.30 — Mission numeric description audit.
+**Latest completed slice**: v1.11.31 — Bonus mission description formatter.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -703,6 +703,31 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - v1.11.31: Add a focused bonus mission description formatter/builder so bonus mission descriptions and selected HUD static text read from `MissionData.target_value` / `weapon_filter` rather than duplicating numbers in prose.
 - Preserve mission ids, titles, target values, score bonuses, badge labels/colors, evaluation behavior, pressure descriptors, HUD layout, and Telemetry schema.
 - Do not migrate mission data to JSON in this pass.
+
+### v1.11.31 — Bonus Mission Description Formatter `S`
+
+**Summary**: Bind bonus mission descriptions and selected HUD/evaluation thresholds to the same mission data/tuning values used by gameplay logic.
+
+**Completed**
+
+- Added `MissionTuning.gd` for shared mission thresholds: supply-kill radius, perception completion threshold, detected/heavily-detected bot counts, low-HP kill ratio, and all-weapon kill requirements.
+- Added `MissionDescriptionFormatter.gd` for generated bonus mission descriptions and shared weapon labels.
+- `MissionCatalog.gd` now sets mission ids/titles/targets/badges first, then generates `description` through the formatter.
+- `MissionEvaluator.gd` now reads `FIRST_KILL`, all-weapon, and one-slot thresholds from `MissionData.target_value` / `MissionTuning`.
+- `MissionHudFormatter.gd` no longer duplicates the `90초`, `12m`, detected-bot count, all-weapon target, or one-slot limit fragments directly.
+- `Main.gd` and `MissionTracker.gd` now use `MissionTuning` for supply proximity, perception threshold, detected bot counts, low-HP threshold, and heavily-detected threshold.
+
+**Intentionally deferred**
+
+- Pressure mission descriptor descriptions still duplicate `conditions[].target`; they combine multiple conditions/rewards/penalties and should be converted in a separate pressure-focused slice.
+- Mission data is still code-built Resource data, not JSON. A JSON/resource migration should wait until new mission content is planned.
+
+**Verification**
+
+- `git diff --check`
+- Godot headless quit
+- `python tools\simulate_matches.py 1 normal`
+- `python tools\simulate_matches.py 1 hell`
 
 **v1.11 completion gate**
 

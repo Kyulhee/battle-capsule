@@ -5,6 +5,7 @@ const MissionCatalogScript = preload("res://src/systems/mission/MissionCatalog.g
 const MissionBadgeStoreScript = preload("res://src/systems/mission/MissionBadgeStore.gd")
 const MissionEvaluatorScript = preload("res://src/systems/mission/MissionEvaluator.gd")
 const MissionHudFormatterScript = preload("res://src/systems/mission/MissionHudFormatter.gd")
+const MissionTuningScript = preload("res://src/systems/mission/MissionTuning.gd")
 const PressureConditionEvaluatorScript = preload("res://src/systems/mission/PressureConditionEvaluator.gd")
 
 # ── 보너스 미션 (기존 유지) ─────────────────────────────────────────────────
@@ -118,8 +119,8 @@ func tick_pressure(delta: float, num_detecting_player: int) -> String:
 	if not pressure_active:
 		return ""
 
-	# 감지 누적 (봇 2마리+ → detected_sec)
-	if num_detecting_player >= 2:
+	# 감지 누적
+	if num_detecting_player >= MissionTuningScript.DETECTED_BOT_COUNT:
 		_p_detected_sec += delta
 
 	# 즉시 실패 체크 (NO_HEAL 위반)
@@ -151,9 +152,9 @@ func on_pressure_kill(weapon: String, undetected: bool, outside_zone: bool, play
 		_p_kills_melee += 1
 	if outside_zone:
 		_p_kills_outside_zone += 1
-	if player_hp_ratio <= 0.3:
+	if player_hp_ratio <= MissionTuningScript.LOW_HP_KILL_RATIO:
 		_p_kills_low_hp += 1
-	if num_detecting >= 3:
+	if num_detecting >= MissionTuningScript.HEAVILY_DETECTED_BOT_COUNT:
 		_p_kills_heavily_detected += 1
 
 func on_pressure_damage(amount: float):
@@ -218,7 +219,7 @@ func on_player_kill(ctx: Dictionary):
 		_kills_near_supply += 1
 	if ctx.get("undetected", false):
 		_kills_undetected += 1
-	if ctx.get("num_detecting", 0) >= 2:
+	if int(ctx.get("num_detecting", 0)) >= MissionTuningScript.DETECTED_BOT_COUNT:
 		_kills_while_detected += 1
 
 func on_player_zone_tick(is_outside: bool):

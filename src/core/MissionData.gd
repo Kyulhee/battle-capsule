@@ -2,7 +2,7 @@ extends Resource
 class_name MissionData
 
 enum ConditionType {
-	FIRST_KILL,             # 킬 >= 1
+	FIRST_KILL,             # kills >= target_value
 	WIN_HIGH_HP,            # 승리 + HP >= target_value
 	WIN_WITH_HEALS,         # 승리 + MedKit 사용 >= target_value
 	COLLECT_WEAPONS,        # 무기 종류 픽업 >= target_value (미사용)
@@ -12,12 +12,12 @@ enum ConditionType {
 	KILLS_WITH_WEAPON,      # kills_by_weapon[weapon_filter] >= target_value
 	KILL_IN_BUSH,           # 수풀 안/근처 킬 >= target_value
 	WIN_AFTER_ZONE_OUTSIDE, # 승리 + 자기장 밖 최장 연속 >= target_value 초
-	KILL_NEAR_SUPPLY,       # 보급 캡슐 근처(12m) 킬 >= target_value
-	KILL_UNDETECTED,        # 봇 인식 < 1.0 상태에서 킬 >= target_value
-	KILL_WHILE_DETECTED,    # 봇 2명 이상 감지 상태에서 킬 >= target_value
+	KILL_NEAR_SUPPLY,       # MissionTuning supply radius 안에서 킬 >= target_value
+	KILL_UNDETECTED,        # MissionTuning detection threshold 미만에서 킬 >= target_value
+	KILL_WHILE_DETECTED,    # MissionTuning detected bot count 이상에서 킬 >= target_value
 	WIN_ON_DIFFICULTY,      # 승리 + difficulty == target_value
-	KILL_WITH_ALL_WEAPONS,  # pistol/ar/shotgun/railgun 각각 1킬 이상
-	WIN_ONE_SLOT,           # 승리 + 총기 슬롯 1개 이하만 사용
+	KILL_WITH_ALL_WEAPONS,  # MissionTuning all-weapon set/target 충족
+	WIN_ONE_SLOT,           # 승리 + 총기 슬롯 target_value개 이하만 사용
 }
 
 @export var id: String = ""

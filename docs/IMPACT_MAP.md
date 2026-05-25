@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.11-dev / 마지막 검증: 2026-05-24
+> 기준 버전: v1.11-dev / 마지막 검증: 2026-05-25
 
 ---
 
@@ -14,6 +14,8 @@
 | MissionTracker | `var mission_tracker` | `Main.gd` | RefCounted |
 | MissionBadgeStore | achievement badge persistence | `MissionTracker.gd` | static mission store |
 | MissionCatalog | bonus/pressure descriptor pools | `MissionTracker.gd` | static mission catalog |
+| MissionTuning | shared mission thresholds | `Main.gd`, `MissionTracker.gd`, mission format/evaluation helpers | static tuning helper |
+| MissionDescriptionFormatter | bonus mission descriptions and weapon labels | `MissionCatalog.gd`, `MissionHudFormatter.gd` | static formatter |
 | MissionEvaluator | bonus mission completion and early-fail rules | `MissionTracker.gd` | static mission evaluator |
 | MissionHudFormatter | mission/pressure HUD strings | `MissionTracker.gd` | static mission formatter |
 | PressureConditionEvaluator | pressure feasibility and completion rules | `MissionTracker.gd` | static pressure evaluator |
@@ -64,7 +66,7 @@
 - **의도적으로 소유**: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, supply minimap state, scene callbacks, exported scene/count defaults, Telemetry hook calls.
 - **data/config-backed merge points**: `bot_count`, `loot_count`, `spawn_radius`, base zone exports are loaded/overridden through `GameConfig`/`MatchTuning` and CLI parsing before match start.
 - **분리 완료**: item/resource references, runtime spawn/navigation/loot/supply fallback tuning, menu/panel builders, match bootstrap/tuning helpers, pressure effect execution, bot spawn planning, loot/supply pickup creation, zone/supply world presentation.
-- **v1.11 이월**: Hell start-state policy, mission/artifact feasibility glue, mission context thresholds, result text formatting, debug snapshot aggregation, and non-Main tuning/data boundaries in Player/Bot/Mission/Hell/Loot/UI helpers.
+- **v1.11 이월**: Hell start-state policy, mission/artifact feasibility glue, result text formatting, debug snapshot aggregation, and non-Main tuning/data boundaries in Player/Bot/Mission/Hell/Loot/UI helpers. Bonus mission context thresholds for supply/perception/detected counts now live in `MissionTuning.gd`.
 
 ### `src/systems/zone/ZoneController.gd`
 - **읽는 파일**: `Bot.gd` (`main.zone.current_center/radius/stage`), `Minimap.gd` (`main.zone.current/next_center/radius`), `Player.gd` (`main.zone.shrinking`, `main.zone.timer`, `main.zone.is_outside()`)
@@ -88,7 +90,7 @@
 - **수정 영향**: reload time이나 reserve cap을 바꾸면 `WeaponSlotManager.gd`, Player slot HUD ammo text, pressure ammo effects, and normal/Hell simulations를 함께 확인.
 
 ### `src/systems/mission/MissionTracker.gd`
-- **읽는 파일**: `MissionBadgeStore.gd` (badge persistence), `MissionCatalog.gd` (bonus/pressure descriptor construction), `MissionEvaluator.gd` (bonus mission evaluation), `MissionHudFormatter.gd` (bonus/pressure HUD formatting), `PressureConditionEvaluator.gd` (pressure condition checks)
+- **읽는 파일**: `MissionBadgeStore.gd` (badge persistence), `MissionCatalog.gd` (bonus/pressure descriptor construction), `MissionEvaluator.gd` (bonus mission evaluation), `MissionHudFormatter.gd` (bonus/pressure HUD formatting), `MissionTuning.gd` (detected/low-HP thresholds), `PressureConditionEvaluator.gd` (pressure condition checks)
 - **호출자**: `Main.gd` (소유), `MatchBootstrap.gd` (`get_all_missions()`), `ZoneController.gd` (`tick_damage` 내 duck-typed)
 - **쓰는 파일**: `Main.gd` 만
 - **시그널**: 없음 — `tick_pressure(delta, num_detecting)` 반환값 `"success"` / `"fail"` / `""` 을 Main이 폴링
@@ -105,21 +107,35 @@
 - **수정 영향**: achievement schema/path 변경 시 `MissionTracker.gd` wrappers, `Main.gd` result flow, user save compatibility를 함께 확인.
 
 ### `src/systems/mission/MissionCatalog.gd`
-- **읽는 파일**: `MissionData.gd`, `PressureEffectCatalog.gd`.
+- **읽는 파일**: `MissionData.gd`, `MissionDescriptionFormatter.gd`, `PressureEffectCatalog.gd`.
 - **호출자**: `MissionTracker.gd` public static wrappers.
-- **역할**: bonus mission list construction, hard/Hell pressure descriptor pools, mission/pressure ids, reward/penalty descriptor composition.
+- **역할**: bonus mission list construction, generated bonus descriptions from target fields, hard/Hell pressure descriptor pools, mission/pressure ids, reward/penalty descriptor composition.
 - **소유하지 않는 것**: active mission state, pressure runtime counters, feasibility filtering, pressure condition evaluation, HUD progress text, badge persistence, Main pressure trigger flow.
-- **수정 영향**: 새 bonus mission이나 pressure descriptor 추가 시 `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure state updates, simulations를 함께 확인.
+- **수정 영향**: 새 bonus mission이나 pressure descriptor 추가 시 `MissionDescriptionFormatter.gd`, `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure state updates, simulations를 함께 확인.
+
+### `src/systems/mission/MissionTuning.gd`
+- **읽는 파일**: 직접 scene lookup 없음.
+- **호출자**: `Main.gd`, `MissionTracker.gd`, `MissionEvaluator.gd`, `MissionHudFormatter.gd`, `MissionDescriptionFormatter.gd`.
+- **역할**: supply-kill radius, full detection threshold, detected/heavily-detected bot counts, low-HP kill ratio, all-weapon kill target and weapon set.
+- **소유하지 않는 것**: mission state, counters, Telemetry hooks, pressure descriptor composition, reward/penalty effects.
+- **수정 영향**: 값을 바꾸면 Main kill context, MissionTracker counters, MissionEvaluator rules, MissionHudFormatter text, MissionDescriptionFormatter descriptions, normal/Hell simulations를 함께 확인.
+
+### `src/systems/mission/MissionDescriptionFormatter.gd`
+- **읽는 파일**: `MissionData.gd`, `MissionTuning.gd`.
+- **호출자**: `MissionCatalog.gd` bonus description generation, `MissionHudFormatter.gd` weapon label lookup.
+- **역할**: bonus mission description strings and shared weapon labels generated from MissionData target/weapon fields plus MissionTuning values.
+- **소유하지 않는 것**: mission selection, completion rules, counters, HUD node placement, pressure descriptor descriptions.
+- **수정 영향**: 설명 문구나 weapon label을 바꾸면 `MissionCatalog.gd`, `MissionHudFormatter.gd`, result/menu mission display, and visual text checks를 함께 확인.
 
 ### `src/systems/mission/MissionEvaluator.gd`
-- **읽는 파일**: `MissionData.gd`.
+- **읽는 파일**: `MissionData.gd`, `MissionTuning.gd`.
 - **호출자**: `MissionTracker.gd` `evaluate()` / `get_early_fail_status()`.
 - **역할**: bonus mission completion and early-fail condition checks from explicit final-rank/player-HP/Telemetry/counter context.
 - **소유하지 않는 것**: active mission selection, mission hooks/counters, badge persistence, result panel flow, pressure mission success/fail evaluation.
 - **수정 영향**: bonus mission condition 변경 시 `MissionCatalog.gd` descriptor data, `MissionTracker.gd` context keys, `MissionHudFormatter.gd` HUD text, `Main.gd` result mission save flow, simulations를 함께 확인.
 
 ### `src/systems/mission/MissionHudFormatter.gd`
-- **읽는 파일**: `MissionData.gd`, `PressureEffectCatalog.gd`.
+- **읽는 파일**: `MissionData.gd`, `MissionDescriptionFormatter.gd`, `MissionTuning.gd`, `PressureEffectCatalog.gd`.
 - **호출자**: `MissionTracker.gd` `get_hud_text()` / `get_pressure_hud_text()`.
 - **역할**: bonus mission HUD strings and pressure HUD title/deadline/progress/reward/penalty string assembly from explicit context dictionaries.
 - **소유하지 않는 것**: bonus/pressure counters, mission completion evaluation, pressure success/fail result, early-fail checks, Player HUD label node placement, Telemetry.
@@ -477,7 +493,9 @@
 | Main runtime tuning | `MatchRuntimeTuning.gd`, `data/game_config.json` `runtime` | `Main.gd` spawn/navigation/supply/zone-stage loot paths, `GameConfig.gd`, simulations |
 | Bot count/archetype ratio | `BotSpawnPlanner.gd` | `Main.gd` spawn wiring, `Bot.gd` archetype enum, `BotDoctrine.gd`, Telemetry archetype reports |
 | Loot/supply pickup creation | `src/systems/loot/LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
-| Mission/pressure descriptor | `src/systems/mission/MissionCatalog.gd` | `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure trigger flow |
+| Mission tuning threshold | `src/systems/mission/MissionTuning.gd` | `Main.gd` kill context, `MissionTracker.gd` counters, `MissionEvaluator.gd`, `MissionHudFormatter.gd`, `MissionDescriptionFormatter.gd`, simulations |
+| Bonus mission description | `src/systems/mission/MissionDescriptionFormatter.gd` | `MissionCatalog.gd` target fields, `MissionHudFormatter.gd` weapon labels, result/menu mission display |
+| Mission/pressure descriptor | `src/systems/mission/MissionCatalog.gd` | `MissionDescriptionFormatter.gd`, `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure trigger flow |
 | Mission badge persistence | `src/systems/mission/MissionBadgeStore.gd` | `MissionTracker.gd` wrappers, `Main.gd` result badge award flow, user save compatibility |
 | Bonus mission evaluation | `src/systems/mission/MissionEvaluator.gd` | `MissionTracker.gd` evaluation context, `MissionCatalog.gd`, `MissionHudFormatter.gd`, `Main.gd` result mission flow |
 | Pressure condition evaluation | `src/systems/mission/PressureConditionEvaluator.gd` | `MissionTracker.gd` pressure counter snapshot/hooks, `MissionCatalog.gd`, `MissionHudFormatter.gd`, pressure simulations |

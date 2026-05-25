@@ -1,8 +1,28 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-24. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
+> Last updated: 2026-05-25. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
 
 The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md). Do not load it by default.
+
+---
+
+## v1.11.31-dev — 2026-05-25
+
+**Bonus mission description formatter**
+
+**src/systems/mission/MissionTuning.gd / src/systems/mission/MissionDescriptionFormatter.gd / mission helpers / src/Main.gd**
+
+- Added shared `MissionTuning.gd` values for supply-kill radius, detection threshold, detected bot counts, low-HP threshold, and all-weapon mission requirements.
+- Added `MissionDescriptionFormatter.gd` so bonus mission descriptions are generated from `MissionData.target_value`, `weapon_filter`, and shared tuning values.
+- Updated `MissionCatalog.gd`, `MissionHudFormatter.gd`, `MissionEvaluator.gd`, `MissionTracker.gd`, and `Main.gd` so bonus mission text, HUD progress, and gameplay checks no longer duplicate the same numbers.
+- Preserved mission ids, target values, badge data, pressure descriptors, Telemetry hook names, and JSON schema.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=76.8s, stage=3, recover=46, disengage=18.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=53.3s, stage=2, recover=59, disengage=24.
 
 ---
 

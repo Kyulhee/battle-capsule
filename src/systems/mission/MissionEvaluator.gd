@@ -2,6 +2,7 @@ extends RefCounted
 class_name MissionEvaluator
 
 const MissionDataScript = preload("res://src/core/MissionData.gd")
+const MissionTuningScript = preload("res://src/systems/mission/MissionTuning.gd")
 
 
 static func evaluate(mission, context: Dictionary) -> bool:
@@ -9,7 +10,7 @@ static func evaluate(mission, context: Dictionary) -> bool:
 	var kills = int(context.get("kills", 0))
 	match mission.condition_type:
 		MissionDataScript.ConditionType.FIRST_KILL:
-			return kills >= 1
+			return kills >= int(mission.target_value)
 		MissionDataScript.ConditionType.WIN_HIGH_HP:
 			return won and float(context.get("player_hp", 0.0)) >= mission.target_value
 		MissionDataScript.ConditionType.WIN_WITH_HEALS:
@@ -39,10 +40,12 @@ static func evaluate(mission, context: Dictionary) -> bool:
 			if not bool(context.get("has_telemetry", false)):
 				return false
 			var all_weapon_kills: Dictionary = context.get("kills_by_weapon", {})
-			return all_weapon_kills.get("pistol", 0) >= 1 and all_weapon_kills.get("ar", 0) >= 1 \
-				and all_weapon_kills.get("shotgun", 0) >= 1 and all_weapon_kills.get("railgun", 0) >= 1
+			for weapon_type in MissionTuningScript.ALL_WEAPON_KILL_TYPES:
+				if int(all_weapon_kills.get(weapon_type, 0)) < MissionTuningScript.ALL_WEAPON_KILL_TARGET:
+					return false
+			return true
 		MissionDataScript.ConditionType.WIN_ONE_SLOT:
-			return won and int(context.get("max_gun_slots_used", 0)) <= 1
+			return won and int(context.get("max_gun_slots_used", 0)) <= int(mission.target_value)
 	return false
 
 
@@ -53,5 +56,5 @@ static func early_fail_status(mission, context: Dictionary) -> bool:
 		MissionDataScript.ConditionType.SURVIVE_NO_KILLS:
 			return bool(context.get("has_telemetry", false)) and int(context.get("kills", 0)) >= 1
 		MissionDataScript.ConditionType.WIN_ONE_SLOT:
-			return int(context.get("max_gun_slots_used", 0)) > 1
+			return int(context.get("max_gun_slots_used", 0)) > int(mission.target_value)
 	return false

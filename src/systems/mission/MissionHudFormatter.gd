@@ -2,6 +2,8 @@ extends RefCounted
 class_name MissionHudFormatter
 
 const MissionDataScript = preload("res://src/core/MissionData.gd")
+const MissionDescriptionFormatterScript = preload("res://src/systems/mission/MissionDescriptionFormatter.gd")
+const MissionTuningScript = preload("res://src/systems/mission/MissionTuning.gd")
 const PressureEffectCatalogScript = preload("res://src/core/PressureEffectCatalog.gd")
 
 
@@ -56,7 +58,7 @@ static func bonus_hud_text(mission, context: Dictionary) -> String:
 	var kills = int(context.get("kills", 0))
 	match mission.condition_type:
 		MissionDataScript.ConditionType.FIRST_KILL:
-			return "%s\n킬 횟수  %d / 1" % [mission.title, kills]
+			return "%s\n킬 횟수  %d / %d" % [mission.title, kills, int(mission.target_value)]
 		MissionDataScript.ConditionType.WIN_HIGH_HP:
 			return "%s\n현재 HP %.0f — 우승 시 HP %.0f 이상 필요" % [
 				mission.title,
@@ -72,7 +74,7 @@ static func bonus_hud_text(mission, context: Dictionary) -> String:
 		MissionDataScript.ConditionType.SURVIVE_NO_KILLS:
 			if kills >= 1:
 				return "%s\n✗ 킬 발생 — 실패 확정" % mission.title
-			return "%s\n킬 없이 90초 생존 — 현재 킬 0회" % mission.title
+			return "%s\n킬 없이 %d초 생존 — 현재 킬 0회" % [mission.title, int(mission.target_value)]
 		MissionDataScript.ConditionType.WIN_PISTOL_ONLY:
 			if bool(context.get("used_non_pistol", false)):
 				return "%s\n✗ 다른 무기 사용됨 — 실패 확정" % mission.title
@@ -86,32 +88,49 @@ static func bonus_hud_text(mission, context: Dictionary) -> String:
 		MissionDataScript.ConditionType.KILLS_WITH_WEAPON:
 			var weapon_kills: Dictionary = context.get("kills_by_weapon", {})
 			var wkills = int(weapon_kills.get(mission.weapon_filter, 0))
-			var weapon_names2 = {"pistol": "피스톨", "ar": "돌격소총", "shotgun": "샷건", "railgun": "레일건", "knife": "칼"}
-			return "%s\n%s 킬  %d / %d" % [mission.title, weapon_names2.get(mission.weapon_filter, mission.weapon_filter), wkills, int(mission.target_value)]
+			return "%s\n%s 킬  %d / %d" % [
+				mission.title,
+				MissionDescriptionFormatterScript.weapon_label(mission.weapon_filter),
+				wkills,
+				int(mission.target_value),
+			]
 		MissionDataScript.ConditionType.KILL_IN_BUSH:
 			return "%s\n수풀 안/근처 킬  %d / %d" % [mission.title, int(context.get("kills_in_bush", 0)), int(mission.target_value)]
 		MissionDataScript.ConditionType.WIN_AFTER_ZONE_OUTSIDE:
 			return "%s\n자기장 밖 최장 체류  %.0f초 / %.0f초" % [mission.title, float(context.get("player_max_outside_sec", 0.0)), mission.target_value]
 		MissionDataScript.ConditionType.KILL_NEAR_SUPPLY:
-			return "%s\n보급 캡슐 근처(12m) 킬  %d / %d" % [mission.title, int(context.get("kills_near_supply", 0)), int(mission.target_value)]
+			return "%s\n보급 캡슐 근처(%s) 킬  %d / %d" % [
+				mission.title,
+				MissionTuningScript.supply_kill_radius_label(),
+				int(context.get("kills_near_supply", 0)),
+				int(mission.target_value),
+			]
 		MissionDataScript.ConditionType.KILL_UNDETECTED:
 			return "%s\n봇 미탐지 상태에서 킬  %d / %d" % [mission.title, int(context.get("kills_undetected", 0)), int(mission.target_value)]
 		MissionDataScript.ConditionType.KILL_WHILE_DETECTED:
-			return "%s\n봇 2명 이상 감지 상태에서 킬  %d / %d" % [mission.title, int(context.get("kills_while_detected", 0)), int(mission.target_value)]
+			return "%s\n봇 %d명 이상 감지 상태에서 킬  %d / %d" % [
+				mission.title,
+				MissionTuningScript.DETECTED_BOT_COUNT,
+				int(context.get("kills_while_detected", 0)),
+				int(mission.target_value),
+			]
 		MissionDataScript.ConditionType.WIN_ON_DIFFICULTY:
 			var diff_names = ["쉬움", "보통", "어려움", "지옥"]
 			var diff_index = int(mission.target_value)
 			return "%s\n%s 난이도로 1등 달성 필요" % [mission.title, diff_names[diff_index] if diff_index < diff_names.size() else "?"]
 		MissionDataScript.ConditionType.KILL_WITH_ALL_WEAPONS:
 			if not bool(context.get("has_telemetry", false)):
-				return "%s\n모든 총으로 각각 1킬 이상 달성" % mission.title
+				return "%s\n모든 총으로 각각 %d킬 이상 달성" % [
+					mission.title,
+					MissionTuningScript.ALL_WEAPON_KILL_TARGET,
+				]
 			var all_weapon_kills: Dictionary = context.get("kills_by_weapon", {})
-			var gun_labels = [["pistol", "피스톨"], ["ar", "돌격소총"], ["shotgun", "샷건"], ["railgun", "레일건"]]
 			var done: Array = []
 			var todo: Array = []
-			for g in gun_labels:
-				if all_weapon_kills.get(g[0], 0) >= 1: done.append(g[1])
-				else: todo.append(g[1])
+			for weapon_type in MissionTuningScript.ALL_WEAPON_KILL_TYPES:
+				var label = MissionDescriptionFormatterScript.weapon_label(str(weapon_type))
+				if int(all_weapon_kills.get(weapon_type, 0)) >= MissionTuningScript.ALL_WEAPON_KILL_TARGET: done.append(label)
+				else: todo.append(label)
 			var status = ""
 			if done.size() > 0: status += "✓ " + "  ".join(done)
 			if todo.size() > 0:
@@ -120,7 +139,8 @@ static func bonus_hud_text(mission, context: Dictionary) -> String:
 			return "%s\n%s" % [mission.title, status]
 		MissionDataScript.ConditionType.WIN_ONE_SLOT:
 			var max_gun_slots_used = int(context.get("max_gun_slots_used", 0))
-			if max_gun_slots_used > 1:
-				return "%s\n✗ 총기 2종 이상 소지 — 실패 확정" % mission.title
-			return "%s\n총기 슬롯 %d/1 사용 중 ✓" % [mission.title, max_gun_slots_used]
+			var slot_limit = int(mission.target_value)
+			if max_gun_slots_used > slot_limit:
+				return "%s\n✗ 총기 %d개 초과 소지 — 실패 확정" % [mission.title, slot_limit]
+			return "%s\n총기 슬롯 %d/%d 사용 중 ✓" % [mission.title, max_gun_slots_used, slot_limit]
 	return mission.title

@@ -78,6 +78,7 @@ const MatchBootstrapScript = preload("res://src/systems/match/MatchBootstrap.gd"
 const MatchRuntimeTuningScript = preload("res://src/systems/match/MatchRuntimeTuning.gd")
 const MatchTuningScript = preload("res://src/systems/match/MatchTuning.gd")
 const MissionTrackerScript = preload("res://src/systems/mission/MissionTracker.gd")
+const MissionTuningScript = preload("res://src/systems/mission/MissionTuning.gd")
 const PausePanelBuilderScript = preload("res://src/ui/panels/PausePanelBuilder.gd")
 const PressureEffectApplierScript = preload("res://src/systems/match/PressureEffectApplier.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
@@ -773,13 +774,13 @@ func _on_bot_died(bot: Entity = null):
 		var num_detecting = 0
 		for b2 in get_tree().get_nodes_in_group("actors"):
 			if is_instance_valid(b2) and not b2.is_in_group("players") and not b2.is_dead:
-				if b2.perception_meters.get(player_ref, 0.0) >= 1.0:
+				if b2.perception_meters.get(player_ref, 0.0) >= MissionTuningScript.FULL_DETECTION_THRESHOLD:
 					num_detecting += 1
 		mission_tracker.on_player_kill({
 			"weapon_type":   bot.last_damage_weapon,
 			"in_bush":       player_ref.is_in_bush,
-			"near_supply":   supply_spawned and player_ref.global_position.distance_to(supply_pos) <= 12.0,
-			"undetected":    bot.perception_meters.get(player_ref, 0.0) < 1.0,
+			"near_supply":   supply_spawned and player_ref.global_position.distance_to(supply_pos) <= MissionTuningScript.SUPPLY_KILL_RADIUS,
+			"undetected":    bot.perception_meters.get(player_ref, 0.0) < MissionTuningScript.FULL_DETECTION_THRESHOLD,
 			"num_detecting": num_detecting,
 		})
 		var player_hp_ratio = player_ref.current_health / player_ref.stats.max_health if is_instance_valid(player_ref) else 1.0
@@ -787,7 +788,7 @@ func _on_bot_died(bot: Entity = null):
 		var p_outside = zone.is_outside(player_pos_2d)
 		mission_tracker.on_pressure_kill(
 			bot.last_damage_weapon,
-			bot.perception_meters.get(player_ref, 0.0) < 1.0,
+			bot.perception_meters.get(player_ref, 0.0) < MissionTuningScript.FULL_DETECTION_THRESHOLD,
 			p_outside,
 			player_hp_ratio,
 			num_detecting
@@ -951,7 +952,7 @@ func _process_pressure_mission(delta: float):
 	if is_instance_valid(player_ref):
 		for b in get_tree().get_nodes_in_group("actors"):
 			if is_instance_valid(b) and not b.is_in_group("players") and not b.is_dead:
-				if b.perception_meters.get(player_ref, 0.0) >= 1.0:
+				if b.perception_meters.get(player_ref, 0.0) >= MissionTuningScript.FULL_DETECTION_THRESHOLD:
 					num_detecting += 1
 	var result = mission_tracker.tick_pressure(delta, num_detecting)
 	if result == "success":
