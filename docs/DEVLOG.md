@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.33-dev — 2026-05-25
+
+**Pressure feasibility tuning boundary**
+
+**src/systems/mission/MissionTuning.gd / src/systems/mission/PressureConditionEvaluator.gd / docs**
+
+- Moved pressure feasibility literals for detected-survival minimum bots and late-zone long outside-zone filtering into `MissionTuning.gd`.
+- `PressureConditionEvaluator.gd` now reads those values from `MissionTuning` while keeping descriptor feasibility and active condition evaluation algorithms.
+- Updated mission docs to mark pressure feasibility cutoffs as tuning-owned rather than evaluator-owned.
+- Preserved pressure descriptors, active counters, feasibility outcomes, HUD text, reward/penalty execution, and Telemetry schema.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=64.5s, stage=2, recover=23, disengage=16.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=63.5s, stage=2, recover=81, disengage=23.
+
+---
+
 ## v1.11.32-dev — 2026-05-25
 
 **Pressure mission description formatter**

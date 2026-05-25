@@ -1,6 +1,8 @@
 extends RefCounted
 class_name PressureConditionEvaluator
 
+const MissionTuningScript = preload("res://src/systems/mission/MissionTuning.gd")
+
 
 static func filter_feasible(pool: Array, zone_stage: int, bot_alive: int, condition: Dictionary) -> Array:
 	return pool.filter(func(d): return is_descriptor_feasible(d, zone_stage, bot_alive, condition))
@@ -17,10 +19,10 @@ static func is_descriptor_feasible(descriptor: Dictionary, zone_stage: int, bot_
 			if bot_alive < target:
 				return false
 		elif type_id == int(condition["SURVIVE_DETECTED_SEC"]):
-			if bot_alive < 2:
+			if bot_alive < MissionTuningScript.PRESSURE_DETECTED_SURVIVE_MIN_BOTS:
 				return false
 		elif type_id == int(condition["ZONE_OUTSIDE_SEC"]):
-			if zone_stage >= 3 and target >= 10:
+			if MissionTuningScript.should_filter_long_zone_pressure(zone_stage, target):
 				return false
 	return true
 

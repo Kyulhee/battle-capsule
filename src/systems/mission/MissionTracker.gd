@@ -29,7 +29,7 @@ enum PressureCondition {
 	NO_HEAL,            # 힐 사용 금지 (위반 시 즉시 실패)
 	ZONE_OUTSIDE_SEC,   # 자기장 밖 N초 체류
 	KILL_MELEE,         # 칼로 킬 N회
-	SURVIVE_DETECTED_SEC, # 봇 2마리+ 감지 상태에서 N초 생존
+	SURVIVE_DETECTED_SEC, # MissionTuning 기준 감지 봇 수 이상에서 N초 생존
 	KILL_WHILE_ZONE_OUTSIDE, # 자기장 밖에서 킬 N회
 	KILL_LOW_HP,        # 플레이어 HP 30% 이하에서 킬 N회
 }
@@ -76,7 +76,7 @@ var _p_damage_taken: float = 0.0
 var _p_left_zone: bool = false
 var _p_outside_zone_sec: float = 0.0
 var _p_heals_violated: bool = false
-var _p_detected_sec: float = 0.0  # 봇 2마리+ 감지 상태 누적 시간
+var _p_detected_sec: float = 0.0  # MissionTuning 기준 감지 상태 누적 시간
 
 func reset():
 	_used_non_pistol = false

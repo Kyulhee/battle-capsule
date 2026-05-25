@@ -68,7 +68,7 @@
 | `src/core/HelpCatalog.gd` | How to Play 섹션/행 데이터 정의 | `HelpPanelBuilder.gd`가 읽어 key/icon/desc 행으로 렌더 |
 | `src/systems/mission/MissionBadgeStore.gd` | 미션 achievement badge JSON read/write | MissionTracker public badge wrappers가 사용 |
 | `src/systems/mission/MissionCatalog.gd` | 보너스 미션 목록과 hard/Hell 압박 미션 descriptor pool | MissionTracker public static wrappers가 읽고, 평가는 MissionTracker가 수행 |
-| `src/systems/mission/MissionTuning.gd` | 보너스/압박 미션이 공유하는 supply radius, detection threshold, detected bot count, low-HP, all-weapon target values | Main, MissionTracker, MissionEvaluator, MissionHudFormatter, MissionDescriptionFormatter가 같은 값 참조 |
+| `src/systems/mission/MissionTuning.gd` | 보너스/압박 미션이 공유하는 supply radius, detection threshold, detected bot count, low-HP, all-weapon target values, pressure feasibility cutoffs | Main, MissionTracker, MissionEvaluator, MissionHudFormatter, MissionDescriptionFormatter, PressureConditionEvaluator가 같은 값 참조 |
 | `src/systems/mission/MissionDescriptionFormatter.gd` | 보너스 미션 설명문과 weapon label 생성 | MissionCatalog가 MissionData target/weapon fields를 채운 뒤 description 생성에 사용 |
 | `src/systems/mission/PressureMissionDescriptionFormatter.gd` | 압박 미션 condition descriptor 설명문 생성 | MissionCatalog가 pressure descriptor `conditions[]`를 채운 뒤 description 생성에 사용 |
 | `src/systems/mission/MissionEvaluator.gd` | 보너스 미션 completion/early-fail 판정 | MissionTracker가 명시적 state context를 넘겨 사용 |
@@ -193,6 +193,8 @@ v1.11.12 closure 기준 `MissionTracker.gd`는 257줄이며, intentionally retai
 v1.11.31 기준 bonus mission numeric descriptions use `MissionDescriptionFormatter.gd`, while shared mission thresholds live in `MissionTuning.gd`. `Main.gd` and `MissionTracker.gd` still own event hooks/counters, but supply proximity, perception completion, detected bot counts, low-HP kill ratio, all-weapon requirements, and one-slot/first-kill targets no longer duplicate literal values across description/HUD/evaluation paths.
 
 v1.11.32 기준 pressure mission descriptor descriptions use `PressureMissionDescriptionFormatter.gd` and are generated from the same `conditions[]` arrays that `PressureConditionEvaluator.gd` evaluates. Reward/penalty effect amounts stay in descriptor dictionaries and are still formatted by `PressureEffectCatalog.gd`.
+
+v1.11.33 기준 pressure mission feasibility cutoffs live in `MissionTuning.gd`; `PressureConditionEvaluator.gd` keeps only feasibility/evaluation algorithms and descriptor-target reads.
 
 ---
 
@@ -385,6 +387,7 @@ MissionHudFormatter ──uses──► MissionData condition ids
                     ──uses──► MissionTuning shared thresholds
                     ──uses──► PressureEffectCatalog effect labels
 PressureConditionEvaluator ──uses──► MissionTracker-provided pressure condition ids
+                           ──uses──► MissionTuning pressure feasibility cutoffs
 
 Minimap ──reads──► main.zone.* (current/next center, radius)
         ──reads──► main.supply_pos, supply_telegraphed

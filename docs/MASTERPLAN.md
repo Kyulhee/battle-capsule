@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-25 (v1.11.32 Pressure mission description formatter)
+> Last updated: 2026-05-25 (v1.11.33 Pressure feasibility tuning boundary)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.33 — pressure feasibility tuning boundary.
+**Next structural slice**: v1.11.34 — mission data-boundary closure review.
 
-**Latest completed slice**: v1.11.32 — Pressure mission description formatter.
+**Latest completed slice**: v1.11.33 — Pressure feasibility tuning boundary.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -744,6 +744,29 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 
 - Pressure feasibility literals such as detected-bot feasibility and late-zone filtering remain in `PressureConditionEvaluator.gd`; v1.11.33 should move those values behind a small tuning boundary if they remain stable.
 - Reward/penalty effect amounts remain descriptor data in `MissionCatalog.gd`; they are already formatted from the same effect dictionaries by `PressureEffectCatalog.gd`.
+
+**Verification**
+
+- `git diff --check`
+- Godot headless quit
+- `python tools\simulate_matches.py 1 normal`
+- `python tools\simulate_matches.py 1 hell`
+
+### v1.11.33 — Pressure Feasibility Tuning Boundary `S`
+
+**Summary**: Move pressure mission feasibility tuning literals out of `PressureConditionEvaluator.gd` while keeping evaluation behavior unchanged.
+
+**Completed**
+
+- `MissionTuning.gd` now owns the detected-survival minimum bot count, late-zone stage cutoff, and long zone-outside target cutoff.
+- `PressureConditionEvaluator.gd` now applies those values through `MissionTuning` and keeps only feasibility/evaluation algorithms.
+- `MissionTracker.gd` comments now refer to `MissionTuning` instead of embedding the detected bot count in prose.
+- Preserved descriptor ids, condition arrays, active pressure counters, feasibility outcomes, HUD text, reward/penalty execution, and Telemetry schema.
+
+**Intentionally deferred**
+
+- Active pressure condition completion still lives in `PressureConditionEvaluator.gd`; it already reads descriptor `target` values and should not be moved without new condition coverage.
+- Reward/penalty effect amounts remain descriptor data and effect formatter input.
 
 **Verification**
 

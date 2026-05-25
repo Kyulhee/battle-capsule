@@ -14,7 +14,7 @@
 | MissionTracker | `var mission_tracker` | `Main.gd` | RefCounted |
 | MissionBadgeStore | achievement badge persistence | `MissionTracker.gd` | static mission store |
 | MissionCatalog | bonus/pressure descriptor pools | `MissionTracker.gd` | static mission catalog |
-| MissionTuning | shared mission thresholds | `Main.gd`, `MissionTracker.gd`, mission format/evaluation helpers | static tuning helper |
+| MissionTuning | shared mission thresholds and pressure feasibility cutoffs | `Main.gd`, `MissionTracker.gd`, mission format/evaluation helpers, `PressureConditionEvaluator.gd` | static tuning helper |
 | MissionDescriptionFormatter | bonus mission descriptions and weapon labels | `MissionCatalog.gd`, `MissionHudFormatter.gd` | static formatter |
 | PressureMissionDescriptionFormatter | pressure mission condition descriptions | `MissionCatalog.gd` | static formatter |
 | MissionEvaluator | bonus mission completion and early-fail rules | `MissionTracker.gd` | static mission evaluator |
@@ -116,10 +116,10 @@
 
 ### `src/systems/mission/MissionTuning.gd`
 - **읽는 파일**: 직접 scene lookup 없음.
-- **호출자**: `Main.gd`, `MissionTracker.gd`, `MissionEvaluator.gd`, `MissionHudFormatter.gd`, `MissionDescriptionFormatter.gd`.
-- **역할**: supply-kill radius, full detection threshold, detected/heavily-detected bot counts, low-HP kill ratio, all-weapon kill target and weapon set.
+- **호출자**: `Main.gd`, `MissionTracker.gd`, `MissionEvaluator.gd`, `MissionHudFormatter.gd`, `MissionDescriptionFormatter.gd`, `PressureMissionDescriptionFormatter.gd`, `PressureConditionEvaluator.gd`.
+- **역할**: supply-kill radius, full detection threshold, detected/heavily-detected bot counts, low-HP kill ratio, all-weapon kill target and weapon set, pressure detected-survival minimum bots, late-zone feasibility cutoffs.
 - **소유하지 않는 것**: mission state, counters, Telemetry hooks, pressure descriptor composition, reward/penalty effects.
-- **수정 영향**: 값을 바꾸면 Main kill context, MissionTracker counters, MissionEvaluator rules, MissionHudFormatter text, MissionDescriptionFormatter descriptions, normal/Hell simulations를 함께 확인.
+- **수정 영향**: 값을 바꾸면 Main kill context, MissionTracker counters, MissionEvaluator rules, MissionHudFormatter text, MissionDescriptionFormatter/PressureMissionDescriptionFormatter descriptions, PressureConditionEvaluator feasibility, normal/Hell simulations를 함께 확인.
 
 ### `src/systems/mission/MissionDescriptionFormatter.gd`
 - **읽는 파일**: `MissionData.gd`, `MissionTuning.gd`.
@@ -150,9 +150,9 @@
 - **수정 영향**: mission/pressure HUD 문구/진행도 포맷 변경 시 `MissionTracker.gd` context snapshot keys, `MissionData.gd` condition ids, `PressureEffectCatalog.gd` effect labels, `Player.gd` HUD label behavior를 함께 확인.
 
 ### `src/systems/mission/PressureConditionEvaluator.gd`
-- **읽는 파일**: 직접 scene lookup 없음. `MissionTracker.gd`가 descriptor, counter snapshot, condition id mapping을 넘김.
+- **읽는 파일**: `MissionTuning.gd`. `MissionTracker.gd`가 descriptor, counter snapshot, condition id mapping을 넘김.
 - **호출자**: `MissionTracker.gd` `filter_feasible()` / `_evaluate_pressure_conditions()`.
-- **역할**: pressure descriptor feasibility and active pressure condition completion checks.
+- **역할**: pressure descriptor feasibility and active pressure condition completion checks. Feasibility cutoff values are read from `MissionTuning.gd`.
 - **소유하지 않는 것**: active pressure state, pressure counters, deadline ticking, instant-fail mutation, reward/penalty application, Telemetry.
 - **수정 영향**: 새 pressure condition이나 feasibility rule 변경 시 `MissionTracker.gd` counter hooks/snapshot, `MissionCatalog.gd` descriptors, `MissionHudFormatter.gd` progress text, pressure simulations를 함께 확인.
 
@@ -501,7 +501,7 @@
 | Main runtime tuning | `MatchRuntimeTuning.gd`, `data/game_config.json` `runtime` | `Main.gd` spawn/navigation/supply/zone-stage loot paths, `GameConfig.gd`, simulations |
 | Bot count/archetype ratio | `BotSpawnPlanner.gd` | `Main.gd` spawn wiring, `Bot.gd` archetype enum, `BotDoctrine.gd`, Telemetry archetype reports |
 | Loot/supply pickup creation | `src/systems/loot/LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
-| Mission tuning threshold | `src/systems/mission/MissionTuning.gd` | `Main.gd` kill context, `MissionTracker.gd` counters, `MissionEvaluator.gd`, `MissionHudFormatter.gd`, `MissionDescriptionFormatter.gd`, simulations |
+| Mission tuning threshold | `src/systems/mission/MissionTuning.gd` | `Main.gd` kill context, `MissionTracker.gd` counters, `MissionEvaluator.gd`, `MissionHudFormatter.gd`, `MissionDescriptionFormatter.gd`, `PressureMissionDescriptionFormatter.gd`, `PressureConditionEvaluator.gd`, simulations |
 | Bonus mission description | `src/systems/mission/MissionDescriptionFormatter.gd` | `MissionCatalog.gd` target fields, `MissionHudFormatter.gd` weapon labels, result/menu mission display |
 | Pressure mission description | `src/systems/mission/PressureMissionDescriptionFormatter.gd` | `MissionCatalog.gd` pressure conditions, `MissionHudFormatter.gd` progress text, `PressureConditionEvaluator.gd`, pressure simulations |
 | Mission/pressure descriptor | `src/systems/mission/MissionCatalog.gd` | `MissionDescriptionFormatter.gd`, `PressureMissionDescriptionFormatter.gd`, `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure trigger flow |
