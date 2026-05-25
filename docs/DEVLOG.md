@@ -6,6 +6,26 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.32-dev — 2026-05-25
+
+**Pressure mission description formatter**
+
+**src/systems/mission/PressureMissionDescriptionFormatter.gd / src/systems/mission/MissionCatalog.gd / docs**
+
+- Added `PressureMissionDescriptionFormatter.gd` so pressure mission `description` text is generated from descriptor `conditions[]`.
+- `MissionCatalog.gd` now defines pressure ids, titles, conditions, rewards, penalties, and instant-fail flags, then fills descriptions through a shared helper.
+- Reused `MissionTuning.gd` for detected/heavily-detected bot counts and low-HP percentage labels.
+- Preserved pressure descriptor ids, condition arrays, reward/penalty arrays, instant-fail flags, feasibility rules, HUD layout, pressure evaluation, reward/penalty execution, and Telemetry schema.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=52.5s, stage=2, recover=25, disengage=17.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=89.5s, stage=3, recover=67, disengage=18.
+
+---
+
 ## v1.11.31-dev — 2026-05-25
 
 **Bonus mission description formatter**

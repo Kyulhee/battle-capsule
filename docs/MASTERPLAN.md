@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-25 (v1.11.31 Bonus mission description formatter)
+> Last updated: 2026-05-25 (v1.11.32 Pressure mission description formatter)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.32 — pressure mission description formatter planning.
+**Next structural slice**: v1.11.33 — pressure feasibility tuning boundary.
 
-**Latest completed slice**: v1.11.31 — Bonus mission description formatter.
+**Latest completed slice**: v1.11.32 — Pressure mission description formatter.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -721,6 +721,29 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 
 - Pressure mission descriptor descriptions still duplicate `conditions[].target`; they combine multiple conditions/rewards/penalties and should be converted in a separate pressure-focused slice.
 - Mission data is still code-built Resource data, not JSON. A JSON/resource migration should wait until new mission content is planned.
+
+**Verification**
+
+- `git diff --check`
+- Godot headless quit
+- `python tools\simulate_matches.py 1 normal`
+- `python tools\simulate_matches.py 1 hell`
+
+### v1.11.32 — Pressure Mission Description Formatter `S`
+
+**Summary**: Generate pressure mission descriptor descriptions from `conditions[]` so condition targets and visible pressure HUD text do not drift.
+
+**Completed**
+
+- Added `PressureMissionDescriptionFormatter.gd` for pressure condition prose generated from descriptor `conditions[]`.
+- `MissionCatalog.gd` now builds pressure descriptors from ids/titles/conditions/rewards/penalties, then fills `description` through a helper.
+- `MissionTuning.gd` now also exposes the low-HP percentage label used by pressure descriptions.
+- Preserved pressure descriptor ids, condition arrays, reward/penalty arrays, instant-fail flags, feasibility rules, HUD layout, pressure evaluation, reward/penalty execution, and Telemetry schema.
+
+**Intentionally deferred**
+
+- Pressure feasibility literals such as detected-bot feasibility and late-zone filtering remain in `PressureConditionEvaluator.gd`; v1.11.33 should move those values behind a small tuning boundary if they remain stable.
+- Reward/penalty effect amounts remain descriptor data in `MissionCatalog.gd`; they are already formatted from the same effect dictionaries by `PressureEffectCatalog.gd`.
 
 **Verification**
 

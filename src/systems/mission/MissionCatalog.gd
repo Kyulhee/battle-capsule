@@ -4,72 +4,73 @@ class_name MissionCatalog
 const MissionDataScript = preload("res://src/core/MissionData.gd")
 const MissionDescriptionFormatterScript = preload("res://src/systems/mission/MissionDescriptionFormatter.gd")
 const PressureEffectCatalogScript = preload("res://src/core/PressureEffectCatalog.gd")
+const PressureMissionDescriptionFormatterScript = preload("res://src/systems/mission/PressureMissionDescriptionFormatter.gd")
 
 
 static func pressure_hard_pool(condition: Dictionary) -> Array:
-	return [
+	return _with_pressure_descriptions([
 		{
-			"id": "h_kill", "title": "계약 킬", "description": "킬 1 달성",
+			"id": "h_kill", "title": "계약 킬",
 			"conditions": [{"type": condition["KILL"], "target": 1}],
 			"reward":  [{"type": PressureEffectCatalogScript.AMMO_REFILL}],
 			"penalty": [{"type": PressureEffectCatalogScript.AMMO_CLEAR}],
 		},
 		{
-			"id": "h_no_heal", "title": "금욕", "description": "힐 사용 금지",
+			"id": "h_no_heal", "title": "금욕",
 			"conditions": [{"type": condition["NO_HEAL"], "target": 0}],
 			"reward":  [{"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
 			"penalty": [{"type": PressureEffectCatalogScript.HEAL_PICKUP_BAN}],
 			"instant_fail_on_violation": true,
 		},
 		{
-			"id": "h_zone_dare", "title": "존 도전자", "description": "자기장 밖 5초 이상 체류",
+			"id": "h_zone_dare", "title": "존 도전자",
 			"conditions": [{"type": condition["ZONE_OUTSIDE_SEC"], "target": 5}],
 			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "amount": 40.0}],
 			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 40.0}],
 		},
 		{
-			"id": "h_no_dmg", "title": "무결", "description": "피해 받지 않기",
+			"id": "h_no_dmg", "title": "무결",
 			"conditions": [{"type": condition["NO_DAMAGE"], "target": 0}],
 			"reward":  [{"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}],
 			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 30.0}],
 		},
 		{
-			"id": "h_stealth_kill", "title": "은신 사냥", "description": "미탐지 상태로 킬 1",
+			"id": "h_stealth_kill", "title": "은신 사냥",
 			"conditions": [{"type": condition["KILL"], "target": 1, "modifier": "undetected"}],
 			"reward":  [{"type": PressureEffectCatalogScript.AMMO_REFILL}],
 			"penalty": [{"type": PressureEffectCatalogScript.ALL_BOTS_DETECT}],
 		},
 		{
-			"id": "h_melee_kill", "title": "칼잡이", "description": "칼로 킬 1",
+			"id": "h_melee_kill", "title": "칼잡이",
 			"conditions": [{"type": condition["KILL_MELEE"], "target": 1}],
 			"reward":  [{"type": PressureEffectCatalogScript.AMMO_REFILL}],
 			"penalty": [{"type": PressureEffectCatalogScript.AMMO_ACTIVE_CLEAR}],
 		},
 		{
-			"id": "h_target_practice", "title": "표적 생존", "description": "봇 2마리+ 감지 상태에서 10초 생존",
+			"id": "h_target_practice", "title": "표적 생존",
 			"conditions": [{"type": condition["SURVIVE_DETECTED_SEC"], "target": 10}],
 			"reward":  [{"type": PressureEffectCatalogScript.HEAL_ADD, "count": 1}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 30.0}],
 			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 20.0}],
 		},
 		{
-			"id": "h_zone_kill", "title": "경계선", "description": "자기장 밖에서 킬 1",
+			"id": "h_zone_kill", "title": "경계선",
 			"conditions": [{"type": condition["KILL_WHILE_ZONE_OUTSIDE"], "target": 1}],
 			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
 			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 40.0}],
 		},
-	]
+	], condition)
 
 
 static func pressure_hell_pool(condition: Dictionary) -> Array:
-	return [
+	return _with_pressure_descriptions([
 		{
-			"id": "ha_kill2", "title": "이중 계약", "description": "킬 2 달성",
+			"id": "ha_kill2", "title": "이중 계약",
 			"conditions": [{"type": condition["KILL"], "target": 2}],
 			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}],
 			"penalty": [{"type": PressureEffectCatalogScript.AMMO_CLEAR}, {"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 20.0}],
 		},
 		{
-			"id": "ha_no_heal_nodmg", "title": "완벽한 금욕", "description": "힐 금지 + 피해 0",
+			"id": "ha_no_heal_nodmg", "title": "완벽한 금욕",
 			"conditions": [
 				{"type": condition["NO_HEAL"], "target": 0},
 				{"type": condition["NO_DAMAGE"], "target": 0},
@@ -79,7 +80,7 @@ static func pressure_hell_pool(condition: Dictionary) -> Array:
 			"instant_fail_on_violation": true,
 		},
 		{
-			"id": "ha_zone_dare_long", "title": "지옥 존", "description": "자기장 밖 10초 + 킬 1",
+			"id": "ha_zone_dare_long", "title": "지옥 존",
 			"conditions": [
 				{"type": condition["ZONE_OUTSIDE_SEC"], "target": 10},
 				{"type": condition["KILL"], "target": 1},
@@ -88,7 +89,7 @@ static func pressure_hell_pool(condition: Dictionary) -> Array:
 			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
 		},
 		{
-			"id": "hb_stealth_clean", "title": "완벽한 암살", "description": "미탐지 킬 1 + 피해 0",
+			"id": "hb_stealth_clean", "title": "완벽한 암살",
 			"conditions": [
 				{"type": condition["KILL"], "target": 1, "modifier": "undetected"},
 				{"type": condition["NO_DAMAGE"], "target": 0},
@@ -97,7 +98,7 @@ static func pressure_hell_pool(condition: Dictionary) -> Array:
 			"penalty": [{"type": PressureEffectCatalogScript.ALL_BOTS_DETECT}, {"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 30.0}],
 		},
 		{
-			"id": "hb_no_heal_2kill", "title": "금욕 학살", "description": "힐 금지 + 킬 2",
+			"id": "hb_no_heal_2kill", "title": "금욕 학살",
 			"conditions": [
 				{"type": condition["NO_HEAL"], "target": 0},
 				{"type": condition["KILL"], "target": 2},
@@ -107,7 +108,7 @@ static func pressure_hell_pool(condition: Dictionary) -> Array:
 			"instant_fail_on_violation": true,
 		},
 		{
-			"id": "hb_melee_nodmg", "title": "무적 칼잡이", "description": "칼 킬 1 + 피해 0",
+			"id": "hb_melee_nodmg", "title": "무적 칼잡이",
 			"conditions": [
 				{"type": condition["KILL_MELEE"], "target": 1},
 				{"type": condition["NO_DAMAGE"], "target": 0},
@@ -116,24 +117,33 @@ static func pressure_hell_pool(condition: Dictionary) -> Array:
 			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 40.0}],
 		},
 		{
-			"id": "hc_blood_pact", "title": "피의 계약", "description": "HP 30% 이하에서 킬 1",
+			"id": "hc_blood_pact", "title": "피의 계약",
 			"conditions": [{"type": condition["KILL_LOW_HP"], "target": 1}],
 			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
 			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "fraction": 0.5}],
 		},
 		{
-			"id": "hc_berserker", "title": "광전사", "description": "봇 3마리+ 감지 상태에서 킬 1",
+			"id": "hc_berserker", "title": "광전사",
 			"conditions": [{"type": condition["KILL"], "target": 1, "modifier": "heavily_detected"}],
 			"reward":  [{"type": PressureEffectCatalogScript.RAILGUN_UNLIMITED, "stages": 1}, {"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}],
 			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
 		},
 		{
-			"id": "hc_zone_massacre", "title": "존 바깥의 학살", "description": "자기장 밖에서 킬 2",
+			"id": "hc_zone_massacre", "title": "존 바깥의 학살",
 			"conditions": [{"type": condition["KILL_WHILE_ZONE_OUTSIDE"], "target": 2}],
 			"reward":  [{"type": PressureEffectCatalogScript.HP_RESTORE, "full": true}, {"type": PressureEffectCatalogScript.SHIELD_ADD, "amount": 50.0}, {"type": PressureEffectCatalogScript.HEAL_ADD, "count": 1}],
 			"penalty": [{"type": PressureEffectCatalogScript.HP_DAMAGE, "amount": 50.0}],
 		},
-	]
+	], condition)
+
+
+static func _with_pressure_descriptions(descriptors: Array, condition: Dictionary) -> Array:
+	for descriptor in descriptors:
+		descriptor["description"] = PressureMissionDescriptionFormatterScript.description(
+			descriptor.get("conditions", []),
+			condition
+		)
+	return descriptors
 
 
 static func bonus_missions() -> Array:

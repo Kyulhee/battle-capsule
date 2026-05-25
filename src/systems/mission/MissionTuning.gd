@@ -16,3 +16,7 @@ static func supply_kill_radius_label() -> String:
 
 static func detection_threshold_label() -> String:
 	return "%.1f" % FULL_DETECTION_THRESHOLD
+
+
+static func low_hp_ratio_label() -> String:
+	return "%d%%" % int(round(LOW_HP_KILL_RATIO * 100.0))

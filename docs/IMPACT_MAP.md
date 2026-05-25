@@ -16,6 +16,7 @@
 | MissionCatalog | bonus/pressure descriptor pools | `MissionTracker.gd` | static mission catalog |
 | MissionTuning | shared mission thresholds | `Main.gd`, `MissionTracker.gd`, mission format/evaluation helpers | static tuning helper |
 | MissionDescriptionFormatter | bonus mission descriptions and weapon labels | `MissionCatalog.gd`, `MissionHudFormatter.gd` | static formatter |
+| PressureMissionDescriptionFormatter | pressure mission condition descriptions | `MissionCatalog.gd` | static formatter |
 | MissionEvaluator | bonus mission completion and early-fail rules | `MissionTracker.gd` | static mission evaluator |
 | MissionHudFormatter | mission/pressure HUD strings | `MissionTracker.gd` | static mission formatter |
 | PressureConditionEvaluator | pressure feasibility and completion rules | `MissionTracker.gd` | static pressure evaluator |
@@ -107,11 +108,11 @@
 - **수정 영향**: achievement schema/path 변경 시 `MissionTracker.gd` wrappers, `Main.gd` result flow, user save compatibility를 함께 확인.
 
 ### `src/systems/mission/MissionCatalog.gd`
-- **읽는 파일**: `MissionData.gd`, `MissionDescriptionFormatter.gd`, `PressureEffectCatalog.gd`.
+- **읽는 파일**: `MissionData.gd`, `MissionDescriptionFormatter.gd`, `PressureMissionDescriptionFormatter.gd`, `PressureEffectCatalog.gd`.
 - **호출자**: `MissionTracker.gd` public static wrappers.
-- **역할**: bonus mission list construction, generated bonus descriptions from target fields, hard/Hell pressure descriptor pools, mission/pressure ids, reward/penalty descriptor composition.
+- **역할**: bonus mission list construction, generated bonus descriptions from target fields, hard/Hell pressure descriptor pools, generated pressure descriptions from condition arrays, mission/pressure ids, reward/penalty descriptor composition.
 - **소유하지 않는 것**: active mission state, pressure runtime counters, feasibility filtering, pressure condition evaluation, HUD progress text, badge persistence, Main pressure trigger flow.
-- **수정 영향**: 새 bonus mission이나 pressure descriptor 추가 시 `MissionDescriptionFormatter.gd`, `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure state updates, simulations를 함께 확인.
+- **수정 영향**: 새 bonus mission이나 pressure descriptor 추가 시 `MissionDescriptionFormatter.gd`, `PressureMissionDescriptionFormatter.gd`, `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure state updates, simulations를 함께 확인.
 
 ### `src/systems/mission/MissionTuning.gd`
 - **읽는 파일**: 직접 scene lookup 없음.
@@ -126,6 +127,13 @@
 - **역할**: bonus mission description strings and shared weapon labels generated from MissionData target/weapon fields plus MissionTuning values.
 - **소유하지 않는 것**: mission selection, completion rules, counters, HUD node placement, pressure descriptor descriptions.
 - **수정 영향**: 설명 문구나 weapon label을 바꾸면 `MissionCatalog.gd`, `MissionHudFormatter.gd`, result/menu mission display, and visual text checks를 함께 확인.
+
+### `src/systems/mission/PressureMissionDescriptionFormatter.gd`
+- **읽는 파일**: `MissionTuning.gd`; condition id mapping은 `MissionCatalog.gd`가 넘긴다.
+- **호출자**: `MissionCatalog.gd` pressure descriptor description generation.
+- **역할**: pressure descriptor `conditions[]`를 single/compound 문구로 변환한다.
+- **소유하지 않는 것**: pressure descriptor ids, rewards, penalties, instant-fail flags, feasibility rules, runtime counters, HUD progress text, reward/penalty execution.
+- **수정 영향**: pressure condition 문구나 새 condition을 추가하면 `MissionCatalog.gd`, `MissionHudFormatter.gd` progress text, `PressureConditionEvaluator.gd`, pressure simulations를 함께 확인.
 
 ### `src/systems/mission/MissionEvaluator.gd`
 - **읽는 파일**: `MissionData.gd`, `MissionTuning.gd`.
@@ -495,7 +503,8 @@
 | Loot/supply pickup creation | `src/systems/loot/LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
 | Mission tuning threshold | `src/systems/mission/MissionTuning.gd` | `Main.gd` kill context, `MissionTracker.gd` counters, `MissionEvaluator.gd`, `MissionHudFormatter.gd`, `MissionDescriptionFormatter.gd`, simulations |
 | Bonus mission description | `src/systems/mission/MissionDescriptionFormatter.gd` | `MissionCatalog.gd` target fields, `MissionHudFormatter.gd` weapon labels, result/menu mission display |
-| Mission/pressure descriptor | `src/systems/mission/MissionCatalog.gd` | `MissionDescriptionFormatter.gd`, `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure trigger flow |
+| Pressure mission description | `src/systems/mission/PressureMissionDescriptionFormatter.gd` | `MissionCatalog.gd` pressure conditions, `MissionHudFormatter.gd` progress text, `PressureConditionEvaluator.gd`, pressure simulations |
+| Mission/pressure descriptor | `src/systems/mission/MissionCatalog.gd` | `MissionDescriptionFormatter.gd`, `PressureMissionDescriptionFormatter.gd`, `MissionTracker.gd` condition/evaluation support, `PressureEffectCatalog.gd`, `PressureEffectApplier.gd`, `Main.gd` pressure trigger flow |
 | Mission badge persistence | `src/systems/mission/MissionBadgeStore.gd` | `MissionTracker.gd` wrappers, `Main.gd` result badge award flow, user save compatibility |
 | Bonus mission evaluation | `src/systems/mission/MissionEvaluator.gd` | `MissionTracker.gd` evaluation context, `MissionCatalog.gd`, `MissionHudFormatter.gd`, `Main.gd` result mission flow |
 | Pressure condition evaluation | `src/systems/mission/PressureConditionEvaluator.gd` | `MissionTracker.gd` pressure counter snapshot/hooks, `MissionCatalog.gd`, `MissionHudFormatter.gd`, pressure simulations |
