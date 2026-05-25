@@ -5,11 +5,12 @@ class_name Pickup
 
 const ItemDisplayFormatterScript = preload("res://src/core/ItemDisplayFormatter.gd")
 const PickupPresentationScript = preload("res://src/entities/pickup/PickupPresentation.gd")
+const PickupIconResolverScript = preload("res://src/entities/pickup/PickupIconResolver.gd")
 
 var _label: Label3D = null
 var _icon_decal: MeshInstance3D = null
 var _focus_marker: MeshInstance3D = null
-var _catalog_icon_cache: Dictionary = {}
+var _icon_resolver = PickupIconResolverScript.new()
 var _los_timer: float = 0.0
 var _focused: bool = false
 
@@ -208,7 +209,7 @@ func _update_icon_decal():
 	if not item:
 		return
 
-	var texture = _load_catalog_icon(_icon_id_for_item())
+	var texture = _icon_resolver.texture_for_item(item, _asset_catalog())
 	if not texture:
 		return
 
@@ -230,45 +231,11 @@ func _update_icon_decal():
 	add_child(decal)
 	_icon_decal = decal
 
-func _icon_id_for_item() -> String:
-	if not item:
-		return ""
-	match item.type:
-		ItemData.Type.WEAPON:
-			if item.weapon_stats:
-				return "weapon.%s" % item.weapon_stats.weapon_type
-		ItemData.Type.AMMO:
-			if item.ammo_weapon_type != "":
-				return "ammo.%s" % item.ammo_weapon_type
-		ItemData.Type.HEAL:
-			return "item.medkit" if item.rarity == ItemData.Rarity.RARE else "item.heal"
-		ItemData.Type.ARMOR:
-			return "item.armor"
-	return ""
-
-func _load_catalog_icon(icon_id: String) -> Texture2D:
-	if icon_id == "":
-		return null
-	if _catalog_icon_cache.has(icon_id):
-		return _catalog_icon_cache[icon_id]
-
-	var texture: Texture2D = null
+func _asset_catalog():
 	var main = get_tree().root.get_node_or_null("Main")
 	if main:
-		var catalog = main.get("asset_catalog")
-		if catalog and catalog.has_method("get_path"):
-			var path = catalog.get_path("icons", icon_id, "")
-			if path != "" and ResourceLoader.exists(path):
-				var loaded = load(path)
-				if loaded is Texture2D:
-					texture = loaded
-			elif path != "" and FileAccess.file_exists(path):
-				var image = Image.new()
-				if image.load(path) == OK:
-					texture = ImageTexture.create_from_image(image)
-
-	_catalog_icon_cache[icon_id] = texture
-	return texture
+		return main.get("asset_catalog")
+	return null
 
 func collect(collector: Entity) -> bool:
 	if not item: return false

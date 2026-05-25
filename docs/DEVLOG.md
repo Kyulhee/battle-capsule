@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.28-dev — 2026-05-25
+
+**Pickup icon resolver**
+
+**src/entities/pickup/PickupIconResolver.gd / src/entities/pickup/Pickup.gd**
+
+- Added `PickupIconResolver.gd` for pickup icon ids, per-pickup texture cache, AssetCatalog icon path lookup, ResourceLoader texture loading, and image-file fallback loading.
+- `Pickup.gd` now delegates icon id/loading/cache behavior while keeping AssetCatalog scene lookup, icon decal node creation/material placement, focus/LOS updates, collection side effects, Telemetry pickup logging, and debug logging.
+- Preserved current icon ids, cache behavior, catalog path lookup, image fallback behavior, icon material setup, item collection behavior, and Telemetry schema.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=99.5s, stage=4, recover=38, disengage=26.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=86.6s, stage=3, recover=106, disengage=24.
+
+---
+
 ## v1.11.27-dev — 2026-05-24
 
 **Pickup presentation boundary**

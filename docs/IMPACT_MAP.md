@@ -22,6 +22,7 @@
 | ItemResourceCatalog | default loot resources and pickup scene | `Main.gd` | static catalog |
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | PickupPresentation | pickup color/glow/label/icon plane presentation values | `Pickup.gd` | static presentation helper |
+| PickupIconResolver | pickup icon ids/cache/catalog texture loading | `Pickup.gd` | RefCounted icon helper |
 | DropDisplayCatalog | death-drop display names/colors | `Player.gd`, `Bot.gd` | static catalog |
 | PlayerHudBuilder | Player HUD node/style construction | `Player.gd` | static UI builder |
 | PlayerSlotHudRenderer | Player slot panel/ammo display refresh | `Player.gd` | static UI renderer |
@@ -395,7 +396,8 @@
 - **호출 대상**: `collector.receive_weapon(wstats)` / `collector.receive_ammo(type, amount)` — `has_method()` duck-typed, Player·Bot 동시 지원
 - **표시 조건**: 플레이어의 `Entity.can_sense_item()`을 통과한 경우에만 pickup node가 표시됨. Label LOD/focus 값은 `PickupPresentation.gd`가 제공하고, 현재 상호작용 후보 focus는 `Player.gd`가 `set_focused()`로 전달.
 - **presentation 경계**: `PickupPresentation.gd` owns base colors, glow/light tuning, label LOD distances/scales/colors, visibility refresh interval, and icon plane size/height values.
-- **의도적으로 소유**: runtime node creation, focus/LOS updates, cluster-label comparison, AssetCatalog icon loading, item collection side effects, Telemetry pickup logging, and debug logging.
+- **icon 경계**: `PickupIconResolver.gd` owns icon ids, texture cache, AssetCatalog path lookup, ResourceLoader texture loading, and image-file fallback loading.
+- **의도적으로 소유**: runtime node creation, focus/LOS updates, cluster-label comparison, AssetCatalog scene lookup, icon decal placement/material setup, item collection side effects, Telemetry pickup logging, and debug logging.
 
 ### `src/entities/pickup/PickupPresentation.gd`
 - **읽는 파일**: `ItemData.gd` enum/type/rarity fields. 직접 scene lookup 없음.
@@ -403,6 +405,13 @@
 - **역할**: pickup base colors, glow/light parameters, label LOD range, cluster radius, label focused/normal scale, label colors, visibility refresh interval, and icon plane size/height values.
 - **소유하지 않는 것**: runtime nodes, focus state, LOS sensing, AssetCatalog icon loading, item collection effects, Telemetry, debug logging.
 - **수정 영향**: pickup readability values를 바꾸면 `Pickup.gd` label/focus/icon paths, `ItemDisplayFormatter.gd`, selected assets, and visual/headless checks를 함께 확인.
+
+### `src/entities/pickup/PickupIconResolver.gd`
+- **읽는 파일**: `ItemData.gd` enum/type/rarity fields and caller-provided AssetCatalog-compatible object. 직접 scene lookup 없음.
+- **호출자**: `Pickup.gd` `_update_icon_decal()`.
+- **역할**: pickup icon id mapping, per-pickup texture cache, AssetCatalog icon path lookup, ResourceLoader texture loading, and image-file fallback loading.
+- **소유하지 않는 것**: icon decal node creation, material setup, scene-tree AssetCatalog lookup, pickup collection effects, Telemetry, debug logging.
+- **수정 영향**: pickup icon id나 loading behavior를 바꾸면 `Pickup.gd` icon decal path, `data/asset_catalog.json`, selected icon assets, and visual/headless checks를 함께 확인.
 
 ### `src/ui/HelpPanelBuilder.gd`
 - **읽는 파일**: `HelpCatalog.gd` section/row data, `MenuIconFactory.gd` procedural icons.
@@ -440,6 +449,7 @@
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
 | Pickup presentation values | `src/entities/pickup/PickupPresentation.gd` | `Pickup.gd` label/focus/icon paths, selected assets, visual checks |
+| Pickup icon catalog loading | `src/entities/pickup/PickupIconResolver.gd` | `Pickup.gd` icon decal path, `data/asset_catalog.json`, selected icon assets |
 | Player HUD layout/style | `src/ui/player/PlayerHudBuilder.gd` | `Player.gd` HUD references, mission/pressure label updates, status updates, slot refresh, flash tween, kill feed population, zone warning alpha update |
 | Player slot display state | `src/ui/player/PlayerSlotHudRenderer.gd` | `Player.gd` slot arrays, `PlayerWeaponIconResolver.gd`, reload-progress HUD override, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd` |
 | Player weapon HUD icons | `src/ui/player/PlayerWeaponIconResolver.gd` | `Player.gd` asset catalog pass-through, `data/asset_catalog.json`, selected icon assets, `PlayerSlotHudRenderer.gd` |
