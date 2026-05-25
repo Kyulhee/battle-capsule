@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-25 (v1.11.29 Pickup pass closure review)
+> Last updated: 2026-05-25 (v1.11.30 Mission numeric description audit)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.30 — mission numeric description audit.
+**Next structural slice**: v1.11.31 — bonus mission description formatter.
 
-**Latest completed slice**: v1.11.29 — Pickup pass closure review.
+**Latest completed slice**: v1.11.30 — Mission numeric description audit.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -682,6 +682,27 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Mark as split owners: `ItemDisplayFormatter.gd`, `PickupPresentation.gd`, and `PickupIconResolver.gd`.
 - No runtime code, pickup behavior, visual behavior, or Telemetry schema changes in this closure slice.
 - Further Pickup extraction should wait for a dedicated item-effect boundary because collection side effects touch Player/Bot inventory, pressure penalties, Telemetry, and debug logging.
+
+### v1.11.30 — Mission Numeric Description Audit `S`
+
+**Summary**: Audit mission/pressure user-facing text for duplicated numeric gameplay values and choose the next narrow data-binding slice.
+
+**Audit result**
+
+1. Bonus mission descriptions in `MissionCatalog.gd` duplicate `MissionData.target_value` in prose.
+   - Examples: `FIRST BLOOD` 1 kill, `CLEAN WIN` HP 50, `MEDIC RUN` 3 medkits, `SURVIVOR` 90 seconds, shotgun 3 kills, railgun 1 kill, bush 2 kills, zone outside 10 seconds, supply 12m / 1 kill, detected/undetected 1 kill.
+   - `MissionEvaluator.gd` already evaluates from `target_value`, so description drift can happen without breaking tests.
+2. Bonus HUD text in `MissionHudFormatter.gd` mostly uses `mission.target_value`, but still has hardcoded prose fragments such as `90초`, `12m`, and implicit "1 kill each" text.
+3. Pressure mission descriptors duplicate `conditions[].target` in `description`.
+   - This is a real drift risk, but pressure descriptors combine multiple conditions, rewards, penalties, instant-fail flags, and feasibility rules. It should be a second pass after the bonus-mission pattern is proven.
+4. Pressure effect labels are lower risk.
+   - `PressureEffectCatalog.gd` already formats HP/shield/count/fraction labels from effect dictionaries.
+
+**Next concrete slice**
+
+- v1.11.31: Add a focused bonus mission description formatter/builder so bonus mission descriptions and selected HUD static text read from `MissionData.target_value` / `weapon_filter` rather than duplicating numbers in prose.
+- Preserve mission ids, titles, target values, score bonuses, badge labels/colors, evaluation behavior, pressure descriptors, HUD layout, and Telemetry schema.
+- Do not migrate mission data to JSON in this pass.
 
 **v1.11 completion gate**
 

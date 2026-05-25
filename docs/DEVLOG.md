@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.30-dev — 2026-05-25
+
+**Mission numeric description audit**
+
+**docs/MASTERPLAN.md / docs/devlog/v1.11.md**
+
+- Audited bonus mission, pressure mission, HUD, and pressure effect text for duplicated gameplay numbers.
+- Identified bonus mission descriptions as the next safest data-binding slice because `MissionEvaluator.gd` already evaluates from `MissionData.target_value` while several descriptions duplicate those values in prose.
+- Deferred pressure mission descriptor description generation until after the bonus mission pattern is proven.
+- Selected v1.11.31 as a focused bonus mission description formatter/builder pass.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- Runtime simulation skipped because this is a docs-only audit/planning slice.
+
+---
+
 ## v1.11.29-dev — 2026-05-25
 
 **Pickup pass closure review**
