@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.27-dev — 2026-05-24
+
+**Pickup presentation boundary**
+
+**src/entities/pickup/PickupPresentation.gd / src/entities/pickup/Pickup.gd**
+
+- Added `PickupPresentation.gd` for pickup base colors, glow/light tuning, label LOD distances, focused/normal label scale, label colors, visibility refresh interval, and icon plane size/height values.
+- `Pickup.gd` now delegates presentation values while keeping runtime node creation, focus/LOS updates, cluster-label comparison, AssetCatalog icon loading, item collection side effects, Telemetry pickup logging, and debug logging.
+- Preserved current colors, glow/light values, label distances/scales/colors, icon plane sizes/heights, item collection behavior, and Telemetry schema.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=68.6s, stage=2, recover=33, disengage=26.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=49.5s, stage=2, recover=105, disengage=19.
+
+---
+
 ## v1.11.26-dev — 2026-05-24
 
 **Weapon slot tuning boundary**

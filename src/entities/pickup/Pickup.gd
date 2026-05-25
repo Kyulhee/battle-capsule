@@ -4,8 +4,7 @@ class_name Pickup
 @export var item: ItemData
 
 const ItemDisplayFormatterScript = preload("res://src/core/ItemDisplayFormatter.gd")
-const LABEL_NAME_RANGE := 3.2
-const LABEL_CLUSTER_RADIUS := 2.2
+const PickupPresentationScript = preload("res://src/entities/pickup/PickupPresentation.gd")
 
 var _label: Label3D = null
 var _icon_decal: MeshInstance3D = null
@@ -22,7 +21,7 @@ func _ready():
 func _process(delta: float):
 	_los_timer -= delta
 	if _los_timer > 0.0: return
-	_los_timer = 0.1
+	_los_timer = PickupPresentationScript.VISIBILITY_REFRESH_INTERVAL
 	_update_visibility_for_player()
 
 func _update_visibility_for_player():
@@ -48,8 +47,8 @@ func _update_visuals():
 	if item and has_node("MeshInstance3D"):
 		var mesh_inst = $MeshInstance3D
 		var mat = StandardMaterial3D.new()
-		var base_color = _base_color_for_item()
-		var visual_params = _visual_params_for_item()
+		var base_color = PickupPresentationScript.base_color(item)
+		var visual_params = PickupPresentationScript.visual_params(item)
 		mat.albedo_color = base_color
 		mat.emission_enabled = true
 		mat.emission = base_color * visual_params.get("emission", 0.22)
@@ -127,57 +126,16 @@ func _refresh_label_for_player(player: Node3D = null, sensed: bool = false) -> v
 	var dist = player.global_position.distance_to(global_position)
 	if _focused:
 		_label.text = _label_detail_text()
-		_label.modulate = _label_color(true)
-		_label.scale = Vector3(1.08, 1.08, 1.08)
+		_label.modulate = PickupPresentationScript.label_color(item, true)
+		_label.scale = PickupPresentationScript.FOCUSED_LABEL_SCALE
 		_label.visible = true
-	elif dist <= LABEL_NAME_RANGE and _should_show_cluster_label(player, dist):
+	elif dist <= PickupPresentationScript.LABEL_NAME_RANGE and _should_show_cluster_label(player, dist):
 		_label.text = _label_name_text()
-		_label.modulate = _label_color(false)
-		_label.scale = Vector3.ONE
+		_label.modulate = PickupPresentationScript.label_color(item, false)
+		_label.scale = PickupPresentationScript.NORMAL_LABEL_SCALE
 		_label.visible = true
 	else:
 		_label.visible = false
-
-func _base_color_for_item() -> Color:
-	if not item:
-		return Color.WHITE
-	match item.type:
-		ItemData.Type.WEAPON:
-			return item.color.darkened(0.10)
-		ItemData.Type.AMMO:
-			return item.color.lightened(0.08)
-		ItemData.Type.HEAL:
-			return Color(0.25, 0.95, 0.45, 1.0) if item.rarity != ItemData.Rarity.RARE else Color(0.30, 1.0, 0.72, 1.0)
-		ItemData.Type.ARMOR:
-			return Color(0.35, 0.62, 1.0, 1.0)
-	return item.color
-
-func _visual_params_for_item() -> Dictionary:
-	if not item:
-		return {"emission": 0.18, "light_energy": 0.6, "light_range": 2.0}
-	var high_value_color = _is_high_value_color(item.color)
-	match item.type:
-		ItemData.Type.WEAPON:
-			if high_value_color:
-				return {"emission": 0.36, "light_energy": 1.35, "light_range": 2.8}
-			return {"emission": 0.18, "light_energy": 0.75, "light_range": 2.1}
-		ItemData.Type.AMMO:
-			if high_value_color:
-				return {"emission": 0.22, "light_energy": 0.8, "light_range": 2.0}
-			return {"emission": 0.10, "light_energy": 0.45, "light_range": 1.6}
-		ItemData.Type.HEAL:
-			if item.rarity == ItemData.Rarity.RARE:
-				return {"emission": 0.34, "light_energy": 1.25, "light_range": 2.5}
-			return {"emission": 0.20, "light_energy": 0.75, "light_range": 2.0}
-		ItemData.Type.ARMOR:
-			return {"emission": 0.34, "light_energy": 1.25, "light_range": 2.5}
-	return {"emission": 0.18, "light_energy": 0.6, "light_range": 2.0}
-
-func _is_high_value_color(color: Color) -> bool:
-	var is_purple = color.r >= 0.65 and color.b >= 0.65
-	var is_orange = color.r >= 0.85 and color.g >= 0.35 and color.g <= 0.75 and color.b <= 0.30
-	var is_cyan = color.g >= 0.55 and color.b >= 0.75
-	return is_purple or is_orange or is_cyan
 
 func _update_focus_marker(base_color: Color) -> void:
 	if not is_instance_valid(_focus_marker):
@@ -212,11 +170,6 @@ func _label_name_text() -> String:
 func _label_detail_text() -> String:
 	return ItemDisplayFormatterScript.pickup_detail(item)
 
-func _label_color(is_focused: bool) -> Color:
-	if is_focused:
-		return Color(1.0, 0.95, 0.55) if item.rarity == ItemData.Rarity.RARE else Color(1.0, 1.0, 0.86)
-	return Color(1.0, 0.86, 0.22) if item.rarity == ItemData.Rarity.RARE else Color(0.88, 0.90, 0.86)
-
 func _should_show_cluster_label(player: Node3D, own_dist: float) -> bool:
 	var own_key = _cluster_key()
 	for other in get_tree().get_nodes_in_group("pickups"):
@@ -224,7 +177,7 @@ func _should_show_cluster_label(player: Node3D, own_dist: float) -> bool:
 			continue
 		if not other.item or other._cluster_key() != own_key:
 			continue
-		if global_position.distance_to(other.global_position) > LABEL_CLUSTER_RADIUS:
+		if global_position.distance_to(other.global_position) > PickupPresentationScript.LABEL_CLUSTER_RADIUS:
 			continue
 		if player.has_method("can_sense_item") and not player.can_sense_item(other.global_position):
 			continue
@@ -260,7 +213,7 @@ func _update_icon_decal():
 		return
 
 	var plane = PlaneMesh.new()
-	plane.size = _icon_plane_size_for_item()
+	plane.size = PickupPresentationScript.icon_plane_size(item)
 
 	var mat = StandardMaterial3D.new()
 	mat.albedo_texture = texture
@@ -273,37 +226,9 @@ func _update_icon_decal():
 	decal.name = "PickupIcon"
 	decal.mesh = plane
 	decal.material_override = mat
-	decal.position = Vector3(0.0, _icon_plane_y_for_item(), 0.0)
+	decal.position = Vector3(0.0, PickupPresentationScript.icon_plane_y(item), 0.0)
 	add_child(decal)
 	_icon_decal = decal
-
-func _icon_plane_size_for_item() -> Vector2:
-	if not item:
-		return Vector2(0.48, 0.48)
-	match item.type:
-		ItemData.Type.WEAPON:
-			return Vector2(0.72, 0.44)
-		ItemData.Type.AMMO:
-			return Vector2(0.52, 0.52)
-		ItemData.Type.HEAL:
-			return Vector2(0.50, 0.50)
-		ItemData.Type.ARMOR:
-			return Vector2(0.56, 0.56)
-	return Vector2(0.48, 0.48)
-
-func _icon_plane_y_for_item() -> float:
-	if not item:
-		return 0.18
-	match item.type:
-		ItemData.Type.WEAPON:
-			return 0.176
-		ItemData.Type.AMMO:
-			return 0.166
-		ItemData.Type.HEAL:
-			return 0.176
-		ItemData.Type.ARMOR:
-			return 0.166
-	return 0.18
 
 func _icon_id_for_item() -> String:
 	if not item:

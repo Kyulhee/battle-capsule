@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-24 (v1.11.26 Weapon slot tuning boundary)
+> Last updated: 2026-05-24 (v1.11.27 Pickup presentation boundary)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.27 — Pickup presentation boundary.
+**Next structural slice**: v1.11.28 — Pickup icon/catalog boundary review.
 
-**Latest completed slice**: v1.11.26 — Weapon slot tuning boundary.
+**Latest completed slice**: v1.11.27 — Pickup presentation boundary.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -335,6 +335,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - `MissionBadgeStore.gd`: achievement badge persistence boundary; `MissionTracker` still exposes badge wrapper APIs.
 - `Player.gd`: split heal, ammo, HUD numeric display, combat visual constants, and artifact stat reads by vertical slice.
 - `Bot.gd`: split perception, loot search, combat movement, and debug/visual constants into doctrine/profile/config boundaries without changing AI behavior.
+- `Pickup.gd`: first presentation boundary complete; color/glow/label/icon plane values live in `PickupPresentation`, while collection side effects stay in `Pickup`.
 - `HellEventController.gd`: move remaining bombardment/blackout tuning and visual constants into config/catalog entries.
 - `HellTuning.gd`: first Hell tuning data boundary; reads `data/game_config.json` `hell` sections and normalizes timers, blackout, bombardment, barrage, standard bombardment, and marker visual values.
 - `LootSpawnDirector.gd` and supply helpers: move supply/pillar visual and cluster tuning values into config/catalog entries.
@@ -649,6 +650,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Preserve Player HUD ammo text, pressure ammo effects, reload behavior, and Telemetry schema.
 - Do not convert these values to JSON in this slice; `WeaponSlotTuning.gd` is the first code-owner boundary.
 - Next slice should review `Pickup.gd` presentation concerns before touching collection side effects.
+
+### v1.11.27 — Pickup Presentation Boundary `S`
+
+**Summary**: Move pickup presentation values out of `Pickup.gd` without changing pickup collection behavior.
+
+- Add `src/entities/pickup/PickupPresentation.gd` for pickup base colors, glow/light tuning, label LOD distances, label focused/normal scale, label colors, visibility refresh interval, and icon plane size/height values.
+- Keep `Pickup.gd` as the owner of runtime nodes, LOS/focus updates, cluster-label comparison, AssetCatalog icon loading, item collection side effects, Telemetry pickup logging, and debug logging.
+- Preserve current colors, glow/light values, label distances, label scales, icon plane sizes/heights, item collection behavior, and Telemetry schema.
+- Do not move collection side effects or icon loading in this slice.
+- Next slice should review pickup icon/catalog loading separately because it touches AssetCatalog and selected external assets.
 
 **v1.11 completion gate**
 
