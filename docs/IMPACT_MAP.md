@@ -393,11 +393,13 @@
 - **수정 영향**: material override를 몸통 MeshInstance3D에 직접 적용하면 headless 종료 오류가 날 수 있으므로 얼굴/머리 파츠 중심으로 유지.
 
 ### `src/entities/pickup/Pickup.gd`
+- **현재 역할**: Pickup entity runtime owner. v1.11.29 기준 307줄.
 - **호출 대상**: `collector.receive_weapon(wstats)` / `collector.receive_ammo(type, amount)` — `has_method()` duck-typed, Player·Bot 동시 지원
 - **표시 조건**: 플레이어의 `Entity.can_sense_item()`을 통과한 경우에만 pickup node가 표시됨. Label LOD/focus 값은 `PickupPresentation.gd`가 제공하고, 현재 상호작용 후보 focus는 `Player.gd`가 `set_focused()`로 전달.
 - **presentation 경계**: `PickupPresentation.gd` owns base colors, glow/light tuning, label LOD distances/scales/colors, visibility refresh interval, and icon plane size/height values.
 - **icon 경계**: `PickupIconResolver.gd` owns icon ids, texture cache, AssetCatalog path lookup, ResourceLoader texture loading, and image-file fallback loading.
 - **의도적으로 소유**: runtime node creation, focus/LOS updates, cluster-label comparison, AssetCatalog scene lookup, icon decal placement/material setup, item collection side effects, Telemetry pickup logging, and debug logging.
+- **closure note**: Further Pickup extraction should require an item-effect boundary because collection touches Player/Bot inventory, pressure penalties, Telemetry, and debug logging.
 
 ### `src/entities/pickup/PickupPresentation.gd`
 - **읽는 파일**: `ItemData.gd` enum/type/rarity fields. 직접 scene lookup 없음.

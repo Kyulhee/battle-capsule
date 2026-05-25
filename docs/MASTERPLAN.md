@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-25 (v1.11.28 Pickup icon resolver)
+> Last updated: 2026-05-25 (v1.11.29 Pickup pass closure review)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.29 — Pickup pass closure review.
+**Next structural slice**: v1.11.30 — mission numeric description audit.
 
-**Latest completed slice**: v1.11.28 — Pickup icon resolver.
+**Latest completed slice**: v1.11.29 — Pickup pass closure review.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -337,6 +337,7 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - `Bot.gd`: split perception, loot search, combat movement, and debug/visual constants into doctrine/profile/config boundaries without changing AI behavior.
 - `Pickup.gd`: first presentation boundary complete; color/glow/label/icon plane values live in `PickupPresentation`, while collection side effects stay in `Pickup`.
 - `PickupIconResolver.gd`: first pickup icon/catalog boundary complete; icon ids, texture cache, AssetCatalog path lookup, and image fallback loading live outside `Pickup`.
+- Pickup pass closure complete: `Pickup.gd` is 307 lines and intentionally retains runtime node creation, focus/LOS updates, cluster-label comparison, AssetCatalog scene lookup, icon decal placement/material setup, collection side effects, Telemetry pickup logging, and debug logging.
 - `HellEventController.gd`: move remaining bombardment/blackout tuning and visual constants into config/catalog entries.
 - `HellTuning.gd`: first Hell tuning data boundary; reads `data/game_config.json` `hell` sections and normalizes timers, blackout, bombardment, barrage, standard bombardment, and marker visual values.
 - `LootSpawnDirector.gd` and supply helpers: move supply/pillar visual and cluster tuning values into config/catalog entries.
@@ -671,6 +672,16 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - Preserve current icon ids, cache behavior, catalog path lookup, image fallback behavior, icon material setup, item collection behavior, and Telemetry schema.
 - Do not move collection side effects or pickup icon node construction in this slice.
 - Next slice should close the Pickup pass by re-auditing retained responsibilities before moving to another data-boundary candidate.
+
+### v1.11.29 — Pickup Pass Closure Review `S`
+
+**Summary**: Close the Pickup entity structural pass and document why the remaining Pickup code stays together for now.
+
+- Re-audit `src/entities/pickup/Pickup.gd` after presentation and icon resolver slices.
+- Mark as intentionally retained in `Pickup.gd`: runtime mesh/light/label/focus/icon node creation, focus/LOS refresh, cluster-label comparison, AssetCatalog scene lookup, icon decal material placement, item collection side effects for weapon/ammo/heal/armor, Telemetry pickup logging, debug logging, and `queue_free()` lifecycle.
+- Mark as split owners: `ItemDisplayFormatter.gd`, `PickupPresentation.gd`, and `PickupIconResolver.gd`.
+- No runtime code, pickup behavior, visual behavior, or Telemetry schema changes in this closure slice.
+- Further Pickup extraction should wait for a dedicated item-effect boundary because collection side effects touch Player/Bot inventory, pressure penalties, Telemetry, and debug logging.
 
 **v1.11 completion gate**
 

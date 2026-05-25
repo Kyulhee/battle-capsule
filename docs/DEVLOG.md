@@ -6,6 +6,25 @@ The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](dev
 
 ---
 
+## v1.11.29-dev — 2026-05-25
+
+**Pickup pass closure review**
+
+**docs/MASTERPLAN.md / docs/ARCHITECTURE.md / docs/IMPACT_MAP.md / docs/devlog/v1.11.md**
+
+- Re-audited `src/entities/pickup/Pickup.gd` after the presentation and icon resolver slices.
+- `Pickup.gd` is 307 lines and intentionally retains runtime mesh/light/label/focus/icon node creation, focus/LOS refresh, cluster-label comparison, AssetCatalog scene lookup, icon decal material placement, item collection side effects for weapon/ammo/heal/armor, Telemetry pickup logging, debug logging, and queue-free lifecycle.
+- Split Pickup-side owners are now documented: `ItemDisplayFormatter.gd`, `PickupPresentation.gd`, and `PickupIconResolver.gd`.
+- No runtime code, pickup behavior, visual behavior, or Telemetry schema changed.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과.
+- Runtime simulation skipped because this is a docs-only closure review.
+
+---
+
 ## v1.11.28-dev — 2026-05-25
 
 **Pickup icon resolver**
