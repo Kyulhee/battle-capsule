@@ -52,8 +52,11 @@ These files are preserved for history but excluded from default context:
 | Path | Contents |
 |---|---|
 | [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md) | Previous long-form master plan |
+| [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md) | Full active roadmap before v1.11.35 compression |
 | [archive/IDEA_PLAN_legacy.md](archive/IDEA_PLAN_legacy.md) | Old idea pool and roadmap draft |
 | [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md) | Previous full devlog |
+| [devlog/DEVLOG_full_2026-05-26.md](devlog/DEVLOG_full_2026-05-26.md) | Full active devlog before v1.11.35 compression |
+| [devlog/v1.11_full_2026-05-26.md](devlog/v1.11_full_2026-05-26.md) | Full v1.11 slice summary before v1.11.35 compression |
 | [devlog/INDEX.md](devlog/INDEX.md) | Compact version history index |
 
 Open archived documents only when a task requires historical detail that is not present in the active log or current roadmap.

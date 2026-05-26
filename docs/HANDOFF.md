@@ -6,8 +6,8 @@
 
 - Branch: `master`.
 - Current roadmap line: `v1.11-dev` subsystem directory + non-Main data/algorithm boundaries.
-- Latest completed slice: `v1.11.34 — Boundary and Documentation Governance Review`.
-- Next structural slice: `v1.11.35 — Active Documentation Compression`.
+- Latest completed slice: `v1.11.35 — Active Documentation Compression`.
+- Next structural slice: `v1.11.36 — v1.11 closure decision and remaining-boundary shortlist`.
 - Release remains paused. Continue version-to-version development without GitHub releases unless the user explicitly asks for a release.
 - `asset_generator/` is an external-agent workspace and must remain untracked unless the user explicitly asks to integrate selected files.
 - `docs/ASSET_GENERATION_PROMPTS.md` is local-only prompt scratch material and must remain untracked unless the user explicitly asks otherwise.
@@ -15,7 +15,7 @@
 
 ## Exact Git State At Handoff
 
-After the v1.11.34 push, expected local status is only the external-generation scratch area:
+After the v1.11.35 push, expected local status is only the external-generation scratch area:
 
 ```text
 ?? asset_generator/
@@ -38,18 +38,21 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
   - Added pressure feasibility cutoff ownership to `MissionTuning.gd`.
   - `PressureConditionEvaluator.gd` now reads detected-survival and late-zone outside-zone feasibility cutoffs from shared tuning.
   - Pushed to `origin/master`.
+- `ef977a3 docs: audit boundary and documentation governance`
+  - Added v1.11.34 role rules and active document budgets.
+  - Scoped active docs compression as the immediate next structural slice.
+  - Pushed to `origin/master`.
 
 ## Current Discussion
 
-The user agreed to the governance-first plan. v1.11.34 found no urgent runtime authority bug, but active docs are too large for repeated session loading.
+The user agreed to the governance-first plan. v1.11.34 found no urgent runtime authority bug. v1.11.35 then snapshotted and compressed the default-session roadmap/devlog files.
 
 Recommended next slice:
 
-- `v1.11.35 — Active Documentation Compression`
-  - Snapshot full/raw active docs first.
-  - Compress `MASTERPLAN.md` toward current status, role rules, next slices, and gates.
-  - Compress `DEVLOG.md` toward recent work only; keep detailed history in `docs/devlog/` snapshots/version files.
-  - Keep `DOCS_INDEX.md` as the routing and document-budget source.
+- `v1.11.36 — v1.11 closure decision and remaining-boundary shortlist`
+  - Re-check `Main.gd`, `MissionTracker.gd`, `Player.gd`, `Bot.gd`, `Pickup.gd`, `ARCHITECTURE.md`, and `IMPACT_MAP.md` against the role rules in `MASTERPLAN.md`.
+  - Decide whether v1.11 can close or needs one final targeted boundary.
+  - Do not add new helpers unless a concrete authority conflict is found.
 
 ## Tooling Note
 
@@ -78,9 +81,8 @@ Good command pattern:
 
 ## Good Next Candidates
 
-- `v1.11.35 — Active Documentation Compression`
-  - Docs-only unless the compression exposes a stale route or incorrect index.
-  - Should be completed before more gameplay or broad extraction work.
+- `v1.11.36 — v1.11 closure decision and remaining-boundary shortlist`
+  - Likely docs/audit first; code only if a concrete authority conflict is found.
 - Later v1.11 candidates:
   - Continue non-Main tuning/data boundary slices by domain.
   - Avoid large JSON/resource migration until new mission/content expansion requires it.

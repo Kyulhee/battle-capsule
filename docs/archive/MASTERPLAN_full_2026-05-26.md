@@ -1,0 +1,874 @@
+# Battle Capsule Master Plan
+
+> Last updated: 2026-05-26 (v1.11.34 Boundary and documentation governance review)
+
+This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
+
+## Current Status
+
+**Current line**: v1.11-dev — subsystem directory + data boundaries.
+
+**Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
+
+**Next structural slice**: v1.11.35 — active documentation compression.
+
+**Latest completed slice**: v1.11.34 — Boundary and documentation governance review.
+
+**v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
+
+**Release status**: paused. Continue version-to-version development without GitHub releases unless explicitly requested.
+
+**External assets**: `asset_generator/expected_output/` contains generated icon source files. Runtime-ready files are selected into `assets/` and registered through `data/asset_catalog.json`.
+
+## Active Principles
+
+- Keep `Main.gd` as the orchestrator while reducing the amount of code that must be read for simple config/UI/asset edits.
+- Preserve single-source game state ownership in `Main.gd`: `zone`, `mission_tracker`, `player_ref`, `alive_count`, and Telemetry hooks stay there for now.
+- Prefer catalog/helper/controller boundaries over broad gameplay rewrites.
+- Treat already connected item/icon assets as readability polish, not new content expansion.
+- User-facing descriptions that contain gameplay numbers should be generated from the same data used by gameplay logic whenever practical.
+- New gameplay tuning values should enter through data/config/catalog/controller specs first, not as local constants inside `Main.gd`.
+- Do not start 99-player scale, new maps, mission map theming, or v1.12 complex artifact logic until v1.10 and v1.11 stabilization are complete.
+
+## Active Docs
+
+| Document | Purpose |
+|---|---|
+| [../CLAUDE.md](../CLAUDE.md) | Session onboarding and default reading path |
+| [DOCS_INDEX.md](DOCS_INDEX.md) | Documentation routing |
+| [DEVLOG.md](DEVLOG.md) | Active work log; keep compressed after v1.11.35 |
+| [IMPACT_MAP.md](IMPACT_MAP.md) | Ownership and change-impact checks |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Module boundaries |
+| [TESTING.md](TESTING.md) | Verification criteria |
+| [ASSET_BRIEF.md](ASSET_BRIEF.md) | Stable external asset style and format brief |
+
+## v1.10 — Main Slimdown + UI Controllers `M`
+
+**Summary**: Keep `Main.gd` as the orchestration root, but move isolated screen/config/spawn/asset responsibilities behind small boundaries.
+
+**Status**: in progress. `Main.gd` still owns substantial UI orchestration, match bootstrapping, event flow, and state wiring. The goal is not line-count reduction by itself; the goal is that routine config, catalog, asset, and display edits no longer require reading unrelated `Main.gd` systems.
+
+**Already split**
+
+- `GameConfig`: match, zone, difficulty, Hell timing JSON loader.
+- `DebugFlags` / `DebugOverlay`: runtime debug flags and simple overlay.
+- `AssetCatalog`: audio/icon/prop/cosmetic ID lookup with fallback and missing-path summary.
+- `LootSpawner`: POI/density-based loot hotspot and position calculations.
+- `SupplyDropController`: supply drop timing, position roll, and cluster calculations.
+- `ArtifactCatalog`: starting artifact choices and stat modifiers.
+- `DifficultyCatalog`: difficulty label/description/color UI data.
+- `HelpCatalog`: How to Play section/row data.
+- `MenuIconFactory`: procedural menu/records/help icon generation.
+- `HelpPanelBuilder`: How to Play panel rendering from HelpCatalog rows.
+- `RecordsPanelBuilder`: Records tabs, clear button, and history row rendering.
+- `MenuVisualBuilder`: main/secondary menu gradients, noise overlay, logo placement, and shared button styling.
+- `WorldPresentationBuilder`: world presentation defaults for the zone ring and supply pillar drop animation.
+- `DifficultySelectorBuilder`: difficulty button/tooltip/pressure opt-in menu UI.
+- `SettingsPanelBuilder`: Settings modal layout and controls.
+- `ResultPanelBuilder`: result panel card/buttons/label population.
+- `PausePanelBuilder`: pause overlay and pause action buttons.
+- `ArtifactSelectionPanelBuilder`: artifact selection overlay/cards/buttons.
+- `HellAnnouncementBuilder`: Hell mode announcement overlay/card/rows/button.
+- `EventTextBuilder`: transient top-center event text labels and fade-out tween setup.
+- `MenuController`: panel visibility routing and main/secondary menu button wiring.
+- `MatchBootstrap`: match-start zone creation, bonus mission selection, pressure flag initialization, Hell modifier roll.
+- `MatchTuning`: `GameConfig` match/zone tuning interpretation and CLI match/difficulty override parsing.
+- `MatchRuntimeTuning`: Main-owned spawn safety, navigation bake, stage loot wave, and supply fallback tuning interpretation.
+- `BotSpawnPlanner`: weighted bot archetype plans that scale beyond the 11-bot baseline.
+- `LootSpawnDirector`: item template categorization, pickup creation, supply pillar creation, and supply cluster creation.
+- `PressureEffectCatalog`: pressure reward/penalty ids and HUD labels.
+- `PressureEffectApplier`: pressure mission reward/penalty effect execution against explicit player/zone/actor context.
+- `ItemResourceCatalog`: default loot item templates, extra consumables, pickup scene, and supply railgun resource references.
+- `HellEventController`: Hell blackout/bombardment timers, overlay flashes, warning markers, damage application, and Hell event Telemetry logging.
+
+**Good next candidates**
+
+1. v1.11 subsystem directory/data-boundary pass: reorganize non-Main code and split tuning values from algorithms by domain.
+2. Remaining v1.10.x item/asset readability polish: only narrow visual/readability patches that do not change expansion architecture.
+3. v1.12 Complex Artifacts: begin new artifact content only after the subsystem structural pass is stable.
+
+**Recommended split order**
+
+1. Finish low-risk UI/menu extraction first.
+   - Good targets: difficulty tooltip panel, settings/menu panel visibility, records/help entry wiring.
+   - Reason: large line-count reduction with low gameplay risk.
+2. Extract match bootstrapping only after the UI surface is calmer.
+   - Good targets: `start_game()` config/difficulty/artifact/spawn sequencing.
+   - Reason: this touches player, bots, zone, mission, Telemetry, and asset wiring, so it needs a clearer call graph.
+3. Continue data/value binding as vertical slices.
+   - Good targets: mission/pressure text, difficulty descriptions with numeric values, remaining ammo/heal/help strings.
+   - Reason: this directly prevents hardcoded-number drift without forcing a large config rewrite.
+4. Defer state-owning systems until there is a dedicated migration plan.
+   - Pressure mission effects, zone state, player reference, alive count, and result/Telemetry finalization should stay in `Main.gd` for now.
+
+**Boundary rules**
+
+- Controllers/helpers should not discover each other through the scene tree. `Main.gd` wires them.
+- Do not move zone, mission, player, alive count, or Telemetry ownership out of `Main.gd` yet.
+- Preserve Telemetry event names and JSON schema unless a dedicated migration is planned.
+- Runtime controllers may receive `Main.gd`-owned references through explicit wiring, but they should not own match-global state.
+
+**v1.10 closure result**
+
+- Complete: Main-owned item/resource pool, spawn/navigation/loot/supply fallback runtime tuning, UI/panel builders, match bootstrap/tuning helpers, pressure effect execution, bot spawn planning, loot/supply pickup creation, and world/menu presentation defaults have first-pass boundaries.
+- Complete: simple item display, item resources, menu/help/records/result/pause/artifact/Hell announcement UI, and Main runtime tuning can be edited through data/catalog/helper files without reading unrelated Main systems.
+- Intentionally retained in `Main.gd`: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, scene callbacks, exported scene/count defaults, and Telemetry hook calls.
+- Deferred: remaining visual-only item/asset polish can continue as v1.10.x patches, but does not block v1.11.
+- Deferred: non-Main domain files still need their own data/algorithm separation in v1.11.
+
+### v1.10.17-v1.10.20 — Main Data/Catalog Closure Plan `M`
+
+**Summary**: Finish the Main-owned data/catalog cleanup before touching subsystem-wide directory moves. `Main.gd` should remain the orchestrator and state owner, but routine item pool, spawn, navigation, supply fallback, and presentation tuning edits should not require reading unrelated Main sections.
+
+**Current Main candidates**
+
+- Item/resource pool: first pass complete through `ItemResourceCatalog`; Main keeps only runtime references loaded from the catalog.
+- Match runtime tuning: first pass complete through `data/game_config.json` `runtime` + `MatchRuntimeTuning`; Main applies sanitized values.
+- Navigation/runtime world setup: navigation mesh bake parameters are config-backed; zone ring visual defaults are in `WorldPresentationBuilder`.
+- Presentation-only values: first pass complete for zone ring, supply pillar drop Y range, menu logo size, and Hell announcement dismiss fade.
+- Keep in Main: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, scene callbacks, and Telemetry hook calls.
+
+**v1.10.17 — Item/Resource Catalog Boundary**
+
+- Move default drop item references out of `Main.gd` into an item/resource catalog boundary.
+- Adding, removing, or swapping default item pools should not require editing `Main.gd`.
+- Preserve current item list, pickup scene, advanced heal, railgun supply behavior, and Telemetry schema.
+- First pass complete: `ItemResourceCatalog.gd` owns the pickup scene, default item templates, extra consumables, and supply railgun item. `Main.gd` loads runtime references from the catalog and still owns loot/supply state wiring.
+
+**v1.10.18 — Match Runtime Tuning Boundary**
+
+- Move Main-owned spawn safety, obstacle-clearance, navigation bake, stage loot-wave, and supply fallback tuning into `GameConfig`/`MatchTuning` or a small `MatchRuntimeTuning` helper.
+- Keep the algorithms in their current owners unless the move clearly reduces coupling.
+- Preserve existing defaults exactly unless a separate balance change is requested.
+- First pass complete: `data/game_config.json` `runtime` owns spawn, navigation, stage loot wave, and supply fallback values; `MatchRuntimeTuning.gd` clamps/normalizes them; `Main.gd` keeps spawn/navigation/supply algorithms and state wiring.
+
+**v1.10.19 — Main Presentation Boundary**
+
+- Move remaining Main-local visual defaults that are still edited as data, such as zone ring color/mesh sizing and small menu/announcement constants, into UI/world-view helpers or catalogs.
+- Do not move broad UI state or panel routing back into Main.
+- Defer low-value visual constants if moving them would create more indirection than benefit.
+- First pass complete: `WorldPresentationBuilder.gd` owns zone ring mesh/material defaults and supply pillar drop Y range; `MenuVisualBuilder.gd` owns the main logo size; `HellAnnouncementBuilder.gd` owns the dismiss fade duration. `Main.gd` now calls these helpers while keeping world/UI state wiring.
+
+**v1.10.20 — Closure Review**
+
+- Re-scan `Main.gd` for remaining non-state constants and classify each as: moved, intentionally owned by Main, or deferred to v1.11.
+- Update `ARCHITECTURE.md` and `IMPACT_MAP.md` with the final boundaries.
+- Verification gate: `git diff --check`, Godot headless quit, `python tools\simulate_matches.py 1`, and one Hell or high-bot simulation when gameplay wiring changed.
+- Closure complete: `Main.gd` is 1097 lines. Remaining numeric/default values are classified below rather than moved blindly.
+
+**Moved or already data-backed**
+
+- Default item resources and pickup scene: `ItemResourceCatalog`.
+- Match/count/zone base config and CLI overrides: `GameConfig` + `MatchTuning`.
+- Spawn safety, navigation bake, stage loot wave, supply fallback: `data/game_config.json` `runtime` + `MatchRuntimeTuning`.
+- Zone stage 2+ wait/shrink/damage values: `data/game_config.json` `zone.stages` + `ZoneController`.
+- Menu/panel presentation and world presentation defaults: UI builders and `WorldPresentationBuilder`.
+
+**Intentionally retained in Main**
+
+- Scene references and match entry defaults: `player_scene`, `bot_scene`, `bot_count`, `loot_count`, `spawn_radius`, base zone exports. These are inspector/CLI/config merge points, not final hardcoded balance ownership.
+- Match-global state: `current_state`, `difficulty`, `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `match_timer`, pressure state flags, supply minimap state.
+- Wiring-only node paths, callbacks, Telemetry hook calls, and autoload lookups.
+- Debug/simulation conveniences: screenshot trigger, bot snapshot print, simulation time scale.
+
+**Deferred to v1.11**
+
+- Hell start-state policy currently applied in `spawn_entities()` should move toward Hell modifier/config data when Hell systems are directory-separated.
+- Mission/artifact feasibility glue such as `_is_bonus_mission_feasible()` should move toward mission/artifact compatibility data.
+- Mission context thresholds such as supply proximity and perception completion should move into mission/pressure specs when `MissionTracker` is split.
+- Result text formatting and debug snapshot aggregation can move to UI/debug helpers when those domains are reorganized.
+- Remaining non-Main tuning in `Player.gd`, `Bot.gd`, `MissionTracker.gd`, `HellEventController.gd`, `LootSpawnDirector.gd`, and UI builders belongs to v1.11 vertical slices.
+
+**Explicit v1.10 deferrals**
+
+- Do not refactor `Player.gd`, `Bot.gd`, `MissionTracker.gd`, `HellEventController.gd`, `LootSpawnDirector.gd`, or UI builders just because they still contain tuning values.
+- Do not reorganize directory structure in v1.10 unless required by a Main boundary.
+- Do not start new artifacts, new maps, 99-player scale, or strategic prop gameplay in v1.10.
+
+### v1.10.3+ — Data/Description Value Binding `M`
+
+**Summary**: Keep gameplay numbers, UI descriptions, labels, and algorithms connected through shared structured sources so a balance change does not require separate text edits.
+
+This is a v1.10 structural cleanup, not a balance pass. The first implementation should be a narrow vertical slice that proves the pattern before broad migration.
+
+**Problem**
+
+- Some catalog descriptions include numeric values directly in prose, for example artifact lines such as shotgun damage multipliers.
+- If gameplay modifiers and text are edited separately, future balance changes can silently make UI descriptions wrong.
+- The same risk exists outside artifacts: ammo amounts, heal amounts, weapon stats, difficulty descriptions, mission text, and help text can drift if they duplicate values owned elsewhere.
+- The rule applies broadly: Main should wire loaded values, controllers should own algorithms, and reusable numeric tuning should move into config/resource/catalog files by vertical slice.
+
+**Source-of-truth direction**
+
+- `StatsData` / weapon `.tres`: weapon damage, range, ammo, fire-rate, pellet, and spread-related values.
+- `ItemData` / item `.tres`: pickup type, amount, rarity, ammo target, display name, and pickup color.
+- `GameConfig` / config JSON: match, zone, difficulty, and system tuning values that already load from config.
+- `BotDoctrine` profiles: bot behavior tuning already expressed as structured dictionaries.
+- `ArtifactCatalog` or a follow-up artifact spec helper: artifact modifier values and generated description lines should come from the same structured entry.
+
+**First vertical slice**
+
+1. Audit user-facing numeric descriptions.
+   - Start with `ArtifactCatalog.gd`.
+   - Then inspect pickup/HUD ammo strings, heal amounts, difficulty text, mission/pressure text, and help rows.
+   - Record ownership before editing behavior.
+2. Define a small formatter/helper boundary.
+   - Prefer a focused helper such as `DescriptionFormatter` or artifact-local builder functions.
+   - Avoid adding a large localization/config framework before the needed data shape is proven.
+3. Convert starting artifact descriptions first.
+   - First pass complete for current starting artifacts.
+   - Artifact modifier numbers now live in structured fields used by gameplay.
+   - `line1`/`line2` are generated from those values.
+   - The player-visible text stays readable Korean, not raw debug data.
+4. Extend only where duplication is confirmed.
+   - First pickup/HUD pass complete: `ItemDisplayFormatter` reads pickup details from `ItemData`/`StatsData` and HUD ammo from slot state.
+   - First zone timing pass complete: stage 2+ wait/shrink/damage values are loaded from `data/game_config.json` `zone.stages`, while `ZoneController.gd` owns only lifecycle/damage algorithms.
+   - Do not migrate labels that are already simple names and have no duplicated gameplay number.
+5. Keep behavior stable.
+   - No balance changes unless explicitly requested.
+   - No Telemetry event/schema changes.
+   - No `Main.gd` ownership changes unless a later slice explicitly targets them.
+
+**Explicit exclusions**
+
+- Do not replace all `.tres` resources with JSON just for uniformity.
+- Do not introduce a localization system yet.
+- Do not rewrite combat, pickup, artifact, or mission algorithms as part of the audit.
+- Do not start new artifacts while this slice is still defining the description/value contract.
+
+**Verification**
+
+- `git diff --check`
+- Godot headless quit
+- `python tools\simulate_matches.py 1` for any gameplay-code touch
+- Manual audit that converted descriptions use the same fields as the gameplay path
+- Confirm no Telemetry hook names or JSON schema changed
+
+### v1.10.x — Item/Asset Readability Polish `S`
+
+**Summary**: Improve readability and consistency of already connected item/icon assets without adding new items, weapons, artifacts, or gameplay content.
+
+This is a stabilization step before v1.12 Complex Artifacts. It covers pickup display, item label noise, focus clarity, glow intensity, and asset fallback/export checks.
+
+**Patch numbering guidance**
+
+- Use `v1.10.1`-style slices for localized presentation tuning that does not change asset pipeline rules. Example: weakening an over-visible pickup focus marker after screenshot review.
+- Use `v1.10.2`-style slices for small asset-pipeline rule changes that can affect multiple runtime files. Example: changing generated icon post-processing scale rules and re-syncing runtime weapon icons.
+- Keep all `v1.10.x` slices inside the existing v1.10 stabilization scope. These are not v1.12 content features.
+
+**Scope**
+
+- Existing weapon, ammo, heal, armor, and artifact pickup display only.
+- Existing runtime core icons under `assets/icons/` only unless a specific generated icon is selected.
+- No new item, weapon, artifact, mission, or map content.
+- No `Main.gd` game-state ownership changes.
+- No Telemetry JSON schema changes.
+- `asset_generator/expected_output/` remains an external source pool; do not commit or integrate the whole folder.
+
+**Priorities**
+
+1. Item label LOD — first pass complete
+   - Hide labels for distant pickups.
+   - At pickup range, show name only.
+   - For the current focus/pickup candidate, show name plus quantity/ammo details.
+   - When same-kind pickups are clustered, avoid showing every label at once.
+2. Focus marker tone-down — v1.10.1 first pass complete
+   - Current filled floor highlight read too heavy in real screenshots.
+   - Reduced alpha, emission, and radius while preserving current focus logic.
+   - Focus should be secondary to pickup shape/icon and detailed label.
+   - No collection logic, Telemetry, or asset file changes.
+3. Drop display naming consistency — v1.10.1 first pass complete
+   - Initial map loot and supply drops use `ItemData` templates from `src/items/*.tres`, so their labels are already Korean and data-driven.
+   - Player/bot death drops create `ItemData` at runtime and now share `DropDisplayCatalog` for Korean weapon/ammo/heal names and death-drop weapon colors.
+   - This was fixed as a generation-path consistency issue, not as label text patching in `Pickup.gd`.
+   - Preserve drop quantities, item types, Telemetry schema, and collection behavior.
+4. Glow intensity
+   - Reduce common/blue weapon and ammo glow.
+   - Preserve rare/purple, legendary/orange, and armor/cyan readability.
+   - Keep glow values in catalog/helper-style visual parameters rather than adding scattered item hardcoding.
+5. Pickup focus
+   - The current interactable target must be visually clear.
+   - Focus should feel like game UI, not debug text.
+6. Weapon icon optical sizing — v1.10.2 first pass complete
+   - Generated weapon masters are square canvases, so short/thick weapons such as pistol can appear optically larger than long weapons such as shotgun/rifle in HUD slots.
+   - Prefer post-processing rules over manual PNG edits so future sync runs stay consistent.
+   - `tools/sync_generated_icons.ps1` now supports per-icon `VisualScale` overrides and `-OnlyCategory weapons`.
+   - Runtime `assets/icons/weapons/*.png` were re-synced with pistol/knife reduced and long weapons slightly expanded.
+   - Keep HUD slot rendering unchanged unless post-processing cannot solve the mismatch.
+   - Do not bulk-sync held action/status/map/ui icons as part of this work.
+7. AssetCatalog/fallback
+   - Missing assets must keep using primitive/icon fallback without runtime errors.
+   - New runtime assets must be registered through `data/asset_catalog.json`.
+   - Export should include selected runtime assets and exclude generated source/master files.
+8. Verification
+   - `git diff --check`
+   - `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit`
+   - `python tools\simulate_matches.py 1`
+   - Confirm Telemetry hook names and JSON schema are unchanged.
+
+**Explicit exclusions**
+
+- Screenshot saving is not mandatory verification.
+- Do not touch v2.0 MapDefinition, v2.1 Forest 2.0, or v2.2 AI LOD work.
+- Do not start 99-player expansion, new maps, mission map theming, or new artifact implementation.
+
+## v1.11 — Subsystem Directory + Data Boundaries `M`
+
+**Summary**: After `Main.gd` data/catalog closure, reorganize subsystem code by domain and separate reusable tuning values from algorithms outside Main. This is a structural version, not a content expansion.
+
+**Directory direction**
+
+- Keep orchestration and scene wiring in `src/Main.gd`.
+- Keep stable low-level data/config/catalog classes under `src/core/` only when they are genuinely shared.
+- Group domain systems more explicitly, for example `src/systems/match/`, `src/systems/loot/`, `src/systems/mission/`, `src/systems/zone/`, and `src/systems/hell/` when files are ready to move.
+- Keep entity execution under `src/entities/player/`, `src/entities/bot/`, and pickup/environment folders.
+- Keep UI construction under `src/ui/`, with panels/overlays/HUD helpers separated by usage.
+
+**Data/algorithm separation targets**
+
+- `MissionTracker.gd`: move mission and pressure descriptors toward catalog/data while keeping condition evaluation logic testable.
+- `WeaponSlotManager.gd`: first reload/reserve tuning boundary complete; inventory and reload state stay in `WeaponSlotManager`, values live in `WeaponSlotTuning`.
+- `MissionCatalog.gd`: first mission/pressure descriptor catalog boundary; `MissionTracker` still owns progress/evaluation/HUD state.
+- `MissionHudFormatter.gd`: mission/pressure HUD formatting boundary; `MissionTracker` still owns counters, evaluation, and badge state.
+- `MissionEvaluator.gd`: bonus mission completion/early-fail evaluation boundary; `MissionTracker` still owns hooks, counters, context gathering, and badge state.
+- `PressureConditionEvaluator.gd`: pressure descriptor feasibility and condition completion boundary; `MissionTracker` still owns pressure counters, timing, hooks, and active state.
+- `MissionBadgeStore.gd`: achievement badge persistence boundary; `MissionTracker` still exposes badge wrapper APIs.
+- `Player.gd`: split heal, ammo, HUD numeric display, combat visual constants, and artifact stat reads by vertical slice.
+- `Bot.gd`: split perception, loot search, combat movement, and debug/visual constants into doctrine/profile/config boundaries without changing AI behavior.
+- `Pickup.gd`: first presentation boundary complete; color/glow/label/icon plane values live in `PickupPresentation`, while collection side effects stay in `Pickup`.
+- `PickupIconResolver.gd`: first pickup icon/catalog boundary complete; icon ids, texture cache, AssetCatalog path lookup, and image fallback loading live outside `Pickup`.
+- Pickup pass closure complete: `Pickup.gd` is 307 lines and intentionally retains runtime node creation, focus/LOS updates, cluster-label comparison, AssetCatalog scene lookup, icon decal placement/material setup, collection side effects, Telemetry pickup logging, and debug logging.
+- `HellEventController.gd`: move remaining bombardment/blackout tuning and visual constants into config/catalog entries.
+- `HellTuning.gd`: first Hell tuning data boundary; reads `data/game_config.json` `hell` sections and normalizes timers, blackout, bombardment, barrage, standard bombardment, and marker visual values.
+- `LootSpawnDirector.gd` and supply helpers: move supply/pillar visual and cluster tuning values into config/catalog entries.
+- UI builders: keep presentation constants close to their builder unless reused across multiple screens.
+
+**Boundary role rules**
+
+| Role | Owns | Must not own |
+|---|---|---|
+| `Main.gd` | Match-global state, scene wiring, lifecycle orchestration, Telemetry hook calls | Static catalogs, formatting tables, reusable tuning defaults |
+| `*Tuning.gd` | Numeric thresholds, fallback values, label helpers for those values | Runtime counters, scene lookups, mutation, policy orchestration |
+| `*Catalog.gd` / `*Data.gd` | Static ids, descriptor construction, resource/data lookup | Runtime progress, evaluation side effects, scene state |
+| `*Formatter.gd` / UI `*Builder.gd` / `*Resolver.gd` | Text, display specs, node construction, icon/visual lookup | Gameplay decisions, hidden duplicated thresholds, state mutation beyond constructed UI nodes |
+| `*Evaluator.gd` | Pure condition checks from explicit context and descriptor data | Counters, timers, file I/O, reward/penalty execution |
+| `*Controller.gd` / `*Director.gd` / `*Planner.gd` | Bounded runtime process or placement/orchestration within one domain | Match-global ownership that should remain in `Main.gd` |
+| `*Store.gd` | File persistence and schema compatibility for one concern | Gameplay timing, UI formatting, evaluation rules |
+
+**Governance result after v1.11.34**
+
+- The v1.10-v1.11 boundary work is coherent enough to continue: extracted files mostly follow the role split above, `Main.gd` still owns match state, and no urgent code correction was found.
+- The main risk is not a single broken module; it is repeated small slices adding new helpers and documentation without a compact ownership ledger.
+- Mission helpers are acceptable as-is because state, descriptors, text, evaluation, pressure checks, tuning, and badge I/O now have explicit owners. Do not split mission further unless new mission content exposes a concrete drift risk.
+- `Bot.gd` remains large by design. Further Bot extraction should wait for behavior-test coverage or a clearly isolated data/display owner.
+- Code-built catalogs/tuning remain acceptable for first-pass ownership boundaries. JSON/resource migration should wait until new content volume makes code-owned data hard to review.
+- Active documentation has exceeded the intended onboarding size; v1.11.35 should compress `MASTERPLAN.md`, `DEVLOG.md`, and per-version logs before new gameplay or broad extraction work.
+
+**Recommended v1.11 slice order**
+
+1. Hell subsystem boundary.
+   - Move runtime controller into `src/systems/hell/`.
+   - Then move bombardment/blackout tuning and visual constants into data/config/helper boundaries.
+   - Keep Hell modifier selection and announcement wiring in `Main.gd`.
+2. Zone subsystem boundary.
+   - Move `ZoneController.gd` toward `src/systems/zone/` only after confirming all `Main`/`Bot`/`Player`/`Minimap` references.
+   - Keep zone ownership in `Main.gd`.
+   - First pass complete: path ownership moved to `src/systems/zone/ZoneController.gd`; public API and runtime `main.zone` reads are unchanged.
+3. Loot/supply subsystem boundary.
+   - Group loot hotspot calculation, supply timing, and pickup creation under `src/systems/loot/` by small path-preserving slices.
+   - Keep `Main.gd` supply minimap state and Telemetry hook calls.
+   - First pass complete: `LootSpawner`, `SupplyDropController`, and `LootSpawnDirector` now live under `src/systems/loot/`; public APIs and Main state ownership are unchanged.
+4. Mission/pressure data boundary.
+   - Move mission and pressure descriptors out of `MissionTracker.gd` into catalog/data structures before adding new mission types.
+   - Keep mission progress/evaluation APIs stable.
+   - First pass complete: `MissionCatalog.gd` owns bonus mission list construction and hard/Hell pressure descriptor pools; `MissionTracker.gd` keeps public static wrappers plus feasibility/progress/evaluation logic.
+   - Mission HUD first pass complete: `MissionHudFormatter.gd` owns pressure and bonus mission HUD string formatting while `MissionTracker.gd` passes state snapshots.
+   - Mission evaluation first pass complete: `MissionEvaluator.gd` owns bonus mission completion/early-fail rules while `MissionTracker.gd` passes explicit state context and keeps public APIs.
+   - Path ownership first pass complete: `MissionTracker.gd` moved to `src/systems/mission/`; class name, public APIs, and Main-owned instance are unchanged.
+   - Pressure condition first pass complete: `PressureConditionEvaluator.gd` owns pressure descriptor feasibility and pressure condition completion checks while `MissionTracker.gd` passes condition ids and counter snapshots.
+   - Badge store first pass complete: `MissionBadgeStore.gd` owns `user://achievements.json` read/write while `MissionTracker.gd` keeps public badge wrapper APIs.
+   - Closure review complete: `MissionTracker.gd` is now 257 lines and intentionally owns active mission/pressure state, counters, hooks, public wrappers, and context assembly. New mission data, HUD strings, bonus evaluation, pressure condition checks, and badge file I/O have separate owners.
+5. Entity vertical slices.
+   - Split `Player.gd`/`Bot.gd` tuning by behavior domain only when a concrete data owner is clear.
+   - Do not move combat or perception behavior just to reduce line count.
+   - Player HUD first pass complete: `src/ui/player/PlayerHudBuilder.gd` owns top HUD node construction/styling for zone, mission, pressure, flash, and kill feed nodes.
+   - Player HUD/status continuation complete: `PlayerHudBuilder.gd` also owns health/shield/stat HUD, slot HUD node construction, and zone warning overlay construction. `Player.gd` still owns runtime HUD values, slot state styling updates, weapon icon loading, combat state, and player behavior.
+   - Player slot HUD renderer complete: `PlayerSlotHudRenderer.gd` owns active/empty/normal slot panel styling, slot ammo text, and slot ammo warning colors. `Player.gd` still owns `WeaponSlotManager`, weapon icon loading/fallbacks, and reload-progress overlay text.
+   - Player weapon icon resolver complete: `PlayerWeaponIconResolver.gd` owns weapon HUD icon cache, AssetCatalog icon path loading, and procedural fallback icon generation. `Player.gd` still owns scene-tree catalog lookup and passes the catalog explicitly.
+   - Player tuning constants boundary complete: `PlayerTuning.gd` owns footstep, heal regen, shot heat/spread, melee, and occluder fade numeric constants. `Player.gd` still owns algorithms and runtime state.
+   - Player occluder fade helper complete: `PlayerOccluderFader.gd` owns occluder ray sampling, fade material state, and material restore behavior. `Player.gd` passes itself/camera and keeps only lifecycle delegation.
+   - Player pass closure complete: `Player.gd` is now 832 lines and intentionally retains movement/combat/heal/artifact/pickup/kill feed/zone warning runtime state and orchestration. Further Player extraction should wait for a concrete behavior/data owner, not line count alone.
+   - Bot tuning constants boundary complete: `BotTuning.gd` owns melee, retreat counterfire, attack-bout reposition, hard gunshot, and debug marker constants. `Bot.gd` still owns AI state machine, movement/combat/recovery algorithms, perception hooks, and runtime state.
+   - Bot debug label builder complete: `BotDebugLabelBuilder.gd` owns state/archetype Label3D construction and base styling. `Bot.gd` still owns label text, visibility, archetype marker content, and reveal logic.
+   - Bot marker formatter complete: `BotMarkerFormatter.gd` owns state label specs, archetype marker text, combat-plan marker abbreviations, archetype fallback colors, and cosmetic catalog ids. `Bot.gd` still owns marker visibility, reveal checks, AssetCatalog lookup, visual skin delegation, AI state machine, and Telemetry hooks.
+   - Bot visual skin controller complete: `BotVisualSkinController.gd` owns `ArchetypeSkin` root application/sync/hide lifecycle. `BotVisualKit.gd` still owns primitive skin part construction, while `Bot.gd` keeps AI state, crouch body mesh changes, AssetCatalog lookup, and visual skin delegation.
+   - Bot pass closure complete: `Bot.gd` is 1908 lines and intentionally retains AI state machine/runtime state, navigation and combat execution, perception/noise checks, loot/supply decisions, death/drop behavior, Sfx/Telemetry hooks, and Main-owned zone/alive-count reads. Further Bot splitting should require a dedicated behavior-test plan, not line count alone.
+
+### v1.11.1 — Hell Subsystem Directory First Pass `S`
+
+**Summary**: Start v1.11 with a path-only domain move for the smallest runtime controller boundary.
+
+- Move `HellEventController.gd` from `src/core/` to `src/systems/hell/`.
+- Update `Main.gd` preload path and architecture/impact docs.
+- Keep `class_name HellEventController`, public API, signal names, Telemetry event names, modifier ids, and runtime behavior unchanged.
+- Do not move tuning constants in this slice; they are the next data-boundary slice.
+- First pass complete: `src/systems/hell/HellEventController.gd` is the new owner path. `Main.gd` still owns Hell modifier selection, announcement UI, and controller wiring.
+
+### v1.11.2 — Hell Tuning Data Boundary `S`
+
+**Summary**: Separate Hell event tuning values from Hell runtime algorithms without changing balance.
+
+- Move bombardment/blackout numeric defaults and marker/flash visual constants into config/helper data.
+- Preserve current fallback values exactly.
+- Keep algorithms in `HellEventController.gd` unless a helper removes real coupling.
+- Verify normal and Hell simulations because this touches runtime event behavior.
+- First pass complete: `HellTuning.gd` owns the fallback defaults and sanitization; `data/game_config.json` owns override-ready Hell timer/blackout/bombardment/barrage/standard/disc sections; `HellEventController.gd` owns runtime algorithms only.
+
+### v1.11.3 — Zone Subsystem Directory First Pass `S`
+
+**Summary**: Move the existing zone lifecycle controller into a domain system path without changing state ownership or behavior.
+
+- Move `ZoneController.gd` from `src/core/` to `src/systems/zone/`.
+- Move the Godot script uid file with it.
+- Update `Main.gd` preload path and architecture/impact docs.
+- Keep `class_name ZoneController`, public API, signals, stage config behavior, damage behavior, and Telemetry-facing flow unchanged.
+- Keep `Main.gd` as the owner of `zone`; `Bot.gd`, `Player.gd`, `Minimap.gd`, `DebugOverlay.gd`, and `WorldPresentationBuilder.gd` continue to read `main.zone`.
+
+### v1.11.4 — Loot/Supply Subsystem Directory First Pass `S`
+
+**Summary**: Group existing loot/supply calculation and pickup creation helpers into one loot system path without changing behavior.
+
+- Move `LootSpawner.gd` from `src/core/` to `src/systems/loot/`.
+- Move `SupplyDropController.gd` from `src/core/` to `src/systems/loot/`.
+- Move `LootSpawnDirector.gd` from `src/systems/match/` to `src/systems/loot/`.
+- Update `Main.gd` preload paths and architecture/impact docs.
+- Keep `class_name`, public APIs, pickup quantities, supply timing, supply pillar creation, Telemetry hook calls, and Main-owned supply minimap state unchanged.
+
+### v1.11.5 — Mission/Pressure Descriptor Catalog First Pass `S`
+
+**Summary**: Move mission and pressure descriptor construction behind a mission catalog boundary without changing mission runtime behavior.
+
+- Add `src/systems/mission/MissionCatalog.gd` for bonus mission list construction and hard/Hell pressure descriptor pools.
+- Keep `MissionTracker.gd` as the owner of mission state, pressure condition enum, feasibility filtering, progress counters, evaluation, HUD text, badge persistence, and public static accessors.
+- Keep `Main.gd`, `MatchBootstrap.gd`, pressure effect ids, mission ids, condition ids, reward/penalty descriptors, and Telemetry-facing flow unchanged.
+- First pass complete: callers can keep using `MissionTracker.get_all_missions()`, `get_hard_pool()`, and `get_hell_pool()` while descriptor edits now route to `MissionCatalog.gd`.
+
+### v1.11.6 — Pressure HUD Formatter First Pass `S`
+
+**Summary**: Move pressure HUD string assembly out of `MissionTracker.gd` without changing pressure condition evaluation.
+
+- Add `src/systems/mission/MissionHudFormatter.gd` for pressure HUD title/deadline/progress/reward/penalty text.
+- Keep `MissionTracker.gd` as the owner of pressure state, counters, condition enum, condition evaluation, and public `get_pressure_hud_text()` API.
+- Keep `Player.gd` HUD label flow, pressure descriptor values, effect labels, and Telemetry-facing behavior unchanged.
+- Do not move bonus mission HUD/evaluation in this slice; that remains a separate review because it touches Telemetry reads and player HP lookup.
+
+### v1.11.7 — Bonus Mission HUD Formatter First Pass `S`
+
+**Summary**: Move bonus mission HUD string assembly out of `MissionTracker.gd` without changing mission completion evaluation.
+
+- Extend `src/systems/mission/MissionHudFormatter.gd` to format bonus mission HUD text from explicit context data.
+- Keep `MissionTracker.gd` as the owner of bonus mission hooks, counters, Telemetry/player HP context gathering, mission evaluation, early-fail checks, badge persistence, and public `get_hud_text()` API.
+- Preserve all current mission HUD strings, including the no-Telemetry fallback for all-weapon mission text.
+- Do not move `evaluate()` or `get_early_fail_status()` in this slice; evaluation/data-spec work remains a separate review.
+
+### v1.11.8 — Mission Evaluator First Pass `S`
+
+**Summary**: Move bonus mission completion and early-fail rules out of `MissionTracker.gd` without changing public mission APIs.
+
+- Add `src/systems/mission/MissionEvaluator.gd` for bonus mission `evaluate()` and `early_fail_status()` condition checks.
+- Keep `MissionTracker.gd` as the owner of mission hooks, counters, Telemetry/player HP context gathering, badge persistence, and public `evaluate()` / `get_early_fail_status()` wrappers.
+- Preserve all current mission completion rules and no-Telemetry fallback behavior.
+- Do not move pressure condition evaluation in this slice; pressure runtime counters and success/fail flow remain in `MissionTracker.gd`.
+
+### v1.11.9 — MissionTracker System Path Move `S`
+
+**Summary**: Finish mission subsystem path ownership by moving `MissionTracker.gd` under `src/systems/mission/`.
+
+- Move `src/core/MissionTracker.gd` and its `.uid` file to `src/systems/mission/`.
+- Update `Main.gd` preload path.
+- Keep `class_name MissionTracker`, public APIs, mission/pressure state ownership, hooks, descriptors, evaluation, HUD behavior, badge persistence, and Telemetry-facing flow unchanged.
+- Do not move pressure condition evaluation in this slice; it remains the next explicit boundary review.
+
+### v1.11.10 — Pressure Condition Evaluator First Pass `S`
+
+**Summary**: Move pressure descriptor feasibility and pressure condition completion rules out of `MissionTracker.gd`.
+
+- Add `src/systems/mission/PressureConditionEvaluator.gd`.
+- Keep `MissionTracker.gd` as the owner of `PressureCondition` ids, active pressure state, counters, hooks, deadline timing, instant-fail flag, and public pressure APIs.
+- Preserve `filter_feasible()`, `tick_pressure()`, pressure success/fail behavior, pressure descriptor ids, and Telemetry-facing flow.
+- Do not move pressure runtime state or Main pressure trigger/effect application in this slice.
+
+### v1.11.11 — Mission Badge Store First Pass `S`
+
+**Summary**: Move mission achievement badge file I/O out of `MissionTracker.gd`.
+
+- Add `src/systems/mission/MissionBadgeStore.gd` for `user://achievements.json` read/write.
+- Keep `MissionTracker.gd` public `save_badge()`, `has_badge()`, and `load_achievements()` wrappers.
+- Preserve achievement JSON path, `badges` array shape, duplicate-prevention behavior, result flow, and Telemetry schema.
+- Do not move active mission state or badge award timing in this slice.
+
+### v1.11.12 — Mission Subsystem Closure Review `S`
+
+**Summary**: Close the mission subsystem structural pass before starting entity vertical slices.
+
+- Re-audit `src/systems/mission/MissionTracker.gd` after descriptor, HUD, evaluator, pressure condition, badge store, and path ownership slices.
+- Mark as intentionally retained in `MissionTracker.gd`: active mission/pressure state, counters, hooks, pressure deadline/instant-fail state, public wrappers, and context assembly for helper calls.
+- Mark as split owners: `MissionCatalog.gd`, `MissionHudFormatter.gd`, `MissionEvaluator.gd`, `PressureConditionEvaluator.gd`, and `MissionBadgeStore.gd`.
+- No runtime code, mission behavior, pressure behavior, or Telemetry schema changes in this closure slice.
+- Next v1.11 work should move to entity vertical slices, starting with Player-owned values and UI/combat display boundaries.
+
+### v1.11.13 — Player HUD Builder First Pass `S`
+
+**Summary**: Start entity vertical slices by moving low-risk top HUD construction out of `Player.gd`.
+
+- Add `src/ui/player/PlayerHudBuilder.gd` for zone timer, mission HUD label, pressure HUD label, mission/pressure flash panel, and kill feed node construction/styling.
+- Keep `Player.gd` as the owner of player state, HUD value updates, health/shield UI, weapon slot UI, pickup focus, combat, movement, artifact application, and Sfx/Telemetry hooks.
+- Preserve the existing CanvasLayer child order for the extracted nodes so top HUD z-order and runtime label behavior remain unchanged.
+- Do not move shot heat, melee, occluder fade, heal regen, slot HUD, or combat tuning in this slice.
+- Next Player slice should continue with another concrete UI/data boundary before touching combat constants.
+
+### v1.11.14 — Player HUD/Status Builder Continuation `S`
+
+**Summary**: Extend the Player HUD construction boundary without moving gameplay or slot behavior.
+
+- Extend `src/ui/player/PlayerHudBuilder.gd` to build health/shield rows, status counters, artifact label, bottom slot HUD nodes, and zone warning overlay.
+- Keep `Player.gd` as the owner of health/shield/stat value updates, slot selection/ammo state, slot active/empty styling, weapon icon loading/fallbacks, pickup focus, combat, movement, artifact behavior, and Sfx/Telemetry hooks.
+- Preserve existing CanvasLayer child order for top HUD, status HUD, slot HUD, and zone warning overlay.
+- Do not move `_refresh_slot_hud()`, `_make_weapon_icon()`, shot heat, melee, occluder fade, heal regen, or artifact modifier logic in this slice.
+- Next Player slice should review slot display state styling/icon ownership separately because it touches asset catalog lookups and inventory state.
+
+### v1.11.15 — Player Slot HUD Renderer `S`
+
+**Summary**: Move slot display state rendering out of `Player.gd` while keeping inventory and icon ownership stable.
+
+- Add `src/ui/player/PlayerSlotHudRenderer.gd` for active/normal/empty slot panel styles, slot ammo text, and ammo warning colors.
+- Keep `Player.gd` as the owner of `WeaponSlotManager`, slot signal wiring, slot state changes, reload-progress HUD override, weapon icon loading/fallback generation, combat, movement, artifact behavior, and Sfx/Telemetry hooks.
+- Pass icon lookup through an explicit `Callable` so the renderer does not read `AssetCatalog` or the scene tree.
+- Preserve existing slot labels, active-slot highlight, out-of-ammo coloring, empty-slot behavior, and `ItemDisplayFormatter` ammo text.
+- Next Player slice should review `_make_weapon_icon()` / `_load_catalog_icon()` as a separate icon resolver boundary.
+
+### v1.11.16 — Player Weapon Icon Resolver `S`
+
+**Summary**: Move weapon HUD icon lookup/cache/fallback generation out of `Player.gd`.
+
+- Add `src/ui/player/PlayerWeaponIconResolver.gd` for weapon icon cache, AssetCatalog icon path loading, image-file fallback loading, and procedural pixel fallback generation.
+- Keep `Player.gd` as the owner of scene-tree access: it obtains `main.asset_catalog` and passes it explicitly to the resolver through the slot HUD renderer callback.
+- Keep `PlayerSlotHudRenderer.gd` as the owner of slot style/ammo display state, and keep `WeaponSlotManager` ownership and slot behavior in `Player.gd`.
+- Preserve weapon icon ids, fallback shapes/colors, slot HUD icon behavior, and existing missing-asset fallback behavior.
+- Do not move reload-progress HUD override text, shot heat, melee, occluder fade, heal regen, or artifact modifier logic in this slice.
+
+### v1.11.17 — Player Tuning Constants Boundary `S`
+
+**Summary**: Move Player-owned numeric tuning constants out of `Player.gd` without changing algorithms.
+
+- Add `src/entities/player/PlayerTuning.gd` for footstep interval, heal regen rate, shot heat/spread tuning, melee tuning, and occluder fade tuning constants.
+- Keep `Player.gd` as the owner of movement/combat/heal/occluder algorithms, runtime state, artifact modifiers, slot state, and HUD value updates.
+- Preserve all current numeric values exactly.
+- Do not introduce JSON loading in this slice; this is a local code-owner boundary before any data-file migration.
+- Next Player slice should review the occluder fade algorithm as a separate helper candidate because it is self-contained but larger than a simple constants move.
+
+### v1.11.18 — Player Occluder Fader Helper `S`
+
+**Summary**: Move wall/occluder fade scanning and material restore state out of `Player.gd`.
+
+- Add `src/entities/player/PlayerOccluderFader.gd` for camera-to-player sample rays, occluder mesh discovery, fade material state, and restore behavior.
+- Keep `Player.gd` as the owner of camera lookup, lifecycle calls, movement/combat/heal state, artifact modifiers, HUD updates, and zone warning logic.
+- Keep occluder tuning values in `PlayerTuning.gd`.
+- Preserve current ray sample points, collision mask, fade material behavior, linger timing, and exit-tree restore behavior.
+- Next Player slice should be a closure review of remaining Player responsibilities before starting Bot/entity follow-up slices.
+
+### v1.11.19 — Player Pass Closure Review `S`
+
+**Summary**: Close the Player entity structural pass before starting Bot vertical slices.
+
+- Re-audit `src/entities/player/Player.gd` after HUD builder, slot renderer, weapon icon resolver, tuning constants, and occluder fader slices.
+- Mark as intentionally retained in `Player.gd`: movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, and Sfx/Telemetry hooks.
+- Mark as split owners: `PlayerHudBuilder.gd`, `PlayerSlotHudRenderer.gd`, `PlayerWeaponIconResolver.gd`, `PlayerTuning.gd`, and `PlayerOccluderFader.gd`.
+- No runtime code or Telemetry schema changes in this closure slice.
+- Next entity work should move to Bot vertical slices, starting with perception/combat display/tuning boundaries only where a concrete owner is clear.
+
+### v1.11.20 — Bot Tuning Constants Boundary `S`
+
+**Summary**: Start Bot entity vertical slices by moving low-risk numeric/debug constants out of `Bot.gd`.
+
+- Add `src/entities/bot/BotTuning.gd` for melee, attack-bout reposition, retreat counterfire, Hard gunshot awareness, and debug marker constants.
+- Keep `Bot.gd` as the owner of AI state machine, target selection, movement, combat, recovery/disengage behavior, perception checks, loot decisions, archetype/difficulty runtime state, and Telemetry hooks.
+- Preserve all current numeric/debug values exactly.
+- Do not move doctrine profile application, visual skin application, state label creation, perception logic, or combat movement algorithms in this slice.
+- Next Bot slice should review debug/state/archetype marker label construction before touching AI behavior.
+
+### v1.11.21 — Bot Debug Label Builder `S`
+
+**Summary**: Move Bot debug/state/archetype label node construction out of `Bot.gd`.
+
+- Add `src/entities/bot/BotDebugLabelBuilder.gd` for state label and archetype marker `Label3D` construction/styling.
+- Keep `Bot.gd` as the owner of state label text, archetype marker text/color, visibility, reveal checks, AI state machine, combat, perception, and Telemetry hooks.
+- Preserve label positions, sizes, outline sizes, billboard/double-sided settings, and initial hidden state.
+- Do not move visual skin application, archetype marker text formatting, doctrine profile application, or AI behavior in this slice.
+- Next Bot slice should review visual/state marker content ownership separately.
+
+### v1.11.22 — Bot Marker Formatter `S`
+
+**Summary**: Move Bot state/archetype marker content mapping out of `Bot.gd` without changing marker visibility or AI behavior.
+
+- Add `src/entities/bot/BotMarkerFormatter.gd` for state label text/color specs, archetype marker prefixes, combat-plan marker abbreviations, archetype fallback colors, and cosmetic catalog ids.
+- Keep `Bot.gd` as the owner of `Label3D` references, marker visibility, reveal checks, AssetCatalog scene lookup, visual skin application, AI state machine, combat, perception, and Telemetry hooks.
+- Preserve current marker text, colors, catalog ids, and state visibility behavior.
+- Do not move visual skin construction, doctrine profile application, target selection, or movement/combat algorithms in this slice.
+- Next Bot slice should review visual skin application/catalog tint ownership separately.
+
+### v1.11.23 — Bot Visual Skin Controller `S`
+
+**Summary**: Move Bot archetype skin root lifecycle out of `Bot.gd` without changing visual construction or AI behavior.
+
+- Add `src/entities/bot/BotVisualSkinController.gd` for applying `BotVisualKit`, syncing skin visibility/position/scale with body mesh/crouch/death state, and hiding the skin on death.
+- Keep `BotVisualKit.gd` as the owner of primitive skin part construction and material defaults.
+- Reuse `BotMarkerFormatter.gd` for bot cosmetic catalog ids so marker tint and skin tint do not duplicate id mapping.
+- Keep `Bot.gd` as the owner of AI state, crouch body mesh updates, AssetCatalog lookup, doctrine profile application, combat, perception, and Telemetry hooks.
+- Preserve current skin node name, skin part geometry, catalog tint behavior, crouch offsets/scales, and death hiding behavior.
+- Next Bot slice should close the Bot pass by re-auditing retained responsibilities before moving to another entity/data boundary.
+
+### v1.11.24 — Bot Pass Closure Review `S`
+
+**Summary**: Close the Bot entity structural pass and document why the remaining Bot code stays together for now.
+
+- Re-audit `src/entities/bot/Bot.gd` after tuning, debug label builder, marker formatter, and visual skin controller slices.
+- Mark as intentionally retained in `Bot.gd`: AI state machine and timers, navigation/stuck handling, objective/loot/supply decisions, recovery/disengage/zone escape behavior, perception/noise/ambient awareness checks, combat movement and firing/melee execution, damage/death/drop handling, crouch body mesh updates, Sfx/Telemetry hooks, and Main-owned zone/alive-count/AssetCatalog reads.
+- Mark as split owners: `BotDoctrine.gd`, `BotTuning.gd`, `BotDebugLabelBuilder.gd`, `BotMarkerFormatter.gd`, `BotVisualKit.gd`, and `BotVisualSkinController.gd`.
+- No runtime code, AI behavior, visual behavior, or Telemetry schema changes in this closure slice.
+- Further Bot extraction should wait for explicit behavior coverage because perception, movement, loot, and combat execution share mutable runtime state.
+
+### v1.11.25 — Entity Data-Boundary Planning `S`
+
+**Summary**: Choose the next post-Player/Bot structural work based on value drift risk and runtime blast radius.
+
+**Audit result**
+
+1. `WeaponSlotManager.gd` is the next best concrete slice.
+   - It still owns reload times and reserve-ammo caps directly in `get_reload_time()` / `get_reserve_max()`.
+   - These values affect Player HUD ammo display, pressure effects, reload behavior, and future balance tuning.
+   - Moving the values to a small tuning helper is low risk because `WeaponSlotManager` can keep inventory arrays, reload state, public APIs, and algorithms.
+2. `Pickup.gd` is the next visual/presentation candidate after weapon tuning.
+   - It mixes pickup mesh shape, glow/light tuning, label LOD/focus policy, icon loading, collection side effects, Telemetry logging, and debug logging.
+   - Split only presentation pieces first; collection side effects should remain until a dedicated item-effect boundary exists.
+3. `MissionCatalog.gd` still has numeric prose and target values close together.
+   - This is acceptable short term because mission descriptor construction and MissionData targets are already in one domain file.
+   - A broader mission-data resource/json migration should wait until new mission content is planned.
+4. `PressureEffectApplier.gd` has fallback effect amounts, but active values mostly come from descriptors.
+   - Review later with pressure-effect data specs rather than as a standalone cleanup.
+
+**Next concrete slice**
+
+- v1.11.26: Add a `WeaponSlotTuning` helper for reload times and reserve-ammo caps.
+- Preserve existing reload times, reserve caps, public `WeaponSlotManager` APIs, pressure effect behavior, Player HUD text, and Telemetry schema.
+- Do not convert to JSON in the first pass unless the helper boundary proves insufficient.
+
+### v1.11.26 — Weapon Slot Tuning Boundary `S`
+
+**Summary**: Move weapon reload-time and reserve-ammo cap values out of `WeaponSlotManager.gd` without changing inventory behavior.
+
+- Add `src/core/WeaponSlotTuning.gd` for reload times, no-weapon reload fallback, unknown-weapon reload fallback, reserve-ammo caps, and reserve fallback.
+- Keep `WeaponSlotManager.gd` as the owner of slot arrays, active slot, reload timers, reload transfer state, public APIs, signals, and inventory/reload algorithms.
+- Preserve current values exactly: no-weapon reload 1.5s, unknown-weapon reload 1.3s, shotgun 2.8s, railgun 4.5s, AR 2.0s, reserve caps pistol 30 / AR 60 / shotgun 12 / railgun 4 / fallback 30.
+- Preserve Player HUD ammo text, pressure ammo effects, reload behavior, and Telemetry schema.
+- Do not convert these values to JSON in this slice; `WeaponSlotTuning.gd` is the first code-owner boundary.
+- Next slice should review `Pickup.gd` presentation concerns before touching collection side effects.
+
+### v1.11.27 — Pickup Presentation Boundary `S`
+
+**Summary**: Move pickup presentation values out of `Pickup.gd` without changing pickup collection behavior.
+
+- Add `src/entities/pickup/PickupPresentation.gd` for pickup base colors, glow/light tuning, label LOD distances, label focused/normal scale, label colors, visibility refresh interval, and icon plane size/height values.
+- Keep `Pickup.gd` as the owner of runtime nodes, LOS/focus updates, cluster-label comparison, AssetCatalog icon loading, item collection side effects, Telemetry pickup logging, and debug logging.
+- Preserve current colors, glow/light values, label distances, label scales, icon plane sizes/heights, item collection behavior, and Telemetry schema.
+- Do not move collection side effects or icon loading in this slice.
+- Next slice should review pickup icon/catalog loading separately because it touches AssetCatalog and selected external assets.
+
+### v1.11.28 — Pickup Icon Resolver `S`
+
+**Summary**: Move pickup icon id mapping and catalog texture loading out of `Pickup.gd` without changing pickup visuals or collection behavior.
+
+- Add `src/entities/pickup/PickupIconResolver.gd` for pickup icon ids, per-pickup texture cache, AssetCatalog icon path lookup, ResourceLoader texture loading, and image-file fallback loading.
+- Keep `Pickup.gd` as the owner of icon decal node creation/material placement, AssetCatalog scene lookup, runtime focus/LOS state, item collection side effects, Telemetry pickup logging, and debug logging.
+- Preserve current icon ids, cache behavior, catalog path lookup, image fallback behavior, icon material setup, item collection behavior, and Telemetry schema.
+- Do not move collection side effects or pickup icon node construction in this slice.
+- Next slice should close the Pickup pass by re-auditing retained responsibilities before moving to another data-boundary candidate.
+
+### v1.11.29 — Pickup Pass Closure Review `S`
+
+**Summary**: Close the Pickup entity structural pass and document why the remaining Pickup code stays together for now.
+
+- Re-audit `src/entities/pickup/Pickup.gd` after presentation and icon resolver slices.
+- Mark as intentionally retained in `Pickup.gd`: runtime mesh/light/label/focus/icon node creation, focus/LOS refresh, cluster-label comparison, AssetCatalog scene lookup, icon decal material placement, item collection side effects for weapon/ammo/heal/armor, Telemetry pickup logging, debug logging, and `queue_free()` lifecycle.
+- Mark as split owners: `ItemDisplayFormatter.gd`, `PickupPresentation.gd`, and `PickupIconResolver.gd`.
+- No runtime code, pickup behavior, visual behavior, or Telemetry schema changes in this closure slice.
+- Further Pickup extraction should wait for a dedicated item-effect boundary because collection side effects touch Player/Bot inventory, pressure penalties, Telemetry, and debug logging.
+
+### v1.11.30 — Mission Numeric Description Audit `S`
+
+**Summary**: Audit mission/pressure user-facing text for duplicated numeric gameplay values and choose the next narrow data-binding slice.
+
+**Audit result**
+
+1. Bonus mission descriptions in `MissionCatalog.gd` duplicate `MissionData.target_value` in prose.
+   - Examples: `FIRST BLOOD` 1 kill, `CLEAN WIN` HP 50, `MEDIC RUN` 3 medkits, `SURVIVOR` 90 seconds, shotgun 3 kills, railgun 1 kill, bush 2 kills, zone outside 10 seconds, supply 12m / 1 kill, detected/undetected 1 kill.
+   - `MissionEvaluator.gd` already evaluates from `target_value`, so description drift can happen without breaking tests.
+2. Bonus HUD text in `MissionHudFormatter.gd` mostly uses `mission.target_value`, but still has hardcoded prose fragments such as `90초`, `12m`, and implicit "1 kill each" text.
+3. Pressure mission descriptors duplicate `conditions[].target` in `description`.
+   - This is a real drift risk, but pressure descriptors combine multiple conditions, rewards, penalties, instant-fail flags, and feasibility rules. It should be a second pass after the bonus-mission pattern is proven.
+4. Pressure effect labels are lower risk.
+   - `PressureEffectCatalog.gd` already formats HP/shield/count/fraction labels from effect dictionaries.
+
+**Next concrete slice**
+
+- v1.11.31: Add a focused bonus mission description formatter/builder so bonus mission descriptions and selected HUD static text read from `MissionData.target_value` / `weapon_filter` rather than duplicating numbers in prose.
+- Preserve mission ids, titles, target values, score bonuses, badge labels/colors, evaluation behavior, pressure descriptors, HUD layout, and Telemetry schema.
+- Do not migrate mission data to JSON in this pass.
+
+### v1.11.31 — Bonus Mission Description Formatter `S`
+
+**Summary**: Bind bonus mission descriptions and selected HUD/evaluation thresholds to the same mission data/tuning values used by gameplay logic.
+
+**Completed**
+
+- Added `MissionTuning.gd` for shared mission thresholds: supply-kill radius, perception completion threshold, detected/heavily-detected bot counts, low-HP kill ratio, and all-weapon kill requirements.
+- Added `MissionDescriptionFormatter.gd` for generated bonus mission descriptions and shared weapon labels.
+- `MissionCatalog.gd` now sets mission ids/titles/targets/badges first, then generates `description` through the formatter.
+- `MissionEvaluator.gd` now reads `FIRST_KILL`, all-weapon, and one-slot thresholds from `MissionData.target_value` / `MissionTuning`.
+- `MissionHudFormatter.gd` no longer duplicates the `90초`, `12m`, detected-bot count, all-weapon target, or one-slot limit fragments directly.
+- `Main.gd` and `MissionTracker.gd` now use `MissionTuning` for supply proximity, perception threshold, detected bot counts, low-HP threshold, and heavily-detected threshold.
+
+**Intentionally deferred**
+
+- Pressure mission descriptor descriptions still duplicate `conditions[].target`; they combine multiple conditions/rewards/penalties and should be converted in a separate pressure-focused slice.
+- Mission data is still code-built Resource data, not JSON. A JSON/resource migration should wait until new mission content is planned.
+
+**Verification**
+
+- `git diff --check`
+- Godot headless quit
+- `python tools\simulate_matches.py 1 normal`
+- `python tools\simulate_matches.py 1 hell`
+
+### v1.11.32 — Pressure Mission Description Formatter `S`
+
+**Summary**: Generate pressure mission descriptor descriptions from `conditions[]` so condition targets and visible pressure HUD text do not drift.
+
+**Completed**
+
+- Added `PressureMissionDescriptionFormatter.gd` for pressure condition prose generated from descriptor `conditions[]`.
+- `MissionCatalog.gd` now builds pressure descriptors from ids/titles/conditions/rewards/penalties, then fills `description` through a helper.
+- `MissionTuning.gd` now also exposes the low-HP percentage label used by pressure descriptions.
+- Preserved pressure descriptor ids, condition arrays, reward/penalty arrays, instant-fail flags, feasibility rules, HUD layout, pressure evaluation, reward/penalty execution, and Telemetry schema.
+
+**Intentionally deferred**
+
+- Pressure feasibility literals such as detected-bot feasibility and late-zone filtering remain in `PressureConditionEvaluator.gd`; v1.11.33 should move those values behind a small tuning boundary if they remain stable.
+- Reward/penalty effect amounts remain descriptor data in `MissionCatalog.gd`; they are already formatted from the same effect dictionaries by `PressureEffectCatalog.gd`.
+
+**Verification**
+
+- `git diff --check`
+- Godot headless quit
+- `python tools\simulate_matches.py 1 normal`
+- `python tools\simulate_matches.py 1 hell`
+
+### v1.11.33 — Pressure Feasibility Tuning Boundary `S`
+
+**Summary**: Move pressure mission feasibility tuning literals out of `PressureConditionEvaluator.gd` while keeping evaluation behavior unchanged.
+
+**Completed**
+
+- `MissionTuning.gd` now owns the detected-survival minimum bot count, late-zone stage cutoff, and long zone-outside target cutoff.
+- `PressureConditionEvaluator.gd` now applies those values through `MissionTuning` and keeps only feasibility/evaluation algorithms.
+- `MissionTracker.gd` comments now refer to `MissionTuning` instead of embedding the detected bot count in prose.
+- Preserved descriptor ids, condition arrays, active pressure counters, feasibility outcomes, HUD text, reward/penalty execution, and Telemetry schema.
+
+**Intentionally deferred**
+
+- Active pressure condition completion still lives in `PressureConditionEvaluator.gd`; it already reads descriptor `target` values and should not be moved without new condition coverage.
+- Reward/penalty effect amounts remain descriptor data and effect formatter input.
+
+**Verification**
+
+- `git diff --check`
+- Godot headless quit
+- `python tools\simulate_matches.py 1 normal`
+- `python tools\simulate_matches.py 1 hell`
+
+### v1.11.34 — Boundary and Documentation Governance Review `S`
+
+**Summary**: Pause new extraction work and check whether v1.10-v1.11 boundaries are coherent, then define document-size rules before the active docs grow further.
+
+**Completed**
+
+- Audited extracted boundary roles across config/tuning, catalog/data, formatter/presentation, evaluator, controller/director/planner, store, and Main-owned orchestration.
+- Confirmed the current direction is sound: most extracted modules have single-purpose authority, and match-global state remains intentionally in `Main.gd`.
+- Added role rules for future slices so new helpers do not become scattered single-use buckets.
+- Identified documentation growth as the immediate operational risk: `MASTERPLAN.md`, `DEVLOG.md`, `ARCHITECTURE.md`, and `IMPACT_MAP.md` are now too heavy for repeated default loading.
+- Scoped v1.11.35 as a docs-only compression pass before continuing new gameplay or broad boundary work.
+
+**Intentionally deferred**
+
+- No code movement in this slice. The audit found governance/documentation risk rather than an urgent runtime authority bug.
+- No raw-log archive rewrite yet. v1.11.35 should first snapshot full logs, then compress active docs.
+
+**Verification**
+
+- `git diff --check`
+
+**v1.11 completion gate**
+
+- Directory moves must preserve class names, preload paths, scene references, and runtime behavior.
+- Each move should be small enough to validate with `git diff --check`, Godot headless quit, and at least one simulation.
+- New boundaries must match the role rules above before another helper is added.
+- Formatters/builders must not hide gameplay thresholds unless those values are passed from data/tuning owners.
+- Evaluators should stay side-effect-light and receive explicit context; controllers/directors may be stateful only inside a bounded domain.
+- No new artifact behavior, new map content, 99-player scale, or strategic prop gameplay should be implemented in v1.11 unless the structural pass is explicitly closed.
+
+## v1.12 — Complex Artifacts `M`
+
+**Summary**: After v1.10 Main stabilization and v1.11 subsystem boundaries, add second-pass artifacts that create replay variation through bounded gameplay logic.
+
+Candidate artifacts:
+
+- Emergency Shell: once per match, shield at low HP.
+- Ghost Grass: stealth grace after leaving bushes.
+- Pulse Scanner: periodic nearby bot direction HUD cue.
+- Marked King: kill reward plus temporary exposure.
+- Glass Capsule: low max HP, high outgoing damage.
+- Overheat Barrel: sustained-fire damage/spread tradeoff.
+
+Do not begin until v1.10 Main boundaries, v1.11 subsystem boundaries, and pickup/asset readability are stable.
+
+## Phase 2 Guardrails
+
+Phase 2 remains blocked until v1.10, v1.11, and v1.12 foundations are stable.
+
+| Future Area | Guardrail |
+|---|---|
+| v2.0 MapDefinition + Full Map UI | Requires config/debug foundation, v1.10 Main slimdown, and v1.11 subsystem boundaries |
+| Forest 2.0 / City Map | Requires MapDefinition and large navigation stability checks |
+| 99-player or large-map scale | Requires AI LOD, spawn/loot density rescale, zone/pathing rescale, and performance validation |
+
+## Compact History
+
+| Version | Summary |
+|---|---|
+| v1.11-dev | Subsystem directory and non-Main data/algorithm boundaries |
+| v1.10-dev | Main slimdown, UI catalogs, supply/loot calculation boundaries |
+| v1.9-dev | AssetCatalog hooks, audio/cosmetic IDs, debug logging hooks, scale-test CLI overrides |
+| v1.8-dev | GameConfig, DebugFlags, DebugOverlay, AssetCatalog, runtime core icon pass |
+| v1.7.3.1 | Main menu and How to Play hotfix |
+| v1.7.x | AI doctrine, archetype readability, minimap/world footprint alignment |
+| v1.6.x and earlier | Core battle royale prototype, missions, artifacts, telemetry, release foundation |
+
+Detailed historical notes are indexed in [devlog/INDEX.md](devlog/INDEX.md); full pre-reset documents are in `docs/archive/` and `docs/devlog/`.
+
+## Next Agent Checklist
+
+- Read [HANDOFF.md](HANDOFF.md), [DOCS_INDEX.md](DOCS_INDEX.md), and this file before work.
+- Before code changes, check [IMPACT_MAP.md](IMPACT_MAP.md) for ownership and cascade effects.
+- Keep `asset_generator/` untracked unless explicitly asked to integrate selected files.
+- For asset generation instructions, use local `docs/ASSET_GENERATION_PROMPTS.md` if present, and keep stable style/format rules in [ASSET_BRIEF.md](ASSET_BRIEF.md).
+- For narrow v1.10 work, verify with `git diff --check`, Godot headless quit, and one simulation.

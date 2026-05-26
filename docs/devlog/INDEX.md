@@ -9,6 +9,9 @@
 ## Historical Preservation
 
 - [DEVLOG_full_2026-05-13.md](DEVLOG_full_2026-05-13.md) — full pre-reset devlog, preserved for exact history. Open only when a task needs details not covered by the summaries below.
+- [DEVLOG_full_2026-05-26.md](DEVLOG_full_2026-05-26.md) — full active devlog before v1.11.35 compression.
+- [v1.11_full_2026-05-26.md](v1.11_full_2026-05-26.md) — full v1.11 slice summary before v1.11.35 compression.
+- [../archive/MASTERPLAN_full_2026-05-26.md](../archive/MASTERPLAN_full_2026-05-26.md) — full active roadmap before v1.11.35 compression.
 
 ## Version Summaries
 
