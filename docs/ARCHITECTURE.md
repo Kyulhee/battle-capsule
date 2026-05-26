@@ -166,6 +166,7 @@ v1.11.26 기준 reload time과 reserve-ammo cap 값은 `src/core/WeaponSlotTunin
   static get_hard_pool() / get_hell_pool() → Array  ← MissionCatalog 위임
   static filter_feasible(pool, zone_stage, bot_alive) → Array
   start_pressure(descriptor, deadline)
+  get_active_pressure_snapshot() → Dictionary
   tick_pressure(delta, num_detecting) → String   ← "success"/"fail"/"" 반환
   evaluate() → bool                              ← 보너스 미션 달성 판정
   on_pressure_kill / on_pressure_damage / on_pressure_heal_used 등
@@ -195,6 +196,8 @@ v1.11.31 기준 bonus mission numeric descriptions use `MissionDescriptionFormat
 v1.11.32 기준 pressure mission descriptor descriptions use `PressureMissionDescriptionFormatter.gd` and are generated from the same `conditions[]` arrays that `PressureConditionEvaluator.gd` evaluates. Reward/penalty effect amounts stay in descriptor dictionaries and are still formatted by `PressureEffectCatalog.gd`.
 
 v1.11.33 기준 pressure mission feasibility cutoffs live in `MissionTuning.gd`; `PressureConditionEvaluator.gd` keeps only feasibility/evaluation algorithms and descriptor-target reads.
+
+v1.11.36 기준 `Main.gd`는 압박 미션 성공/실패 처리 시 `MissionTracker._active_pressure`를 직접 읽지 않고 `get_active_pressure_snapshot()`의 복사본을 읽는다. `MissionTracker`는 active pressure descriptor ownership을 유지하고, `Main.gd`는 reward/penalty effect execution과 player flash/Telemetry orchestration만 수행한다.
 
 ---
 

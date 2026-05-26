@@ -6,6 +6,26 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 
 ---
 
+## v1.11.36-dev — 2026-05-26
+
+**v1.11 closure decision and pressure snapshot boundary**
+
+**src/systems/mission/MissionTracker.gd / src/Main.gd / docs**
+
+- Re-audited the remaining v1.11 owner boundaries against the role rules in `MASTERPLAN.md`.
+- Added `MissionTracker.get_active_pressure_snapshot()` so `Main.gd` no longer reads `MissionTracker._active_pressure` directly when applying pressure success/fail reward or penalty effects.
+- Updated bot debug snapshot state names in `Main.gd` to read from the Bot enum source instead of a duplicated local name list.
+- Marked v1.11 structurally closed; future v1.11 reopen should require a concrete boundary bug or stale doc route, not line count alone.
+
+**검증 결과**
+
+- `git diff --check` 통과. Git emitted the existing line-ending warning for `MissionTracker.gd`, but no whitespace errors.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과. Expected AssetCatalog missing-path warning only.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=99.7s, stage=4, recover=32, disengage=17.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=63.9s, stage=2, recover=66, disengage=16.
+
+---
+
 ## v1.11.35-dev — 2026-05-26
 
 **Active documentation compression**

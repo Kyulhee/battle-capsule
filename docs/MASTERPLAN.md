@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-26 (v1.11.35 Active documentation compression)
+> Last updated: 2026-05-26 (v1.11.36 v1.11 closure decision)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -8,9 +8,9 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 
 | Item | Status |
 |---|---|
-| Current line | v1.11-dev: subsystem directory + non-Main data/algorithm boundaries |
-| Latest completed slice | v1.11.35: Active documentation compression |
-| Next structural slice | v1.11.36: v1.11 closure decision and remaining-boundary shortlist |
+| Current line | v1.11-dev structurally closed; reopen only for concrete boundary bugs |
+| Latest completed slice | v1.11.36: v1.11 closure decision and pressure snapshot boundary |
+| Next structural slice | v1.12 planning: Complex Artifacts scope and first implementation candidate |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -75,7 +75,7 @@ Current audit result: direction is coherent enough to continue. The main risk wa
 | Hell | `HellEventController.gd` under `src/systems/hell/`; `HellTuning.gd` owns config-backed event tuning. Main still selects modifiers and wires announcements. |
 | Zone | `ZoneController.gd` under `src/systems/zone/`; Main still owns `zone`, while Bot/Player/Minimap read through Main-owned references. |
 | Loot/Supply | `LootSpawner`, `SupplyDropController`, and `LootSpawnDirector` live under `src/systems/loot/`; Main keeps supply minimap state and Telemetry hooks. |
-| Mission | Catalog, HUD formatting, bonus evaluation, pressure condition evaluation, badge storage, description formatting, and tuning now have separate owners. `MissionTracker.gd` keeps active state, counters, hooks, public wrappers, and context assembly. |
+| Mission | Catalog, HUD formatting, bonus evaluation, pressure condition evaluation, badge storage, description formatting, and tuning now have separate owners. `MissionTracker.gd` keeps active state, counters, hooks, public wrappers, pressure descriptor snapshots, and context assembly. |
 | Player | HUD builders/renderers, weapon icon resolver, tuning constants, and occluder fader are split. `Player.gd` keeps movement, combat, heal, artifact, pickup, HUD update, zone warning, Sfx, and Telemetry runtime behavior. |
 | Bot | Tuning, debug label construction, marker formatting, visual kit, and skin controller are split. `Bot.gd` intentionally keeps AI state machine, perception, navigation, loot/supply decisions, combat, death/drop behavior, and Main-owned state reads. |
 | Entity/Pickup | Weapon slot tuning, pickup presentation, and pickup icon resolution are split. `Pickup.gd` keeps runtime nodes, focus/LOS, item collection side effects, Telemetry, and lifecycle. |
@@ -91,26 +91,28 @@ Current audit result: direction is coherent enough to continue. The main risk wa
 | v1.11.33 | Pressure feasibility cutoffs moved to `MissionTuning.gd`. |
 | v1.11.34 | Boundary role rules and active-document budgets defined. |
 | v1.11.35 | Full docs snapshotted; active roadmap/devlog/version summary compressed. |
+| v1.11.36 | `Main.gd` no longer reads MissionTracker private pressure descriptor state; v1.11 marked structurally closed. |
 
 Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.11_full_2026-05-26.md) and [devlog/DEVLOG_full_2026-05-26.md](devlog/DEVLOG_full_2026-05-26.md).
 
 ## Next Work
 
-1. **v1.11.36 — v1.11 closure decision and remaining-boundary shortlist**
-   - Re-check `Main.gd`, `MissionTracker.gd`, `Player.gd`, `Bot.gd`, `Pickup.gd`, `ARCHITECTURE.md`, and `IMPACT_MAP.md` against the role rules.
-   - Decide whether v1.11 can close or needs one final targeted boundary.
-   - Do not add new helpers unless a clear authority conflict is found.
+1. **v1.12 planning — Complex Artifacts scope and first implementation candidate**
+   - Choose one artifact with bounded state, UI, Telemetry, and balance impact.
+   - Define the data/config boundary before implementation.
+   - Keep the first v1.12 slice design-first unless a tiny prerequisite is obvious.
 2. **v1.10.x Item/Asset Readability Polish**
    - Only narrow visual/readability patches.
    - Keep generated source assets untracked unless selected files are integrated into runtime assets.
-3. **v1.12 Complex Artifacts**
-   - Begin only after v1.11 closure.
-   - Candidate artifacts: Emergency Shell, Ghost Grass, Pulse Scanner, Marked King, Glass Capsule, Overheat Barrel.
+3. **Optional v1.11 reopen**
+   - Only for a concrete boundary bug or stale doc route.
+   - Avoid new helper extraction based on line count alone.
 
 ## Completion Gates
 
 ### v1.11 Gate
 
+- Status: structurally closed as of v1.11.36.
 - Directory moves must preserve class names, preload paths, scene references, runtime behavior, and Telemetry schema.
 - New boundaries must match the role rules in this file.
 - Formatters/builders must not hide gameplay thresholds unless those values are passed from data/tuning owners.

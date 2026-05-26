@@ -115,6 +115,9 @@ func start_pressure(descriptor: Dictionary, duration: float):
 	pressure_failed_instant = false
 	_reset_pressure_counters()
 
+func get_active_pressure_snapshot() -> Dictionary:
+	return _active_pressure.duplicate(true)
+
 func tick_pressure(delta: float, num_detecting_player: int) -> String:
 	if not pressure_active:
 		return ""

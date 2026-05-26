@@ -5,9 +5,9 @@
 ## Current State
 
 - Branch: `master`.
-- Current roadmap line: `v1.11-dev` subsystem directory + non-Main data/algorithm boundaries.
-- Latest completed slice: `v1.11.35 — Active Documentation Compression`.
-- Next structural slice: `v1.11.36 — v1.11 closure decision and remaining-boundary shortlist`.
+- Current roadmap line: `v1.11-dev` structurally closed; reopen only for concrete boundary bugs.
+- Latest completed slice: `v1.11.36 — v1.11 closure decision and pressure snapshot boundary`.
+- Next structural slice: `v1.12 planning — Complex Artifacts scope and first implementation candidate`.
 - Release remains paused. Continue version-to-version development without GitHub releases unless the user explicitly asks for a release.
 - `asset_generator/` is an external-agent workspace and must remain untracked unless the user explicitly asks to integrate selected files.
 - `docs/ASSET_GENERATION_PROMPTS.md` is local-only prompt scratch material and must remain untracked unless the user explicitly asks otherwise.
@@ -15,7 +15,7 @@
 
 ## Exact Git State At Handoff
 
-After the v1.11.35 push, expected local status is only the external-generation scratch area:
+After the v1.11.36 push, expected local status is only the external-generation scratch area:
 
 ```text
 ?? asset_generator/
@@ -49,14 +49,14 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
 
 ## Current Discussion
 
-The user agreed to the governance-first plan. v1.11.34 found no urgent runtime authority bug. v1.11.35 then snapshotted and compressed the default-session roadmap/devlog files.
+The user agreed to the governance-first plan. v1.11.34 found no urgent runtime authority bug. v1.11.35 snapshotted and compressed the default-session roadmap/devlog files. v1.11.36 then closed the only concrete ownership leak found during the closure audit: Main now reads pressure descriptor reward/penalty/title through `MissionTracker.get_active_pressure_snapshot()`.
 
 Recommended next slice:
 
-- `v1.11.36 — v1.11 closure decision and remaining-boundary shortlist`
-  - Re-check `Main.gd`, `MissionTracker.gd`, `Player.gd`, `Bot.gd`, `Pickup.gd`, `ARCHITECTURE.md`, and `IMPACT_MAP.md` against the role rules in `MASTERPLAN.md`.
-  - Decide whether v1.11 can close or needs one final targeted boundary.
-  - Do not add new helpers unless a concrete authority conflict is found.
+- `v1.12 planning — Complex Artifacts scope and first implementation candidate`
+  - Choose one artifact with bounded state, UI, Telemetry, and balance impact.
+  - Define the data/config boundary before implementation.
+  - Keep the first v1.12 slice design-first unless a tiny prerequisite is obvious.
 
 ## Tooling Note
 
@@ -85,8 +85,10 @@ Good command pattern:
 
 ## Good Next Candidates
 
-- `v1.11.36 — v1.11 closure decision and remaining-boundary shortlist`
-  - Likely docs/audit first; code only if a concrete authority conflict is found.
+- `v1.12 planning — Complex Artifacts scope and first implementation candidate`
+  - Likely docs/design first.
+- Narrow v1.10.x item/asset readability polish
+  - Only visual/readability patches; do not change expansion architecture.
 - Later v1.11 candidates:
-  - Continue non-Main tuning/data boundary slices by domain.
+  - Reopen only for concrete boundary bugs or stale doc routes.
   - Avoid large JSON/resource migration until new mission/content expansion requires it.

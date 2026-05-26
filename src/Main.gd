@@ -889,8 +889,6 @@ func _end_match(final_rank: int = 1):
 		get_tree().quit()
 
 func _print_bot_state_snapshot():
-	# 0=IDLE 1=CHASE 2=ATTACK 3=ZONE_ESCAPE 4=RECOVER 5=DISENGAGE
-	var names = ["IDLE", "CHASE", "ATTACK", "ZONE_ESCAPE", "RECOVER", "DISENGAGE"]
 	var counts = {}
 	var positions: Array = []
 	var outside_zone = 0
@@ -898,7 +896,9 @@ func _print_bot_state_snapshot():
 		if not is_instance_valid(b): continue
 		if b.is_in_group("players") or not b.has_method("handle_idle_state"): continue
 		if b.is_dead: continue
-		var s = names[b.current_state] if b.current_state < names.size() else str(b.current_state)
+		var state_names = b.State.keys()
+		var state_id = int(b.current_state)
+		var s = state_names[state_id] if state_id < state_names.size() else str(state_id)
 		counts[s] = counts.get(s, 0) + 1
 		positions.append(Vector2(b.global_position.x, b.global_position.z))
 		var b2d = Vector2(b.global_position.x, b.global_position.z)
@@ -956,15 +956,17 @@ func _process_pressure_mission(delta: float):
 					num_detecting += 1
 	var result = mission_tracker.tick_pressure(delta, num_detecting)
 	if result == "success":
-		var _title = mission_tracker._active_pressure.get("title", "미션")
-		_apply_pressure_effects(mission_tracker._active_pressure.get("reward", []), true)
+		var pressure = mission_tracker.get_active_pressure_snapshot()
+		var _title = pressure.get("title", "미션")
+		_apply_pressure_effects(pressure.get("reward", []), true)
 		if is_instance_valid(player_ref) and player_ref.has_method("show_pressure_flash"):
 			player_ref.show_pressure_flash("⚡ %s 성공!" % _title, true)
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_pressure_event("cleared")
 	elif result == "fail":
-		var _title = mission_tracker._active_pressure.get("title", "미션")
-		_apply_pressure_effects(mission_tracker._active_pressure.get("penalty", []), false)
+		var pressure = mission_tracker.get_active_pressure_snapshot()
+		var _title = pressure.get("title", "미션")
+		_apply_pressure_effects(pressure.get("penalty", []), false)
 		if is_instance_valid(player_ref) and player_ref.has_method("show_pressure_flash"):
 			player_ref.show_pressure_flash("✖ %s 실패" % _title, false)
 		if has_node("/root/Telemetry"):

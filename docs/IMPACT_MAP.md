@@ -96,9 +96,9 @@
 - **쓰는 파일**: `Main.gd` 만
 - **시그널**: 없음 — `tick_pressure(delta, num_detecting)` 반환값 `"success"` / `"fail"` / `""` 을 Main이 폴링
 - **훅 호출자**: `Main.gd` (`on_pressure_kill`, `on_pressure_damage`, `on_weapon_slot_used` 등), `ZoneController.gd` (`on_player_zone_tick`, `on_pressure_zone_tick`)
-- **소유 범위**: mission/pressure runtime state, `PressureCondition` enum ids, progress counters, pressure timing, pressure instant-fail flag, mission/pressure context gathering, badge wrapper APIs.
+- **소유 범위**: mission/pressure runtime state, active pressure descriptor snapshot API, `PressureCondition` enum ids, progress counters, pressure timing, pressure instant-fail flag, mission/pressure context gathering, badge wrapper APIs.
 - **소유하지 않는 것**: badge JSON file I/O, bonus mission list construction, hard/Hell pressure descriptor pool construction, bonus mission completion/early-fail rules, pressure feasibility/completion condition checks, bonus/pressure HUD string/effect/progress assembly.
-- **v1.11.12 closure**: 257 lines. Further splitting should require a concrete behavior/state migration plan, not line-count cleanup.
+- **v1.11.36 closure**: 303 lines. Further splitting should require a concrete behavior/state migration plan, not line-count cleanup. `Main.gd` must read pressure descriptor reward/penalty/title data through `get_active_pressure_snapshot()`, not `_active_pressure`.
 
 ### `src/systems/mission/MissionBadgeStore.gd`
 - **읽는 파일**: `user://achievements.json`.
