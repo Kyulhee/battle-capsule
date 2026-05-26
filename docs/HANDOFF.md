@@ -42,6 +42,10 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
   - Added v1.11.34 role rules and active document budgets.
   - Scoped active docs compression as the immediate next structural slice.
   - Pushed to `origin/master`.
+- `d0de216 docs: compress active planning logs`
+  - Snapshotted full active docs before compression.
+  - Compressed `MASTERPLAN.md`, `DEVLOG.md`, and `docs/devlog/v1.11.md` for default-session loading.
+  - Pushed to `origin/master`.
 
 ## Current Discussion
 
