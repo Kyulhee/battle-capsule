@@ -46,6 +46,10 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
   - Snapshotted full active docs before compression.
   - Compressed `MASTERPLAN.md`, `DEVLOG.md`, and `docs/devlog/v1.11.md` for default-session loading.
   - Pushed to `origin/master`.
+- `5365ebf refactor: close pressure snapshot boundary`
+  - Added `MissionTracker.get_active_pressure_snapshot()`.
+  - Updated `Main.gd` pressure success/fail handling to use the public snapshot instead of `_active_pressure`.
+  - Marked v1.11 structurally closed and pushed to `origin/master`.
 
 ## Current Discussion
 
