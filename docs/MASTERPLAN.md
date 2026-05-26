@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-25 (v1.11.33 Pressure feasibility tuning boundary)
+> Last updated: 2026-05-26 (v1.11.34 Boundary and documentation governance review)
 
 This is the active roadmap. Historical long-form planning was moved to [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md).
 
@@ -10,9 +10,9 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 
 **Current stabilization add-on**: v1.10.x — Item/Asset Readability Polish.
 
-**Next structural slice**: v1.11.34 — mission data-boundary closure review.
+**Next structural slice**: v1.11.35 — active documentation compression.
 
-**Latest completed slice**: v1.11.33 — Pressure feasibility tuning boundary.
+**Latest completed slice**: v1.11.34 — Boundary and documentation governance review.
 
 **v1.10 completion status**: structurally closed for Main-owned data/catalog/presentation cleanup. Remaining visual polish may continue as narrow v1.10.x patches, but it is not a blocker for v1.11.
 
@@ -36,7 +36,7 @@ This is the active roadmap. Historical long-form planning was moved to [archive/
 |---|---|
 | [../CLAUDE.md](../CLAUDE.md) | Session onboarding and default reading path |
 | [DOCS_INDEX.md](DOCS_INDEX.md) | Documentation routing |
-| [DEVLOG.md](DEVLOG.md) | Short active work log |
+| [DEVLOG.md](DEVLOG.md) | Active work log; keep compressed after v1.11.35 |
 | [IMPACT_MAP.md](IMPACT_MAP.md) | Ownership and change-impact checks |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Module boundaries |
 | [TESTING.md](TESTING.md) | Verification criteria |
@@ -342,6 +342,27 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - `HellTuning.gd`: first Hell tuning data boundary; reads `data/game_config.json` `hell` sections and normalizes timers, blackout, bombardment, barrage, standard bombardment, and marker visual values.
 - `LootSpawnDirector.gd` and supply helpers: move supply/pillar visual and cluster tuning values into config/catalog entries.
 - UI builders: keep presentation constants close to their builder unless reused across multiple screens.
+
+**Boundary role rules**
+
+| Role | Owns | Must not own |
+|---|---|---|
+| `Main.gd` | Match-global state, scene wiring, lifecycle orchestration, Telemetry hook calls | Static catalogs, formatting tables, reusable tuning defaults |
+| `*Tuning.gd` | Numeric thresholds, fallback values, label helpers for those values | Runtime counters, scene lookups, mutation, policy orchestration |
+| `*Catalog.gd` / `*Data.gd` | Static ids, descriptor construction, resource/data lookup | Runtime progress, evaluation side effects, scene state |
+| `*Formatter.gd` / UI `*Builder.gd` / `*Resolver.gd` | Text, display specs, node construction, icon/visual lookup | Gameplay decisions, hidden duplicated thresholds, state mutation beyond constructed UI nodes |
+| `*Evaluator.gd` | Pure condition checks from explicit context and descriptor data | Counters, timers, file I/O, reward/penalty execution |
+| `*Controller.gd` / `*Director.gd` / `*Planner.gd` | Bounded runtime process or placement/orchestration within one domain | Match-global ownership that should remain in `Main.gd` |
+| `*Store.gd` | File persistence and schema compatibility for one concern | Gameplay timing, UI formatting, evaluation rules |
+
+**Governance result after v1.11.34**
+
+- The v1.10-v1.11 boundary work is coherent enough to continue: extracted files mostly follow the role split above, `Main.gd` still owns match state, and no urgent code correction was found.
+- The main risk is not a single broken module; it is repeated small slices adding new helpers and documentation without a compact ownership ledger.
+- Mission helpers are acceptable as-is because state, descriptors, text, evaluation, pressure checks, tuning, and badge I/O now have explicit owners. Do not split mission further unless new mission content exposes a concrete drift risk.
+- `Bot.gd` remains large by design. Further Bot extraction should wait for behavior-test coverage or a clearly isolated data/display owner.
+- Code-built catalogs/tuning remain acceptable for first-pass ownership boundaries. JSON/resource migration should wait until new content volume makes code-owned data hard to review.
+- Active documentation has exceeded the intended onboarding size; v1.11.35 should compress `MASTERPLAN.md`, `DEVLOG.md`, and per-version logs before new gameplay or broad extraction work.
 
 **Recommended v1.11 slice order**
 
@@ -775,10 +796,34 @@ This is a stabilization step before v1.12 Complex Artifacts. It covers pickup di
 - `python tools\simulate_matches.py 1 normal`
 - `python tools\simulate_matches.py 1 hell`
 
+### v1.11.34 — Boundary and Documentation Governance Review `S`
+
+**Summary**: Pause new extraction work and check whether v1.10-v1.11 boundaries are coherent, then define document-size rules before the active docs grow further.
+
+**Completed**
+
+- Audited extracted boundary roles across config/tuning, catalog/data, formatter/presentation, evaluator, controller/director/planner, store, and Main-owned orchestration.
+- Confirmed the current direction is sound: most extracted modules have single-purpose authority, and match-global state remains intentionally in `Main.gd`.
+- Added role rules for future slices so new helpers do not become scattered single-use buckets.
+- Identified documentation growth as the immediate operational risk: `MASTERPLAN.md`, `DEVLOG.md`, `ARCHITECTURE.md`, and `IMPACT_MAP.md` are now too heavy for repeated default loading.
+- Scoped v1.11.35 as a docs-only compression pass before continuing new gameplay or broad boundary work.
+
+**Intentionally deferred**
+
+- No code movement in this slice. The audit found governance/documentation risk rather than an urgent runtime authority bug.
+- No raw-log archive rewrite yet. v1.11.35 should first snapshot full logs, then compress active docs.
+
+**Verification**
+
+- `git diff --check`
+
 **v1.11 completion gate**
 
 - Directory moves must preserve class names, preload paths, scene references, and runtime behavior.
 - Each move should be small enough to validate with `git diff --check`, Godot headless quit, and at least one simulation.
+- New boundaries must match the role rules above before another helper is added.
+- Formatters/builders must not hide gameplay thresholds unless those values are passed from data/tuning owners.
+- Evaluators should stay side-effect-light and receive explicit context; controllers/directors may be stateful only inside a bounded domain.
 - No new artifact behavior, new map content, 99-player scale, or strategic prop gameplay should be implemented in v1.11 unless the structural pass is explicitly closed.
 
 ## v1.12 — Complex Artifacts `M`

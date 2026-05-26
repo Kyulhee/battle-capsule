@@ -6,6 +6,8 @@
 
 - Branch: `master`.
 - Current roadmap line: `v1.11-dev` subsystem directory + non-Main data/algorithm boundaries.
+- Latest completed slice: `v1.11.34 — Boundary and Documentation Governance Review`.
+- Next structural slice: `v1.11.35 — Active Documentation Compression`.
 - Release remains paused. Continue version-to-version development without GitHub releases unless the user explicitly asks for a release.
 - `asset_generator/` is an external-agent workspace and must remain untracked unless the user explicitly asks to integrate selected files.
 - `docs/ASSET_GENERATION_PROMPTS.md` is local-only prompt scratch material and must remain untracked unless the user explicitly asks otherwise.
@@ -13,7 +15,7 @@
 
 ## Exact Git State At Handoff
 
-After the v1.11.33 push, expected local status is only the external-generation scratch area:
+After the v1.11.34 push, expected local status is only the external-generation scratch area:
 
 ```text
 ?? asset_generator/
@@ -39,17 +41,15 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
 
 ## Current Discussion
 
-The user wants to pause before continuing new gameplay work and review two cross-cutting issues:
-
-1. Whether the v1.10-v1.11 data/algorithm boundary work is coherently progressing or becoming scattered.
-2. Whether recurring session docs (`MASTERPLAN.md`, `DEVLOG.md`, per-version devlogs) have grown too long and need a raw-log + compressed-active-doc workflow.
+The user agreed to the governance-first plan. v1.11.34 found no urgent runtime authority bug, but active docs are too large for repeated session loading.
 
 Recommended next slice:
 
-- `v1.11.34 — Boundary and Documentation Governance Review`
-  - Audit v1.10-v1.11 extracted helpers by role: config/tuning, catalog/data, formatter/presentation, evaluator/algorithm, controller/director orchestration.
-  - Identify duplicated authority, Main-owned state that should stay vs move, and any modules whose names/responsibilities drifted.
-  - Define active-doc length budgets and archive/raw-log routing before more slices add documentation weight.
+- `v1.11.35 — Active Documentation Compression`
+  - Snapshot full/raw active docs first.
+  - Compress `MASTERPLAN.md` toward current status, role rules, next slices, and gates.
+  - Compress `DEVLOG.md` toward recent work only; keep detailed history in `docs/devlog/` snapshots/version files.
+  - Keep `DOCS_INDEX.md` as the routing and document-budget source.
 
 ## Tooling Note
 
@@ -78,9 +78,9 @@ Good command pattern:
 
 ## Good Next Candidates
 
-- `v1.11.34 — Boundary and Documentation Governance Review`
-  - Likely docs-first unless a small authority conflict is found.
-  - Should produce a short governance plan before more extraction work.
+- `v1.11.35 — Active Documentation Compression`
+  - Docs-only unless the compression exposes a stale route or incorrect index.
+  - Should be completed before more gameplay or broad extraction work.
 - Later v1.11 candidates:
   - Continue non-Main tuning/data boundary slices by domain.
   - Avoid large JSON/resource migration until new mission/content expansion requires it.

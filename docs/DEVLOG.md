@@ -1,8 +1,26 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-25. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
+> Last updated: 2026-05-26. Keep this file short. Add only recent verified work and link older details through [devlog/INDEX.md](devlog/INDEX.md).
 
 The previous full devlog was preserved at [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md). Do not load it by default.
+
+---
+
+## v1.11.34-dev — 2026-05-26
+
+**Boundary and documentation governance review**
+
+**docs/MASTERPLAN.md / docs/DOCS_INDEX.md / docs/devlog/v1.11.md / docs/HANDOFF.md**
+
+- Audited the v1.10-v1.11 boundary work by role: Main-owned orchestration, tuning, catalog/data, formatter/builder/resolver, evaluator, controller/director/planner, and store.
+- Confirmed the current extraction direction is coherent enough to continue; no urgent runtime authority conflict was found.
+- Added role rules to `MASTERPLAN.md` so future helpers do not blur data, formatting, evaluation, state, and orchestration ownership.
+- Added active-document budgets and archive routing rules to `DOCS_INDEX.md`.
+- Scoped v1.11.35 as a docs-only compression pass before more gameplay or broad extraction work.
+
+**검증 결과**
+
+- `git diff --check` 통과.
 
 ---
 

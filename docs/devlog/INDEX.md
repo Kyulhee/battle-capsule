@@ -1,6 +1,6 @@
 # Devlog Index
 
-> Last updated: 2026-05-15. Use this index before opening historical logs.
+> Last updated: 2026-05-26. Use this index before opening historical logs.
 
 ## Active Log
 
@@ -23,4 +23,4 @@
 
 ## Operating Rule
 
-New completed work goes first into [../DEVLOG.md](../DEVLOG.md). When it grows beyond recent-session usefulness, compress older entries into a version summary here and move details to a version file or the full legacy log.
+New completed work goes first into [../DEVLOG.md](../DEVLOG.md). When active docs exceed the budgets in [../DOCS_INDEX.md](../DOCS_INDEX.md), snapshot raw/full content here or under `docs/archive/`, then keep only compressed recent status in default-session docs.
