@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-27 (v1.12.2 Emergency Shell)
+> Last updated: 2026-05-28 (v1.12.3 Emergency Shell readability)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.2: Emergency Shell first implementation |
-| Next structural slice | v1.12.3: Emergency Shell playtest/readability check or next artifact shortlist |
+| Latest completed slice | v1.12.3: Emergency Shell readability check and next artifact shortlist |
+| Next structural slice | v1.12.4: Ghost Grass scope and implementation boundary |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -132,12 +132,19 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Emergency Shell triggers once after non-lethal damage leaves HP at or below the configured threshold, then grants the configured shield amount up to current max shield.
 - Added artifact Telemetry metrics and `tools/verify_artifact_runtime.gd` smoke coverage.
 
+**v1.12.3 result**
+
+- Added `tools/verify_artifact_selection_layout.gd` to check artifact card count, required text, Emergency Shell presence, and default 1280px row fit.
+- Verified the five-card selection row is 796px wide, so no immediate card layout change is needed.
+- Kept Emergency Shell values unchanged for now.
+- Shortlisted **Ghost Grass** as the next candidate because bush-exit stealth grace is bounded player runtime state and does not require minimap/HUD direction UI.
+
 ## Next Work
 
-1. **v1.12.3 — Emergency Shell playtest/readability check or next artifact shortlist**
-   - Confirm the artifact selection card still reads cleanly with five cards.
-   - Review whether Emergency Shell needs stronger visible feedback beyond shield/HUD flash.
-   - Decide whether to tune Emergency Shell values or move to the next artifact candidate.
+1. **v1.12.4 — Ghost Grass scope and implementation boundary**
+   - Define whether the effect starts on bush exit, how long stealth grace lasts, and how it interacts with reveal/fire.
+   - Keep modifier data in `ArtifactCatalog.gd` and runtime state in `PlayerArtifactRuntime.gd` unless a clearer owner appears.
+   - Avoid minimap/HUD additions in the first pass.
 2. **v1.10.x Item/Asset Readability Polish**
    - Only narrow visual/readability patches.
    - Keep generated source assets untracked unless selected files are integrated into runtime assets.

@@ -6,8 +6,8 @@
 
 - Branch: `master`.
 - Current roadmap line: `v1.12-dev` Complex Artifacts, starting with bounded player-runtime effects.
-- Latest completed slice: `v1.12.2 — Emergency Shell first implementation`.
-- Next structural slice: `v1.12.3 — Emergency Shell playtest/readability check or next artifact shortlist`.
+- Latest completed slice: `v1.12.3 — Emergency Shell readability check and next artifact shortlist`.
+- Next structural slice: `v1.12.4 — Ghost Grass scope and implementation boundary`.
 - Release remains paused. Continue version-to-version development without GitHub releases unless the user explicitly asks for a release.
 - `asset_generator/` is an external-agent workspace and must remain untracked unless the user explicitly asks to integrate selected files.
 - `docs/ASSET_GENERATION_PROMPTS.md` is local-only prompt scratch material and must remain untracked unless the user explicitly asks otherwise.
@@ -15,7 +15,7 @@
 
 ## Exact Git State At Handoff
 
-After the v1.12.2 push, expected local status is only the external-generation scratch area:
+After the v1.12.3 push, expected local status is only the external-generation scratch area:
 
 ```text
 ?? asset_generator/
@@ -34,14 +34,14 @@ Older v1.11 slice detail is in `docs/devlog/v1.11.md` and the full snapshots und
 
 ## Current Discussion
 
-The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact. v1.12.2 implemented it with `PlayerArtifactRuntime.gd`, catalog-owned threshold/shield values, Player-owned damage-flow wiring, and artifact Telemetry metrics.
+The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact. v1.12.2 implemented it. v1.12.3 verified the five-card selection row fits the default viewport and shortlisted Ghost Grass next.
 
 Recommended next slice:
 
-- `v1.12.3 — Emergency Shell playtest/readability check or next artifact shortlist`
-  - Confirm the selection card layout remains readable with five artifacts.
-  - Review Emergency Shell feedback and balance values after manual play/screenshot if possible.
-  - Decide whether to tune Emergency Shell or shortlist the next artifact.
+- `v1.12.4 — Ghost Grass scope and implementation boundary`
+  - Define bush-exit stealth grace timing and reveal/fire interaction.
+  - Keep data in `ArtifactCatalog.gd` and runtime trigger state in `PlayerArtifactRuntime.gd` unless a clearer owner appears.
+  - Avoid minimap/HUD additions in the first pass.
 
 ## Tooling Note
 
@@ -70,8 +70,8 @@ Good command pattern:
 
 ## Good Next Candidates
 
-- `v1.12.3 — Emergency Shell playtest/readability check or next artifact shortlist`
-  - Prefer visual/manual-readability review before adding another runtime artifact.
+- `v1.12.4 — Ghost Grass scope and implementation boundary`
+  - Likely docs/design first, then a small player-runtime implementation if the boundary is clear.
 - Narrow v1.10.x item/asset readability polish
   - Only visual/readability patches; do not change expansion architecture.
 - Later v1.11 candidates:

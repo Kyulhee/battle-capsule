@@ -6,6 +6,24 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 
 ---
 
+## v1.12.3-dev — 2026-05-28
+
+**Emergency Shell readability check and next artifact shortlist**
+
+**tools/verify_artifact_selection_layout.gd / docs**
+
+- Added an artifact selection layout smoke test that builds the current catalog, verifies required card text, confirms Emergency Shell is present, and checks default 1280px row fit.
+- Verified the five-card artifact selection row is 796px wide, so no immediate card layout change is needed.
+- Left Emergency Shell threshold/shield values unchanged pending actual manual play/screenshot review.
+- Shortlisted Ghost Grass as the next artifact candidate because bush-exit stealth grace is bounded player runtime state and avoids first-pass minimap/HUD direction work.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_selection_layout.gd` 통과: 5 cards, 796px row width.
+
+---
+
 ## v1.12.2-dev — 2026-05-27
 
 **Emergency Shell first implementation**
