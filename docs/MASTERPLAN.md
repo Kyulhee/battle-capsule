@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-28 (v1.12.4 Ghost Grass runtime)
+> Last updated: 2026-05-28 (v1.12.5 Artifact visual identity)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.4: Ghost Grass bush-exit stealth runtime |
-| Next structural slice | v1.12.5: Artifact playtest/readability pass and next candidate choice |
+| Latest completed slice | v1.12.5: Artifact visual identity foundation |
+| Next structural slice | v1.12.6: Manual artifact visual/readability pass |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -76,7 +76,7 @@ Current audit result: direction is coherent enough to continue. The main risk wa
 | Zone | `ZoneController.gd` under `src/systems/zone/`; Main still owns `zone`, while Bot/Player/Minimap read through Main-owned references. |
 | Loot/Supply | `LootSpawner`, `SupplyDropController`, and `LootSpawnDirector` live under `src/systems/loot/`; Main keeps supply minimap state and Telemetry hooks. |
 | Mission | Catalog, HUD formatting, bonus evaluation, pressure condition evaluation, badge storage, description formatting, and tuning now have separate owners. `MissionTracker.gd` keeps active state, counters, hooks, public wrappers, pressure descriptor snapshots, and context assembly. |
-| Player | HUD builders/renderers, weapon icon resolver, tuning constants, and occluder fader are split. `Player.gd` keeps movement, combat, heal, artifact, pickup, HUD update, zone warning, Sfx, and Telemetry runtime behavior. |
+| Player | HUD builders/renderers, weapon icon resolver, tuning constants, occluder fader, artifact runtime state, and artifact visuals are split. `Player.gd` keeps movement, combat, heal, artifact application, pickup, HUD update, zone warning, Sfx, and Telemetry runtime behavior. |
 | Bot | Tuning, debug label construction, marker formatting, visual kit, and skin controller are split. `Bot.gd` intentionally keeps AI state machine, perception, navigation, loot/supply decisions, combat, death/drop behavior, and Main-owned state reads. |
 | Entity/Pickup | Weapon slot tuning, pickup presentation, and pickup icon resolution are split. `Pickup.gd` keeps runtime nodes, focus/LOS, item collection side effects, Telemetry, and lifecycle. |
 | Mission numeric text | Bonus and pressure mission descriptions now generate from mission/condition data plus shared tuning where practical. Pressure feasibility cutoffs live in `MissionTuning.gd`. |
@@ -147,12 +147,25 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - `Player.gd` only reports bush transitions, applies returned runtime effects, and keeps reveal/fire behavior authoritative through `reveal_timer`.
 - Telemetry records `ghost_grass_started`; selection layout smoke now verifies six cards at 958px row width.
 
+**v1.12.5 result**
+
+- Added `PlayerArtifactVisuals.gd` as the owner for player-attached artifact visual nodes.
+- `ArtifactCatalog.gd` now gives every starting artifact a `visual_id`.
+- First-pass primitive visuals:
+  - Red Trigger: shotgun-only red glow.
+  - Armor Sponge: shield-ratio armor plates.
+  - Silent Core: running afterimages.
+  - Zone Battery: blue plasma near the zone edge.
+  - Emergency Shell: back pack that ruptures on trigger.
+  - Ghost Grass: short green wake while active.
+- Gameplay state stays in `PlayerArtifactRuntime.gd`; visual nodes only read `Player.gd` context snapshots and artifact events.
+
 ## Next Work
 
-1. **v1.12.5 — Artifact playtest/readability pass and next candidate choice**
-   - Manually check Emergency Shell and Ghost Grass feedback/readability before changing values.
-   - Keep first-pass Ghost Grass free of minimap/directional HUD work unless playtesting proves it is unreadable.
-   - Choose the next complex artifact only after confirming the current runtime boundary still feels coherent.
+1. **v1.12.6 — Manual artifact visual/readability pass**
+   - Check all six artifact visuals in live play before tuning strength, alpha, or size.
+   - Decide whether primitive visuals are enough or whether selected generated assets should be integrated.
+   - Choose the next gameplay artifact only after visual/readability regressions are cleared.
 2. **v1.10.x Item/Asset Readability Polish**
    - Only narrow visual/readability patches.
    - Keep generated source assets untracked unless selected files are integrated into runtime assets.

@@ -58,6 +58,7 @@ const PlayerWeaponIconResolverScript = preload("res://src/ui/player/PlayerWeapon
 const PlayerTuningScript = preload("res://src/entities/player/PlayerTuning.gd")
 const PlayerOccluderFaderScript = preload("res://src/entities/player/PlayerOccluderFader.gd")
 const PlayerArtifactRuntimeScript = preload("res://src/entities/player/PlayerArtifactRuntime.gd")
+const PlayerArtifactVisualsScript = preload("res://src/entities/player/PlayerArtifactVisuals.gd")
 const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
@@ -82,6 +83,7 @@ var slot_ammo_labels: Array = []
 var _weapon_icon_resolver = PlayerWeaponIconResolverScript.new()
 var _occluder_fader = PlayerOccluderFaderScript.new()
 var _artifact_runtime = PlayerArtifactRuntimeScript.new()
+var _artifact_visuals = PlayerArtifactVisualsScript.new()
 var _focused_pickup: Pickup = null
 
 func _ready():
@@ -120,6 +122,7 @@ func _ready():
 
 	if has_node("MeshInstance3D"):
 		_mesh_origin_y = $MeshInstance3D.position.y
+	_artifact_visuals.attach(self)
 
 	health_changed.connect(_on_health_changed)
 	shield_changed.connect(_on_shield_changed)
@@ -164,6 +167,7 @@ func set_in_bush(value: bool):
 	if not result.is_empty():
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_artifact_event(String(result.get("event", "")))
+		_artifact_visuals.on_artifact_event(String(result.get("event", "")))
 		show_status_flash("%s ACTIVE" % String(result.get("label", "Ghost Grass")), false)
 
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
@@ -353,6 +357,8 @@ func _process(delta):
 			if dist_inside_edge >= 0.0 and dist_inside_edge <= rng:
 				current_shield = min(stats.max_shield, current_shield + _artifact_mods.get("zone_battery_regen", 0.0) * delta)
 				shield_changed.emit(current_shield, stats.max_shield)
+
+	_artifact_visuals.tick(delta, _build_artifact_visual_context())
 
 	# Zone warning pulse
 	_update_zone_warning(delta)
@@ -806,9 +812,53 @@ func _current_surface_id() -> String:
 						return "dirt"
 	return "dirt"
 
+func _current_weapon_type() -> String:
+	if slots.active_slot == 0:
+		return "knife"
+	if slots.active_slot >= 1 and slots.active_slot < slots.weapon_slots.size():
+		var wdata = slots.weapon_slots[slots.active_slot]
+		if wdata:
+			return String(wdata.weapon_type)
+	return String(stats.weapon_type)
+
+func _zone_battery_visual_state() -> Dictionary:
+	var result = {"near": false, "charging": false}
+	if not _artifact_mods.get("zone_battery", false) or is_dead:
+		return result
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main or not main.zone:
+		return result
+	var rng = float(_artifact_mods.get("zone_battery_range", 0.0))
+	if rng <= 0.0:
+		return result
+	var pos2d = Vector2(global_position.x, global_position.z)
+	var dist_from_center = pos2d.distance_to(main.zone.current_center)
+	var dist_inside_edge = main.zone.current_radius - dist_from_center
+	var near_edge = dist_inside_edge >= 0.0 and dist_inside_edge <= rng
+	result["near"] = near_edge
+	result["charging"] = near_edge and current_shield < stats.max_shield
+	return result
+
+func _build_artifact_visual_context() -> Dictionary:
+	var zone_battery_state = _zone_battery_visual_state()
+	var shield_ratio = 0.0
+	if stats.max_shield > 0:
+		shield_ratio = clampf(current_shield / float(stats.max_shield), 0.0, 1.0)
+	return {
+		"is_dead": is_dead,
+		"is_crouching": is_crouching,
+		"weapon_type": _current_weapon_type(),
+		"move_speed": Vector2(velocity.x, velocity.z).length(),
+		"shield_ratio": shield_ratio,
+		"zone_battery_near": bool(zone_battery_state.get("near", false)),
+		"zone_battery_charging": bool(zone_battery_state.get("charging", false)),
+		"ghost_grass_active": _artifact_runtime.is_ghost_grass_active(),
+	}
+
 func apply_artifact(artifact: Dictionary):
 	active_artifact = artifact
 	_artifact_runtime.configure(artifact)
+	_artifact_visuals.configure(artifact)
 	_artifact_mods = {
 		"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false, "red_trigger": false,
 		"shotgun_damage_mult": 1.0, "non_shotgun_damage_mult": 1.0,
@@ -855,6 +905,7 @@ func _apply_artifact_after_damage() -> void:
 	receive_shield(float(result.get("shield", 0.0)))
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_artifact_event(String(result.get("event", "")))
+	_artifact_visuals.on_artifact_event(String(result.get("event", "")))
 	show_status_flash("%s +%d SHIELD" % [
 		String(result.get("label", "Emergency Shell")),
 		int(roundf(float(result.get("shield", 0.0)))),

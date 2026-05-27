@@ -26,6 +26,7 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 			"id": "red_trigger",
 			"label": "Red Trigger",
 			"color": Color(1.0, 0.25, 0.25),
+			"visual_id": "red_trigger",
 			"mods": {
 				"red_trigger": true,
 				"spread_all_shots": true,
@@ -39,6 +40,7 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 			"id": "armor_sponge",
 			"label": "Armor Sponge",
 			"color": Color(0.35, 0.60, 1.0),
+			"visual_id": "armor_sponge",
 			"mods": {
 				"max_shield_mult": 2.5,
 				"heal_to_shield": true,
@@ -51,12 +53,14 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 			"id": "silent_core",
 			"label": "Silent Core",
 			"color": Color(0.40, 0.95, 0.55),
+			"visual_id": "silent_core",
 			"mods": {"footstep_radius_mult": 0.0, "max_health_mult": 0.5, "max_shield_mult": 0.5},
 		},
 		{
 			"id": "ghost_grass",
 			"label": "Ghost Grass",
 			"color": Color(0.55, 1.0, 0.65),
+			"visual_id": "ghost_grass",
 			"mods": {
 				"ghost_grass": true,
 				"ghost_grass_duration": 2.0,
@@ -68,6 +72,7 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 			"id": "zone_battery",
 			"label": "Zone Battery",
 			"color": Color(0.20, 0.85, 1.0),
+			"visual_id": "zone_battery",
 			"mods": {
 				"heal_mult": 0.0,
 				"shield_recv_mult": 0.0,
@@ -80,6 +85,7 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 			"id": "emergency_shell",
 			"label": "Emergency Shell",
 			"color": Color(1.0, 0.72, 0.28),
+			"visual_id": "emergency_shell",
 			"mods": {
 				"emergency_shell": true,
 				"emergency_shell_hp_ratio": 0.3,

@@ -6,6 +6,30 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 
 ---
 
+## v1.12.5-dev — 2026-05-28
+
+**Artifact visual identity foundation**
+
+**src/entities/player/PlayerArtifactVisuals.gd / src/entities/player/Player.gd / src/core/ArtifactCatalog.gd / docs / tools**
+
+- Added `PlayerArtifactVisuals.gd` to own player-attached artifact visual nodes separately from gameplay trigger state.
+- Added `visual_id` to every starting artifact descriptor.
+- Wired `Player.gd` so visuals receive current weapon type, shield ratio, movement speed, Zone Battery proximity, Ghost Grass active state, and artifact runtime events.
+- Added first-pass primitive visuals for all current starting artifacts: Red Trigger glow, Armor Sponge plates, Silent Core afterimages, Zone Battery plasma, Emergency Shell back pack/rupture, and Ghost Grass wake.
+- Added `tools/verify_artifact_visuals.gd` smoke coverage for catalog visual ids and visual state toggles.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_visuals.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_runtime.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_selection_layout.gd` 통과: 6 cards, 958px row width.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과. Expected AssetCatalog missing-path warning only.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=83.6s, stage=3, recover=23, disengage=21.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=66.6s, stage=2, recover=86, disengage=27.
+
+---
+
 ## v1.12.4-dev — 2026-05-28
 
 **Ghost Grass bush-exit stealth runtime**

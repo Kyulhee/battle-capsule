@@ -21,7 +21,7 @@
 | MissionHudFormatter | mission/pressure HUD strings | `MissionTracker.gd` | static mission formatter |
 | PressureConditionEvaluator | pressure feasibility and completion rules | `MissionTracker.gd` | static pressure evaluator |
 | WeaponSlotTuning | reload times and reserve-ammo caps | `WeaponSlotManager.gd` | static tuning helper |
-| ArtifactCatalog | starting artifact specs/descriptions | `Main.gd`, `Player.gd` | static catalog |
+| ArtifactCatalog | starting artifact specs/descriptions/visual ids | `Main.gd`, `Player.gd` | static catalog |
 | ItemResourceCatalog | default loot resources and pickup scene | `Main.gd` | static catalog |
 | ItemDisplayFormatter | pickup/HUD item text | `Pickup.gd`, `Player.gd` | static formatter |
 | PickupPresentation | pickup color/glow/label/icon plane presentation values | `Pickup.gd` | static presentation helper |
@@ -33,6 +33,7 @@
 | PlayerTuning | Player movement/combat/heal/occluder tuning constants | `Player.gd` | static tuning constants |
 | PlayerOccluderFader | Player occluder ray tracing/fade material state | `Player.gd` | RefCounted helper |
 | PlayerArtifactRuntime | player artifact trigger/timer state | `Player.gd` | RefCounted helper |
+| PlayerArtifactVisuals | player artifact visual nodes/events | `Player.gd` | RefCounted visual helper |
 | BotTuning | Bot melee/retreat/perception/debug tuning constants | `Bot.gd` | static tuning constants |
 | BotDebugLabelBuilder | Bot state/archetype Label3D construction | `Bot.gd` | static visual helper |
 | BotMarkerFormatter | Bot state/archetype marker text/color/catalog id mapping | `Bot.gd` | static formatter |
@@ -189,8 +190,8 @@
 ### `src/entities/player/Player.gd`
 - **현재 역할**: Player entity runtime owner. v1.11.19 기준 832줄.
 - **의도적으로 소유**: movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, Sfx/Telemetry hooks.
-- **분리 완료**: HUD construction (`PlayerHudBuilder.gd`), slot display state (`PlayerSlotHudRenderer.gd`), weapon HUD icon loading/fallbacks (`PlayerWeaponIconResolver.gd`), player tuning constants (`PlayerTuning.gd`), occluder fade state/material restore (`PlayerOccluderFader.gd`), one-match artifact trigger/timer state (`PlayerArtifactRuntime.gd`).
-- **수정 영향**: movement/combat/heal/artifact/pickup/stealth behavior 변경 시 `PlayerTuning.gd`, `ArtifactCatalog.gd`, `PlayerArtifactRuntime.gd`, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd`, and simulations를 함께 확인.
+- **분리 완료**: HUD construction (`PlayerHudBuilder.gd`), slot display state (`PlayerSlotHudRenderer.gd`), weapon HUD icon loading/fallbacks (`PlayerWeaponIconResolver.gd`), player tuning constants (`PlayerTuning.gd`), occluder fade state/material restore (`PlayerOccluderFader.gd`), one-match artifact trigger/timer state (`PlayerArtifactRuntime.gd`), artifact visual nodes/events (`PlayerArtifactVisuals.gd`).
+- **수정 영향**: movement/combat/heal/artifact/pickup/stealth/visual behavior 변경 시 `PlayerTuning.gd`, `ArtifactCatalog.gd`, `PlayerArtifactRuntime.gd`, `PlayerArtifactVisuals.gd`, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd`, visual smoke, and simulations를 함께 확인.
 
 ### `src/entities/bot/Bot.gd`
 - **현재 역할**: Bot entity runtime owner. v1.11.24 기준 1908줄.
@@ -239,15 +240,22 @@
 ### `src/core/ArtifactCatalog.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
 - **호출자**: `Main.gd` artifact selection/apply flow, `Player.gd` artifact modifier execution, `PlayerArtifactRuntime.gd` trigger decisions through Player-owned configured mods.
-- **역할**: 시작 아티팩트 ID/label/color/modifier와 `line1`/`line2` 설명 생성. 설명 안의 gameplay 수치는 `mods`에서 읽어 생성하고, `Player.gd`/`PlayerArtifactRuntime.gd`도 같은 modifier 키를 읽어 실제 효과를 적용.
+- **역할**: 시작 아티팩트 ID/label/color/modifier/visual_id와 `line1`/`line2` 설명 생성. 설명 안의 gameplay 수치는 `mods`에서 읽어 생성하고, `Player.gd`/`PlayerArtifactRuntime.gd`도 같은 modifier 키를 읽어 실제 효과를 적용. `visual_id`는 `PlayerArtifactVisuals.gd`가 표시 노드 선택에 사용한다.
 - **난이도 보정**: `prepare_for_difficulty()`가 Zone Battery regen처럼 난이도별로 달라지는 표시/적용 값을 준비한다. `Main.gd`에서 별도 ad hoc mutation을 추가하지 않는다.
 
 ### `src/entities/player/PlayerArtifactRuntime.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
 - **호출자**: `Player.gd` `apply_artifact()` / damage flow.
 - **역할**: Emergency Shell 같은 player artifact one-match trigger state와 trigger decision. Explicit health/shield context를 받아 shield update dictionary를 반환한다.
-- **소유하지 않는 것**: artifact catalog construction, Player health/shield mutation, HUD flash, Sfx, Telemetry, Main selection/apply orchestration.
+- **소유하지 않는 것**: artifact catalog construction, Player health/shield mutation, visual nodes, HUD flash, Sfx, Telemetry, Main selection/apply orchestration.
 - **수정 영향**: 새 runtime artifact trigger를 추가하면 `ArtifactCatalog.gd` modifier/description, `Player.gd` flow hook, `Telemetry.gd` artifact metrics, `tools/verify_artifact_runtime.gd`, normal/Hell simulations를 함께 확인.
+
+### `src/entities/player/PlayerArtifactVisuals.gd`
+- **호출자**: `Player.gd` `apply_artifact()`, `_process()`, and artifact event hooks.
+- **역할**: Player-attached primitive artifact visuals, including Red Trigger glow, Armor Sponge plates, Silent Core afterimages, Zone Battery plasma, Emergency Shell pack/rupture, and Ghost Grass wake.
+- **입력**: `ArtifactCatalog.gd` `visual_id`, active weapon type, shield ratio, movement speed, Zone Battery near/charging state, Ghost Grass active state, and artifact event ids.
+- **소유하지 않는 것**: artifact selection, gameplay modifier data, trigger decisions, Player health/shield mutation, Telemetry, HUD text, Sfx.
+- **수정 영향**: visual_id나 표시 조건을 바꾸면 `ArtifactCatalog.gd`, `Player.gd` visual context assembly, `tools/verify_artifact_visuals.gd`, Godot headless, and manual visual checks를 함께 확인.
 
 ### `src/core/ItemDisplayFormatter.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
@@ -482,6 +490,7 @@
 | 난이도 파라미터 | `data/game_config.json`, `GameConfig.gd` | `Main.gd` `_get_difficulty_params()`, `Bot.gd` configure path |
 | Artifact modifier 값/설명 | `ArtifactCatalog.gd` | `Main.gd` artifact card/apply flow, `Player.gd` combat/heal modifier reads, `PlayerArtifactRuntime.gd` runtime trigger decisions |
 | Artifact runtime trigger | `PlayerArtifactRuntime.gd` | `ArtifactCatalog.gd` modifier data, `Player.gd` damage/heal/combat hook, `Telemetry.gd`, `tools/verify_artifact_runtime.gd`, simulations |
+| Artifact visual identity | `PlayerArtifactVisuals.gd` | `ArtifactCatalog.gd` visual_id, `Player.gd` visual context/event hooks, `tools/verify_artifact_visuals.gd`, visual/headless checks |
 | Pickup/HUD item text | `ItemDisplayFormatter.gd` | `Pickup.gd`, `Player.gd`, `ItemData.gd`, `WeaponSlotManager.gd` |
 | Pickup presentation values | `src/entities/pickup/PickupPresentation.gd` | `Pickup.gd` label/focus/icon paths, selected assets, visual checks |
 | Pickup icon catalog loading | `src/entities/pickup/PickupIconResolver.gd` | `Pickup.gd` icon decal path, `data/asset_catalog.json`, selected icon assets |

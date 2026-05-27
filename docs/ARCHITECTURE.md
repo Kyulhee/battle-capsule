@@ -61,7 +61,7 @@
 | `data/game_config.json` | 매치 수치, 난이도 파라미터, Hell 타이머 | `GameConfig.gd`가 로드, Main/시스템 컨트롤러가 적용 |
 | `data/asset_catalog.json` | audio/icon/prop/cosmetic ID와 fallback | `AssetCatalog.gd`가 로드, Sfx/UI/월드가 점진 참조 |
 | `src/core/ItemResourceCatalog.gd` | 기본 loot item templates, extra consumables, pickup scene, supply railgun 리소스 | Main이 런타임 참조를 로드하고 loot/supply state wiring은 유지 |
-| `src/core/ArtifactCatalog.gd` | 시작 아티팩트 선택지, modifier 정의, modifier 기반 설명 생성 | Main 메뉴가 읽고 선택 결과를 Player modifier로 적용 |
+| `src/core/ArtifactCatalog.gd` | 시작 아티팩트 선택지, modifier/visual id 정의, modifier 기반 설명 생성 | Main 메뉴가 읽고 선택 결과를 Player modifier/visual로 적용 |
 | `src/core/ItemDisplayFormatter.gd` | pickup detail 및 HUD ammo 문자열 포맷 | Pickup과 Player HUD가 실제 item/slot 값을 넘겨 사용 |
 | `src/core/WeaponSlotTuning.gd` | weapon reload times and reserve-ammo caps | WeaponSlotManager가 inventory/reload state와 algorithms를 유지하고 tuning values만 참조 |
 | `src/core/DifficultyCatalog.gd` | 난이도 label/description/color 정의 | Main 메뉴와 Records가 같은 UI 데이터를 참조 |
@@ -81,6 +81,7 @@
 | `src/systems/hell/HellTuning.gd` | Hell timers/blackout/bombardment/barrage/marker visual tuning 해석과 clamp | `data/game_config.json` `hell` 섹션을 읽어 `HellEventController` 알고리즘에 적용 |
 | `src/systems/zone/ZoneController.gd` | zone lifecycle, shrink interpolation, outside damage, stage config application | Main이 `zone` 인스턴스를 소유하고 다른 런타임 객체는 `main.zone`을 읽음 |
 | `src/entities/player/PlayerArtifactRuntime.gd` | player artifact one-match trigger/timer state and trigger decisions | Player가 damage/movement/bush transition flow에서 명시적 context를 넘기고 반환된 player-state update만 적용 |
+| `src/entities/player/PlayerArtifactVisuals.gd` | player-attached artifact visual nodes and event presentation | Player가 weapon/shield/movement/zone/runtime-event context를 넘기고 gameplay mutation은 하지 않음 |
 
 수정 시 주의: Resource를 공유 참조로 쓰면 인스턴스 간 오염 발생 → 런타임에서 반드시 `.duplicate()` 호출 (Player.gd:88, receive_weapon 진입부 참조).
 
@@ -303,6 +304,8 @@ Entity (CharacterBody3D)
 v1.11.19 closure 기준 `Player.gd`는 832줄이며, intentionally retained responsibilities are movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, and Sfx/Telemetry hooks. Player HUD construction, slot rendering, weapon HUD icon resolution, tuning constants, and occluder fade state now have separate owners.
 
 v1.12.2 기준 Emergency Shell 같은 one-match trigger artifact state는 `PlayerArtifactRuntime.gd`가 소유한다. `Player.gd`는 damage flow에서 helper에 explicit health/shield context를 넘기고, 반환된 shield update/HUD flash/Telemetry hook만 적용한다. Passive stat modifiers still apply in `Player.gd` from `ArtifactCatalog.gd` modifier data.
+
+v1.12.5 기준 artifact visual identity는 `PlayerArtifactVisuals.gd`가 소유한다. `ArtifactCatalog.gd`는 `visual_id`를 제공하고, `Player.gd`는 active weapon, shield ratio, movement speed, Zone Battery proximity, Ghost Grass active state, and artifact event context만 넘긴다. Visual helper는 mesh/light nodes and short event presentation만 만들며 gameplay state, Telemetry, or selection orchestration은 소유하지 않는다.
 
 **Bot이 Main을 참조하는 방법**: `get_tree().get_root().get_node("Main")`으로 런타임 조회. `main.zone`, `main.alive_count`, `main.zone.stage` 읽기만 함.
 
