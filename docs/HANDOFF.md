@@ -1,6 +1,6 @@
 # Next Chat Handoff
 
-> Last updated: 2026-05-26. This note is intentionally short and only covers context that is easy to miss from `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `DEVLOG.md`.
+> Last updated: 2026-05-27. This note is intentionally short and only covers context that is easy to miss from `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `DEVLOG.md`.
 
 ## Current State
 
@@ -26,30 +26,10 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
 
 ## Recent Completed Commits
 
-- `1e328f1 refactor: bind bonus mission descriptions`
-  - Added `MissionTuning.gd` and `MissionDescriptionFormatter.gd`.
-  - Bonus mission descriptions/HUD/evaluation now read from `MissionData.target_value` and shared tuning values.
-  - Pushed to `origin/master`.
-- `3cd4966 refactor: generate pressure mission descriptions`
-  - Added `PressureMissionDescriptionFormatter.gd`.
-  - Pressure descriptor `description` text now generates from `conditions[]`.
-  - Pushed to `origin/master`.
-- `b0df82f refactor: extract pressure feasibility tuning`
-  - Added pressure feasibility cutoff ownership to `MissionTuning.gd`.
-  - `PressureConditionEvaluator.gd` now reads detected-survival and late-zone outside-zone feasibility cutoffs from shared tuning.
-  - Pushed to `origin/master`.
-- `ef977a3 docs: audit boundary and documentation governance`
-  - Added v1.11.34 role rules and active document budgets.
-  - Scoped active docs compression as the immediate next structural slice.
-  - Pushed to `origin/master`.
-- `d0de216 docs: compress active planning logs`
-  - Snapshotted full active docs before compression.
-  - Compressed `MASTERPLAN.md`, `DEVLOG.md`, and `docs/devlog/v1.11.md` for default-session loading.
-  - Pushed to `origin/master`.
-- `5365ebf refactor: close pressure snapshot boundary`
-  - Added `MissionTracker.get_active_pressure_snapshot()`.
-  - Updated `Main.gd` pressure success/fail handling to use the public snapshot instead of `_active_pressure`.
-  - Marked v1.11 structurally closed and pushed to `origin/master`.
+- `5365ebf refactor: close pressure snapshot boundary` — closed v1.11 structurally.
+- `6f71fc5 docs: plan complex artifact runtime boundary` — opened v1.12 and selected Emergency Shell as the first implementation candidate.
+
+Older v1.11 slice detail is in `docs/devlog/v1.11.md` and the full snapshots under `docs/devlog/`.
 
 ## Current Discussion
 
