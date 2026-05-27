@@ -29,6 +29,7 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
 - `5365ebf refactor: close pressure snapshot boundary` — closed v1.11 structurally.
 - `6f71fc5 docs: plan complex artifact runtime boundary` — opened v1.12 and selected Emergency Shell as the first implementation candidate.
 - `1579ff3 feat: add emergency shell artifact` — implemented Emergency Shell, artifact runtime helper, artifact telemetry, and smoke verification.
+- `9fb91d2 test: add artifact selection layout smoke` — verified the five-card artifact selection row and shortlisted Ghost Grass next.
 
 Older v1.11 slice detail is in `docs/devlog/v1.11.md` and the full snapshots under `docs/devlog/`.
 
