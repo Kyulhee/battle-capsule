@@ -6,6 +6,24 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 
 ---
 
+## v1.12.1-dev — 2026-05-27
+
+**Complex Artifacts scope and first implementation candidate**
+
+**docs/MASTERPLAN.md / docs/devlog/v1.12.md / docs/devlog/INDEX.md**
+
+- Started v1.12 as the Complex Artifacts line after v1.11 structural closure.
+- Audited the existing artifact flow: `ArtifactCatalog.gd` owns selection descriptors/modifier data, `Main.gd` owns selection/apply orchestration, and `Player.gd` owns runtime modifier application.
+- Chose **Emergency Shell** as the first implementation candidate because a one-shot low-HP shield has bounded player-runtime state and visible feedback without touching bot AI, map systems, or mission logic.
+- Deferred Glass Capsule, Ghost Grass, Pulse Scanner, Marked King, and Overheat Barrel until the artifact runtime boundary is proven.
+- Defined the v1.12.2 boundary contract: catalog-owned effect data, small player artifact runtime helper, Player-owned wiring/application, optional Telemetry event logging, and no Main-owned effect logic.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+
+---
+
 ## v1.11.36-dev — 2026-05-26
 
 **v1.11 closure decision and pressure snapshot boundary**

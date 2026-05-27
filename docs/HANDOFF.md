@@ -5,9 +5,9 @@
 ## Current State
 
 - Branch: `master`.
-- Current roadmap line: `v1.11-dev` structurally closed; reopen only for concrete boundary bugs.
-- Latest completed slice: `v1.11.36 — v1.11 closure decision and pressure snapshot boundary`.
-- Next structural slice: `v1.12 planning — Complex Artifacts scope and first implementation candidate`.
+- Current roadmap line: `v1.12-dev` Complex Artifacts, starting with bounded player-runtime effects.
+- Latest completed slice: `v1.12.1 — Complex Artifacts scope and first implementation candidate`.
+- Next structural slice: `v1.12.2 — Emergency Shell first implementation`.
 - Release remains paused. Continue version-to-version development without GitHub releases unless the user explicitly asks for a release.
 - `asset_generator/` is an external-agent workspace and must remain untracked unless the user explicitly asks to integrate selected files.
 - `docs/ASSET_GENERATION_PROMPTS.md` is local-only prompt scratch material and must remain untracked unless the user explicitly asks otherwise.
@@ -15,7 +15,7 @@
 
 ## Exact Git State At Handoff
 
-After the v1.11.36 push, expected local status is only the external-generation scratch area:
+After the v1.12.1 push, expected local status is only the external-generation scratch area:
 
 ```text
 ?? asset_generator/
@@ -53,14 +53,15 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
 
 ## Current Discussion
 
-The user agreed to the governance-first plan. v1.11.34 found no urgent runtime authority bug. v1.11.35 snapshotted and compressed the default-session roadmap/devlog files. v1.11.36 then closed the only concrete ownership leak found during the closure audit: Main now reads pressure descriptor reward/penalty/title through `MissionTracker.get_active_pressure_snapshot()`.
+The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact because it proves a small player-runtime artifact boundary without touching bot AI, map systems, mission logic, or Main-owned match state.
 
 Recommended next slice:
 
-- `v1.12 planning — Complex Artifacts scope and first implementation candidate`
-  - Choose one artifact with bounded state, UI, Telemetry, and balance impact.
-  - Define the data/config boundary before implementation.
-  - Keep the first v1.12 slice design-first unless a tiny prerequisite is obvious.
+- `v1.12.2 — Emergency Shell first implementation`
+  - Add the Emergency Shell descriptor to `ArtifactCatalog.gd`.
+  - Add the smallest runtime boundary needed for one-shot low-HP shield trigger state.
+  - Wire Player damage flow and shield/HUD update without moving effect logic into Main.
+  - Verify with `git diff --check`, Godot headless, and normal/Hell simulations.
 
 ## Tooling Note
 
@@ -89,8 +90,8 @@ Good command pattern:
 
 ## Good Next Candidates
 
-- `v1.12 planning — Complex Artifacts scope and first implementation candidate`
-  - Likely docs/design first.
+- `v1.12.2 — Emergency Shell first implementation`
+  - Small player-runtime artifact boundary plus catalog descriptor.
 - Narrow v1.10.x item/asset readability polish
   - Only visual/readability patches; do not change expansion architecture.
 - Later v1.11 candidates:

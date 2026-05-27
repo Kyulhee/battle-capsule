@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-26 (v1.11.36 v1.11 closure decision)
+> Last updated: 2026-05-27 (v1.12.1 Complex Artifacts scope)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -8,9 +8,9 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 
 | Item | Status |
 |---|---|
-| Current line | v1.11-dev structurally closed; reopen only for concrete boundary bugs |
-| Latest completed slice | v1.11.36: v1.11 closure decision and pressure snapshot boundary |
-| Next structural slice | v1.12 planning: Complex Artifacts scope and first implementation candidate |
+| Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
+| Latest completed slice | v1.12.1: Complex Artifacts scope and first implementation candidate |
+| Next structural slice | v1.12.2: Emergency Shell first implementation |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -95,12 +95,43 @@ Current audit result: direction is coherent enough to continue. The main risk wa
 
 Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.11_full_2026-05-26.md) and [devlog/DEVLOG_full_2026-05-26.md](devlog/DEVLOG_full_2026-05-26.md).
 
+## v1.12 Complex Artifacts
+
+**Goal**: Add replay-changing artifacts without undoing v1.10-v1.11 boundaries. First-pass complex artifacts should be player-owned runtime effects with explicit catalog data and small hooks.
+
+**v1.12.1 decision**
+
+- First candidate: **Emergency Shell**.
+- Reason: one-shot low-HP shield is a bounded player-runtime effect with clear state (`unused/triggered`), visible shield-bar feedback, and limited balance impact.
+- Rejected as first candidates:
+  - Glass Capsule: too close to existing passive stat modifiers; it would not prove the complex-artifact runtime boundary.
+  - Ghost Grass / Pulse Scanner / Marked King / Overheat Barrel: more interesting, but each touches perception, enemy reveal, minimap/HUD, kill rewards, or sustained-fire tuning before the runtime boundary is proven.
+
+**Emergency Shell boundary contract**
+
+| Owner | Responsibility |
+|---|---|
+| `ArtifactCatalog.gd` | Selection descriptor, id, label, color, description text, numeric effect data. |
+| Planned artifact runtime helper | One-match trigger state and pure trigger decision from explicit player health/shield context. |
+| `Player.gd` | Own helper instance, call it from damage flow, apply returned shield update, update HUD/Sfx/Telemetry hooks. |
+| `Telemetry.gd` | If added, record selected artifact id and trigger count without changing existing score schema. |
+| `Main.gd` | Keep selection/apply orchestration only; no artifact effect logic. |
+
+**First implementation guardrails**
+
+- Trigger only once per match.
+- Trigger after a non-lethal hit or tick leaves player HP at or below the configured threshold. Do not intercept lethal damage in the first pass.
+- Use catalog-owned numbers for threshold and shield amount; visible description must be generated from those values.
+- Preserve existing artifacts and simulations.
+- Do not add bot artifacts, map-themed artifacts, or artifact upgrade trees in v1.12.2.
+
 ## Next Work
 
-1. **v1.12 planning — Complex Artifacts scope and first implementation candidate**
-   - Choose one artifact with bounded state, UI, Telemetry, and balance impact.
-   - Define the data/config boundary before implementation.
-   - Keep the first v1.12 slice design-first unless a tiny prerequisite is obvious.
+1. **v1.12.2 — Emergency Shell first implementation**
+   - Add the Emergency Shell descriptor to `ArtifactCatalog.gd`.
+   - Add the smallest runtime boundary needed for one-shot trigger state.
+   - Wire Player damage flow and HUD/shield update without moving match-global state out of Main.
+   - Verify with Godot headless and normal/Hell simulations.
 2. **v1.10.x Item/Asset Readability Polish**
    - Only narrow visual/readability patches.
    - Keep generated source assets untracked unless selected files are integrated into runtime assets.
