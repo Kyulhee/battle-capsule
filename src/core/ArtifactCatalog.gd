@@ -54,6 +54,17 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 			"mods": {"footstep_radius_mult": 0.0, "max_health_mult": 0.5, "max_shield_mult": 0.5},
 		},
 		{
+			"id": "ghost_grass",
+			"label": "Ghost Grass",
+			"color": Color(0.55, 1.0, 0.65),
+			"mods": {
+				"ghost_grass": true,
+				"ghost_grass_duration": 2.0,
+				"ghost_grass_stealth_mult": 0.45,
+				"ghost_grass_footstep_mult": 0.6,
+			},
+		},
+		{
 			"id": "zone_battery",
 			"label": "Zone Battery",
 			"color": Color(0.20, 0.85, 1.0),
@@ -96,6 +107,12 @@ static func _with_description(artifact: Dictionary) -> Dictionary:
 		"silent_core":
 			artifact["line1"] = "달리기 소음 탐지 차단"
 			artifact["line2"] = "%s\n(들키면 즉시 위험)" % _fmt_health_shield_delta(mods)
+		"ghost_grass":
+			artifact["line1"] = "부쉬 이탈 후 %s초간 은신 유지" % _fmt_num(mods.get("ghost_grass_duration", 0.0))
+			artifact["line2"] = "시야 탐지 거리 %s  ·  발소리 반경 %s" % [
+				_fmt_percent_delta(mods.get("ghost_grass_stealth_mult", 1.0)),
+				_fmt_percent_delta(mods.get("ghost_grass_footstep_mult", 1.0)),
+			]
 		"zone_battery":
 			artifact["line1"] = "자기장 내벽 %s 근방\n→ 방어막 +%s/초 자동 충전" % [
 				_fmt_meter(mods.get("zone_battery_range", 0.0)),

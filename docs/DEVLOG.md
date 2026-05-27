@@ -1,8 +1,31 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-26. This is the compressed active log. Full pre-compression history is preserved in [devlog/DEVLOG_full_2026-05-26.md](devlog/DEVLOG_full_2026-05-26.md); older full history remains in [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md).
+> Last updated: 2026-05-28. This is the compressed active log. Full pre-compression history is preserved in [devlog/DEVLOG_full_2026-05-26.md](devlog/DEVLOG_full_2026-05-26.md); older full history remains in [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md).
 
 Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX.md) and per-version summaries unless exact historical detail is needed.
+
+---
+
+## v1.12.4-dev — 2026-05-28
+
+**Ghost Grass bush-exit stealth runtime**
+
+**src/core/ArtifactCatalog.gd / src/entities/player/PlayerArtifactRuntime.gd / src/entities/player/Player.gd / src/core/Telemetry.gd / docs / tools**
+
+- Added Ghost Grass as a starting artifact with catalog-owned duration, stealth multiplier, and footstep multiplier values.
+- Extended `PlayerArtifactRuntime.gd` so player artifact runtime state now covers both Emergency Shell one-shot damage response and Ghost Grass bush-exit timer state.
+- Wired `Player.gd` to report bush transitions, apply Ghost Grass stealth while `reveal_timer <= 0`, and reduce footstep radius only while the timer is active.
+- Kept reveal/fire behavior authoritative: Ghost Grass does not suppress an active reveal ping.
+- Added `ghost_grass_started` Telemetry count and extended artifact runtime smoke coverage.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_runtime.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_selection_layout.gd` 통과: 6 cards, 958px row width.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과. Expected AssetCatalog missing-path warning only.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=74.3s, stage=3, recover=21, disengage=13.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=77.6s, stage=3, recover=128, disengage=23.
 
 ---
 

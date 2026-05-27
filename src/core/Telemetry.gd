@@ -165,6 +165,7 @@ func _reset_metrics():
 			"selected": "none",
 			"events": {},
 			"emergency_shell_triggered": 0,
+			"ghost_grass_started": 0,
 		},
 		# archetype
 		"archetype": {
@@ -455,6 +456,8 @@ func log_artifact_event(event: String):
 	metrics.artifact.events[event] = metrics.artifact.events.get(event, 0) + 1
 	if event == "emergency_shell_triggered":
 		metrics.artifact.emergency_shell_triggered += 1
+	elif event == "ghost_grass_started":
+		metrics.artifact.ghost_grass_started += 1
 
 # ── Stubs kept for call-site compatibility ────────────────────────────────────
 

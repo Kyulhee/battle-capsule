@@ -5,6 +5,7 @@ var _artifact_id: String = ""
 var _artifact_label: String = ""
 var _mods: Dictionary = {}
 var _emergency_shell_used: bool = false
+var _ghost_grass_timer: float = 0.0
 
 
 func configure(artifact: Dictionary) -> void:
@@ -12,6 +13,12 @@ func configure(artifact: Dictionary) -> void:
 	_artifact_label = String(artifact.get("label", ""))
 	_mods = artifact.get("mods", {}).duplicate(true)
 	_emergency_shell_used = false
+	_ghost_grass_timer = 0.0
+
+
+func tick(delta: float) -> void:
+	if _ghost_grass_timer > 0.0:
+		_ghost_grass_timer = maxf(0.0, _ghost_grass_timer - delta)
 
 
 func evaluate_after_damage(
@@ -45,3 +52,41 @@ func evaluate_after_damage(
 		"event": "emergency_shell_triggered",
 		"shield": shield_amount,
 	}
+
+
+func on_bush_changed(was_in_bush: bool, is_now_in_bush: bool) -> Dictionary:
+	if not bool(_mods.get("ghost_grass", false)):
+		return {}
+	if is_now_in_bush:
+		_ghost_grass_timer = 0.0
+		return {}
+	if not was_in_bush:
+		return {}
+
+	var duration = maxf(0.0, float(_mods.get("ghost_grass_duration", 0.0)))
+	if duration <= 0.0:
+		return {}
+
+	_ghost_grass_timer = duration
+	return {
+		"artifact_id": _artifact_id,
+		"label": _artifact_label,
+		"event": "ghost_grass_started",
+		"duration": duration,
+	}
+
+
+func is_ghost_grass_active() -> bool:
+	return bool(_mods.get("ghost_grass", false)) and _ghost_grass_timer > 0.0
+
+
+func get_ghost_grass_stealth_modifier() -> float:
+	if not is_ghost_grass_active():
+		return 1.0
+	return maxf(0.0, float(_mods.get("ghost_grass_stealth_mult", 1.0)))
+
+
+func get_footstep_radius_mult(base_mult: float) -> float:
+	if not is_ghost_grass_active():
+		return base_mult
+	return base_mult * maxf(0.0, float(_mods.get("ghost_grass_footstep_mult", 1.0)))

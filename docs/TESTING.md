@@ -41,7 +41,7 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 ./Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit
 ./Godot_v4.6.2-stable_win64_console.exe --path . --headless -- autostart=true debug=true debug_flags=zone
 
-# v1.12 artifact runtime smoke
+# v1.12 artifact runtime smoke: Emergency Shell one-shot + Ghost Grass timer
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_runtime.gd
 
 # v1.12 artifact selection layout smoke
@@ -143,6 +143,7 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 | `selected` | 선택된 artifact id | 수동 플레이에서 선택했는데 `none`이면 apply/log 경로 확인 |
 | `events` | artifact runtime event counts | 이벤트형 artifact 발동 후 해당 event가 0이면 trigger/log 경로 확인 |
 | `emergency_shell_triggered` | Emergency Shell 발동 횟수 | 한 매치에서 0 또는 1이어야 함 |
+| `ghost_grass_started` | Ghost Grass bush-exit 발동 횟수 | Ghost Grass 선택 후 부쉬 이탈 시 증가해야 함 |
 | `triggered_ids` | 발동된 미션 ID 목록 | 다양한 ID가 섞이는지 확인 (편향 감지) |
 
 ---

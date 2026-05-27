@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-28 (v1.12.3 Emergency Shell readability)
+> Last updated: 2026-05-28 (v1.12.4 Ghost Grass runtime)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.3: Emergency Shell readability check and next artifact shortlist |
-| Next structural slice | v1.12.4: Ghost Grass scope and implementation boundary |
+| Latest completed slice | v1.12.4: Ghost Grass bush-exit stealth runtime |
+| Next structural slice | v1.12.5: Artifact playtest/readability pass and next candidate choice |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -27,7 +27,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - Preserve single-source state ownership in `Main.gd` for `zone`, `mission_tracker`, `player_ref`, `alive_count`, game-over flow, pressure trigger flags, and Telemetry hook calls until a dedicated migration plan exists.
 - Prefer small catalog, tuning, formatter, evaluator, controller, director, planner, and store boundaries over broad gameplay rewrites.
 - Gameplay numbers shown in UI/descriptions should come from the same data/tuning used by logic whenever practical.
-- Do not start 99-player scale, new maps, mission map theming, or v1.12 complex artifact implementation until v1.11 is explicitly closed.
+- Do not start 99-player scale, new maps, mission map theming, bot artifacts, or artifact upgrade trees without an explicit migration plan.
 - Active docs should stay compact. Raw/full details belong in `docs/archive/` or `docs/devlog/` snapshots.
 
 ## Active Docs
@@ -139,12 +139,20 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Kept Emergency Shell values unchanged for now.
 - Shortlisted **Ghost Grass** as the next candidate because bush-exit stealth grace is bounded player runtime state and does not require minimap/HUD direction UI.
 
+**v1.12.4 result**
+
+- Added **Ghost Grass** as a starting artifact.
+- Catalog-owned values: 2.0s bush-exit grace, 0.45 visual stealth multiplier, 0.6 footstep radius multiplier.
+- `PlayerArtifactRuntime.gd` now owns both Emergency Shell one-shot state and Ghost Grass timer state.
+- `Player.gd` only reports bush transitions, applies returned runtime effects, and keeps reveal/fire behavior authoritative through `reveal_timer`.
+- Telemetry records `ghost_grass_started`; selection layout smoke now verifies six cards at 958px row width.
+
 ## Next Work
 
-1. **v1.12.4 — Ghost Grass scope and implementation boundary**
-   - Define whether the effect starts on bush exit, how long stealth grace lasts, and how it interacts with reveal/fire.
-   - Keep modifier data in `ArtifactCatalog.gd` and runtime state in `PlayerArtifactRuntime.gd` unless a clearer owner appears.
-   - Avoid minimap/HUD additions in the first pass.
+1. **v1.12.5 — Artifact playtest/readability pass and next candidate choice**
+   - Manually check Emergency Shell and Ghost Grass feedback/readability before changing values.
+   - Keep first-pass Ghost Grass free of minimap/directional HUD work unless playtesting proves it is unreadable.
+   - Choose the next complex artifact only after confirming the current runtime boundary still feels coherent.
 2. **v1.10.x Item/Asset Readability Polish**
    - Only narrow visual/readability patches.
    - Keep generated source assets untracked unless selected files are integrated into runtime assets.

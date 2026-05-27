@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.12-dev / 마지막 검증: 2026-05-27
+> 기준 버전: v1.12-dev / 마지막 검증: 2026-05-28
 
 ---
 
@@ -32,7 +32,7 @@
 | PlayerWeaponIconResolver | Player weapon HUD icon cache/loading/fallbacks | `Player.gd` | RefCounted UI resolver |
 | PlayerTuning | Player movement/combat/heal/occluder tuning constants | `Player.gd` | static tuning constants |
 | PlayerOccluderFader | Player occluder ray tracing/fade material state | `Player.gd` | RefCounted helper |
-| PlayerArtifactRuntime | player artifact trigger state | `Player.gd` | RefCounted helper |
+| PlayerArtifactRuntime | player artifact trigger/timer state | `Player.gd` | RefCounted helper |
 | BotTuning | Bot melee/retreat/perception/debug tuning constants | `Bot.gd` | static tuning constants |
 | BotDebugLabelBuilder | Bot state/archetype Label3D construction | `Bot.gd` | static visual helper |
 | BotMarkerFormatter | Bot state/archetype marker text/color/catalog id mapping | `Bot.gd` | static formatter |
@@ -189,8 +189,8 @@
 ### `src/entities/player/Player.gd`
 - **현재 역할**: Player entity runtime owner. v1.11.19 기준 832줄.
 - **의도적으로 소유**: movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, Sfx/Telemetry hooks.
-- **분리 완료**: HUD construction (`PlayerHudBuilder.gd`), slot display state (`PlayerSlotHudRenderer.gd`), weapon HUD icon loading/fallbacks (`PlayerWeaponIconResolver.gd`), player tuning constants (`PlayerTuning.gd`), occluder fade state/material restore (`PlayerOccluderFader.gd`), one-match artifact trigger state (`PlayerArtifactRuntime.gd`).
-- **수정 영향**: movement/combat/heal/artifact/pickup behavior 변경 시 `PlayerTuning.gd`, `ArtifactCatalog.gd`, `PlayerArtifactRuntime.gd`, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd`, and simulations를 함께 확인.
+- **분리 완료**: HUD construction (`PlayerHudBuilder.gd`), slot display state (`PlayerSlotHudRenderer.gd`), weapon HUD icon loading/fallbacks (`PlayerWeaponIconResolver.gd`), player tuning constants (`PlayerTuning.gd`), occluder fade state/material restore (`PlayerOccluderFader.gd`), one-match artifact trigger/timer state (`PlayerArtifactRuntime.gd`).
+- **수정 영향**: movement/combat/heal/artifact/pickup/stealth behavior 변경 시 `PlayerTuning.gd`, `ArtifactCatalog.gd`, `PlayerArtifactRuntime.gd`, `WeaponSlotManager.gd`, `ItemDisplayFormatter.gd`, and simulations를 함께 확인.
 
 ### `src/entities/bot/Bot.gd`
 - **현재 역할**: Bot entity runtime owner. v1.11.24 기준 1908줄.

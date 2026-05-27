@@ -155,10 +155,16 @@ func reveal(duration: float = 2.0):
 		get_node("/root/Telemetry").log_stealth("reveal_pings")
 
 func set_in_bush(value: bool):
+	var was_in_bush := is_in_bush
 	if value and not is_in_bush:
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_stealth("bush_entries")
 	super.set_in_bush(value)
+	var result = _artifact_runtime.on_bush_changed(was_in_bush, is_in_bush)
+	if not result.is_empty():
+		if has_node("/root/Telemetry"):
+			get_node("/root/Telemetry").log_artifact_event(String(result.get("event", "")))
+		show_status_flash("%s ACTIVE" % String(result.get("label", "Ghost Grass")), false)
 
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
 	if source == "zone":
@@ -253,6 +259,9 @@ func _physics_process(delta):
 	if Input.is_action_just_pressed("interact"): handle_interaction()
 	if Input.is_key_pressed(KEY_Q): handle_healing()
 	super._physics_process(delta)
+	_artifact_runtime.tick(delta)
+	if _artifact_runtime.is_ghost_grass_active() and reveal_timer <= 0:
+		stealth_modifier = min(stealth_modifier, _artifact_runtime.get_ghost_grass_stealth_modifier())
 	# Crouch stealth
 	if is_crouching and reveal_timer <= 0:
 		stealth_modifier = min(stealth_modifier, 0.35)
@@ -857,4 +866,4 @@ func receive_shield(amount: float):
 	shield_changed.emit(current_shield, stats.max_shield)
 
 func get_footstep_radius_mult() -> float:
-	return _artifact_mods.get("footstep_radius_mult", 1.0)
+	return _artifact_runtime.get_footstep_radius_mult(_artifact_mods.get("footstep_radius_mult", 1.0))
