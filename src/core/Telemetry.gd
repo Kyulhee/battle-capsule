@@ -14,6 +14,7 @@ extends Node
 #   "hell"     — blackout/bombardment event counts (Hell difficulty only)
 #   "mission"  — active mission id, result (success/fail/none)
 #   "pressure" — pressure mission triggered/cleared/failed counts (Hard opt-in / Hell)
+#   "artifact" — selected artifact id and bounded artifact trigger events
 #   "doctrine" — merged bot AI profiles and selected combat plans
 
 # ── Group toggles ─────────────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ var enabled_groups: Dictionary = {
 	"hell":      true,
 	"mission":   true,
 	"pressure":  true,
+	"artifact":  true,
 	"archetype": true,
 	"doctrine":  true,
 }
@@ -157,6 +159,12 @@ func _reset_metrics():
 			"pressure_triggered": 0,
 			"pressure_cleared":   0,
 			"pressure_failed":    0,
+		},
+		# artifact
+		"artifact": {
+			"selected": "none",
+			"events": {},
+			"emergency_shell_triggered": 0,
 		},
 		# archetype
 		"archetype": {
@@ -436,6 +444,18 @@ func log_weapon_drop():
 	if _g("tactics") and metrics.has("tactics"):
 		metrics.tactics.weapon_drop_spawned += 1
 
+func log_artifact_selected(artifact_id: String):
+	if not match_in_progress or not _g("artifact") or not metrics.has("artifact"):
+		return
+	metrics.artifact.selected = artifact_id if artifact_id != "" else "none"
+
+func log_artifact_event(event: String):
+	if event == "" or not match_in_progress or not _g("artifact") or not metrics.has("artifact"):
+		return
+	metrics.artifact.events[event] = metrics.artifact.events.get(event, 0) + 1
+	if event == "emergency_shell_triggered":
+		metrics.artifact.emergency_shell_triggered += 1
+
 # ── Stubs kept for call-site compatibility ────────────────────────────────────
 
 func log_stealth(_event: String): pass  # reserved for v0.5+ stealth metrics
@@ -484,6 +504,7 @@ func _save_sim_result():
 	if _g("hell"):    out["hell"]     = metrics.hell.duplicate(true)
 	if _g("mission"):    out["mission"]    = metrics.mission.duplicate(true)
 	if _g("pressure"):   out["pressure"]   = metrics.pressure.duplicate(true)
+	if _g("artifact"):   out["artifact"]   = metrics.artifact.duplicate(true)
 	if _g("archetype"):  out["archetype"]  = metrics.archetype.duplicate(true)
 	if _g("doctrine"):   out["doctrine"]   = metrics.doctrine.duplicate(true)
 	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)

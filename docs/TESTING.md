@@ -41,6 +41,9 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 ./Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit
 ./Godot_v4.6.2-stable_win64_console.exe --path . --headless -- autostart=true debug=true debug_flags=zone
 
+# v1.12 artifact runtime smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_runtime.gd
+
 # 결과 파일 위치 (Windows)
 # %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
 ```
@@ -129,6 +132,14 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 | `pressure_triggered` | 존 전환마다 압박 미션이 발동된 횟수 | 0이면 트리거 로직 오류 |
 | `pressure_cleared` | 미션 기한 내 성공한 횟수 | `triggered` 대비 30%+ 목표 (Hell은 낮아도 정상) |
 | `pressure_failed` | 시간 초과 또는 즉시 실패 횟수 | `cleared + failed ≈ triggered` 이어야 함 |
+
+### `artifact`
+
+| 지표 | 설명 | 이상 판단 기준 |
+|---|---|---|
+| `selected` | 선택된 artifact id | 수동 플레이에서 선택했는데 `none`이면 apply/log 경로 확인 |
+| `events` | artifact runtime event counts | 이벤트형 artifact 발동 후 해당 event가 0이면 trigger/log 경로 확인 |
+| `emergency_shell_triggered` | Emergency Shell 발동 횟수 | 한 매치에서 0 또는 1이어야 함 |
 | `triggered_ids` | 발동된 미션 ID 목록 | 다양한 ID가 섞이는지 확인 (편향 감지) |
 
 ---

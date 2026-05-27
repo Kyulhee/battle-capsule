@@ -57,6 +57,7 @@ const PlayerSlotHudRendererScript = preload("res://src/ui/player/PlayerSlotHudRe
 const PlayerWeaponIconResolverScript = preload("res://src/ui/player/PlayerWeaponIconResolver.gd")
 const PlayerTuningScript = preload("res://src/entities/player/PlayerTuning.gd")
 const PlayerOccluderFaderScript = preload("res://src/entities/player/PlayerOccluderFader.gd")
+const PlayerArtifactRuntimeScript = preload("res://src/entities/player/PlayerArtifactRuntime.gd")
 const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
@@ -80,6 +81,7 @@ var slot_icon_rects: Array = []
 var slot_ammo_labels: Array = []
 var _weapon_icon_resolver = PlayerWeaponIconResolverScript.new()
 var _occluder_fader = PlayerOccluderFaderScript.new()
+var _artifact_runtime = PlayerArtifactRuntimeScript.new()
 var _focused_pickup: Pickup = null
 
 func _ready():
@@ -162,6 +164,7 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 	if source == "zone":
 		amount *= _artifact_mods.get("zone_dmg_mult", 1.0)
 	super.take_damage(amount, source, weapon_type, source_node)
+	_apply_artifact_after_damage()
 	if Sfx: Sfx.play("hurt")
 	var main = get_tree().root.get_node_or_null("Main")
 	if main and main.mission_tracker:
@@ -619,7 +622,7 @@ func add_kill_feed_entry(killer_is_player: bool, player_assisted: bool, killer_n
 		kill_feed_entries[0]["label"].queue_free()
 		kill_feed_entries.pop_front()
 
-func show_pressure_flash(text: String, success: bool):
+func show_status_flash(text: String, success: bool):
 	if not _flash_label or not _flash_panel: return
 	_flash_label.text = text
 	_flash_label.modulate = Color(0.3, 1.0, 0.45) if success else Color(1.0, 0.32, 0.32)
@@ -628,6 +631,9 @@ func show_pressure_flash(text: String, success: bool):
 	_flash_tween.tween_property(_flash_panel, "modulate:a", 0.88, 0.12)
 	_flash_tween.tween_interval(2.2)
 	_flash_tween.tween_property(_flash_panel, "modulate:a", 0.0, 0.45)
+
+func show_pressure_flash(text: String, success: bool):
+	show_status_flash(text, success)
 
 func die(killer: Node3D = null):
 	_drop_on_death()
@@ -793,6 +799,7 @@ func _current_surface_id() -> String:
 
 func apply_artifact(artifact: Dictionary):
 	active_artifact = artifact
+	_artifact_runtime.configure(artifact)
 	_artifact_mods = {
 		"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false, "red_trigger": false,
 		"shotgun_damage_mult": 1.0, "non_shotgun_damage_mult": 1.0,
@@ -822,6 +829,27 @@ func apply_artifact(artifact: Dictionary):
 			_artifact_label.text = "[%s]" % artifact.get("label", "")
 			_artifact_label.modulate = artifact.get("color", Color.WHITE)
 			_artifact_label.visible = true
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_artifact_selected(String(artifact.get("id", "none")))
+
+func _apply_artifact_after_damage() -> void:
+	if is_dead:
+		return
+	var result = _artifact_runtime.evaluate_after_damage(
+		current_health,
+		stats.max_health,
+		current_shield,
+		stats.max_shield
+	)
+	if result.is_empty():
+		return
+	receive_shield(float(result.get("shield", 0.0)))
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_artifact_event(String(result.get("event", "")))
+	show_status_flash("%s +%d SHIELD" % [
+		String(result.get("label", "Emergency Shell")),
+		int(roundf(float(result.get("shield", 0.0)))),
+	], true)
 
 func receive_shield(amount: float):
 	var mult = _artifact_mods.get("shield_recv_mult", 1.0)

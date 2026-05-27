@@ -80,6 +80,7 @@
 | `src/systems/match/MatchRuntimeTuning.gd` | Main-owned spawn/navigation/stage-loot/supply-fallback runtime tuning 해석과 clamp | `data/game_config.json` `runtime` 섹션을 읽어 Main 알고리즘에 적용 |
 | `src/systems/hell/HellTuning.gd` | Hell timers/blackout/bombardment/barrage/marker visual tuning 해석과 clamp | `data/game_config.json` `hell` 섹션을 읽어 `HellEventController` 알고리즘에 적용 |
 | `src/systems/zone/ZoneController.gd` | zone lifecycle, shrink interpolation, outside damage, stage config application | Main이 `zone` 인스턴스를 소유하고 다른 런타임 객체는 `main.zone`을 읽음 |
+| `src/entities/player/PlayerArtifactRuntime.gd` | player artifact one-match trigger state and trigger decisions | Player가 damage/heal/combat flow에서 명시적 context를 넘기고 반환된 player-state update만 적용 |
 
 수정 시 주의: Resource를 공유 참조로 쓰면 인스턴스 간 오염 발생 → 런타임에서 반드시 `.duplicate()` 호출 (Player.gd:88, receive_weapon 진입부 참조).
 
@@ -300,6 +301,8 @@ Entity (CharacterBody3D)
 ```
 
 v1.11.19 closure 기준 `Player.gd`는 832줄이며, intentionally retained responsibilities are movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, and Sfx/Telemetry hooks. Player HUD construction, slot rendering, weapon HUD icon resolution, tuning constants, and occluder fade state now have separate owners.
+
+v1.12.2 기준 Emergency Shell 같은 one-match trigger artifact state는 `PlayerArtifactRuntime.gd`가 소유한다. `Player.gd`는 damage flow에서 helper에 explicit health/shield context를 넘기고, 반환된 shield update/HUD flash/Telemetry hook만 적용한다. Passive stat modifiers still apply in `Player.gd` from `ArtifactCatalog.gd` modifier data.
 
 **Bot이 Main을 참조하는 방법**: `get_tree().get_root().get_node("Main")`으로 런타임 조회. `main.zone`, `main.alive_count`, `main.zone.stage` 읽기만 함.
 

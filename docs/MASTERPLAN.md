@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-27 (v1.12.1 Complex Artifacts scope)
+> Last updated: 2026-05-27 (v1.12.2 Emergency Shell)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.1: Complex Artifacts scope and first implementation candidate |
-| Next structural slice | v1.12.2: Emergency Shell first implementation |
+| Latest completed slice | v1.12.2: Emergency Shell first implementation |
+| Next structural slice | v1.12.3: Emergency Shell playtest/readability check or next artifact shortlist |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -112,9 +112,9 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 | Owner | Responsibility |
 |---|---|
 | `ArtifactCatalog.gd` | Selection descriptor, id, label, color, description text, numeric effect data. |
-| Planned artifact runtime helper | One-match trigger state and pure trigger decision from explicit player health/shield context. |
+| `PlayerArtifactRuntime.gd` | One-match trigger state and pure trigger decision from explicit player health/shield context. |
 | `Player.gd` | Own helper instance, call it from damage flow, apply returned shield update, update HUD/Sfx/Telemetry hooks. |
-| `Telemetry.gd` | If added, record selected artifact id and trigger count without changing existing score schema. |
+| `Telemetry.gd` | Record selected artifact id and trigger count without changing existing score schema. |
 | `Main.gd` | Keep selection/apply orchestration only; no artifact effect logic. |
 
 **First implementation guardrails**
@@ -125,13 +125,19 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Preserve existing artifacts and simulations.
 - Do not add bot artifacts, map-themed artifacts, or artifact upgrade trees in v1.12.2.
 
+**v1.12.2 result**
+
+- Added Emergency Shell as a starting artifact.
+- Added `PlayerArtifactRuntime.gd` for one-match player artifact trigger state.
+- Emergency Shell triggers once after non-lethal damage leaves HP at or below the configured threshold, then grants the configured shield amount up to current max shield.
+- Added artifact Telemetry metrics and `tools/verify_artifact_runtime.gd` smoke coverage.
+
 ## Next Work
 
-1. **v1.12.2 — Emergency Shell first implementation**
-   - Add the Emergency Shell descriptor to `ArtifactCatalog.gd`.
-   - Add the smallest runtime boundary needed for one-shot trigger state.
-   - Wire Player damage flow and HUD/shield update without moving match-global state out of Main.
-   - Verify with Godot headless and normal/Hell simulations.
+1. **v1.12.3 — Emergency Shell playtest/readability check or next artifact shortlist**
+   - Confirm the artifact selection card still reads cleanly with five cards.
+   - Review whether Emergency Shell needs stronger visible feedback beyond shield/HUD flash.
+   - Decide whether to tune Emergency Shell values or move to the next artifact candidate.
 2. **v1.10.x Item/Asset Readability Polish**
    - Only narrow visual/readability patches.
    - Keep generated source assets untracked unless selected files are integrated into runtime assets.

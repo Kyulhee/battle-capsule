@@ -65,6 +65,16 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 				"zone_battery_range": 8.0,
 			},
 		},
+		{
+			"id": "emergency_shell",
+			"label": "Emergency Shell",
+			"color": Color(1.0, 0.72, 0.28),
+			"mods": {
+				"emergency_shell": true,
+				"emergency_shell_hp_ratio": 0.3,
+				"emergency_shell_shield": 35.0,
+			},
+		},
 	]
 
 static func _with_description(artifact: Dictionary) -> Dictionary:
@@ -92,6 +102,12 @@ static func _with_description(artifact: Dictionary) -> Dictionary:
 				_fmt_num(mods.get("zone_battery_regen", 0.0)),
 			]
 			artifact["line2"] = "힐·방어구 사용 불가"
+		"emergency_shell":
+			artifact["line1"] = "HP %s 이하 진입 시\n방어막 +%s 1회 생성" % [
+				_fmt_percent(mods.get("emergency_shell_hp_ratio", 0.0)),
+				_fmt_num(mods.get("emergency_shell_shield", 0.0)),
+			]
+			artifact["line2"] = "치명타 방지는 아님"
 	return artifact
 
 static func _zone_battery_regen_for_difficulty(difficulty_index: int) -> float:
@@ -110,6 +126,9 @@ static func _fmt_percent_delta(mult: Variant) -> String:
 		return "±0%"
 	var sign = "+" if delta > 0.0 else ""
 	return "%s%s%%" % [sign, _fmt_num(delta)]
+
+static func _fmt_percent(ratio: Variant) -> String:
+	return "%s%%" % _fmt_num(float(ratio) * 100.0)
 
 static func _fmt_health_shield_delta(mods: Dictionary) -> String:
 	var hp_delta = _fmt_percent_delta(mods.get("max_health_mult", 1.0))

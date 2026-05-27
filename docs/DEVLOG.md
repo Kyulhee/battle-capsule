@@ -6,6 +6,29 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 
 ---
 
+## v1.12.2-dev — 2026-05-27
+
+**Emergency Shell first implementation**
+
+**src/core/ArtifactCatalog.gd / src/entities/player/PlayerArtifactRuntime.gd / src/entities/player/Player.gd / src/core/Telemetry.gd / docs / tools**
+
+- Added Emergency Shell as a starting artifact with catalog-owned HP threshold and shield amount values.
+- Added `PlayerArtifactRuntime.gd` to own one-match runtime trigger state for player artifacts.
+- Wired `Player.gd` so Emergency Shell triggers once after non-lethal damage leaves HP at or below the configured threshold, then grants the configured shield amount up to current max shield.
+- Added reusable player status flash entry point while preserving the pressure flash wrapper.
+- Added artifact Telemetry metrics: selected artifact id, artifact event counts, and Emergency Shell trigger count.
+- Added `tools/verify_artifact_runtime.gd` smoke coverage for threshold, shield amount, and one-shot behavior.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_runtime.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과. Expected AssetCatalog missing-path warning only.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=75.0s, stage=3, recover=30, disengage=17.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=45.1s, stage=2, recover=68, disengage=15.
+
+---
+
 ## v1.12.1-dev — 2026-05-27
 
 **Complex Artifacts scope and first implementation candidate**
