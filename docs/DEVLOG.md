@@ -6,6 +6,52 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 
 ---
 
+## v1.12.8-dev — 2026-05-28
+
+**Artifact balance and penalty pass**
+
+**src/core/ArtifactCatalog.gd / src/entities/player/Player.gd / src/entities/player/PlayerArtifactRuntime.gd / tools / docs**
+
+- Renamed Emergency Shell presentation to **Escape Capsule** while keeping the internal id `emergency_shell`; its trigger now purges all ammo after granting the one-shot shield.
+- Red Trigger now increases ranged firing reveal duration to 3.0s.
+- Armor Sponge now scales movement speed from normal at 0 shield to 0.75 at max shield; heal-to-shield conversion is 50% of heal value and capped at 50 shield.
+- Silent Core no longer reduces max HP/shield; instead, the first unrevealed non-knife shot is forced to miss.
+- Ghost Grass now has 1.25s bush-exit stealth, 5.0s cooldown, and 1.5x gun damage plus immediate break if shot while active.
+- Added `tools/verify_artifact_balance.gd` and extended artifact runtime smoke coverage.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --script tools/verify_artifact_runtime.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --script tools/verify_artifact_balance.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --script tools/verify_artifact_selection_layout.gd` 통과: 6 cards, 6 icons, 958px row width.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --script tools/verify_artifact_visuals.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --quit` 통과. Expected AssetCatalog missing-path warning only.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=72.7s, stage=3, recover=21, disengage=20.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=102.1s, stage=4, recover=65, disengage=22.
+
+---
+
+## v1.12.7-dev — 2026-05-28
+
+**Artifact icon display integration**
+
+**src/ui/ArtifactIconResolver.gd / artifact selection HUD / data/asset_catalog.json / tools**
+
+- Added `ArtifactIconResolver.gd` and normalized artifact icon lookup through `artifact.<id>` catalog ids.
+- Artifact selection cards now show small artifact images.
+- The in-game artifact indicator now uses an icon instead of the previous text label.
+- Runtime PNGs currently cover Red Trigger, Armor Sponge, Silent Core, and Zone Battery; Ghost Grass and Escape Capsule use catalog fallback icons until generated PNGs are promoted.
+- Extended artifact selection layout smoke to verify icon TextureRects.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --script tools/verify_artifact_selection_layout.gd` 통과: 6 cards, 6 icons, 958px row width.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --quit` 통과. Expected AssetCatalog missing-path warning only.
+
+---
+
 ## v1.12.6-dev — 2026-05-28
 
 **Artifact visual readability pass**

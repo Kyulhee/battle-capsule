@@ -34,6 +34,7 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 				"non_shotgun_damage_mult": 0.5,
 				"non_shotgun_spread": 4.0,
 				"melee_damage_mult": 0.5,
+				"red_trigger_reveal_duration": 3.0,
 			},
 		},
 		{
@@ -44,9 +45,11 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 			"mods": {
 				"max_shield_mult": 2.5,
 				"heal_to_shield": true,
-				"heal_to_shield_common": 10.0,
-				"heal_to_shield_advanced": 20.0,
-				"move_speed_mult": 0.75,
+				"heal_to_shield_ratio": 0.5,
+				"heal_to_shield_cap": 50.0,
+				"heal_to_shield_common_base": 30.0,
+				"heal_to_shield_advanced_base": 60.0,
+				"armor_sponge_move_speed_min": 0.75,
 			},
 		},
 		{
@@ -54,7 +57,10 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 			"label": "Silent Core",
 			"color": Color(0.40, 0.95, 0.55),
 			"visual_id": "silent_core",
-			"mods": {"footstep_radius_mult": 0.0, "max_health_mult": 0.5, "max_shield_mult": 0.5},
+			"mods": {
+				"footstep_radius_mult": 0.0,
+				"silent_core_first_shot_miss": true,
+			},
 		},
 		{
 			"id": "ghost_grass",
@@ -63,9 +69,11 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 			"visual_id": "ghost_grass",
 			"mods": {
 				"ghost_grass": true,
-				"ghost_grass_duration": 2.0,
+				"ghost_grass_duration": 1.25,
+				"ghost_grass_cooldown": 5.0,
 				"ghost_grass_stealth_mult": 0.45,
 				"ghost_grass_footstep_mult": 0.6,
+				"ghost_grass_incoming_damage_mult": 1.5,
 			},
 		},
 		{
@@ -83,13 +91,14 @@ static func _base_starting_artifacts() -> Array[Dictionary]:
 		},
 		{
 			"id": "emergency_shell",
-			"label": "Emergency Shell",
+			"label": "Escape Capsule",
 			"color": Color(1.0, 0.72, 0.28),
 			"visual_id": "emergency_shell",
 			"mods": {
 				"emergency_shell": true,
 				"emergency_shell_hp_ratio": 0.3,
 				"emergency_shell_shield": 35.0,
+				"emergency_shell_ammo_purge": true,
 			},
 		},
 	]
@@ -98,25 +107,32 @@ static func _with_description(artifact: Dictionary) -> Dictionary:
 	var mods = artifact.get("mods", {})
 	match artifact.get("id", ""):
 		"red_trigger":
-			artifact["line1"] = "샷건 공격력 %s  ·  근접 특화" % _fmt_mult(mods.get("shotgun_damage_mult", 1.0))
-			artifact["line2"] = "샷건 외 공격력 %s\n샷건 외 탄퍼짐 ±%s (거의 난사)" % [
+			artifact["line1"] = "샷건 공격력 %s  ·  근접 피해 %s" % [
+				_fmt_mult(mods.get("shotgun_damage_mult", 1.0)),
+				_fmt_mult(mods.get("melee_damage_mult", 1.0)),
+			]
+			artifact["line2"] = "발사 노출 %s초  ·  샷건 외 공격력 %s\n샷건 외 탄퍼짐 ±%s (거의 난사)" % [
+				_fmt_num(mods.get("red_trigger_reveal_duration", 2.0)),
 				_fmt_mult(mods.get("non_shotgun_damage_mult", 1.0)),
 				_fmt_num(mods.get("non_shotgun_spread", 0.0)),
 			]
 		"armor_sponge":
 			artifact["line1"] = "방어구 최대량 %s  ·  힐→방어막" % _fmt_mult(mods.get("max_shield_mult", 1.0))
-			artifact["line2"] = "이동 속도 %s  ·  힐 사용 시 방어막 전환\n(붕대 +%s 방어막 / 구급상자 +%s 방어막)" % [
-				_fmt_percent_delta(mods.get("move_speed_mult", 1.0)),
-				_fmt_num(mods.get("heal_to_shield_common", 0.0)),
-				_fmt_num(mods.get("heal_to_shield_advanced", 0.0)),
+			artifact["line2"] = "방어막 비례 이동 속도 %s까지\n힐 %s 전환, 방어막 최대 %s" % [
+				_fmt_percent_delta(mods.get("armor_sponge_move_speed_min", 1.0)),
+				_fmt_percent(mods.get("heal_to_shield_ratio", 0.0)),
+				_fmt_num(mods.get("heal_to_shield_cap", 0.0)),
 			]
 		"silent_core":
 			artifact["line1"] = "달리기 소음 탐지 차단"
-			artifact["line2"] = "%s\n(들키면 즉시 위험)" % _fmt_health_shield_delta(mods)
+			artifact["line2"] = "은신 중 첫 비근접 사격은 빗나감\n칼은 즉시 공격 가능"
 		"ghost_grass":
-			artifact["line1"] = "부쉬 이탈 후 %s초간 은신 유지" % _fmt_num(mods.get("ghost_grass_duration", 0.0))
-			artifact["line2"] = "시야 탐지 거리 %s  ·  발소리 반경 %s" % [
-				_fmt_percent_delta(mods.get("ghost_grass_stealth_mult", 1.0)),
+			artifact["line1"] = "부쉬 이탈 후 %s초 은신\n재사용 대기 %s초" % [
+				_fmt_num(mods.get("ghost_grass_duration", 0.0)),
+				_fmt_num(mods.get("ghost_grass_cooldown", 0.0)),
+			]
+			artifact["line2"] = "은신 중 총탄 피해 %s, 즉시 해제\n발소리 반경 %s" % [
+				_fmt_mult(mods.get("ghost_grass_incoming_damage_mult", 1.0)),
 				_fmt_percent_delta(mods.get("ghost_grass_footstep_mult", 1.0)),
 			]
 		"zone_battery":
@@ -130,7 +146,7 @@ static func _with_description(artifact: Dictionary) -> Dictionary:
 				_fmt_percent(mods.get("emergency_shell_hp_ratio", 0.0)),
 				_fmt_num(mods.get("emergency_shell_shield", 0.0)),
 			]
-			artifact["line2"] = "치명타 방지는 아님"
+			artifact["line2"] = "발동 후 모든 총알 소실\n치명타 방지는 아님"
 	return artifact
 
 static func _zone_battery_regen_for_difficulty(difficulty_index: int) -> float:

@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-28 (v1.12.6 Artifact visual readability)
+> Last updated: 2026-05-28 (v1.12.8 Artifact icon and balance pass)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.6: Artifact visual readability pass |
-| Next structural slice | v1.12.7: Artifact visual asset decision or next gameplay candidate |
+| Latest completed slice | v1.12.8: Artifact balance and penalty pass |
+| Next structural slice | v1.12.9: Bush/prop asset upgrade planning |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -167,16 +167,37 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Silent Core now trails opposite movement direction instead of stacking directly over the body.
 - Ghost Grass now uses a brighter lime/yellow-green wake with stronger blades so it does not blend into the default player tint.
 
+**v1.12.7 result**
+
+- Added `ArtifactIconResolver.gd` and normalized artifact icon ids as `artifact.<id>`.
+- Artifact selection cards now show small icon images.
+- The in-game artifact HUD indicator now uses an icon instead of text.
+- Existing runtime artifact PNGs cover Red Trigger, Armor Sponge, Silent Core, and Zone Battery; Ghost Grass and Escape Capsule use catalog fallback icons until generated PNGs are selected.
+- `tools/verify_artifact_selection_layout.gd` now checks icon TextureRects as well as card fit.
+
+**v1.12.8 result**
+
+- Renamed Emergency Shell presentation to **Escape Capsule** while keeping the stable internal id `emergency_shell`.
+- Escape Capsule now purges all ammo after its one-shot shield trigger.
+- Red Trigger now increases ranged firing reveal duration to 3.0s.
+- Armor Sponge now scales movement speed from normal at 0 shield to the previous 0.75 floor at max shield; heal conversion is capped at 50 shield and uses 50% of heal value.
+- Silent Core no longer halves max HP/shield; instead, the first unrevealed non-knife shot is forced to miss.
+- Ghost Grass is now a short-risk stealth: 1.25s after bush exit, 5.0s cooldown, and 1.5x gun damage plus immediate break if shot while active.
+- Zone Battery remains unchanged.
+
 ## Next Work
 
-1. **v1.12.7 — Artifact visual asset decision or next gameplay candidate**
-   - Decide whether any primitive artifact visual should be replaced by selected generated assets.
-   - If primitive visuals are acceptable for now, choose the next bounded gameplay artifact candidate.
-   - Keep asset integration scoped to selected runtime assets; leave external generation scratch untracked.
-2. **v1.10.x Item/Asset Readability Polish**
+1. **v1.12.9 — Bush/prop asset upgrade planning**
+   - Review selected generated prop/material candidates, starting with bush assets.
+   - Integrate only selected runtime assets through `assets/` and `data/asset_catalog.json`.
+   - Keep generated source workspaces untracked.
+2. **Artifact asset follow-up**
+   - Generate/select missing `artifact.ghost_grass` and `artifact.emergency_shell` PNGs when ready.
+   - Keep the `artifact.<id>` catalog path and resolver fallback structure.
+3. **v1.10.x Item/Asset Readability Polish**
    - Only narrow visual/readability patches.
    - Keep generated source assets untracked unless selected files are integrated into runtime assets.
-3. **Optional v1.11 reopen**
+4. **Optional v1.11 reopen**
    - Only for a concrete boundary bug or stale doc route.
    - Avoid new helper extraction based on line count alone.
 

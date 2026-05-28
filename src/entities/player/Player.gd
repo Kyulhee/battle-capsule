@@ -32,11 +32,13 @@ var active_artifact: Dictionary = {}
 var _artifact_mods: Dictionary = {
 	"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false, "red_trigger": false,
 	"shotgun_damage_mult": 1.0, "non_shotgun_damage_mult": 1.0,
-	"non_shotgun_spread": 1.0,
+	"non_shotgun_spread": 1.0, "red_trigger_reveal_duration": 2.0,
 	"move_speed_mult": 1.0,
 	"heal_mult": 1.0, "heal_to_shield": false,
+	"heal_to_shield_ratio": 1.0, "heal_to_shield_cap": 0.0,
+	"armor_sponge_move_speed_min": 1.0,
 	"shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
-	"footstep_radius_mult": 1.0,
+	"footstep_radius_mult": 1.0, "silent_core_first_shot_miss": false,
 	"zone_battery": false, "zone_battery_regen": 0.0, "zone_battery_range": 0.0,
 }
 var _artifact_label: Label = null
@@ -177,6 +179,11 @@ func set_in_bush(value: bool):
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
 	if source == "zone":
 		amount *= _artifact_mods.get("zone_dmg_mult", 1.0)
+	elif source == "gun" and _artifact_runtime.is_ghost_grass_active():
+		amount *= _artifact_runtime.get_ghost_grass_incoming_damage_mult()
+		_artifact_runtime.cancel_ghost_grass()
+		reveal(2.0)
+		show_status_flash("GHOST GRASS BROKEN", false)
 	super.take_damage(amount, source, weapon_type, source_node)
 	_apply_artifact_after_damage()
 	if Sfx: Sfx.play("hurt")
@@ -203,7 +210,7 @@ func _physics_process(delta):
 			_heal_regen = 0.0
 	slots.tick(delta)
 	handle_aiming(delta)
-	var effective_speed = stats.move_speed * (0.45 if is_crouching else 1.0) * _artifact_mods.get("move_speed_mult", 1.0)
+	var effective_speed = stats.move_speed * (0.45 if is_crouching else 1.0) * _artifact_move_speed_mult()
 
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	if input_dir == Vector2.ZERO:
@@ -248,7 +255,8 @@ func _physics_process(delta):
 					if wdata.weapon_type == "shotgun":
 						slots.consume_ammo()
 						_sync_stats_ammo()
-						for i in range(wdata.pellet_count): shoot_pellet(i)
+						var force_silent_miss = _should_silent_core_force_miss("shotgun")
+						for i in range(wdata.pellet_count): shoot_pellet(i, force_silent_miss)
 						fire_cooldown = wdata.fire_rate
 						_play_weapon_shot_sfx("shotgun")
 						_refresh_slot_hud()
@@ -278,6 +286,14 @@ func _physics_process(delta):
 		$MeshInstance3D.scale.y = 0.55 if is_crouching else 1.0
 		$MeshInstance3D.position.y = _mesh_origin_y - 0.225 if is_crouching else _mesh_origin_y
 	camera_pivot.global_position = global_position
+
+func _artifact_move_speed_mult() -> float:
+	if _artifact_mods.has("armor_sponge_move_speed_min") and float(_artifact_mods.get("armor_sponge_move_speed_min", 1.0)) < 1.0:
+		if stats.max_shield <= 0:
+			return 1.0
+		var shield_ratio = clampf(current_shield / stats.max_shield, 0.0, 1.0)
+		return lerpf(1.0, float(_artifact_mods.get("armor_sponge_move_speed_min", 1.0)), shield_ratio)
+	return float(_artifact_mods.get("move_speed_mult", 1.0))
 
 func _apply_cosmetic_tint() -> void:
 	if not has_node("MeshInstance3D"):
@@ -416,10 +432,15 @@ func handle_healing():
 
 	# Armor Sponge: 힐 → 쉴드 전환 모드 (HP 회복 없음)
 	if _artifact_mods.get("heal_to_shield", false):
-		if current_shield >= stats.max_shield: return
+		var shield_cap = minf(stats.max_shield, float(_artifact_mods.get("heal_to_shield_cap", stats.max_shield)))
+		if shield_cap <= 0.0:
+			shield_cap = stats.max_shield
+		if current_shield >= shield_cap: return
+		var conversion_ratio = maxf(0.0, float(_artifact_mods.get("heal_to_shield_ratio", 1.0)))
 		if stats.advanced_heals > 0:
 			stats.advanced_heals -= 1
-			receive_shield(_artifact_mods.get("heal_to_shield_advanced", 20.0) * scarcity_mult)
+			var advanced_base_amount = float(_artifact_mods.get("heal_to_shield_advanced_base", 60.0)) * (0.55 if is_hell else 1.0)
+			_receive_shield_capped(advanced_base_amount * conversion_ratio * scarcity_mult, shield_cap)
 			if Sfx: Sfx.play("heal", global_position)
 			if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 			if main and main.mission_tracker:
@@ -428,7 +449,8 @@ func handle_healing():
 			_refresh_slot_hud()
 		elif stats.heal_items > 0:
 			stats.heal_items -= 1
-			receive_shield(_artifact_mods.get("heal_to_shield_common", 10.0) * scarcity_mult)
+			var common_base_amount = float(_artifact_mods.get("heal_to_shield_common_base", 30.0)) * (0.40 if is_hell else 1.0)
+			_receive_shield_capped(common_base_amount * conversion_ratio * scarcity_mult, shield_cap)
 			if Sfx: Sfx.play("heal", global_position)
 			if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 			if main and main.mission_tracker: main.mission_tracker.on_pressure_heal_used()
@@ -710,20 +732,48 @@ func _drop_on_death():
 		ap2.global_position = global_position + Vector3(0, 0.3, 0.5)
 		ap2.init(adv_item)
 
-func shoot_pellet(_idx: int):
-	reveal()
+func _reveal_for_fire(weapon_type: String) -> void:
+	if weapon_type != "knife" and _artifact_runtime.is_ghost_grass_active():
+		_artifact_runtime.cancel_ghost_grass()
+	var duration := 2.0
+	if weapon_type != "knife" and _artifact_mods.get("red_trigger", false):
+		duration = float(_artifact_mods.get("red_trigger_reveal_duration", duration))
+	reveal(duration)
+
+
+func _should_silent_core_force_miss(weapon_type: String) -> bool:
+	if weapon_type == "knife":
+		return false
+	if not _artifact_mods.get("silent_core_first_shot_miss", false):
+		return false
+	return reveal_timer <= 0.0
+
+
+func _silent_core_miss_vector(target_vec: Vector3, attack_range: float) -> Vector3:
+	var miss_vec := target_vec
+	var side := -1.0 if randf() < 0.5 else 1.0
+	miss_vec.x = side * maxf(absf(miss_vec.x), maxf(6.0, attack_range * 0.16))
+	miss_vec.y += randf_range(-1.0, 1.0)
+	return miss_vec
+
+
+func shoot_pellet(_idx: int, force_miss: bool = false):
+	_reveal_for_fire("shotgun")
 	var wdata = slots.weapon_slots[slots.active_slot]
 	if not wdata: return
 	var spread = 2.0 * _artifact_mods.get("spread_mult", 1.0)
 	var pellet_target = Vector3(randf_range(-spread, spread), randf_range(-0.5, 0.5), -wdata.attack_range)
-	_internal_shoot(pellet_target)
+	if force_miss:
+		pellet_target = _silent_core_miss_vector(pellet_target, wdata.attack_range)
+	_internal_shoot(pellet_target, force_miss)
 
 func _shoot_with_slot(slot: int):
 	var wdata = slots.weapon_slots[slot]
 	if not wdata or slots.slot_ammo[slot] <= 0: return
+	var force_silent_miss = _should_silent_core_force_miss(wdata.weapon_type)
 	slots.consume_ammo()
 	_sync_stats_ammo()
-	reveal()
+	_reveal_for_fire(wdata.weapon_type)
 	var shot_vec = Vector3(0, 0, -wdata.attack_range)
 	if _artifact_mods.get("spread_all_shots", false):
 		# Red Trigger: extreme spray for non-shotgun (shotgun handled via shoot_pellet)
@@ -740,13 +790,15 @@ func _shoot_with_slot(slot: int):
 		var heat_spread = base + _shot_heat * (3.5 if is_ar else 2.3)
 		shot_vec.x = randf_range(-heat_spread, heat_spread)
 		shot_vec.y = randf_range(-heat_spread * 0.15, heat_spread * 0.15)
-	_internal_shoot(shot_vec)
+	if force_silent_miss:
+		shot_vec = _silent_core_miss_vector(shot_vec, wdata.attack_range)
+	_internal_shoot(shot_vec, force_silent_miss)
 	fire_cooldown = wdata.fire_rate
 	_play_weapon_shot_sfx(wdata.weapon_type)
 	_refresh_slot_hud()
 	_notify_mission_tracker_fire(wdata.weapon_type)
 
-func _internal_shoot(target_vec: Vector3):
+func _internal_shoot(target_vec: Vector3, force_miss: bool = false):
 	var flash = MUZZLE_FLASH_SCN.instantiate()
 	add_child(flash); flash.position = Vector3(0, 0.5, -0.5)
 	var wdata = slots.weapon_slots[slots.active_slot] if slots.active_slot >= 1 else null
@@ -763,7 +815,7 @@ func _internal_shoot(target_vec: Vector3):
 		var impact = IMPACT_EFFECT_SCN.instantiate()
 		get_tree().root.add_child(impact)
 		impact.global_position = impact_pos
-		if target.has_method("take_damage"):
+		if target.has_method("take_damage") and not force_miss:
 			var wtype = wdata.weapon_type if wdata else stats.weapon_type
 			var dmg: float
 			if _artifact_mods.get("red_trigger", false):
@@ -782,9 +834,13 @@ func _internal_shoot(target_vec: Vector3):
 func shoot():
 	# Legacy path kept for compatibility (bot AI calls Entity.shoot via super chain)
 	if stats.current_ammo <= 0: return
+	var force_silent_miss = _should_silent_core_force_miss(stats.weapon_type)
 	stats.current_ammo -= 1
-	reveal()
-	_internal_shoot(Vector3(0, 0, -stats.attack_range))
+	_reveal_for_fire(stats.weapon_type)
+	var shot_vec = Vector3(0, 0, -stats.attack_range)
+	if force_silent_miss:
+		shot_vec = _silent_core_miss_vector(shot_vec, stats.attack_range)
+	_internal_shoot(shot_vec, force_silent_miss)
 	fire_cooldown = stats.fire_rate
 	_play_weapon_shot_sfx(stats.weapon_type)
 
@@ -870,11 +926,13 @@ func apply_artifact(artifact: Dictionary):
 	_artifact_mods = {
 		"damage_mult": 1.0, "spread_mult": 1.0, "spread_all_shots": false, "red_trigger": false,
 		"shotgun_damage_mult": 1.0, "non_shotgun_damage_mult": 1.0,
-		"non_shotgun_spread": 1.0,
+		"non_shotgun_spread": 1.0, "red_trigger_reveal_duration": 2.0,
 		"move_speed_mult": 1.0,
 		"heal_mult": 1.0, "heal_to_shield": false,
+		"heal_to_shield_ratio": 1.0, "heal_to_shield_cap": 0.0,
+		"armor_sponge_move_speed_min": 1.0,
 		"shield_recv_mult": 1.0, "zone_dmg_mult": 1.0,
-		"footstep_radius_mult": 1.0,
+		"footstep_radius_mult": 1.0, "silent_core_first_shot_miss": false,
 		"zone_battery": false, "zone_battery_regen": 0.0, "zone_battery_range": 0.0,
 	}
 	for key in artifact.get("mods", {}):
@@ -920,17 +978,32 @@ func _apply_artifact_after_damage() -> void:
 	if result.is_empty():
 		return
 	receive_shield(float(result.get("shield", 0.0)))
+	if result.get("ammo_purge", false):
+		slots.clear_all_ammo()
+		_sync_stats_ammo()
+		_refresh_slot_hud()
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_artifact_event(String(result.get("event", "")))
 	_artifact_visuals.on_artifact_event(String(result.get("event", "")))
-	show_status_flash("%s +%d SHIELD" % [
+	var flash_text = "%s +%d SHIELD" % [
 		String(result.get("label", "Emergency Shell")),
 		int(roundf(float(result.get("shield", 0.0)))),
-	], true)
+	]
+	if result.get("ammo_purge", false):
+		flash_text += " / AMMO LOST"
+	show_status_flash(flash_text, true)
 
 func receive_shield(amount: float):
 	var mult = _artifact_mods.get("shield_recv_mult", 1.0)
 	current_shield = min(stats.max_shield, current_shield + amount * mult)
+	shield_changed.emit(current_shield, stats.max_shield)
+
+func _receive_shield_capped(amount: float, shield_cap: float) -> void:
+	var cap = clampf(shield_cap, 0.0, stats.max_shield)
+	if cap <= 0.0 or current_shield >= cap:
+		return
+	var mult = float(_artifact_mods.get("shield_recv_mult", 1.0))
+	current_shield = minf(cap, current_shield + amount * mult)
 	shield_changed.emit(current_shield, stats.max_shield)
 
 func get_footstep_radius_mult() -> float:
