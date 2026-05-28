@@ -6,8 +6,8 @@
 
 - Branch: `master`.
 - Current roadmap line: `v1.12-dev` Complex Artifacts, starting with bounded player-runtime effects.
-- Latest completed slice: `v1.12.6 — Artifact visual readability pass`.
-- Next structural slice: `v1.12.7 — Artifact visual asset decision or next gameplay candidate`.
+- Latest completed slice: `v1.12.8 — Artifact balance and penalty pass`.
+- Next structural slice: `v1.12.9 — Bush/prop asset upgrade planning`.
 - Release remains paused. Continue version-to-version development without GitHub releases unless the user explicitly asks for a release.
 - `asset_generator/` is an external-agent workspace and must remain untracked unless the user explicitly asks to integrate selected files.
 - `docs/ASSET_GENERATION_PROMPTS.md` is local-only prompt scratch material and must remain untracked unless the user explicitly asks otherwise.
@@ -15,7 +15,7 @@
 
 ## Exact Git State At Handoff
 
-After the v1.12.6 push, expected local status is only the external-generation scratch area:
+After the v1.12.8 push, expected local status is only the external-generation scratch area:
 
 ```text
 ?? asset_generator/
@@ -33,19 +33,20 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
 - `8cb41a7 feat: add ghost grass artifact` — added Ghost Grass, bush-exit runtime state, telemetry, docs, and smoke coverage.
 - `65e0956 feat: add artifact visual identities` — added `PlayerArtifactVisuals.gd`, `visual_id` catalog ids, all six first-pass artifact visuals, and visual smoke coverage.
 - `5de2a26 tune artifact visual readability` — added artifact visual gallery capture and tuned Silent Core/Ghost Grass readability.
+- `0368d99 integrate artifact icon display` — normalized `artifact.<id>` icon lookup, added artifact images to selection cards, and replaced the in-game artifact text marker with an icon.
+- `06feaf2 tune artifact balance penalties` — renamed Emergency Shell presentation to Escape Capsule, added ammo purge, Red Trigger reveal duration, Armor Sponge dynamic speed/capped heal conversion, Silent Core first-shot miss, and Ghost Grass cooldown/risk tuning.
 
 Older v1.11 slice detail is in `docs/devlog/v1.11.md` and the full snapshots under `docs/devlog/`.
 
 ## Current Discussion
 
-The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact. v1.12.2 implemented it. v1.12.3 verified the five-card selection row fits the default viewport and shortlisted Ghost Grass next. v1.12.4 implemented Ghost Grass as a bounded player-runtime artifact. v1.12.5 added artifact visual identity via a separate player visual helper. v1.12.6 added a visual gallery capture tool and tuned Silent Core/Ghost Grass readability.
+The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact. v1.12.2 implemented it. v1.12.3 verified the five-card selection row fits the default viewport and shortlisted Ghost Grass next. v1.12.4 implemented Ghost Grass as a bounded player-runtime artifact. v1.12.5 added artifact visual identity via a separate player visual helper. v1.12.6 added a visual gallery capture tool and tuned Silent Core/Ghost Grass readability. v1.12.7 integrated artifact icons into selection/HUD through `artifact.<id>` catalog lookup. v1.12.8 completed the requested balance pass.
 
 Recommended next slice:
 
-- `v1.12.7 — Artifact visual asset decision or next gameplay candidate`
-  - Use `.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_artifact_visual_gallery.gd` to regenerate `C:/tmp/artifact_visual_gallery.png`.
-  - Decide whether any primitive artifact visual should be replaced by selected generated assets.
-  - If primitives are acceptable for now, choose the next bounded gameplay artifact candidate.
+- `v1.12.9 — Bush/prop asset upgrade planning`
+  - Review selected generated prop/material candidates, starting with bush assets.
+  - Integrate only selected runtime assets through `assets/` and `data/asset_catalog.json`.
   - Keep gameplay state in `PlayerArtifactRuntime.gd`; keep visual nodes in `PlayerArtifactVisuals.gd`.
 
 ## Tooling Note
@@ -75,9 +76,9 @@ Good command pattern:
 
 ## Good Next Candidates
 
-- `v1.12.7 — Artifact visual asset decision or next gameplay candidate`
-  - Decide whether to integrate selected generated assets for artifact visuals or proceed with another bounded gameplay artifact.
-  - Candidate pool after that remains Pulse Scanner, Marked King, Overheat Barrel, or a smaller player-runtime artifact.
+- `v1.12.9 — Bush/prop asset upgrade planning`
+  - Review generated bush/prop candidates and decide which files should be promoted into runtime assets.
+  - Missing artifact PNGs remain `artifact.ghost_grass` and `artifact.emergency_shell`; generate/select them later under the same `artifact.<id>` convention.
 - Narrow v1.10.x item/asset readability polish
   - Only visual/readability patches; do not change expansion architecture.
 - Later v1.11 candidates:
