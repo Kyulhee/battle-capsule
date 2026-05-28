@@ -6,8 +6,8 @@
 
 - Branch: `master`.
 - Current roadmap line: `v1.12-dev` Complex Artifacts, starting with bounded player-runtime effects.
-- Latest completed slice: `v1.12.5 — Artifact visual identity foundation`.
-- Next structural slice: `v1.12.6 — Manual artifact visual/readability pass`.
+- Latest completed slice: `v1.12.6 — Artifact visual readability pass`.
+- Next structural slice: `v1.12.7 — Artifact visual asset decision or next gameplay candidate`.
 - Release remains paused. Continue version-to-version development without GitHub releases unless the user explicitly asks for a release.
 - `asset_generator/` is an external-agent workspace and must remain untracked unless the user explicitly asks to integrate selected files.
 - `docs/ASSET_GENERATION_PROMPTS.md` is local-only prompt scratch material and must remain untracked unless the user explicitly asks otherwise.
@@ -15,7 +15,7 @@
 
 ## Exact Git State At Handoff
 
-After the v1.12.5 push, expected local status is only the external-generation scratch area:
+After the v1.12.6 push, expected local status is only the external-generation scratch area:
 
 ```text
 ?? asset_generator/
@@ -32,19 +32,20 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
 - `9fb91d2 test: add artifact selection layout smoke` — verified the five-card artifact selection row and shortlisted Ghost Grass next.
 - `8cb41a7 feat: add ghost grass artifact` — added Ghost Grass, bush-exit runtime state, telemetry, docs, and smoke coverage.
 - `65e0956 feat: add artifact visual identities` — added `PlayerArtifactVisuals.gd`, `visual_id` catalog ids, all six first-pass artifact visuals, and visual smoke coverage.
+- `5de2a26 tune artifact visual readability` — added artifact visual gallery capture and tuned Silent Core/Ghost Grass readability.
 
 Older v1.11 slice detail is in `docs/devlog/v1.11.md` and the full snapshots under `docs/devlog/`.
 
 ## Current Discussion
 
-The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact. v1.12.2 implemented it. v1.12.3 verified the five-card selection row fits the default viewport and shortlisted Ghost Grass next. v1.12.4 implemented Ghost Grass as a bounded player-runtime artifact. v1.12.5 added artifact visual identity via a separate player visual helper.
+The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact. v1.12.2 implemented it. v1.12.3 verified the five-card selection row fits the default viewport and shortlisted Ghost Grass next. v1.12.4 implemented Ghost Grass as a bounded player-runtime artifact. v1.12.5 added artifact visual identity via a separate player visual helper. v1.12.6 added a visual gallery capture tool and tuned Silent Core/Ghost Grass readability.
 
 Recommended next slice:
 
-- `v1.12.6 — Manual artifact visual/readability pass`
-  - Check all six primitive artifact visuals in live play before tuning alpha, size, or duration.
-  - Current visuals: Red Trigger shotgun glow, Armor Sponge shield plates, Silent Core running afterimages, Zone Battery blue plasma, Emergency Shell back pack/rupture, Ghost Grass wake.
-  - Decide whether selected generated assets should replace any primitive placeholders.
+- `v1.12.7 — Artifact visual asset decision or next gameplay candidate`
+  - Use `.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_artifact_visual_gallery.gd` to regenerate `C:/tmp/artifact_visual_gallery.png`.
+  - Decide whether any primitive artifact visual should be replaced by selected generated assets.
+  - If primitives are acceptable for now, choose the next bounded gameplay artifact candidate.
   - Keep gameplay state in `PlayerArtifactRuntime.gd`; keep visual nodes in `PlayerArtifactVisuals.gd`.
 
 ## Tooling Note
@@ -74,8 +75,8 @@ Good command pattern:
 
 ## Good Next Candidates
 
-- `v1.12.6 — Manual artifact visual/readability pass`
-  - Check all six artifact visuals in live play before tuning or integrating generated assets.
+- `v1.12.7 — Artifact visual asset decision or next gameplay candidate`
+  - Decide whether to integrate selected generated assets for artifact visuals or proceed with another bounded gameplay artifact.
   - Candidate pool after that remains Pulse Scanner, Marked King, Overheat Barrel, or a smaller player-runtime artifact.
 - Narrow v1.10.x item/asset readability polish
   - Only visual/readability patches; do not change expansion architecture.
