@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-28 (v1.12.5 Artifact visual identity)
+> Last updated: 2026-05-28 (v1.12.6 Artifact visual readability)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.5: Artifact visual identity foundation |
-| Next structural slice | v1.12.6: Manual artifact visual/readability pass |
+| Latest completed slice | v1.12.6: Artifact visual readability pass |
+| Next structural slice | v1.12.7: Artifact visual asset decision or next gameplay candidate |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -160,12 +160,19 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
   - Ghost Grass: short green wake while active.
 - Gameplay state stays in `PlayerArtifactRuntime.gd`; visual nodes only read `Player.gd` context snapshots and artifact events.
 
+**v1.12.6 result**
+
+- Added `tools/capture_artifact_visual_gallery.gd` to render all current artifact visual states into `C:/tmp/artifact_visual_gallery.png`.
+- Reviewed the generated gallery and tuned the first-pass visuals for readability.
+- Silent Core now trails opposite movement direction instead of stacking directly over the body.
+- Ghost Grass now uses a brighter lime/yellow-green wake with stronger blades so it does not blend into the default player tint.
+
 ## Next Work
 
-1. **v1.12.6 — Manual artifact visual/readability pass**
-   - Check all six artifact visuals in live play before tuning strength, alpha, or size.
-   - Decide whether primitive visuals are enough or whether selected generated assets should be integrated.
-   - Choose the next gameplay artifact only after visual/readability regressions are cleared.
+1. **v1.12.7 — Artifact visual asset decision or next gameplay candidate**
+   - Decide whether any primitive artifact visual should be replaced by selected generated assets.
+   - If primitive visuals are acceptable for now, choose the next bounded gameplay artifact candidate.
+   - Keep asset integration scoped to selected runtime assets; leave external generation scratch untracked.
 2. **v1.10.x Item/Asset Readability Polish**
    - Only narrow visual/readability patches.
    - Keep generated source assets untracked unless selected files are integrated into runtime assets.

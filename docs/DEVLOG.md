@@ -6,6 +6,31 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 
 ---
 
+## v1.12.6-dev — 2026-05-28
+
+**Artifact visual readability pass**
+
+**src/entities/player/PlayerArtifactVisuals.gd / src/entities/player/Player.gd / tools / docs**
+
+- Added `tools/capture_artifact_visual_gallery.gd`, which renders all current artifact visual states into `C:/tmp/artifact_visual_gallery.png` for direct inspection.
+- Used the generated gallery to review the six first-pass visuals plus Emergency Shell ready/break states.
+- Tuned Silent Core so afterimages trail opposite the current movement direction instead of stacking over the player body.
+- Tuned Ghost Grass to use a brighter lime/yellow-green wake with stronger grass blades so it separates from the default green player tint.
+- Kept gameplay state ownership unchanged: `PlayerArtifactRuntime.gd` still owns trigger/timer state, while `PlayerArtifactVisuals.gd` only owns presentation nodes.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_visuals.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_artifact_visual_gallery.gd` 통과: `C:/tmp/artifact_visual_gallery.png` 생성.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_runtime.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_selection_layout.gd` 통과: 6 cards, 958px row width.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit` 통과. Expected AssetCatalog missing-path warning only.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=46.5s, stage=2, recover=32, disengage=15.
+- `python tools\simulate_matches.py 1 hell` 통과: duration=47.3s, stage=2, recover=58, disengage=26.
+
+---
+
 ## v1.12.5-dev — 2026-05-28
 
 **Artifact visual identity foundation**

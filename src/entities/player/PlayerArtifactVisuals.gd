@@ -4,10 +4,10 @@ extends RefCounted
 const ROOT_NAME := "ArtifactVisualRoot"
 const RED_TRIGGER_COLOR := Color(1.0, 0.08, 0.04, 0.42)
 const ARMOR_COLOR := Color(0.35, 0.62, 1.0, 0.78)
-const SILENT_COLOR := Color(0.60, 1.0, 0.72, 0.18)
+const SILENT_COLOR := Color(0.60, 1.0, 0.72, 0.12)
 const ZONE_BATTERY_COLOR := Color(0.18, 0.72, 1.0, 0.48)
 const EMERGENCY_COLOR := Color(1.0, 0.72, 0.28, 0.88)
-const GHOST_GRASS_COLOR := Color(0.48, 1.0, 0.42, 0.28)
+const GHOST_GRASS_COLOR := Color(0.78, 1.0, 0.24, 0.72)
 
 var _host: Node3D = null
 var _root: Node3D = null
@@ -130,13 +130,13 @@ func _create_armor_sponge() -> void:
 func _create_silent_core() -> void:
 	for i in range(3):
 		var mesh = CapsuleMesh.new()
-		mesh.radius = 0.48 + 0.05 * i
-		mesh.height = 1.85
+		mesh.radius = 0.44 + 0.035 * i
+		mesh.height = 1.82
 		var echo = _mesh_node(
 			"SilentEcho%d" % i,
 			mesh,
 			Color(SILENT_COLOR.r, SILENT_COLOR.g, SILENT_COLOR.b, maxf(0.05, SILENT_COLOR.a - 0.04 * i)),
-			Vector3(0.0, 1.0, 0.24 + 0.20 * i)
+			Vector3(0.0, 1.0, 0.26 + 0.26 * i)
 		)
 		echo.visible = false
 		_silent_echoes.append(echo)
@@ -198,23 +198,23 @@ func _create_emergency_shell() -> void:
 
 func _create_ghost_grass() -> void:
 	var torus = TorusMesh.new()
-	torus.inner_radius = 0.66
-	torus.outer_radius = 0.72
-	var ring = _mesh_node("GhostGrassWake", torus, GHOST_GRASS_COLOR, Vector3(0.0, 0.10, 0.0))
+	torus.inner_radius = 0.70
+	torus.outer_radius = 0.80
+	var ring = _mesh_node("GhostGrassWake", torus, GHOST_GRASS_COLOR, Vector3(0.0, 0.22, 0.0))
 	ring.visible = false
 	_ghost_nodes.append(ring)
-	for i in range(5):
+	for i in range(7):
 		var mote_mesh = CylinderMesh.new()
-		mote_mesh.top_radius = 0.025
-		mote_mesh.bottom_radius = 0.045
-		mote_mesh.height = 0.38
+		mote_mesh.top_radius = 0.03
+		mote_mesh.bottom_radius = 0.06
+		mote_mesh.height = 0.52
 		mote_mesh.radial_segments = 8
-		var angle = float(i) / 5.0 * PI * 2.0
+		var angle = float(i) / 7.0 * PI * 2.0
 		var mote = _mesh_node(
 			"GhostGrassMote%d" % i,
 			mote_mesh,
-			Color(GHOST_GRASS_COLOR.r, GHOST_GRASS_COLOR.g, GHOST_GRASS_COLOR.b, 0.34),
-			Vector3(cos(angle) * 0.58, 0.22, sin(angle) * 0.58)
+			Color(GHOST_GRASS_COLOR.r, GHOST_GRASS_COLOR.g, GHOST_GRASS_COLOR.b, 0.68),
+			Vector3(cos(angle) * 0.68, 0.42, sin(angle) * 0.68)
 		)
 		mote.visible = false
 		_ghost_nodes.append(mote)
@@ -250,6 +250,12 @@ func _update_armor_sponge(context: Dictionary) -> void:
 func _update_silent_core(context: Dictionary) -> void:
 	var moving = float(context.get("move_speed", 0.0)) > 3.5 and not bool(context.get("is_crouching", false))
 	var active = moving and not bool(context.get("is_dead", false))
+	var move_dir = Vector2(float(context.get("move_dir_x", 0.0)), float(context.get("move_dir_z", 0.0)))
+	if move_dir.length() <= 0.01:
+		move_dir = Vector2(0.0, 1.0)
+	else:
+		move_dir = move_dir.normalized()
+	var trail_dir = Vector3(-move_dir.x, 0.0, -move_dir.y)
 	for i in range(_silent_echoes.size()):
 		var echo = _silent_echoes[i]
 		if not _is_valid(echo):
@@ -257,8 +263,9 @@ func _update_silent_core(context: Dictionary) -> void:
 		echo.visible = active
 		if active:
 			var phase = _time * 5.0 - float(i) * 0.75
-			echo.position.z = 0.22 + 0.22 * float(i) + 0.04 * sin(phase)
-			_set_mesh_alpha(echo, maxf(0.04, 0.16 - 0.035 * i + 0.035 * sin(phase)))
+			echo.position = Vector3(0.0, 1.0, 0.0) + trail_dir * (0.26 + 0.24 * float(i))
+			echo.position.y += 0.03 * sin(phase)
+			_set_mesh_alpha(echo, maxf(0.035, 0.12 - 0.025 * i + 0.025 * sin(phase)))
 
 
 func _update_zone_battery(context: Dictionary) -> void:
@@ -295,8 +302,8 @@ func _update_ghost_grass(context: Dictionary) -> void:
 		if active:
 			node.rotation.y = _time * (1.2 + i * 0.08)
 			if i > 0:
-				node.position.y = 0.20 + 0.10 * sin(_time * 5.0 + i)
-			_set_mesh_alpha(node, 0.16 + 0.12 * sin(_time * 4.0 + i))
+				node.position.y = 0.38 + 0.14 * sin(_time * 5.0 + i)
+			_set_mesh_alpha(node, 0.38 + 0.20 * sin(_time * 4.0 + i))
 
 
 func _trigger_emergency_shell_break() -> void:

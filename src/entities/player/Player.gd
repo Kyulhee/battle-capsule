@@ -844,11 +844,15 @@ func _build_artifact_visual_context() -> Dictionary:
 	var shield_ratio = 0.0
 	if stats.max_shield > 0:
 		shield_ratio = clampf(current_shield / float(stats.max_shield), 0.0, 1.0)
+	var move_vec = Vector2(velocity.x, velocity.z)
+	var move_dir = move_vec.normalized() if move_vec.length() > 0.01 else Vector2.ZERO
 	return {
 		"is_dead": is_dead,
 		"is_crouching": is_crouching,
 		"weapon_type": _current_weapon_type(),
-		"move_speed": Vector2(velocity.x, velocity.z).length(),
+		"move_speed": move_vec.length(),
+		"move_dir_x": move_dir.x,
+		"move_dir_z": move_dir.y,
 		"shield_ratio": shield_ratio,
 		"zone_battery_near": bool(zone_battery_state.get("near", false)),
 		"zone_battery_charging": bool(zone_battery_state.get("charging", false)),
