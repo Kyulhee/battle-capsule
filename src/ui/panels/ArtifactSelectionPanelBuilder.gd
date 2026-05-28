@@ -1,12 +1,15 @@
 class_name ArtifactSelectionPanelBuilder
 extends RefCounted
 
+const ArtifactIconResolverScript = preload("res://src/ui/ArtifactIconResolver.gd")
+
 static func show(
 	parent: Control,
 	catalog: Array,
 	on_selected: Callable,
 	on_skip: Callable,
-	apply_button_style: Callable
+	apply_button_style: Callable,
+	asset_catalog = null
 ) -> Control:
 	if not parent:
 		return null
@@ -45,8 +48,9 @@ static func show(
 	card_row.add_theme_constant_override("separation", 14)
 	center.add_child(card_row)
 
+	var icon_resolver = ArtifactIconResolverScript.new()
 	for artifact in catalog:
-		card_row.add_child(_make_artifact_card(artifact, on_selected, apply_button_style))
+		card_row.add_child(_make_artifact_card(artifact, on_selected, apply_button_style, asset_catalog, icon_resolver))
 
 	var skip_btn = Button.new()
 	skip_btn.text = "선택하지 않기"
@@ -62,10 +66,12 @@ static func show(
 static func _make_artifact_card(
 	artifact: Dictionary,
 	on_selected: Callable,
-	apply_button_style: Callable
+	apply_button_style: Callable,
+	asset_catalog,
+	icon_resolver
 ) -> Control:
 	var panel = PanelContainer.new()
-	panel.custom_minimum_size = Vector2(148, 168)
+	panel.custom_minimum_size = Vector2(148, 212)
 	panel.add_theme_stylebox_override("panel", _card_style(artifact.get("color", Color.WHITE)))
 
 	var vbox = VBoxContainer.new()
@@ -80,6 +86,15 @@ static func _make_artifact_card(
 	name_lbl.add_theme_color_override("font_outline_color", Color.BLACK)
 	name_lbl.add_theme_constant_override("outline_size", 5)
 	vbox.add_child(name_lbl)
+
+	var icon = TextureRect.new()
+	icon.texture = icon_resolver.make_artifact_icon(artifact, asset_catalog, 44)
+	icon.custom_minimum_size = Vector2(44, 44)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.tooltip_text = String(artifact.get("label", ""))
+	vbox.add_child(icon)
 
 	vbox.add_child(HSeparator.new())
 

@@ -223,7 +223,8 @@ func _show_artifact_select():
 		catalog,
 		Callable(self, "_on_artifact_selected"),
 		Callable(self, "_on_artifact_skipped"),
-		Callable(self, "_apply_btn_style")
+		Callable(self, "_apply_btn_style"),
+		asset_catalog
 	)
 
 func _on_artifact_selected(artifact: Dictionary):

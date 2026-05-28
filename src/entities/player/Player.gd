@@ -40,6 +40,7 @@ var _artifact_mods: Dictionary = {
 	"zone_battery": false, "zone_battery_regen": 0.0, "zone_battery_range": 0.0,
 }
 var _artifact_label: Label = null
+var _artifact_icon: TextureRect = null
 
 # ── Shot Heat (AR / Pistol spread heat-up) ──────────────────────────────────
 var _shot_heat: float = 0.0
@@ -54,6 +55,7 @@ const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const ItemDisplayFormatterScript = preload("res://src/core/ItemDisplayFormatter.gd")
 const PlayerHudBuilderScript = preload("res://src/ui/player/PlayerHudBuilder.gd")
 const PlayerSlotHudRendererScript = preload("res://src/ui/player/PlayerSlotHudRenderer.gd")
+const ArtifactIconResolverScript = preload("res://src/ui/ArtifactIconResolver.gd")
 const PlayerWeaponIconResolverScript = preload("res://src/ui/player/PlayerWeaponIconResolver.gd")
 const PlayerTuningScript = preload("res://src/entities/player/PlayerTuning.gd")
 const PlayerOccluderFaderScript = preload("res://src/entities/player/PlayerOccluderFader.gd")
@@ -80,6 +82,7 @@ var slots = WeaponSlotManagerScript.new()
 var slot_panels: Array = []
 var slot_icon_rects: Array = []
 var slot_ammo_labels: Array = []
+var _artifact_icon_resolver = ArtifactIconResolverScript.new()
 var _weapon_icon_resolver = PlayerWeaponIconResolverScript.new()
 var _occluder_fader = PlayerOccluderFaderScript.new()
 var _artifact_runtime = PlayerArtifactRuntimeScript.new()
@@ -108,6 +111,7 @@ func _ready():
 	_hp_val = status_hud["hp_val"] as Label
 	_sh_bar = status_hud["sh_bar"] as ProgressBar
 	_sh_val = status_hud["sh_val"] as Label
+	_artifact_icon = status_hud["artifact_icon"] as TextureRect
 	_artifact_label = status_hud["artifact_label"] as Label
 	_stat_heal_val = status_hud["stat_heal_val"] as Label
 	_stat_mk_val = status_hud["stat_mk_val"] as Label
@@ -885,15 +889,24 @@ func apply_artifact(artifact: Dictionary):
 		stats.max_shield = int(stats.max_shield * mods["max_shield_mult"])
 		current_shield = min(current_shield, stats.max_shield)
 		shield_changed.emit(current_shield, stats.max_shield)
-	if _artifact_label:
-		if artifact.is_empty():
-			_artifact_label.visible = false
-		else:
-			_artifact_label.text = "[%s]" % artifact.get("label", "")
-			_artifact_label.modulate = artifact.get("color", Color.WHITE)
-			_artifact_label.visible = true
+	_update_artifact_hud_icon(artifact)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_artifact_selected(String(artifact.get("id", "none")))
+
+func _update_artifact_hud_icon(artifact: Dictionary) -> void:
+	if _artifact_label:
+		_artifact_label.visible = false
+	if _artifact_icon == null:
+		return
+	if artifact.is_empty():
+		_artifact_icon.visible = false
+		_artifact_icon.texture = null
+		_artifact_icon.tooltip_text = ""
+		return
+	_artifact_icon.texture = _artifact_icon_resolver.make_artifact_icon(artifact, _get_asset_catalog(), 30)
+	_artifact_icon.modulate = Color.WHITE
+	_artifact_icon.tooltip_text = String(artifact.get("label", ""))
+	_artifact_icon.visible = true
 
 func _apply_artifact_after_damage() -> void:
 	if is_dead:

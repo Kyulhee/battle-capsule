@@ -6,8 +6,11 @@ const VIEWPORT_WIDTH := 1280.0
 
 func _init():
 	var catalog_script = load("res://src/core/ArtifactCatalog.gd")
+	var asset_catalog_script = load("res://src/core/AssetCatalog.gd")
 	var builder_script = load("res://src/ui/panels/ArtifactSelectionPanelBuilder.gd")
 	var catalog = catalog_script.starting_artifacts(1)
+	var asset_catalog = asset_catalog_script.new()
+	asset_catalog.load_or_default()
 
 	var emergency_shell_found := false
 	for artifact in catalog:
@@ -26,7 +29,7 @@ func _init():
 	var parent = Control.new()
 	parent.custom_minimum_size = Vector2(VIEWPORT_WIDTH, 720.0)
 	root.add_child(parent)
-	var panel = builder_script.show(parent, catalog, Callable(), Callable(), Callable())
+	var panel = builder_script.show(parent, catalog, Callable(), Callable(), Callable(), asset_catalog)
 	if panel == null:
 		push_error("Artifact selection panel did not build.")
 		quit(1)
@@ -37,6 +40,17 @@ func _init():
 		push_error("Artifact card count mismatch: expected %d, got %d." % [catalog.size(), cards.size()])
 		quit(1)
 		return
+
+	var icons = panel.find_children("*", "TextureRect", true, false)
+	if icons.size() < catalog.size():
+		push_error("Artifact icon count mismatch: expected at least %d, got %d." % [catalog.size(), icons.size()])
+		quit(1)
+		return
+	for icon in icons:
+		if icon.texture == null:
+			push_error("Artifact icon TextureRect has no texture.")
+			quit(1)
+			return
 
 	var row = cards[0].get_parent()
 	var separation = float(row.get_theme_constant("separation"))
@@ -49,5 +63,5 @@ func _init():
 		quit(1)
 		return
 
-	print("Artifact selection layout smoke passed: %d cards, %.1fpx row width." % [cards.size(), total_width])
+	print("Artifact selection layout smoke passed: %d cards, %d icons, %.1fpx row width." % [cards.size(), icons.size(), total_width])
 	quit(0)

@@ -165,6 +165,15 @@ static func build_status_hud(root: Control) -> Dictionary:
 	stat_row.add_theme_constant_override("separation", 4)
 	hud_a.add_child(stat_row)
 
+	var artifact_icon = TextureRect.new()
+	artifact_icon.custom_minimum_size = Vector2(30, 30)
+	artifact_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	artifact_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	artifact_icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	artifact_icon.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	artifact_icon.visible = false
+	hud_a.add_child(artifact_icon)
+
 	var artifact_label = Label.new()
 	artifact_label.add_theme_font_size_override("font_size", 12)
 	artifact_label.add_theme_color_override("font_outline_color", Color.BLACK)
@@ -190,6 +199,7 @@ static func build_status_hud(root: Control) -> Dictionary:
 		"hp_val": hp_val,
 		"sh_bar": sh_bar,
 		"sh_val": sh_val,
+		"artifact_icon": artifact_icon,
 		"artifact_label": artifact_label,
 		"stat_heal_val": stat_heal_val,
 		"stat_mk_val": stat_mk_val,
