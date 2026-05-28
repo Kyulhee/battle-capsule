@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-05-11 (v1.10-dev 기준)
+> 마지막 업데이트: 2026-05-28 (v1.12-dev 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -46,6 +46,12 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 
 # v1.12 artifact selection layout smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_selection_layout.gd
+
+# v1.12 artifact balance catalog smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_balance.gd
+
+# v1.12 artifact selection screenshot capture (requires normal renderer; writes C:/tmp/artifact_selection_ui.png)
+./Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_artifact_selection_ui.gd
 
 # v1.12 artifact visual smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_visuals.gd

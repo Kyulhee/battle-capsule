@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-28 (v1.12.8 Artifact icon and balance pass)
+> Last updated: 2026-05-28 (v1.12.9 Artifact selection compact UI)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.8: Artifact balance and penalty pass |
-| Next structural slice | v1.12.9: Bush/prop asset upgrade planning |
+| Latest completed slice | v1.12.9: Artifact selection compact UI |
+| Next structural slice | v1.12.10: Bush/prop asset upgrade planning |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -170,10 +170,10 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 **v1.12.7 result**
 
 - Added `ArtifactIconResolver.gd` and normalized artifact icon ids as `artifact.<id>`.
-- Artifact selection cards now show small icon images.
+- Artifact selection UI gained artifact icon images.
 - The in-game artifact HUD indicator now uses an icon instead of text.
 - Existing runtime artifact PNGs cover Red Trigger, Armor Sponge, Silent Core, and Zone Battery; Ghost Grass and Escape Capsule use catalog fallback icons until generated PNGs are selected.
-- `tools/verify_artifact_selection_layout.gd` now checks icon TextureRects as well as card fit.
+- `tools/verify_artifact_selection_layout.gd` gained icon coverage.
 
 **v1.12.8 result**
 
@@ -185,9 +185,17 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Ghost Grass is now a short-risk stealth: 1.25s after bush exit, 5.0s cooldown, and 1.5x gun damage plus immediate break if shot while active.
 - Zone Battery remains unchanged.
 
+**v1.12.9 result**
+
+- Artifact selection now uses fixed circular icon options with one-line summaries instead of six long cards.
+- Selecting an option updates one stable detail card with the full generated `line1`/`line2` description and choose button.
+- `ArtifactCatalog.gd` now provides catalog-owned `summary` text per artifact, keeping short option text near the detailed artifact data.
+- Added `tools/capture_artifact_selection_ui.gd`, which renders `C:/tmp/artifact_selection_ui.png` for screenshot review.
+- `tools/verify_artifact_selection_layout.gd` now checks option count, button icons, default detail state, detail update on option press, and 1280px row fit.
+
 ## Next Work
 
-1. **v1.12.9 — Bush/prop asset upgrade planning**
+1. **v1.12.10 — Bush/prop asset upgrade planning**
    - Review selected generated prop/material candidates, starting with bush assets.
    - Integrate only selected runtime assets through `assets/` and `data/asset_catalog.json`.
    - Keep generated source workspaces untracked.

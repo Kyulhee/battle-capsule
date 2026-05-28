@@ -107,6 +107,7 @@ static func _with_description(artifact: Dictionary) -> Dictionary:
 	var mods = artifact.get("mods", {})
 	match artifact.get("id", ""):
 		"red_trigger":
+			artifact["summary"] = "샷건 강화, 노출 증가"
 			artifact["line1"] = "샷건 공격력 %s  ·  근접 피해 %s" % [
 				_fmt_mult(mods.get("shotgun_damage_mult", 1.0)),
 				_fmt_mult(mods.get("melee_damage_mult", 1.0)),
@@ -117,6 +118,7 @@ static func _with_description(artifact: Dictionary) -> Dictionary:
 				_fmt_num(mods.get("non_shotgun_spread", 0.0)),
 			]
 		"armor_sponge":
+			artifact["summary"] = "쉴드 탱킹, 무거워짐"
 			artifact["line1"] = "방어구 최대량 %s  ·  힐→방어막" % _fmt_mult(mods.get("max_shield_mult", 1.0))
 			artifact["line2"] = "방어막 비례 이동 속도 %s까지\n힐 %s 전환, 방어막 최대 %s" % [
 				_fmt_percent_delta(mods.get("armor_sponge_move_speed_min", 1.0)),
@@ -124,9 +126,11 @@ static func _with_description(artifact: Dictionary) -> Dictionary:
 				_fmt_num(mods.get("heal_to_shield_cap", 0.0)),
 			]
 		"silent_core":
+			artifact["summary"] = "무소음 이동, 첫 총격 불발"
 			artifact["line1"] = "달리기 소음 탐지 차단"
 			artifact["line2"] = "은신 중 첫 비근접 사격은 빗나감\n칼은 즉시 공격 가능"
 		"ghost_grass":
+			artifact["summary"] = "부쉬 이탈 은신, 피격 취약"
 			artifact["line1"] = "부쉬 이탈 후 %s초 은신\n재사용 대기 %s초" % [
 				_fmt_num(mods.get("ghost_grass_duration", 0.0)),
 				_fmt_num(mods.get("ghost_grass_cooldown", 0.0)),
@@ -136,12 +140,14 @@ static func _with_description(artifact: Dictionary) -> Dictionary:
 				_fmt_percent_delta(mods.get("ghost_grass_footstep_mult", 1.0)),
 			]
 		"zone_battery":
+			artifact["summary"] = "존 경계 충전, 힐 봉인"
 			artifact["line1"] = "자기장 내벽 %s 근방\n→ 방어막 +%s/초 자동 충전" % [
 				_fmt_meter(mods.get("zone_battery_range", 0.0)),
 				_fmt_num(mods.get("zone_battery_regen", 0.0)),
 			]
 			artifact["line2"] = "힐·방어구 사용 불가"
 		"emergency_shell":
+			artifact["summary"] = "위기 쉴드, 탄약 소실"
 			artifact["line1"] = "HP %s 이하 진입 시\n방어막 +%s 1회 생성" % [
 				_fmt_percent(mods.get("emergency_shell_hp_ratio", 0.0)),
 				_fmt_num(mods.get("emergency_shell_shield", 0.0)),
