@@ -195,9 +195,19 @@
       "tags": ["forest", "cover", "los_blocker"]
     },
     "forest.bush": {
-      "path": "",
+      "path": "res://assets/props/forest/bush_dense.glb",
       "fallback_shape": "bush_patch",
       "tags": ["forest", "stealth"]
+    },
+    "forest.bush.low": {
+      "path": "res://assets/props/forest/bush_low.glb",
+      "fallback_shape": "bush_patch",
+      "tags": ["forest", "stealth", "low"]
+    },
+    "forest.bush.dense": {
+      "path": "res://assets/props/forest/bush_dense.glb",
+      "fallback_shape": "bush_patch",
+      "tags": ["forest", "stealth", "dense"]
     },
     "forest.rock": {
       "path": "",

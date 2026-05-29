@@ -147,7 +147,7 @@ func _ready():
 		_load_map_spec()
 		if map_spec:
 			if world_builder:
-				world_builder.generate_world(map_spec)
+				world_builder.generate_world(map_spec, asset_catalog)
 			_register_loot_hotspots()
 		_setup_navigation()
 		start_game()
@@ -164,7 +164,7 @@ func _ready():
 		print("[MAIN] MapSpec loaded successfully: ", map_spec.metadata.get("name", "Unknown"))
 		if world_builder:
 			print("[MAIN] Generating world via WorldBuilder...")
-			world_builder.generate_world(map_spec)
+			world_builder.generate_world(map_spec, asset_catalog)
 		_setup_navigation()
 		_register_loot_hotspots()
 			

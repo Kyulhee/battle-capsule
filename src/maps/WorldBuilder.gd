@@ -4,9 +4,11 @@ class_name WorldBuilder
 @export var obstacle_scene: PackedScene = preload("res://src/environment/Obstacle.tscn")
 @export var bush_scene: PackedScene = preload("res://src/environment/Bush.tscn")
 
+const BUSH_PROP_ID := "forest.bush"
+
 var minimap_features: Array[Dictionary] = []
 
-func generate_world(spec: Resource):
+func generate_world(spec: Resource, asset_catalog = null):
 	# 1. Clear existing generated content if any
 	for child in get_children():
 		child.queue_free()
@@ -36,11 +38,7 @@ func generate_world(spec: Resource):
 			rot_deg += rng.randf_range(-o.get("rot_jitter", 0.0), o.get("rot_jitter", 0.0))
 
 		if type_str == "bush_patch":
-			var bush = bush_scene.instantiate()
-			obs_container.add_child(bush)
-			bush.global_position = Vector3(pos[0], 0, pos[1])
-			bush.rotation_degrees.y = rot_deg
-			bush.scale = Vector3(scale_vec[0], scale_vec[1], scale_vec[2])
+			_build_bush_patch(obs_container, pos, scale_vec, rot_deg, asset_catalog)
 			_record_minimap_feature(
 				type_str,
 				Vector2(pos[0], pos[1]),
@@ -57,7 +55,7 @@ func generate_world(spec: Resource):
 			obs_container.add_child(obs)
 			obs.add_to_group("occluder")
 			obs.add_to_group("obstacles")
-			obs.global_position = Vector3(pos[0], 0, pos[1])
+			obs.position = Vector3(pos[0], 0, pos[1])
 			obs.rotation_degrees.y = rot_deg
 			obs.scale = Vector3(scale_vec[0], scale_vec[1], scale_vec[2])
 
@@ -87,6 +85,84 @@ func generate_world(spec: Resource):
 
 func get_minimap_features() -> Array[Dictionary]:
 	return minimap_features.duplicate(true)
+
+func _build_bush_patch(parent: Node3D, pos: Array, scale_vec: Array, rot_deg: float, asset_catalog) -> void:
+	var bush = bush_scene.instantiate()
+	parent.add_child(bush)
+	bush.position = Vector3(pos[0], 0, pos[1])
+	bush.rotation_degrees.y = rot_deg
+	bush.scale = Vector3(scale_vec[0], scale_vec[1], scale_vec[2])
+	_apply_catalog_visual(bush, BUSH_PROP_ID, asset_catalog)
+
+func _apply_catalog_visual(root: Node, prop_id: String, asset_catalog) -> bool:
+	var visual := _instantiate_prop_visual(asset_catalog, prop_id)
+	if visual == null:
+		return false
+
+	visual.name = "CatalogPropVisual"
+	visual.position = Vector3.ZERO
+	visual.rotation = Vector3.ZERO
+	visual.scale = Vector3.ONE
+	visual.set_meta("prop_id", prop_id)
+	_disable_collision_nodes(visual)
+	root.add_child(visual)
+	_set_default_bush_mesh_visible(root, false)
+	return true
+
+func _instantiate_prop_visual(asset_catalog, prop_id: String) -> Node3D:
+	if asset_catalog == null or not asset_catalog.has_method("get_path"):
+		return null
+	var path := String(asset_catalog.get_path("props", prop_id, ""))
+	if path.is_empty():
+		return null
+	if not ResourceLoader.exists(path) and not FileAccess.file_exists(path):
+		push_warning("WorldBuilder: prop path missing for %s: %s" % [prop_id, path])
+		return null
+
+	if ResourceLoader.exists(path):
+		var resource = load(path)
+		if resource is PackedScene:
+			var instance = resource.instantiate()
+			if instance is Node3D:
+				return instance
+			if instance:
+				instance.queue_free()
+			push_warning("WorldBuilder: prop %s root is not Node3D." % prop_id)
+			return null
+
+	if path.get_extension().to_lower() == "glb":
+		return _instantiate_gltf_scene(path, prop_id)
+
+	push_warning("WorldBuilder: prop path is not loadable for %s: %s" % [prop_id, path])
+	return null
+
+func _instantiate_gltf_scene(path: String, prop_id: String) -> Node3D:
+	var document := GLTFDocument.new()
+	var state := GLTFState.new()
+	var error := document.append_from_file(path, state)
+	if error != OK:
+		push_warning("WorldBuilder: GLB import failed for %s at %s (error %d)." % [prop_id, path, error])
+		return null
+	var scene = document.generate_scene(state)
+	if scene is Node3D:
+		return scene
+	if scene:
+		scene.queue_free()
+	push_warning("WorldBuilder: GLB root is not Node3D for %s: %s" % [prop_id, path])
+	return null
+
+func _disable_collision_nodes(node: Node) -> void:
+	if node is CollisionObject3D:
+		var collision_object := node as CollisionObject3D
+		collision_object.collision_layer = 0
+		collision_object.collision_mask = 0
+	for child in node.get_children():
+		_disable_collision_nodes(child)
+
+func _set_default_bush_mesh_visible(root: Node, visible: bool) -> void:
+	var fallback_mesh := root.get_node_or_null("MeshInstance3D") as MeshInstance3D
+	if fallback_mesh:
+		fallback_mesh.visible = visible
 
 func _record_minimap_feature(
 	type_str: String,
