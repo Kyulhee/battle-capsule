@@ -50,10 +50,37 @@ func _run():
 	var catalog_visual := Node3D.new()
 	catalog_visual.name = "CatalogPropVisual"
 	bush.add_child(catalog_visual)
+	var catalog_mesh := MeshInstance3D.new()
+	catalog_mesh.name = "CatalogMesh"
+	catalog_mesh.mesh = BoxMesh.new()
+	catalog_visual.add_child(catalog_mesh)
 	bush.set_catalog_visual_active(true)
+	var catalog_material := catalog_mesh.get_surface_override_material(0) as StandardMaterial3D
+	if catalog_material == null:
+		_fail("Catalog bush visual did not receive a material override.")
+		return
+	if catalog_mesh.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_OFF:
+		_fail("Catalog bush visual still casts shadows.")
+		return
+	if catalog_material.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
+		_fail("Catalog bush visual should ignore local lights.")
+		return
+	if catalog_material.depth_draw_mode != BaseMaterial3D.DEPTH_DRAW_DISABLED:
+		_fail("Catalog bush visual should not depth-occlude pickup labels/icons.")
+		return
 	var feedback_mesh := bush.get_node_or_null("MeshInstance3D") as MeshInstance3D
 	if feedback_mesh == null:
 		_fail("Bush has no feedback mesh.")
+		return
+	var feedback_material := feedback_mesh.get_surface_override_material(0) as StandardMaterial3D
+	if feedback_material == null:
+		_fail("Bush feedback mesh did not receive a material override.")
+		return
+	if feedback_material.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
+		_fail("Bush feedback mesh should ignore local lights.")
+		return
+	if feedback_material.depth_draw_mode != BaseMaterial3D.DEPTH_DRAW_DISABLED:
+		_fail("Bush feedback mesh should not depth-occlude pickup labels/icons.")
 		return
 	if feedback_mesh.visible:
 		_fail("Catalog bush feedback mesh should start hidden until the player enters.")
@@ -76,6 +103,9 @@ func _run():
 	if float(entered_state.get("rustle_amount", 0.0)) <= 0.0:
 		_fail("Bush enter did not kick rustle feedback.")
 		return
+	if float(entered_state.get("catalog_visual_alpha", 1.0)) >= 0.5:
+		_fail("Catalog bush visual did not cut away while player was inside.")
+		return
 
 	bush._on_body_exited(player)
 	var exited_state: Dictionary = bush.debug_state()
@@ -87,6 +117,9 @@ func _run():
 		return
 	if bool(exited_state.get("feedback_visible", false)):
 		_fail("Bush feedback mesh stayed visible after player exit.")
+		return
+	if float(exited_state.get("catalog_visual_alpha", 0.0)) <= 0.5:
+		_fail("Catalog bush visual did not restore outside opacity after player exit.")
 		return
 
 	print("Bush interaction smoke passed.")

@@ -16,6 +16,8 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 - Same-bush actors ignore the target's bush concealment range penalty and use open-field perception dwell; outside viewers still cannot normally see unrevealed bush occupants beyond near range.
 - Catalog GLB bushes now restore player-entry feedback: the hidden cylinder mesh becomes a dark interior tint only while the player is inside.
 - Bushes now kick a small rustle animation on enter/exit and while occupied actors move through them.
+- Follow-up material pass makes catalog bush visuals and the interior tint unshaded, non-shadow-casting, and non-depth-writing so player/pickup lights do not wash out the foliage and pickup labels/icons are not hard-occluded by the bush mesh.
+- Catalog bush visuals now cut away from 0.66 alpha to 0.34 alpha while the player is inside the same bush.
 - Added `tools/verify_bush_interaction.gd` for same-bush visibility, outside concealment, reveal override, entry/exit state, tint visibility, and rustle feedback.
 
 **검증 결과**
@@ -24,7 +26,7 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 - `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_interaction.gd` 통과.
 - `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_prop_assets.gd` 통과.
 - `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit` 통과. Expected AssetCatalog missing-path warning only.
-- `python tools\simulate_matches.py 1 normal` 통과: duration=91.3s, stage=3, recover=37, disengage=16.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=81.6s, stage=3, recover=49, disengage=16.
 
 ---
 
