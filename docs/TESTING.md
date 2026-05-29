@@ -50,6 +50,9 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v1.12 artifact balance catalog smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_balance.gd
 
+# v1.12 artifact icon loading smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_icon_loading.gd
+
 # v1.12 artifact selection screenshot capture (requires normal renderer; writes C:/tmp/artifact_selection_ui.png)
 ./Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_artifact_selection_ui.gd
 

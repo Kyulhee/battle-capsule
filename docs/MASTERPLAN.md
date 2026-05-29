@@ -193,6 +193,7 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Added `tools/capture_artifact_selection_ui.gd`, which renders `C:/tmp/artifact_selection_ui.png` for screenshot review.
 - `tools/verify_artifact_selection_layout.gd` now checks option count, button icons, default detail state, detail update on option press, and 1280px row fit.
 - Follow-up patch centers option icons with embedded `TextureRect`s instead of `Button.icon`; generated source icons currently exist only for Red Trigger, Armor Sponge, Silent Core, and Zone Battery.
+- `ArtifactIconResolver.gd` now falls back to raw PNG `Image.load()` when Godot import metadata is absent, so the four existing runtime artifact PNGs load before procedural fallback icons.
 
 ## Next Work
 

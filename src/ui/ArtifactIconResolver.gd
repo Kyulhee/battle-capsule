@@ -1,6 +1,7 @@
 extends RefCounted
 
 var _cache: Dictionary = {}
+var _catalog_icon_cache: Dictionary = {}
 
 
 func make_artifact_icon(artifact: Dictionary, asset_catalog = null, size: int = 36) -> Texture2D:
@@ -25,12 +26,21 @@ func _load_catalog_texture(icon_id: String, asset_catalog) -> Texture2D:
 	if asset_catalog == null or not asset_catalog.has_method("get_path"):
 		return null
 	var path := String(asset_catalog.get_path("icons", icon_id, ""))
-	if path.is_empty() or not ResourceLoader.exists(path):
-		return null
-	var texture := load(path)
-	if texture is Texture2D:
-		return texture
-	return null
+	var cache_key := "%s:%s" % [icon_id, path]
+	if _catalog_icon_cache.has(cache_key):
+		return _catalog_icon_cache[cache_key] as Texture2D
+
+	var texture: Texture2D = null
+	if not path.is_empty() and ResourceLoader.exists(path):
+		var loaded := load(path)
+		if loaded is Texture2D:
+			texture = loaded
+	elif not path.is_empty() and FileAccess.file_exists(path):
+		var image := Image.new()
+		if image.load(path) == OK:
+			texture = ImageTexture.create_from_image(image)
+	_catalog_icon_cache[cache_key] = texture
+	return texture
 
 
 func _get_fallback_shape(icon_id: String, artifact_id: String, asset_catalog) -> String:
