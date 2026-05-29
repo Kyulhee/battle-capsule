@@ -46,9 +46,14 @@ func _init():
 		push_error("Artifact option button count mismatch: expected %d, got %d." % [catalog.size(), option_buttons.size()])
 		quit(1)
 		return
-	for button in option_buttons:
-		if button.icon == null:
-			push_error("Artifact option button has no icon texture.")
+	var option_icons = panel.find_children("ArtifactOptionIcon_*", "TextureRect", true, false)
+	if option_icons.size() != catalog.size():
+		push_error("Artifact option icon count mismatch: expected %d, got %d." % [catalog.size(), option_icons.size()])
+		quit(1)
+		return
+	for icon in option_icons:
+		if icon.texture == null:
+			push_error("Artifact option icon TextureRect has no texture.")
 			quit(1)
 			return
 

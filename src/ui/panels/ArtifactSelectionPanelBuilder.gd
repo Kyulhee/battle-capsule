@@ -108,8 +108,7 @@ static func _make_option_cell(
 	var circle = Button.new()
 	circle.name = "ArtifactOption_%s" % String(artifact.get("id", ""))
 	circle.text = ""
-	circle.icon = icon_resolver.make_artifact_icon(artifact, asset_catalog, 54)
-	circle.custom_minimum_size = Vector2(78, 78)
+	circle.custom_minimum_size = Vector2(82, 82)
 	circle.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	circle.tooltip_text = String(artifact.get("label", ""))
 	_apply_option_button_style(circle, color, false)
@@ -117,6 +116,22 @@ static func _make_option_cell(
 		on_focus.call(index)
 	)
 	cell.add_child(circle)
+
+	var icon_center = CenterContainer.new()
+	icon_center.name = "ArtifactOptionIconCenter_%s" % String(artifact.get("id", ""))
+	icon_center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	icon_center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	circle.add_child(icon_center)
+
+	var icon = TextureRect.new()
+	icon.name = "ArtifactOptionIcon_%s" % String(artifact.get("id", ""))
+	icon.texture = icon_resolver.make_artifact_icon(artifact, asset_catalog, 54)
+	icon.custom_minimum_size = Vector2(56, 56)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon_center.add_child(icon)
 
 	var name_lbl = Label.new()
 	name_lbl.text = String(artifact.get("label", ""))

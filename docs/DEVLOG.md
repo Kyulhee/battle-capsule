@@ -17,12 +17,13 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 - Selecting an artifact option now updates one stable detail card with the full `line1`/`line2` description and choose button.
 - Added `tools/capture_artifact_selection_ui.gd` for screenshot review at `C:/tmp/artifact_selection_ui.png`.
 - Updated artifact selection layout smoke to verify option count, button icons, default detail content, detail update after pressing an option, and 1280px row fit.
+- Follow-up patch centers circular option icons with embedded `TextureRect`s instead of `Button.icon`; generated artifact source icons currently exist for four artifacts only.
 
 **검증 결과**
 
 - `git diff --check` 통과.
 - `.\Godot_v4.6.2-stable_win64_console.exe --headless --script tools/verify_artifact_selection_layout.gd` 통과: 6 options, 936px row width.
-- `.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_artifact_selection_ui.gd` 통과: `C:/tmp/artifact_selection_ui.png` 생성 및 확인.
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_artifact_selection_ui.gd` 통과: `C:/tmp/artifact_selection_ui.png` 생성 및 중앙 정렬 확인.
 - `.\Godot_v4.6.2-stable_win64_console.exe --headless --quit` 통과. Expected AssetCatalog missing-path warning only.
 
 ---
