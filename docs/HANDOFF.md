@@ -36,12 +36,13 @@ Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the
 - `0368d99 integrate artifact icon display` — normalized `artifact.<id>` icon lookup, added artifact images to selection cards, and replaced the in-game artifact text marker with an icon.
 - `06feaf2 tune artifact balance penalties` — renamed Emergency Shell presentation to Escape Capsule, added ammo purge, Red Trigger reveal duration, Armor Sponge dynamic speed/capped heal conversion, Silent Core first-shot miss, and Ghost Grass cooldown/risk tuning.
 - `ede1b76 compact artifact selection UI` — compacted artifact selection into circular icon options plus one stable detail card.
+- `51c4bdd center artifact selection icons` — centered circular artifact option icons with embedded `TextureRect`s; generated source icons currently exist only for Red Trigger, Armor Sponge, Silent Core, and Zone Battery.
 
 Older v1.11 slice detail is in `docs/devlog/v1.11.md` and the full snapshots under `docs/devlog/`.
 
 ## Current Discussion
 
-The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact. v1.12.2 implemented it. v1.12.3 verified the five-card selection row fits the default viewport and shortlisted Ghost Grass next. v1.12.4 implemented Ghost Grass as a bounded player-runtime artifact. v1.12.5 added artifact visual identity via a separate player visual helper. v1.12.6 added a visual gallery capture tool and tuned Silent Core/Ghost Grass readability. v1.12.7 integrated artifact icons into selection/HUD through `artifact.<id>` catalog lookup. v1.12.8 completed the requested balance pass. v1.12.9 compacted artifact selection into circular icon options with one-line summaries and one stable detail card.
+The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact. v1.12.2 implemented it. v1.12.3 verified the five-card selection row fits the default viewport and shortlisted Ghost Grass next. v1.12.4 implemented Ghost Grass as a bounded player-runtime artifact. v1.12.5 added artifact visual identity via a separate player visual helper. v1.12.6 added a visual gallery capture tool and tuned Silent Core/Ghost Grass readability. v1.12.7 integrated artifact icons into selection/HUD through `artifact.<id>` catalog lookup. v1.12.8 completed the requested balance pass. v1.12.9 compacted artifact selection into circular icon options with one-line summaries and one stable detail card, then patched option icon centering after screenshot review.
 
 Recommended next slice:
 
