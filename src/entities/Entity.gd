@@ -26,6 +26,7 @@ var gravity = ProjectSettings.get_setting("physics/3d/default_gravity")
 var is_in_bush: bool = false
 var stealth_modifier: float = 1.0
 var reveal_timer: float = 0.0
+var _bush_areas: Array = []
 
 # Perception
 var perception_meters: Dictionary = {}
@@ -67,7 +68,7 @@ func _update_perception(delta):
 		if not perception_meters.has(target): perception_meters[target] = 0.0
 		var before = float(perception_meters[target])
 		if _can_i_see(target):
-			var dwell = target.stats.dwell_time_bush if target.is_in_bush else target.stats.dwell_time_open
+			var dwell := _perception_dwell_for(target)
 			perception_meters[target] = clamp(perception_meters[target] + (delta / dwell), 0.0, 1.0)
 		else:
 			var decay = stats.detection_decay if perception_meters[target] >= 1.0 else 0.2
@@ -84,9 +85,18 @@ func _can_i_see(target: Entity) -> bool:
 		var target_diff = (target.global_position - global_position).normalized()
 		if rad_to_deg(acos(clamp(my_forward.dot(target_diff), -1.0, 1.0))) > (stats.fov_angle / 2.0):
 			return false
-	var effective_range = stats.vision_range * target.stealth_modifier
+	var same_bush := is_in_same_bush_as(target)
+	if target.is_in_bush and not same_bush and target.reveal_timer <= 0.0 and dist > stats.fov_near_range:
+		return false
+	var target_stealth := 1.0 if same_bush or target.reveal_timer > 0.0 else target.stealth_modifier
+	var effective_range = stats.vision_range * target_stealth
 	if dist > effective_range and dist > stats.fov_near_range: return false
 	return has_los_to(target)
+
+func _perception_dwell_for(target: Entity) -> float:
+	if target.is_in_bush and not is_in_same_bush_as(target):
+		return target.stats.dwell_time_bush
+	return target.stats.dwell_time_open
 
 # Legacy compatibility: kept so old code calling can_be_seen_by still works
 func can_be_seen_by(viewer: Entity) -> bool:
@@ -139,6 +149,34 @@ func reveal(duration: float = 2.0):
 
 func set_in_bush(value: bool):
 	is_in_bush = value
+	if not value:
+		_bush_areas.clear()
+
+func enter_bush(bush_area: Node) -> void:
+	if bush_area != null and not _bush_areas.has(bush_area):
+		_bush_areas.append(bush_area)
+	set_in_bush(not _bush_areas.is_empty())
+
+func exit_bush(bush_area: Node) -> void:
+	if bush_area != null:
+		_bush_areas.erase(bush_area)
+	_clean_bush_areas()
+	set_in_bush(not _bush_areas.is_empty())
+
+func is_in_same_bush_as(target: Entity) -> bool:
+	if target == null or not is_in_bush or not target.is_in_bush:
+		return false
+	_clean_bush_areas()
+	target._clean_bush_areas()
+	for bush_area in _bush_areas:
+		if target._bush_areas.has(bush_area):
+			return true
+	return false
+
+func _clean_bush_areas() -> void:
+	for i in range(_bush_areas.size() - 1, -1, -1):
+		if not is_instance_valid(_bush_areas[i]):
+			_bush_areas.remove_at(i)
 
 # should_rotate: if false, velocity is applied but rotation is NOT changed.
 # Use this for strafing while manually controlling facing direction.

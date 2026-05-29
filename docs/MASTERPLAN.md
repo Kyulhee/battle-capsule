@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-30 (v1.12.10 Bush prop asset integration)
+> Last updated: 2026-05-30 (v1.12.10 Bush interaction follow-up)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,7 +9,7 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.10: Bush prop asset integration |
+| Latest completed slice | v1.12.10 follow-up: Bush interaction feedback |
 | Next structural slice | v1.12.11: Additional prop asset breadth pass |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
@@ -203,6 +203,8 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - `WorldBuilder` keeps `Bush.tscn` Area3D gameplay/collision as the authority, attaches catalog GLB visuals when available, disables imported visual collision nodes, and hides the old cylinder mesh only after a catalog visual loads.
 - Raw `.glb` files load through `GLTFDocument` when Godot import metadata is absent.
 - Added `tools/verify_bush_prop_assets.gd` to verify catalog paths, raw GLB mesh counts, and default-map bush replacement.
+- Follow-up patch tracks bush occupancy by Area instance, restores same-bush visibility semantics, keeps outside bush concealment strict by default, reuses the old cylinder mesh as player-entry dark tint, and adds rustle feedback on enter/exit/movement.
+- Added `tools/verify_bush_interaction.gd` to pin same-bush visibility, outside concealment, reveal override, entry/exit state, tint visibility, and rustle feedback.
 
 ## Next Work
 

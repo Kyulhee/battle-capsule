@@ -56,6 +56,9 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v1.12 bush prop asset loading smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_prop_assets.gd
 
+# v1.12 bush interaction smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_interaction.gd
+
 # v1.12 artifact selection screenshot capture (requires normal renderer; writes C:/tmp/artifact_selection_ui.png)
 ./Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_artifact_selection_ui.gd
 

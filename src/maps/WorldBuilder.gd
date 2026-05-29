@@ -106,7 +106,10 @@ func _apply_catalog_visual(root: Node, prop_id: String, asset_catalog) -> bool:
 	visual.set_meta("prop_id", prop_id)
 	_disable_collision_nodes(visual)
 	root.add_child(visual)
-	_set_default_bush_mesh_visible(root, false)
+	if root.has_method("set_catalog_visual_active"):
+		root.set_catalog_visual_active(true)
+	else:
+		_set_default_bush_mesh_visible(root, false)
 	return true
 
 func _instantiate_prop_visual(asset_catalog, prop_id: String) -> Node3D:

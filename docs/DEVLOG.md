@@ -6,6 +6,28 @@ Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX
 
 ---
 
+## v1.12.10 follow-up — 2026-05-30
+
+**Bush interaction feedback fix**
+
+**src/entities/Entity.gd / src/environment/Bush.gd / tools**
+
+- Bush occupancy is now tracked by bush Area instance instead of only a flat boolean, so overlapping/adjacent bushes do not incorrectly clear `is_in_bush` when leaving one volume.
+- Same-bush actors ignore the target's bush concealment range penalty and use open-field perception dwell; outside viewers still cannot normally see unrevealed bush occupants beyond near range.
+- Catalog GLB bushes now restore player-entry feedback: the hidden cylinder mesh becomes a dark interior tint only while the player is inside.
+- Bushes now kick a small rustle animation on enter/exit and while occupied actors move through them.
+- Added `tools/verify_bush_interaction.gd` for same-bush visibility, outside concealment, reveal override, entry/exit state, tint visibility, and rustle feedback.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_interaction.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_prop_assets.gd` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit` 통과. Expected AssetCatalog missing-path warning only.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=91.3s, stage=3, recover=37, disengage=16.
+
+---
+
 ## v1.12.10-dev — 2026-05-30
 
 **Bush prop asset integration**
