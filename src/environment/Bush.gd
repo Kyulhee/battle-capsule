@@ -2,8 +2,9 @@ extends Area3D
 
 const RUSTLE_DECAY := 2.4
 const RUSTLE_MOVEMENT_THRESHOLD := 0.65
-const CATALOG_VISUAL_ALPHA := 0.66
-const CATALOG_VISUAL_ALPHA_INSIDE := 0.34
+const CATALOG_VISUAL_ALPHA := 0.72
+const CATALOG_VISUAL_ALPHA_INSIDE := 0.24
+const INTERIOR_TINT_ALPHA := 0.18
 
 var _catalog_visual_active := false
 var _local_player_inside := false
@@ -72,18 +73,30 @@ func _configure_feedback_mesh() -> void:
 		return
 	if _catalog_visual_active:
 		_feedback_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_configure_feedback_mesh_as_floor_tint()
 		if _feedback_material == null:
 			_feedback_material = StandardMaterial3D.new()
 			_feedback_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 			_feedback_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-			_feedback_material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
-			_feedback_material.cull_mode = BaseMaterial3D.CULL_DISABLED
-			_feedback_material.albedo_color = Color(0.03, 0.07, 0.035, 0.42)
+			_feedback_material.albedo_color = Color(0.015, 0.04, 0.02, INTERIOR_TINT_ALPHA)
 			_feedback_material.roughness = 1.0
 		_feedback_mesh.set_surface_override_material(0, _feedback_material)
 		_update_feedback_visibility()
 	else:
 		_feedback_mesh.visible = true
+
+func _configure_feedback_mesh_as_floor_tint() -> void:
+	if _feedback_mesh == null:
+		return
+	if not _feedback_mesh.mesh is CylinderMesh:
+		return
+	var disc := CylinderMesh.new()
+	disc.top_radius = 1.5
+	disc.bottom_radius = 1.5
+	disc.height = 0.035
+	disc.radial_segments = 36
+	_feedback_mesh.mesh = disc
+	_feedback_mesh.position = Vector3(0.0, 0.045, 0.0)
 
 func _configure_catalog_visual() -> void:
 	_catalog_visual_materials.clear()
@@ -121,8 +134,6 @@ func _make_catalog_visual_material(mesh_instance: MeshInstance3D, surface_index:
 	material.resource_local_to_scene = true
 	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.cull_mode = BaseMaterial3D.CULL_DISABLED
-	material.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 	material.albedo_color = _normalize_catalog_color(source_color, CATALOG_VISUAL_ALPHA)
 	return material
 

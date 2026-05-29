@@ -65,8 +65,8 @@ func _run():
 	if catalog_material.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
 		_fail("Catalog bush visual should ignore local lights.")
 		return
-	if catalog_material.depth_draw_mode != BaseMaterial3D.DEPTH_DRAW_DISABLED:
-		_fail("Catalog bush visual should not depth-occlude pickup labels/icons.")
+	if catalog_material.depth_draw_mode == BaseMaterial3D.DEPTH_DRAW_DISABLED:
+		_fail("Catalog bush visual should keep depth testing to avoid transparent mesh overdraw artifacts.")
 		return
 	var feedback_mesh := bush.get_node_or_null("MeshInstance3D") as MeshInstance3D
 	if feedback_mesh == null:
@@ -79,8 +79,14 @@ func _run():
 	if feedback_material.shading_mode != BaseMaterial3D.SHADING_MODE_UNSHADED:
 		_fail("Bush feedback mesh should ignore local lights.")
 		return
-	if feedback_material.depth_draw_mode != BaseMaterial3D.DEPTH_DRAW_DISABLED:
-		_fail("Bush feedback mesh should not depth-occlude pickup labels/icons.")
+	if feedback_material.depth_draw_mode == BaseMaterial3D.DEPTH_DRAW_DISABLED:
+		_fail("Bush feedback mesh should keep depth testing to avoid full-screen tint artifacts.")
+		return
+	if not feedback_mesh.mesh is CylinderMesh:
+		_fail("Bush feedback mesh should stay a low floor tint cylinder.")
+		return
+	if (feedback_mesh.mesh as CylinderMesh).height > 0.1:
+		_fail("Bush feedback mesh should be a thin floor tint, not a tall dome.")
 		return
 	if feedback_mesh.visible:
 		_fail("Catalog bush feedback mesh should start hidden until the player enters.")
@@ -103,7 +109,7 @@ func _run():
 	if float(entered_state.get("rustle_amount", 0.0)) <= 0.0:
 		_fail("Bush enter did not kick rustle feedback.")
 		return
-	if float(entered_state.get("catalog_visual_alpha", 1.0)) >= 0.5:
+	if float(entered_state.get("catalog_visual_alpha", 1.0)) >= 0.3:
 		_fail("Catalog bush visual did not cut away while player was inside.")
 		return
 
