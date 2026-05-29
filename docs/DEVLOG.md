@@ -1,8 +1,30 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-28. This is the compressed active log. Full pre-compression history is preserved in [devlog/DEVLOG_full_2026-05-26.md](devlog/DEVLOG_full_2026-05-26.md); older full history remains in [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md).
+> Last updated: 2026-05-30. This is the compressed active log. Full pre-compression history is preserved in [devlog/DEVLOG_full_2026-05-26.md](devlog/DEVLOG_full_2026-05-26.md); older full history remains in [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md).
 
 Do not load full devlog snapshots by default. Use [devlog/INDEX.md](devlog/INDEX.md) and per-version summaries unless exact historical detail is needed.
+
+---
+
+## v1.12.10-dev — 2026-05-30
+
+**Bush prop asset integration**
+
+**assets/props/forest / data/asset_catalog.json / src/maps/WorldBuilder.gd / tools**
+
+- Promoted selected generated bush assets into runtime assets: `bush_dense.glb` and `bush_low.glb`.
+- Added `forest.bush`, `forest.bush.low`, and `forest.bush.dense` prop paths to `AssetCatalog`.
+- `Main.gd` now passes `asset_catalog` into `WorldBuilder.generate_world()`.
+- `WorldBuilder` keeps `Bush.tscn` Area3D gameplay/collision intact, attaches catalog GLB visuals when available, disables imported visual collision nodes, and hides the old cylinder mesh only after a catalog visual loads.
+- Added raw GLB loading through `GLTFDocument` so these assets work without Godot `.import` metadata, matching the prior raw-PNG asset integration constraint.
+- Added `tools/verify_bush_prop_assets.gd` to check catalog paths, raw GLB mesh counts, and default map bush visual replacement.
+
+**검증 결과**
+
+- `git diff --check` 통과.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_prop_assets.gd` 통과: 7 default-map bushes use catalog GLB visuals.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit` 통과. Expected AssetCatalog missing-path warning only.
+- `python tools\simulate_matches.py 1 normal` 통과: duration=73.4s, stage=3, recover=20, disengage=18.
 
 ---
 

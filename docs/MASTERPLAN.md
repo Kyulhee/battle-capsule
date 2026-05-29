@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-28 (v1.12.9 Artifact selection compact UI)
+> Last updated: 2026-05-30 (v1.12.10 Bush prop asset integration)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.9: Artifact selection compact UI |
-| Next structural slice | v1.12.10: Bush/prop asset upgrade planning |
+| Latest completed slice | v1.12.10: Bush prop asset integration |
+| Next structural slice | v1.12.11: Additional prop asset breadth pass |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -195,11 +195,21 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Follow-up patch centers option icons with embedded `TextureRect`s instead of `Button.icon`; generated source icons currently exist only for Red Trigger, Armor Sponge, Silent Core, and Zone Battery.
 - `ArtifactIconResolver.gd` now falls back to raw PNG `Image.load()` when Godot import metadata is absent, so the four existing runtime artifact PNGs load before procedural fallback icons.
 
+**v1.12.10 result**
+
+- Promoted selected generated bush GLBs into runtime assets: `assets/props/forest/bush_dense.glb` and `assets/props/forest/bush_low.glb`.
+- Added `forest.bush`, `forest.bush.low`, and `forest.bush.dense` paths under `data/asset_catalog.json`.
+- `Main.gd` now passes `asset_catalog` into `WorldBuilder.generate_world()`.
+- `WorldBuilder` keeps `Bush.tscn` Area3D gameplay/collision as the authority, attaches catalog GLB visuals when available, disables imported visual collision nodes, and hides the old cylinder mesh only after a catalog visual loads.
+- Raw `.glb` files load through `GLTFDocument` when Godot import metadata is absent.
+- Added `tools/verify_bush_prop_assets.gd` to verify catalog paths, raw GLB mesh counts, and default-map bush replacement.
+
 ## Next Work
 
-1. **v1.12.10 — Bush/prop asset upgrade planning**
-   - Review selected generated prop/material candidates, starting with bush assets.
+1. **v1.12.11 — Additional prop asset breadth pass**
+   - Review tree, rock, log, and landmark candidates from generated output.
    - Integrate only selected runtime assets through `assets/` and `data/asset_catalog.json`.
+   - Keep gameplay collision/cover authority explicit instead of trusting imported mesh collision.
    - Keep generated source workspaces untracked.
 2. **Artifact asset follow-up**
    - Generate/select missing `artifact.ghost_grass` and `artifact.emergency_shell` PNGs when ready.
