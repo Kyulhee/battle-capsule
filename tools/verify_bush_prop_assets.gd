@@ -70,6 +70,10 @@ func _init():
 		if String(visual.get_meta("prop_id", "")) != "forest.bush":
 			_fail("Generated bush visual prop_id mismatch.")
 			return
+		var state: Dictionary = bush.debug_state()
+		if int(state.get("rustle_chunk_count", 0)) <= 0:
+			_fail("Generated catalog bush did not register rustle chunks.")
+			return
 
 	print("Bush prop asset smoke passed: %d bushes use catalog GLB visuals." % bushes.size())
 	quit(0)

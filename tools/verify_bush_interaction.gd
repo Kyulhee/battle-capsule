@@ -91,6 +91,10 @@ func _run():
 	if feedback_mesh.visible:
 		_fail("Catalog bush feedback mesh should start hidden until the player enters.")
 		return
+	var initial_state: Dictionary = bush.debug_state()
+	if int(initial_state.get("rustle_chunk_count", 0)) != 1:
+		_fail("Catalog bush visual should register one rustle chunk for the test mesh.")
+		return
 
 	var player = _make_entity(entity_script, stats_script, "Player", bush.global_position)
 	player.add_to_group("players")
@@ -109,8 +113,20 @@ func _run():
 	if float(entered_state.get("rustle_amount", 0.0)) <= 0.0:
 		_fail("Bush enter did not kick rustle feedback.")
 		return
+	if int(entered_state.get("active_rustle_chunks", 0)) <= 0:
+		_fail("Bush enter did not activate a local rustle chunk.")
+		return
 	if float(entered_state.get("catalog_visual_alpha", 1.0)) >= 0.3:
 		_fail("Catalog bush visual did not cut away while player was inside.")
+		return
+	var visual_root_before := catalog_visual.transform
+	var mesh_before := catalog_mesh.transform
+	bush._process(0.1)
+	if catalog_visual.transform != visual_root_before:
+		_fail("Bush rustle moved the whole catalog visual root instead of one chunk.")
+		return
+	if catalog_mesh.transform == mesh_before:
+		_fail("Bush rustle did not move the nearest catalog visual chunk.")
 		return
 
 	bush._on_body_exited(player)

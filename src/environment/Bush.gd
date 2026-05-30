@@ -2,6 +2,12 @@ extends Area3D
 
 const RUSTLE_DECAY := 2.4
 const RUSTLE_MOVEMENT_THRESHOLD := 0.65
+const RUSTLE_MOVE_INTERVAL := 0.16
+const RUSTLE_CHUNK_DURATION := 0.44
+const RUSTLE_CHUNK_WAVE_DELAY := 0.045
+const RUSTLE_ENTER_CHUNKS := 3
+const RUSTLE_MOVE_CHUNKS := 2
+const RUSTLE_EXIT_CHUNKS := 2
 const CATALOG_VISUAL_ALPHA := 0.72
 const CATALOG_VISUAL_ALPHA_INSIDE := 0.24
 const INTERIOR_TINT_ALPHA := 0.18
@@ -10,8 +16,10 @@ var _catalog_visual_active := false
 var _local_player_inside := false
 var _occupants: Array = []
 var _rustle_amount := 0.0
+var _rustle_move_cooldown := 0.0
 var _feedback_material: StandardMaterial3D = null
 var _catalog_visual_materials: Array = []
+var _rustle_chunks: Array[Dictionary] = []
 
 @onready var _feedback_mesh := $MeshInstance3D as MeshInstance3D
 
@@ -30,7 +38,7 @@ func _on_body_entered(body):
 	elif body.has_method("set_in_bush"):
 		body.set_in_bush(true)
 	_update_local_player_inside()
-	_kick_rustle(1.0)
+	_kick_rustle(1.0, body.global_position, RUSTLE_ENTER_CHUNKS)
 
 func _on_body_exited(body):
 	_occupants.erase(body)
@@ -39,7 +47,7 @@ func _on_body_exited(body):
 	elif body.has_method("set_in_bush"):
 		body.set_in_bush(false)
 	_update_local_player_inside()
-	_kick_rustle(0.65)
+	_kick_rustle(0.65, body.global_position, RUSTLE_EXIT_CHUNKS)
 
 func set_catalog_visual_active(active: bool) -> void:
 	_catalog_visual_active = active
@@ -56,13 +64,18 @@ func debug_state() -> Dictionary:
 		"feedback_visible": _feedback_mesh != null and _feedback_mesh.visible,
 		"catalog_visual_alpha": _catalog_visual_alpha(),
 		"catalog_material_count": _catalog_visual_materials.size(),
+		"rustle_chunk_count": _rustle_chunks.size(),
+		"active_rustle_chunks": _active_rustle_chunk_count(),
 	}
 
 func _process(delta: float) -> void:
 	_clean_occupants()
+	_rustle_move_cooldown = maxf(0.0, _rustle_move_cooldown - delta)
 	for body in _occupants:
 		if body is CharacterBody3D and body.velocity.length() > RUSTLE_MOVEMENT_THRESHOLD:
-			_kick_rustle(0.45)
+			if _rustle_move_cooldown <= 0.0:
+				_kick_rustle(0.45, body.global_position, RUSTLE_MOVE_CHUNKS)
+				_rustle_move_cooldown = RUSTLE_MOVE_INTERVAL
 			break
 	_apply_rustle(delta)
 
@@ -100,6 +113,7 @@ func _configure_feedback_mesh_as_floor_tint() -> void:
 
 func _configure_catalog_visual() -> void:
 	_catalog_visual_materials.clear()
+	_rustle_chunks.clear()
 	var catalog_visual := _get_catalog_visual()
 	if catalog_visual == null:
 		return
@@ -115,8 +129,20 @@ func _configure_catalog_visual_node(node: Node) -> void:
 				var material := _make_catalog_visual_material(mesh_instance, surface_index)
 				mesh_instance.set_surface_override_material(surface_index, material)
 				_catalog_visual_materials.append(material)
+		_register_rustle_chunk(mesh_instance)
 	for child in node.get_children():
 		_configure_catalog_visual_node(child)
+
+func _register_rustle_chunk(mesh_instance: MeshInstance3D) -> void:
+	_rustle_chunks.append({
+		"node": mesh_instance,
+		"base_transform": mesh_instance.transform,
+		"amount": 0.0,
+		"time": 0.0,
+		"delay": 0.0,
+		"duration": RUSTLE_CHUNK_DURATION,
+		"phase": float(_rustle_chunks.size()) * 0.71 + float(get_instance_id() % 19),
+	})
 
 func _make_catalog_visual_material(mesh_instance: MeshInstance3D, surface_index: int) -> StandardMaterial3D:
 	var source: Material = mesh_instance.get_surface_override_material(surface_index)
@@ -179,10 +205,18 @@ func _clean_occupants() -> void:
 		if not is_instance_valid(_occupants[i]):
 			_occupants.remove_at(i)
 
-func _kick_rustle(amount: float) -> void:
+func _kick_rustle(amount: float, world_pos: Vector3, max_chunks: int) -> void:
 	_rustle_amount = clampf(maxf(_rustle_amount, amount), 0.0, 1.0)
+	if not _rustle_chunks.is_empty():
+		var indexes := _nearest_rustle_chunk_indexes(world_pos, max_chunks)
+		for order in range(indexes.size()):
+			_activate_rustle_chunk(indexes[order], amount, order)
 
 func _apply_rustle(delta: float) -> void:
+	if not _rustle_chunks.is_empty():
+		_apply_chunk_rustle(delta)
+		return
+
 	var visual := _get_rustle_visual()
 	if visual == null:
 		return
@@ -199,6 +233,92 @@ func _apply_rustle(delta: float) -> void:
 	visual.rotation.x = cos(phase * 0.7) * _rustle_amount * 0.035
 	visual.rotation.z = sway * 0.035
 	_rustle_amount = move_toward(_rustle_amount, 0.0, delta * RUSTLE_DECAY)
+
+func _nearest_rustle_chunk_indexes(world_pos: Vector3, max_chunks: int) -> Array[int]:
+	var candidates: Array[Dictionary] = []
+	for i in range(_rustle_chunks.size()):
+		var chunk := _rustle_chunks[i]
+		var node = chunk.get("node")
+		if not is_instance_valid(node):
+			continue
+		var mesh_node := node as Node3D
+		candidates.append({
+			"index": i,
+			"dist": mesh_node.global_position.distance_squared_to(world_pos),
+		})
+	candidates.sort_custom(func(a: Dictionary, b: Dictionary): return float(a.get("dist", 0.0)) < float(b.get("dist", 0.0)))
+
+	var result: Array[int] = []
+	var count = mini(max_chunks, candidates.size())
+	for i in range(count):
+		result.append(int(candidates[i].get("index", 0)))
+	return result
+
+func _activate_rustle_chunk(index: int, amount: float, order: int) -> void:
+	if index < 0 or index >= _rustle_chunks.size():
+		return
+	var chunk := _rustle_chunks[index]
+	var falloff = lerpf(1.0, 0.58, clampf(float(order) / maxf(1.0, float(RUSTLE_ENTER_CHUNKS - 1)), 0.0, 1.0))
+	chunk["amount"] = clampf(maxf(float(chunk.get("amount", 0.0)), amount * falloff), 0.0, 1.0)
+	chunk["time"] = 0.0
+	chunk["delay"] = float(order) * RUSTLE_CHUNK_WAVE_DELAY
+	chunk["duration"] = RUSTLE_CHUNK_DURATION + amount * 0.08
+	_rustle_chunks[index] = chunk
+
+func _apply_chunk_rustle(delta: float) -> void:
+	for i in range(_rustle_chunks.size()):
+		var chunk := _rustle_chunks[i]
+		var node = chunk.get("node")
+		if not is_instance_valid(node):
+			continue
+		var mesh_node := node as Node3D
+		var base_transform: Transform3D = chunk.get("base_transform", Transform3D.IDENTITY)
+		var amount := float(chunk.get("amount", 0.0))
+		if amount <= 0.001:
+			mesh_node.transform = base_transform
+			continue
+
+		var delay := maxf(0.0, float(chunk.get("delay", 0.0)) - delta)
+		if delay > 0.0:
+			chunk["delay"] = delay
+			_rustle_chunks[i] = chunk
+			continue
+
+		var duration := maxf(0.001, float(chunk.get("duration", RUSTLE_CHUNK_DURATION)))
+		var time := float(chunk.get("time", 0.0)) + delta
+		var progress := clampf(time / duration, 0.0, 1.0)
+		var envelope := sin(progress * PI) * (1.0 - progress * 0.18)
+		var active_amount := amount * maxf(0.0, envelope)
+		var phase := Time.get_ticks_msec() * 0.018 + float(chunk.get("phase", 0.0))
+		var sway := sin(phase) * active_amount
+		var lift: float = abs(cos(phase * 0.8)) * active_amount
+
+		var next_transform := base_transform
+		next_transform.origin += Vector3(sway * 0.03, lift * 0.06, cos(phase * 0.7) * active_amount * 0.022)
+		next_transform.basis = base_transform.basis * Basis.from_euler(Vector3(
+			cos(phase * 0.8) * active_amount * 0.035,
+			sin(phase * 0.5) * active_amount * 0.018,
+			sway * 0.042
+		))
+		mesh_node.transform = next_transform
+
+		if progress >= 1.0:
+			chunk["amount"] = 0.0
+			chunk["time"] = 0.0
+			chunk["delay"] = 0.0
+			mesh_node.transform = base_transform
+		else:
+			chunk["time"] = time
+		_rustle_chunks[i] = chunk
+
+	_rustle_amount = move_toward(_rustle_amount, 0.0, delta * RUSTLE_DECAY)
+
+func _active_rustle_chunk_count() -> int:
+	var count := 0
+	for chunk in _rustle_chunks:
+		if float(chunk.get("amount", 0.0)) > 0.001:
+			count += 1
+	return count
 
 func _get_rustle_visual() -> Node3D:
 	var catalog_visual := _get_catalog_visual()
