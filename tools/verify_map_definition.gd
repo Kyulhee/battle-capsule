@@ -35,6 +35,24 @@ func _init():
 	if float(summary.get("spawn_radius", 0.0)) != 45.0:
 		_fail("Legacy MapDefinition did not inherit spawn_radius from GameConfig.")
 		return
+	if int(summary.get("scale_preset_count", 0)) != 2:
+		_fail("Legacy MapDefinition did not load scale presets.")
+		return
+	var medium_summary: Dictionary = legacy_definition.summary(game_config, "medium_24")
+	if int(medium_summary.get("bot_count", 0)) != 24:
+		_fail("Legacy MapDefinition did not apply medium_24 bot_count preset.")
+		return
+	if int(medium_summary.get("loot_count", 0)) != 72:
+		_fail("Legacy MapDefinition did not apply medium_24 loot_count preset.")
+		return
+	if float(medium_summary.get("spawn_radius", 0.0)) != 52.0:
+		_fail("Legacy MapDefinition did not apply medium_24 spawn_radius preset.")
+		return
+	var medium_runtime: Dictionary = legacy_definition.get_runtime_tuning(game_config, {}, "medium_24")
+	var medium_loot: Dictionary = medium_runtime.get("loot", {})
+	if absf(float(medium_loot.get("hotspot_density_mult", 0.0)) - 1.08) > 0.001:
+		_fail("Legacy MapDefinition did not apply medium_24 hotspot_density_mult preset.")
+		return
 
 	var parsed := _parse_json(json_text)
 	if parsed.is_empty():
@@ -71,6 +89,10 @@ func _init():
 		return
 	if int(wrapper_summary.get("scale_preset_count", 0)) != 2:
 		_fail("Wrapper MapDefinition did not preserve scale presets.")
+		return
+	var wrapper_medium_summary: Dictionary = wrapper_definition.summary(game_config, "medium")
+	if int(wrapper_medium_summary.get("bot_count", 0)) != 24:
+		_fail("Wrapper MapDefinition did not apply medium preset.")
 		return
 
 	print("MapDefinition smoke passed: %s pois=%d obstacles=%d wrapper_bots=%d." % [

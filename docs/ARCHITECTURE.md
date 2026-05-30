@@ -58,7 +58,7 @@
 | `src/core/ItemData.gd` | 아이템 정의 (이름, 타입, 수량) | `src/items/*.tres` 파일로 인스턴스화 |
 | `src/core/MissionData.gd` | 보너스 미션 스펙 Resource | MissionCatalog가 보너스 미션 목록 생성에 사용 |
 | `src/core/MapSpec.gd` | 맵 POI·장애물·월드 크기 정의 | WorldBuilder, Minimap이 읽기 전용으로 참조 |
-| `src/core/MapDefinition.gd` | v2.0 map/match-scale compatibility wrapper over existing MapSpec JSON | Validation and future scale/full-map work read this first; runtime still consumes MapSpec until integration slices replace call sites |
+| `src/core/MapDefinition.gd` | v2.0 map/match-scale compatibility wrapper over existing MapSpec JSON | Main reads selected scale preset data; WorldBuilder/Minimap still consume the wrapped MapSpec |
 | `data/game_config.json` | 매치 수치, 난이도 파라미터, Hell 타이머 | `GameConfig.gd`가 로드, Main/시스템 컨트롤러가 적용 |
 | `data/asset_catalog.json` | audio/icon/prop/cosmetic ID와 fallback | `AssetCatalog.gd`가 로드, Sfx/UI/월드가 점진 참조 |
 | `src/core/ItemResourceCatalog.gd` | 기본 loot item templates, extra consumables, pickup scene, supply railgun 리소스 | Main이 런타임 참조를 로드하고 loot/supply state wiring은 유지 |

@@ -79,26 +79,28 @@ func get_world_size() -> float:
 	return float(map_spec.get_world_size())
 
 
-func get_match_tuning(game_config = null, fallback: Dictionary = {}) -> Dictionary:
+func get_match_tuning(game_config = null, fallback: Dictionary = {}, preset_name: String = "") -> Dictionary:
 	var tuning := _merge_dict(DEFAULT_MATCH.duplicate(true), fallback.duplicate(true))
 	if game_config != null and game_config.has_method("match_value"):
 		for key in DEFAULT_MATCH.keys():
 			tuning[key] = game_config.match_value(String(key), tuning.get(key, DEFAULT_MATCH[key]))
 	tuning = _merge_dict(tuning, match_overrides)
+	tuning = _merge_dict(tuning, _preset_section(preset_name, "match"))
 	tuning["bot_count"] = max(0, int(tuning.get("bot_count", DEFAULT_MATCH["bot_count"])))
 	tuning["loot_count"] = max(0, int(tuning.get("loot_count", DEFAULT_MATCH["loot_count"])))
 	tuning["spawn_radius"] = maxf(1.0, float(tuning.get("spawn_radius", DEFAULT_MATCH["spawn_radius"])))
 	return tuning
 
 
-func get_runtime_tuning(game_config = null, fallback: Dictionary = {}) -> Dictionary:
+func get_runtime_tuning(game_config = null, fallback: Dictionary = {}, preset_name: String = "") -> Dictionary:
 	var tuning := fallback.duplicate(true)
 	if game_config != null and game_config.has_method("runtime_tuning"):
 		tuning = _merge_dict(tuning, game_config.runtime_tuning())
-	return _merge_dict(tuning, runtime_overrides)
+	tuning = _merge_dict(tuning, runtime_overrides)
+	return _merge_dict(tuning, _preset_section(preset_name, "runtime"))
 
 
-func get_zone_tuning(game_config = null, fallback: Dictionary = {}) -> Dictionary:
+func get_zone_tuning(game_config = null, fallback: Dictionary = {}, preset_name: String = "") -> Dictionary:
 	var tuning := _merge_dict(DEFAULT_ZONE.duplicate(true), fallback.duplicate(true))
 	if game_config != null and game_config.has_method("zone_value"):
 		for key in ["wait_time", "shrink_time", "damage_per_second", "initial_timer"]:
@@ -106,6 +108,7 @@ func get_zone_tuning(game_config = null, fallback: Dictionary = {}) -> Dictionar
 	if game_config != null and game_config.has_method("zone_stage_configs"):
 		tuning["stages"] = game_config.zone_stage_configs()
 	tuning = _merge_dict(tuning, zone_overrides)
+	tuning = _merge_dict(tuning, _preset_section(preset_name, "zone"))
 	tuning["wait_time"] = maxf(1.0, float(tuning.get("wait_time", DEFAULT_ZONE["wait_time"])))
 	tuning["shrink_time"] = maxf(1.0, float(tuning.get("shrink_time", DEFAULT_ZONE["shrink_time"])))
 	tuning["damage_per_second"] = maxf(0.0, float(tuning.get("damage_per_second", DEFAULT_ZONE["damage_per_second"])))
@@ -115,12 +118,22 @@ func get_zone_tuning(game_config = null, fallback: Dictionary = {}) -> Dictionar
 	return tuning
 
 
-func validate(game_config = null) -> Array[String]:
+func get_scale_preset(preset_name: String) -> Dictionary:
+	return _dictionary(scale_presets.get(preset_name, {}))
+
+
+func has_scale_preset(preset_name: String) -> bool:
+	return preset_name.is_empty() or scale_presets.has(preset_name)
+
+
+func validate(game_config = null, preset_name: String = "") -> Array[String]:
 	var issues: Array[String] = []
 	if id.strip_edges().is_empty():
 		issues.append("MapDefinition id is empty.")
 	if display_name.strip_edges().is_empty():
 		issues.append("MapDefinition display_name is empty.")
+	if not has_scale_preset(preset_name):
+		issues.append("Scale preset '%s' does not exist." % preset_name)
 	if map_spec == null:
 		issues.append("MapDefinition has no map_spec.")
 		return issues
@@ -161,7 +174,7 @@ func validate(game_config = null) -> Array[String]:
 		if absf(pos.x) + extent > half_size or absf(pos.y) + extent > half_size:
 			issues.append("Obstacle %d extends outside world bounds." % i)
 
-	var match_tuning := get_match_tuning(game_config)
+	var match_tuning := get_match_tuning(game_config, {}, preset_name)
 	var spawn_radius := float(match_tuning.get("spawn_radius", 0.0))
 	if spawn_radius <= 0.0:
 		issues.append("spawn_radius must be positive.")
@@ -175,12 +188,13 @@ func validate(game_config = null) -> Array[String]:
 	return issues
 
 
-func summary(game_config = null) -> Dictionary:
-	var match_tuning := get_match_tuning(game_config)
-	var zone_tuning := get_zone_tuning(game_config)
+func summary(game_config = null, preset_name: String = "") -> Dictionary:
+	var match_tuning := get_match_tuning(game_config, {}, preset_name)
+	var zone_tuning := get_zone_tuning(game_config, {}, preset_name)
 	return {
 		"id": id,
 		"display_name": display_name,
+		"scale_preset": preset_name,
 		"source_path": source_path,
 		"world_size": get_world_size(),
 		"poi_count": map_spec.pois.size() if map_spec != null else 0,
@@ -194,6 +208,13 @@ func summary(game_config = null) -> Dictionary:
 		"zone_stage_count": _dictionary(zone_tuning.get("stages", {})).size(),
 		"scale_preset_count": scale_presets.size(),
 	}
+
+
+func _preset_section(preset_name: String, section_name: String) -> Dictionary:
+	if preset_name.is_empty():
+		return {}
+	var preset := get_scale_preset(preset_name)
+	return _dictionary(preset.get(section_name, {}))
 
 
 static func _map_spec_from_data(data: Dictionary) -> Resource:

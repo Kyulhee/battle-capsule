@@ -22,6 +22,7 @@ const DEFAULTS := {
 		"stage_wave_base_prob": 0.1,
 		"stage_wave_prob_per_stage": 0.1,
 		"stage_wave_count_mult": 10,
+		"hotspot_density_mult": 1.0,
 	},
 	"supply_fallback": {
 		"range": 25.0,
@@ -43,11 +44,14 @@ static func navigation(tuning: Dictionary) -> Dictionary:
 	return _sanitize_navigation(_merge_dict(DEFAULTS["navigation"].duplicate(true), _section(tuning, "navigation")))
 
 static func stage_loot_wave(tuning: Dictionary, stage: int) -> Dictionary:
-	var loot = _sanitize_loot(_merge_dict(DEFAULTS["loot"].duplicate(true), _section(tuning, "loot")))
+	var loot_tuning := loot(tuning)
 	return {
-		"probability": float(loot["stage_wave_base_prob"]) + (float(stage) * float(loot["stage_wave_prob_per_stage"])),
-		"count_mult": int(loot["stage_wave_count_mult"]),
+		"probability": float(loot_tuning["stage_wave_base_prob"]) + (float(stage) * float(loot_tuning["stage_wave_prob_per_stage"])),
+		"count_mult": int(loot_tuning["stage_wave_count_mult"]),
 	}
+
+static func loot(tuning: Dictionary) -> Dictionary:
+	return _sanitize_loot(_merge_dict(DEFAULTS["loot"].duplicate(true), _section(tuning, "loot")))
 
 static func supply_fallback(tuning: Dictionary) -> Dictionary:
 	return _sanitize_supply_fallback(_merge_dict(DEFAULTS["supply_fallback"].duplicate(true), _section(tuning, "supply_fallback")))
@@ -56,7 +60,7 @@ static func _sanitize(tuning: Dictionary) -> Dictionary:
 	return {
 		"spawn": spawn(tuning),
 		"navigation": navigation(tuning),
-		"loot": _sanitize_loot(_merge_dict(DEFAULTS["loot"].duplicate(true), _section(tuning, "loot"))),
+		"loot": loot(tuning),
 		"supply_fallback": supply_fallback(tuning),
 	}
 
@@ -85,6 +89,7 @@ static func _sanitize_loot(loot_tuning: Dictionary) -> Dictionary:
 		"stage_wave_base_prob": maxf(0.0, float(loot_tuning.get("stage_wave_base_prob", 0.1))),
 		"stage_wave_prob_per_stage": maxf(0.0, float(loot_tuning.get("stage_wave_prob_per_stage", 0.1))),
 		"stage_wave_count_mult": max(0, int(loot_tuning.get("stage_wave_count_mult", 10))),
+		"hotspot_density_mult": maxf(0.0, float(loot_tuning.get("hotspot_density_mult", 1.0))),
 	}
 
 static func _sanitize_supply_fallback(supply_tuning: Dictionary) -> Dictionary:

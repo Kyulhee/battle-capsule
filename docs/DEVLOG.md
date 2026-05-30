@@ -6,6 +6,25 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.2 — Definition-Driven Scale Preset Merge
+
+**Scope**
+
+- Added baseline match/runtime/zone values and `baseline` / `medium_24` scale presets to `data/mapSpec_example.json`.
+- `Main.gd` now loads `MapDefinition` before world generation and applies the selected scale preset into bot count, loot count, spawn radius, zone timing, zone stages, and runtime tuning.
+- `MatchRuntimeTuning.gd` and `LootSpawner.gd` now support `hotspot_density_mult` for preset-driven POI loot density scaling.
+- `MatchTuning.gd` accepts `scale_preset` / `map_scale_preset` command-line args for smoke scale runs.
+- `tools/verify_map_definition.gd` now verifies preset match overrides and runtime loot density overrides.
+
+**Verification**
+
+- `verify_map_definition.gd` passed.
+- Godot headless project load passed with expected AssetCatalog warning only.
+- `python tools\simulate_matches.py 1 normal` passed with baseline 11-bot distribution.
+- `python tools\simulate_matches.py 1 normal scale_preset=medium_24` passed with 24-bot distribution.
+
+---
+
 ## v2.0.1 — MapDefinition Compatibility Loader
 
 **Scope**
@@ -94,6 +113,5 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.2`: move spawn radius, loot count/density, and zone profile selection into definition-owned or scale-preset-owned data while preserving `game_config.json` fallback behavior.
-- Then build a read-only Full Map UI foundation from the same map feature data.
+- `v2.0.3`: build a read-only Full Map UI foundation from the same map feature data.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.

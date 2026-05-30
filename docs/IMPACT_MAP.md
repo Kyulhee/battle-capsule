@@ -474,7 +474,7 @@
 ### `src/core/MapDefinition.gd`
 - **읽는 파일**: 기존 MapSpec JSON dictionary, optional GameConfig-compatible fallback object.
 - **공개 API**: `load_from_json()`, `load_from_data()`, `load_from_map_spec()`, `get_match_tuning()`, `get_runtime_tuning()`, `get_zone_tuning()`, `validate()`, `summary()`.
-- **소유 범위**: v2.0 compatibility wrapper for map id/name, map spec, match/runtime/zone overrides, scale presets, and validation. Runtime call sites still consume `MapSpec` until later integration slices migrate them.
+- **소유 범위**: v2.0 compatibility wrapper for map id/name, map spec, match/runtime/zone overrides, scale presets, and validation. `Main.gd` consumes selected preset data, while `WorldBuilder` and `Minimap` still consume `MapSpec`.
 - **수정 영향**: merge/clamp behavior를 바꾸면 `tools/verify_map_definition.gd`, `GameConfig.gd`, `MatchTuning.gd`, `MatchRuntimeTuning.gd`, `Main.gd` scale application plan을 함께 확인.
 
 ### `src/ui/Minimap.gd`
@@ -523,7 +523,7 @@
 | Menu visual style | `MenuVisualBuilder.gd` | `Main.gd` target node wiring, `MenuController.gd`, `HelpPanelBuilder.gd`, `RecordsPanelBuilder.gd` |
 | Match start initialization | `MatchBootstrap.gd` | `Main.gd` state ownership, `ZoneController.gd`, `MissionTracker.gd`, Hell modifier enum compatibility |
 | Match/zone tuning config 또는 CLI alias | `MatchTuning.gd` | `Main.gd` apply path, `data/game_config.json`, `tools/simulate_matches.py`, TESTING/문서 예시 |
-| Main runtime tuning | `MatchRuntimeTuning.gd`, `data/game_config.json` `runtime` | `Main.gd` spawn/navigation/supply/zone-stage loot paths, `GameConfig.gd`, simulations |
+| Main runtime tuning | `MatchRuntimeTuning.gd`, `data/game_config.json` `runtime`, `MapDefinition.gd` scale presets | `Main.gd` spawn/navigation/supply/zone-stage loot paths, `LootSpawner.gd` density scaling, `GameConfig.gd`, simulations |
 | Bot count/archetype ratio | `BotSpawnPlanner.gd` | `Main.gd` spawn wiring, `Bot.gd` archetype enum, `BotDoctrine.gd`, Telemetry archetype reports |
 | Loot/supply pickup creation | `src/systems/loot/LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
 | Mission tuning threshold | `src/systems/mission/MissionTuning.gd` | `Main.gd` kill context, `MissionTracker.gd` counters, `MissionEvaluator.gd`, `MissionHudFormatter.gd`, `MissionDescriptionFormatter.gd`, `PressureMissionDescriptionFormatter.gd`, `PressureConditionEvaluator.gd`, simulations |

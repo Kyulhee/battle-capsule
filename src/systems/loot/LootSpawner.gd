@@ -2,10 +2,14 @@ class_name LootSpawner
 extends RefCounted
 
 var loot_count: int = 40
+var hotspot_density_mult: float = 1.0
 var hotspots: Array[Dictionary] = []
 
 func configure_count(value: int) -> void:
 	loot_count = max(0, value)
+
+func configure_density_multiplier(value: float) -> void:
+	hotspot_density_mult = maxf(0.0, value)
 
 func register_from_map_spec(map_spec) -> void:
 	hotspots.clear()
@@ -16,7 +20,7 @@ func register_from_map_spec(map_spec) -> void:
 		hotspots.append({
 			"pos": Vector2(float(poi_pos[0]), float(poi_pos[1])),
 			"radius": maxf(float(poi.get("radius", 8.0)), 2.0),
-			"density": clampf(float(poi.get("item_density", 0.5)), 0.05, 1.5),
+			"density": clampf(float(poi.get("item_density", 0.5)) * hotspot_density_mult, 0.05, 1.5),
 			"rare_bias": clampf(float(poi.get("rare_bias", 0.0)), 0.0, 1.0),
 			"role": String(poi.get("role", "")),
 		})

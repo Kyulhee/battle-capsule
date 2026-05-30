@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.1 — MapDefinition compatibility loader and validation`.
-- Next structural slice: `v2.0.2 — Definition-driven scale preset data merge`.
+- Latest completed slice: `v2.0.2 — Definition-driven scale preset data merge`.
+- Next structural slice: `v2.0.3 — Read-only Full Map UI foundation`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -17,18 +17,19 @@
 
 - `a7c23bf feat: promote remaining artifact icons` — Escape Capsule and Ghost Grass PNGs were normalized, cataloged, and verified as real artifact icon paths.
 - `d445692 docs: sync asset and v2 handoff` — compacted handoff/devlog docs and added `ASSET_STATUS.md`.
-- Current v2.0.1 slice adds `MapDefinition.gd` and `tools/verify_map_definition.gd`.
+- `14a1a33 feat: add map definition compatibility layer` — added `MapDefinition.gd` and validation tooling.
+- Current v2.0.2 slice adds baseline/medium scale preset data and runtime merge support.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.2 — Definition-driven scale preset data merge`
+`v2.0.3 — Read-only Full Map UI foundation`
 
 - Keep `Main.gd` as match-global orchestrator.
-- Preserve the new `MapDefinition` compatibility layer and validation.
-- Add definition-owned or scale-preset-owned spawn radius, loot count/density, and zone profile selection while preserving `game_config.json` fallbacks.
-- Keep runtime behavior equivalent for the default map until validation covers the new merge path.
+- Reuse `MapDefinition`, `MapSpec`, and `WorldBuilder.get_minimap_features()` data.
+- Add a read-only Full Map view for world bounds, POIs, generated obstacle footprints, current/next zone, player marker, and supply marker.
+- Keep map UI presentation-only; no routing, mission theming, or gameplay decisions in this slice.
 - Do not start 99-player tuning until the definition and validation path is stable.
 
 ## Asset Notes

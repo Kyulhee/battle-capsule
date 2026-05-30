@@ -6,6 +6,70 @@
     "world_size": 120,
     "layout": "outer_mountain_mid_trees_inner_brush"
   },
+  "match": {
+    "bot_count": 11,
+    "loot_count": 40,
+    "spawn_radius": 45.0
+  },
+  "runtime": {
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "wait_time": 30.0,
+    "shrink_time": 20.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 15.0,
+    "stages": {
+      "2": {
+        "wait_time": 20.0,
+        "shrink_time": 15.0,
+        "damage_per_second": 5.0
+      },
+      "3": {
+        "wait_time": 15.0,
+        "shrink_time": 12.0,
+        "damage_per_second": 10.0
+      },
+      "4": {
+        "wait_time": 10.0,
+        "shrink_time": 10.0,
+        "damage_per_second": 15.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 11,
+        "loot_count": 40,
+        "spawn_radius": 45.0
+      },
+      "runtime": {
+        "loot": {
+          "hotspot_density_mult": 1.0
+        }
+      }
+    },
+    "medium_24": {
+      "match": {
+        "bot_count": 24,
+        "loot_count": 72,
+        "spawn_radius": 52.0
+      },
+      "runtime": {
+        "loot": {
+          "hotspot_density_mult": 1.08
+        }
+      },
+      "zone": {
+        "initial_timer": 18.0,
+        "wait_time": 32.0,
+        "shrink_time": 22.0
+      }
+    }
+  },
   "pois": [
     { "name": "Central Meadow",     "pos": [  0,   0], "radius": 16, "role": "loot_hub",          "item_density": 0.95, "rare_bias": 0.25 },
     { "name": "North Clearing",     "pos": [  0,  34], "radius": 11, "role": "loot_hub",          "item_density": 0.82, "rare_bias": 0.20 },

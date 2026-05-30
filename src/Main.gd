@@ -22,6 +22,7 @@ var _pause_panel: Control = null
 
 @export var loot_count: int = 40
 @export var spawn_radius: float = 45.0
+@export var map_scale_preset: String = "baseline"
 
 var railgun_item: ItemData = null
 var pickup_scene: PackedScene = null
@@ -90,7 +91,9 @@ const ZoneControllerScript = preload("res://src/systems/zone/ZoneController.gd")
 
 # MapSpec & Builder
 const MapSpecScript = preload("res://src/core/MapSpec.gd")
+const MapDefinitionScript = preload("res://src/core/MapDefinition.gd")
 var map_spec = null
+var map_definition = null
 @onready var world_builder = $WorldBuilder
 
 # Navigation
@@ -130,6 +133,10 @@ func _ready():
 	game_config.load_or_default()
 	match_runtime_tuning = MatchRuntimeTuningScript.from_game_config(game_config)
 	_apply_game_config()
+	for arg in OS.get_cmdline_user_args():
+		_apply_pre_tuning_cmdline_arg(arg)
+	_load_map_spec()
+	_apply_map_definition_tuning()
 	debug_flags = DebugFlagsScript.new()
 	debug_flags.load_from_cmdline(OS.get_cmdline_user_args())
 	if debug_flags.enabled:
@@ -423,6 +430,32 @@ func _configure_item_resources():
 func _apply_game_config():
 	_apply_match_tuning(MatchTuningScript.from_game_config(game_config, _current_match_tuning()))
 
+func _apply_map_definition_tuning():
+	if map_definition == null:
+		return
+	var issues: Array = map_definition.validate(game_config, map_scale_preset)
+	if not issues.is_empty():
+		push_warning("MapDefinition validation issues: %s" % _join_string_array(issues))
+	var match_tuning: Dictionary = map_definition.get_match_tuning(game_config, _current_match_tuning(), map_scale_preset)
+	var zone_tuning: Dictionary = map_definition.get_zone_tuning(game_config, {}, map_scale_preset)
+	match_tuning["zone_wait_time"] = float(zone_tuning.get("wait_time", zone_wait_time))
+	match_tuning["zone_shrink_time"] = float(zone_tuning.get("shrink_time", zone_shrink_time))
+	match_tuning["zone_damage"] = float(zone_tuning.get("damage_per_second", zone_damage))
+	match_tuning["zone_initial_timer"] = float(zone_tuning.get("initial_timer", zone_initial_timer))
+	match_tuning["zone_stage_configs"] = zone_tuning.get("stages", {}).duplicate(true) if typeof(zone_tuning.get("stages", {})) == TYPE_DICTIONARY else {}
+	_apply_match_tuning(match_tuning)
+	match_runtime_tuning = map_definition.get_runtime_tuning(
+		game_config,
+		MatchRuntimeTuningScript.from_game_config(game_config),
+		map_scale_preset
+	)
+
+func _join_string_array(values: Array) -> String:
+	var parts: Array[String] = []
+	for value in values:
+		parts.append(String(value))
+	return "; ".join(parts)
+
 func _current_match_tuning() -> Dictionary:
 	return {
 		"bot_count": bot_count,
@@ -512,13 +545,27 @@ func _apply_cmdline_arg(arg: String):
 		return
 	if parsed.has("difficulty"):
 		difficulty = int(parsed["difficulty"]) as Difficulty
+	if parsed.has("scale_preset"):
+		map_scale_preset = String(parsed["scale_preset"])
 	_apply_match_tuning(parsed.get("tuning", {}))
 
+func _apply_pre_tuning_cmdline_arg(arg: String):
+	var parsed = MatchTuningScript.from_cmdline_arg(arg)
+	if parsed.has("scale_preset"):
+		map_scale_preset = String(parsed["scale_preset"])
+
 func _load_map_spec():
+	if map_spec != null:
+		return
 	var file = FileAccess.open("res://data/mapSpec_example.json", FileAccess.READ)
 	if file:
 		var json_text = file.get_as_text()
-		map_spec = MapSpecScript.from_json(json_text)
+		map_definition = MapDefinitionScript.new()
+		if map_definition.load_from_json(json_text, "res://data/mapSpec_example.json", game_config):
+			map_spec = map_definition.map_spec
+		else:
+			map_definition = null
+			map_spec = MapSpecScript.from_json(json_text)
 	else:
 		push_error("Main: mapSpec_example.json not found!")
 
@@ -650,6 +697,9 @@ func _register_loot_hotspots():
 	loot_hotspots.clear()
 	if not loot_spawner or not map_spec:
 		return
+	if loot_spawner.has_method("configure_density_multiplier"):
+		var loot_tuning: Dictionary = MatchRuntimeTuningScript.loot(match_runtime_tuning)
+		loot_spawner.configure_density_multiplier(float(loot_tuning.get("hotspot_density_mult", 1.0)))
 	loot_spawner.register_from_map_spec(map_spec)
 	loot_hotspots = loot_spawner.hotspots.duplicate(true)
 
