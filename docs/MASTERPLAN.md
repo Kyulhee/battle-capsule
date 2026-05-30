@@ -8,9 +8,9 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 
 | Item | Status |
 |---|---|
-| Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.11: Artifact icon completion |
-| Next structural slice | v2.0: MapDefinition + player scale |
+| Current line | v2.0-dev: MapDefinition + player scale foundation |
+| Latest completed slice | v2.0.1: MapDefinition compatibility loader and validation |
+| Next structural slice | v2.0.2: Definition-driven scale preset data merge |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -243,7 +243,7 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 
 **First slices**
 
-1. Add a compatibility loader so current `MapSpec` JSON can be wrapped as the first `MapDefinition`.
+1. Add a compatibility loader so current `MapSpec` JSON can be wrapped as the first `MapDefinition`. Done in v2.0.1.
 2. Move map-specific spawn radius, loot count/density, and zone radius profile into definition-owned or preset-owned data while preserving `game_config.json` fallback behavior.
 3. Add validation tooling for world bounds, POI radii, obstacle bounds, spawn radius, loot hotspot coverage, and zone radius sanity.
 4. Build a Full Map UI foundation from the same minimap feature data; keep it read-only at first.
@@ -254,6 +254,12 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Do not add new maps, mission map theming, bot artifacts, artifact upgrade trees, fire spread, or interior/landmark gameplay.
 - Do not redesign landmark collision until a feature needs precise interiors or climbable structures.
 - Do not bulk-promote generated GLBs; keep prop upgrades tied to visual or gameplay needs.
+
+**v2.0.1 result**
+
+- Added `MapDefinition.gd` as a compatibility wrapper around current `MapSpec` JSON.
+- The wrapper exposes map id/name, map spec, match/runtime/zone overrides, scale presets, validation, and summary data without changing runtime call sites.
+- Added `tools/verify_map_definition.gd` to validate legacy MapSpec wrapping and wrapper-format overrides.
 
 ## Deferred Asset Upgrades
 

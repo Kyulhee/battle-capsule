@@ -6,6 +6,23 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.1 — MapDefinition Compatibility Loader
+
+**Scope**
+
+- Added `src/core/MapDefinition.gd` as a compatibility wrapper over current MapSpec JSON.
+- The wrapper owns map id/name, source path, MapSpec reference, match/runtime/zone overrides, scale presets, summary data, and validation.
+- Added `tools/verify_map_definition.gd` to validate legacy MapSpec wrapping and wrapper-format match overrides.
+- Updated architecture/impact docs so future map/full-map work checks `MapDefinition` first while runtime call sites still consume `MapSpec`.
+
+**Verification**
+
+- `verify_map_definition.gd` passed: `mountain_forest_alpha`, 7 POIs, 35 obstacles, wrapper bot override 24.
+- Godot headless project load passed with expected AssetCatalog warning only.
+- `python tools\simulate_matches.py 1 normal` passed.
+
+---
+
 ## v1.12.11 — Artifact Icon Completion
 
 **Scope**
@@ -77,6 +94,6 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.1`: add the MapDefinition compatibility plan/loader and validation tooling.
+- `v2.0.2`: move spawn radius, loot count/density, and zone profile selection into definition-owned or scale-preset-owned data while preserving `game_config.json` fallback behavior.
 - Then build a read-only Full Map UI foundation from the same map feature data.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.

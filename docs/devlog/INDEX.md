@@ -17,6 +17,7 @@
 
 | Version | Summary | Details |
 |---|---|---|
+| v2.0-dev | MapDefinition, Full Map foundation, and player scale preparation | [v2.0.md](v2.0.md) |
 | v1.12-dev | Complex Artifacts, artifact visuals/icons, bush asset integration, v2.0 transition | [v1.12.md](v1.12.md) |
 | v1.11-dev | Subsystem directory and non-Main data-boundary pass | [v1.11.md](v1.11.md) |
 | v1.10-dev | Main slimdown, supply/loot/catalog/UI helper boundaries | [v1.10.md](v1.10.md) |

@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v1.12-dev / 마지막 검증: 2026-05-28
+> 기준 버전: v2.0-dev transition / 마지막 검증: 2026-05-30
 
 ---
 
@@ -53,6 +53,7 @@
 | MatchBootstrap | match-start initialization helpers | `Main.gd` | static system helper |
 | MatchTuning | match/zone tuning interpretation | `Main.gd` | static system helper |
 | MatchRuntimeTuning | Main runtime spawn/navigation/loot fallback tuning | `Main.gd` | static system helper |
+| MapDefinition | map/match-scale compatibility wrapper and validation source | future map/full-map slices | Resource data wrapper |
 | BotSpawnPlanner | bot archetype plan generation | `Main.gd` | static system helper |
 | LootSpawner | loot hotspot and position calculation | `Main.gd` | RefCounted loot system helper |
 | SupplyDropController | supply drop timing and cluster calculation | `Main.gd` | RefCounted loot system helper |
@@ -470,6 +471,12 @@
 - **공개 API**: `generate_world(spec)`, `get_minimap_features()`.
 - **수정 영향**: 실제 생성 위치/회전/jitter/스케일을 바꾸면 미니맵 footprint 기록도 같은 기준으로 수정해야 함.
 
+### `src/core/MapDefinition.gd`
+- **읽는 파일**: 기존 MapSpec JSON dictionary, optional GameConfig-compatible fallback object.
+- **공개 API**: `load_from_json()`, `load_from_data()`, `load_from_map_spec()`, `get_match_tuning()`, `get_runtime_tuning()`, `get_zone_tuning()`, `validate()`, `summary()`.
+- **소유 범위**: v2.0 compatibility wrapper for map id/name, map spec, match/runtime/zone overrides, scale presets, and validation. Runtime call sites still consume `MapSpec` until later integration slices migrate them.
+- **수정 영향**: merge/clamp behavior를 바꾸면 `tools/verify_map_definition.gd`, `GameConfig.gd`, `MatchTuning.gd`, `MatchRuntimeTuning.gd`, `Main.gd` scale application plan을 함께 확인.
+
 ### `src/ui/Minimap.gd`
 - **읽는 파일**: `MapSpec`의 POI, `WorldBuilder.get_minimap_features()`의 실제 생성 footprint, `Main.zone`/supply/player 상태.
 - **렌더 순서**: 낮은 layer(부쉬) → 높은 layer(장애물) 순서로 그려 하늘에서 본 최종 덮임 형태를 표현.
@@ -531,7 +538,7 @@
 | Pressure reward/penalty effect | `PressureEffectCatalog.gd` + `PressureEffectApplier.gd` | `MissionCatalog.gd` descriptor pools, `MissionTracker.gd` HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
-| `MapSpec` 구조 | `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation |
+| `MapDefinition` / `MapSpec` 구조 | `MapDefinition.gd`, `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation, Full Map UI plan |
 | Death drop 표시 이름/색상 | `DropDisplayCatalog.gd` | `Player.gd`, `Bot.gd`, `Pickup.gd` label output |
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
 | How to Play 행 구조 | `HelpCatalog.gd` | `HelpPanelBuilder.gd`, `Main.gd` Help panel wiring |
