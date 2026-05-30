@@ -1,94 +1,49 @@
 # Next Chat Handoff
 
-> Last updated: 2026-05-30. This note is intentionally short and only covers context that is easy to miss from `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `DEVLOG.md`.
+> Last updated: 2026-05-30. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
 
 ## Current State
 
 - Branch: `master`.
-- Current roadmap line: `v1.12-dev` Complex Artifacts, starting with bounded player-runtime effects.
-- Latest completed slice: `v1.12.10 follow-up — Bush interaction feedback`.
-- Next structural slice: `v1.12.11 — Additional prop asset breadth pass`.
-- Release remains paused. Continue version-to-version development without GitHub releases unless the user explicitly asks for a release.
-- `asset_generator/` is an external-agent workspace and must remain untracked unless the user explicitly asks to integrate selected files.
-- `docs/ASSET_GENERATION_PROMPTS.md` is local-only prompt scratch material and must remain untracked unless the user explicitly asks otherwise.
-- Expected warning during Godot startup: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
-
-## Exact Git State At Handoff
-
-After the v1.12.10 push, expected local status is only the external-generation scratch area:
-
-```text
-?? asset_generator/
-?? docs/ASSET_GENERATION_PROMPTS.md
-```
-
-Do not stage `asset_generator/` or `docs/ASSET_GENERATION_PROMPTS.md` unless the user explicitly asks to integrate selected files.
+- Latest completed slice: `v1.12.11 — Artifact icon completion`.
+- Next structural line: `v2.0 MapDefinition + player scale`.
+- Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
+- Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
+- `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
+- `docs/ASSET_GENERATION_PROMPTS.md` is local prompt scratch and should stay untracked unless the user asks to publish it.
+- `docs/ASSET_STATUS.md` is now the concise asset-state handoff document.
 
 ## Recent Completed Commits
 
-- `5365ebf refactor: close pressure snapshot boundary` — closed v1.11 structurally.
-- `6f71fc5 docs: plan complex artifact runtime boundary` — opened v1.12 and selected Emergency Shell as the first implementation candidate.
-- `1579ff3 feat: add emergency shell artifact` — implemented Emergency Shell, artifact runtime helper, artifact telemetry, and smoke verification.
-- `9fb91d2 test: add artifact selection layout smoke` — verified the five-card artifact selection row and shortlisted Ghost Grass next.
-- `8cb41a7 feat: add ghost grass artifact` — added Ghost Grass, bush-exit runtime state, telemetry, docs, and smoke coverage.
-- `65e0956 feat: add artifact visual identities` — added `PlayerArtifactVisuals.gd`, `visual_id` catalog ids, all six first-pass artifact visuals, and visual smoke coverage.
-- `5de2a26 tune artifact visual readability` — added artifact visual gallery capture and tuned Silent Core/Ghost Grass readability.
-- `0368d99 integrate artifact icon display` — normalized `artifact.<id>` icon lookup, added artifact images to selection cards, and replaced the in-game artifact text marker with an icon.
-- `06feaf2 tune artifact balance penalties` — renamed Emergency Shell presentation to Escape Capsule, added ammo purge, Red Trigger reveal duration, Armor Sponge dynamic speed/capped heal conversion, Silent Core first-shot miss, and Ghost Grass cooldown/risk tuning.
-- `ede1b76 compact artifact selection UI` — compacted artifact selection into circular icon options plus one stable detail card.
-- `51c4bdd center artifact selection icons` — centered circular artifact option icons with embedded `TextureRect`s; generated source icons currently exist only for Red Trigger, Armor Sponge, Silent Core, and Zone Battery.
-- `6b34660 load artifact png icons without import metadata` — added raw PNG fallback loading to `ArtifactIconResolver.gd` and verified four generated artifact icons load as runtime textures.
-- `bb05503 feat: integrate bush prop assets` — promoted selected bush GLBs into runtime assets, wired `forest.bush*` catalog paths, added raw GLB loading through `GLTFDocument`, and verified default-map bush visual replacement.
-- `10d351c fix: restore bush interaction feedback` — tracks bush occupancy by Area instance, restores same-bush visibility, keeps outside concealment strict by default, and adds player-entry tint plus rustle feedback.
-- `f55bae7 tune bush visual cutaway materials` — makes catalog bush visuals and the interior tint unshaded, non-shadow-casting, and non-depth-writing; player-inside bushes cut away to lower alpha for pickup readability.
-- `020fe56 fix: correct bush transparency rendering` — restores depth testing/backface culling to avoid transparent GLB radial overdraw, lowers player-inside alpha, and converts the old feedback cylinder into a thin floor tint.
+- `e41f0e6 feat: rustle bush clumps individually` — GLB bushes animate nearest mesh clumps instead of swaying the full visual root.
+- `a7c23bf feat: promote remaining artifact icons` — Escape Capsule and Ghost Grass PNGs were normalized, cataloged, and verified as real artifact icon paths.
 
-Older v1.11 slice detail is in `docs/devlog/v1.11.md` and the full snapshots under `docs/devlog/`.
+Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
-## Current Discussion
+## Recommended Next Slice
 
-The user agreed to continue after v1.11 closure. v1.12.1 selected Emergency Shell as the first Complex Artifact. v1.12.2 implemented it. v1.12.3 verified the five-card selection row fits the default viewport and shortlisted Ghost Grass next. v1.12.4 implemented Ghost Grass as a bounded player-runtime artifact. v1.12.5 added artifact visual identity via a separate player visual helper. v1.12.6 added a visual gallery capture tool and tuned Silent Core/Ghost Grass readability. v1.12.7 integrated artifact icons into selection/HUD through `artifact.<id>` catalog lookup. v1.12.8 completed the requested balance pass. v1.12.9 compacted artifact selection into circular icon options with one-line summaries and one stable detail card, patched option icon centering after screenshot review, and then fixed raw PNG loading so the four existing generated artifact images are actually used. v1.12.10 promoted selected bush GLBs into runtime assets and wired them as catalog-driven Bush visuals while preserving Bush Area3D gameplay/collision. The follow-ups restored intended bush semantics: same-bush actors can see each other, outside viewers do not normally see unrevealed bush occupants beyond near range, GLB bushes provide player-entry dark tint plus rustle feedback, and bush visuals are now unshaded/non-shadow-casting while keeping depth testing to avoid transparent mesh artifacts.
+`v2.0.1 — MapDefinition compatibility plan and loader`
 
-Recommended next slice:
+- Keep `Main.gd` as match-global orchestrator.
+- Add a `MapDefinition` layer that can wrap current `MapSpec` JSON without changing runtime behavior.
+- Define how map id/name, world size, POIs, obstacles, routes, spawn radius, loot density/count, and zone profile are merged from map data and `game_config.json`.
+- Add validation tooling before increasing bot counts.
+- Do not start 99-player tuning until the definition and validation path is stable.
 
-- `v1.12.11 — Additional prop asset breadth pass`
-  - Review generated tree, rock, log, and landmark candidates.
-  - Integrate only selected runtime assets through `assets/` and `data/asset_catalog.json`.
-  - Keep gameplay collision/cover authority explicit instead of trusting imported mesh collision.
-  - Keep generated source workspaces untracked.
+## Asset Notes
+
+- All six starting artifact icons are integrated.
+- Bush GLBs are integrated and visual-only; `Bush.tscn` Area3D remains gameplay authority.
+- Generated tree/rock/log/landmark GLBs remain deferred. Promote them only as selected runtime assets and preserve explicit collision/cover authority.
+- Deferred asset decisions are tracked in `ASSET_STATUS.md`.
 
 ## Tooling Note
 
-The current Windows shell sandbox has repeatedly failed direct shell execution with:
+The Windows shell sandbox may fail with `CreateProcessAsUserW failed: 1312`. If so, retry simple commands with `sandbox_permissions: "require_escalated"`.
 
-```text
-CreateProcessAsUserW failed: 1312
-```
+## User Preferences
 
-Because of that, even simple reads/status checks have needed `sandbox_permissions: "require_escalated"`. Automatic approval review sometimes times out, especially for parallel escalated calls. Use sequential shell commands, not parallel shell batches, until the session/runner is restarted or the sandbox issue clears.
-
-Good command pattern:
-
-- Run one shell command at a time.
-- Prefer simple prefixes: `git status`, `git diff`, `git add`, `git commit`, `git push`, `rg`, `python tools\simulate_matches.py`, Godot headless.
-- If an approval review times out, retry the same simple command once before changing approach.
-
-## User Preferences To Preserve
-
-- Use Korean for progress updates and summaries.
-- Continue small, verified slices: plan -> edit -> verify -> commit/push -> devlog.
-- Prioritize expansion readiness and data/algorithm boundaries before large new gameplay features.
-- Keep `Main.gd` as orchestrator and state owner unless there is a dedicated migration plan.
-- Avoid duplicated gameplay numbers in UI/descriptions; prefer shared tuning/catalog/formatter boundaries.
-- Do not commit local external-generation scratch files unless explicitly requested.
-
-## Good Next Candidates
-
-- `v1.12.11 — Additional prop asset breadth pass`
-  - Review generated tree/rock/log/landmark candidates and promote only selected runtime files.
-  - Missing artifact PNGs remain `artifact.ghost_grass` and `artifact.emergency_shell`; generate/select them later under the same `artifact.<id>` convention.
-- Narrow v1.10.x item/asset readability polish
-  - Only visual/readability patches; do not change expansion architecture.
-- Later v1.11 candidates:
-  - Reopen only for concrete boundary bugs or stale doc routes.
-  - Avoid large JSON/resource migration until new mission/content expansion requires it.
+- Use Korean.
+- Work in small verified slices: plan -> edit -> verify -> commit/push.
+- Keep active docs compact; archive raw/full history.
+- Prefer data/tuning/catalog boundaries over broad gameplay rewrites.

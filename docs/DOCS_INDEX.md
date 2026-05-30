@@ -1,6 +1,6 @@
 # Documentation Index
 
-> Last updated: 2026-05-26. This file defines the default reading path so agents and humans do not need to load every long document.
+> Last updated: 2026-05-30. This file defines the default reading path so agents and humans do not need to load every long document.
 
 ## Read First
 
@@ -13,6 +13,7 @@
 | [IMPACT_MAP.md](IMPACT_MAP.md) | Ownership and change-impact map | Yes, before code changes |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Module boundaries and dependency structure | Structural changes only |
 | [TESTING.md](TESTING.md) | Verification commands and interpretation | Verification only |
+| [ASSET_STATUS.md](ASSET_STATUS.md) | Integrated/generated/deferred asset state | Asset work only |
 
 ## Active Document Budgets
 
@@ -33,6 +34,7 @@ When a default-session document exceeds its budget, snapshot the full raw conten
 | Document | Role |
 |---|---|
 | [ASSET_BRIEF.md](ASSET_BRIEF.md) | Stable visual/audio style and file-format reference |
+| [ASSET_STATUS.md](ASSET_STATUS.md) | Current integrated assets, generated-but-held pools, and deferred asset decisions |
 
 The generated workspace [../asset_generator/expected_output](../asset_generator/expected_output) is a source pool, not runtime content. Only selected files should be normalized into `assets/` and registered through `data/asset_catalog.json`.
 

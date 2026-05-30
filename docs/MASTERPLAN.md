@@ -42,6 +42,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Module boundaries; open for structural changes |
 | [TESTING.md](TESTING.md) | Verification criteria |
 | [ASSET_BRIEF.md](ASSET_BRIEF.md) | Stable external asset style and format brief |
+| [ASSET_STATUS.md](ASSET_STATUS.md) | Current asset integration state and deferred asset decisions |
 
 ## Boundary Role Rules
 
@@ -225,6 +226,34 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 3. **Optional v1.11 reopen**
    - Only for a concrete boundary bug or stale doc route.
    - Avoid new helper extraction based on line count alone.
+
+## v2.0 MapDefinition Plan
+
+**Goal**: make map scale, match scale, spawn/loot density, zone profile, minimap/full-map metadata, and selected visual props an explicit definition layer before increasing player count.
+
+**Boundary contract**
+
+| Owner | Responsibility |
+|---|---|
+| `MapDefinition` | Static map id/name, world size, POIs, obstacles, routes, scale presets, spawn/loot/zone profile ids or overrides. |
+| `WorldBuilder.gd` | Build world geometry and visual prop overlays from a definition; keep collision/gameplay authority explicit. |
+| `Main.gd` | Continue owning match-global state and orchestration; consume sanitized definition data instead of scattering map-scale defaults. |
+| `Minimap.gd` / future Full Map UI | Render definition features, current/next zone, player/supply markers, and selected POI metadata; no match logic. |
+| Runtime tuning helpers | Clamp and merge scale preset values; do not discover scenes or mutate match state. |
+
+**First slices**
+
+1. Add a compatibility loader so current `MapSpec` JSON can be wrapped as the first `MapDefinition`.
+2. Move map-specific spawn radius, loot count/density, and zone radius profile into definition-owned or preset-owned data while preserving `game_config.json` fallback behavior.
+3. Add validation tooling for world bounds, POI radii, obstacle bounds, spawn radius, loot hotspot coverage, and zone radius sanity.
+4. Build a Full Map UI foundation from the same minimap feature data; keep it read-only at first.
+5. Scale bots by presets before 99-player work: 11 -> 24 -> 40 -> 60 -> 99, with AI LOD and telemetry checks at each step.
+
+**Non-goals for the first v2.0 pass**
+
+- Do not add new maps, mission map theming, bot artifacts, artifact upgrade trees, fire spread, or interior/landmark gameplay.
+- Do not redesign landmark collision until a feature needs precise interiors or climbable structures.
+- Do not bulk-promote generated GLBs; keep prop upgrades tied to visual or gameplay needs.
 
 ## Deferred Asset Upgrades
 

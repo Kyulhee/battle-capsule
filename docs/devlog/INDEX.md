@@ -1,6 +1,6 @@
 # Devlog Index
 
-> Last updated: 2026-05-27. Use this index before opening historical logs.
+> Last updated: 2026-05-30. Use this index before opening historical logs.
 
 ## Active Log
 
@@ -17,7 +17,7 @@
 
 | Version | Summary | Details |
 |---|---|---|
-| v1.12-dev | Complex Artifacts with bounded player-runtime effects | [v1.12.md](v1.12.md) |
+| v1.12-dev | Complex Artifacts, artifact visuals/icons, bush asset integration, v2.0 transition | [v1.12.md](v1.12.md) |
 | v1.11-dev | Subsystem directory and non-Main data-boundary pass | [v1.11.md](v1.11.md) |
 | v1.10-dev | Main slimdown, supply/loot/catalog/UI helper boundaries | [v1.10.md](v1.10.md) |
 | v1.9-dev | AssetCatalog hooks, debug logs, cosmetic/audio path hooks, scale CLI overrides | [v1.9.md](v1.9.md) |
