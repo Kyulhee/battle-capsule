@@ -4,7 +4,8 @@ param(
     [int]$Size = 64,
     [int]$Margin = 5,
     [int]$AlphaThreshold = 32,
-    [string]$OnlyCategory = ""
+    [string]$OnlyCategory = "",
+    [string]$OnlyDest = ""
 )
 
 Add-Type -AssemblyName System.Drawing
@@ -24,7 +25,9 @@ $IconMap = @(
     @{ Source = "artifacts\artifact.red_trigger.png"; Dest = "artifacts\red_trigger.png" },
     @{ Source = "artifacts\artifact.armor_sponge.png"; Dest = "artifacts\armor_sponge.png" },
     @{ Source = "artifacts\artifact.silent_core.png"; Dest = "artifacts\silent_core.png" },
-    @{ Source = "artifacts\artifact.zone_battery.png"; Dest = "artifacts\zone_battery.png" }
+    @{ Source = "artifacts\artifact.zone_battery.png"; Dest = "artifacts\zone_battery.png" },
+    @{ Source = "artifacts\artifact.emergency_shell.png"; Dest = "artifacts\emergency_shell.png" },
+    @{ Source = "artifacts\artifact.ghost_grass.png"; Dest = "artifacts\ghost_grass.png" }
 )
 
 function Get-AlphaBounds {
@@ -132,6 +135,9 @@ function Export-Icon {
 
 foreach ($icon in $IconMap) {
     if ($OnlyCategory -ne "" -and -not $icon.Dest.StartsWith("$OnlyCategory\")) {
+        continue
+    }
+    if ($OnlyDest -ne "" -and $icon.Dest -ne $OnlyDest) {
         continue
     }
     $src = Join-Path $SourceRoot $icon.Source

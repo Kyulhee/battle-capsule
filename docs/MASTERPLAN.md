@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-30 (v1.12.10 Bush interaction follow-up)
+> Last updated: 2026-05-30 (v1.12.11 artifact icon completion)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v1.12-dev: Complex Artifacts, starting with bounded player-runtime effects |
-| Latest completed slice | v1.12.10 follow-up: Bush interaction feedback |
-| Next structural slice | v1.12.11: Additional prop asset breadth pass |
+| Latest completed slice | v1.12.11: Artifact icon completion |
+| Next structural slice | v2.0: MapDefinition + player scale |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -205,23 +205,39 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Added `tools/verify_bush_prop_assets.gd` to verify catalog paths, raw GLB mesh counts, and default-map bush replacement.
 - Follow-up patch tracks bush occupancy by Area instance, restores same-bush visibility semantics, keeps outside bush concealment strict by default, reuses the old cylinder mesh as player-entry dark tint, and adds rustle feedback on enter/exit/movement.
 - Added `tools/verify_bush_interaction.gd` to pin same-bush visibility, outside concealment, reveal override, entry/exit state, tint visibility, and rustle feedback.
+- Follow-up patch animates only the nearest GLB bush clumps instead of swaying the whole catalog visual.
+
+**v1.12.11 result**
+
+- Promoted generated Escape Capsule and Ghost Grass artifact PNGs into normalized runtime icons.
+- Added catalog paths for all six starting artifact icons.
+- `tools/verify_artifact_selection_layout.gd` now checks that each starting artifact has a real catalog icon file path, not just a procedural fallback texture.
 
 ## Next Work
 
-1. **v1.12.11 — Additional prop asset breadth pass**
-   - Review tree, rock, log, and landmark candidates from generated output.
-   - Integrate only selected runtime assets through `assets/` and `data/asset_catalog.json`.
-   - Keep gameplay collision/cover authority explicit instead of trusting imported mesh collision.
-   - Keep generated source workspaces untracked.
-2. **Artifact asset follow-up**
-   - Generate/select missing `artifact.ghost_grass` and `artifact.emergency_shell` PNGs when ready.
-   - Keep the `artifact.<id>` catalog path and resolver fallback structure.
-3. **v1.10.x Item/Asset Readability Polish**
+1. **v2.0 MapDefinition + player scale** — primary priority.
+   - Design MapDefinition resource and Full Map UI foundation.
+   - Expand map size and player count toward real playable scale.
+   - Requires AI LOD, spawn/loot density rescale, zone/pathing rescale before 99-player target.
+2. **v1.10.x Item/Asset Readability Polish**
    - Only narrow visual/readability patches.
    - Keep generated source assets untracked unless selected files are integrated into runtime assets.
-4. **Optional v1.11 reopen**
+3. **Optional v1.11 reopen**
    - Only for a concrete boundary bug or stale doc route.
    - Avoid new helper extraction based on line count alone.
+
+## Deferred Asset Upgrades
+
+Recorded for future reference. Do not pursue until the relevant gameplay feature is being implemented.
+
+| Upgrade | Trigger condition |
+|---|---|
+| Bush B direction — cell-based Area3D per leaf clump, `bush_cell.glb` single-clump asset, map spec as cell coordinate arrays | When fire spread or per-cell vision events (flare, illumination) are implemented |
+| GLB visual replacement pass — rocks, trees, fallen tree, log pile, landmarks as `CatalogPropVisual` over existing procedural collision | When map visual upgrade is prioritized; purely cosmetic, no gameplay impact |
+| Tier 1 dynamic props — barrel_cluster, fire_pit, log_pile as event-capable objects | When fire/explosion events are implemented alongside Bush B |
+| Landmark collision redesign — cabin, watchtower with hand-crafted CollisionShape3D matching GLB geometry | When interior entry or precise landmark interaction is planned |
+
+Current bush GLB integration (v1.12.10) is kept as-is. `asset_generator/` remains untracked.
 
 ## Completion Gates
 

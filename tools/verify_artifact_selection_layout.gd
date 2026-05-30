@@ -16,6 +16,16 @@ func _init():
 	for artifact in catalog:
 		if String(artifact.get("id", "")) == "emergency_shell":
 			emergency_shell_found = true
+		var icon_id := "artifact.%s" % String(artifact.get("id", ""))
+		var icon_path := String(asset_catalog.get_path("icons", icon_id, ""))
+		if icon_path.strip_edges() == "":
+			push_error("Artifact %s is missing a catalog icon path." % artifact.get("id", ""))
+			quit(1)
+			return
+		if not ResourceLoader.exists(icon_path) and not FileAccess.file_exists(icon_path):
+			push_error("Artifact %s catalog icon path does not exist: %s" % [artifact.get("id", ""), icon_path])
+			quit(1)
+			return
 		for key in ["label", "summary", "line1", "line2"]:
 			if String(artifact.get(key, "")).strip_edges() == "":
 				push_error("Artifact %s is missing %s text." % [artifact.get("id", ""), key])
