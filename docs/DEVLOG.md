@@ -6,6 +6,21 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.4 — MapDefinition Validation Expansion
+
+**Scope**
+
+- Expanded `MapDefinition.validate()` for POI item density / rare-bias sanity, oversized POI radii, rotated obstacle footprint bounds, spawn radius versus runtime spawn clearance, loot density coverage, and implicit zone radius sanity.
+- `MapDefinition.summary()` now reports loot hotspot count and the resolved zone initial radius.
+- Scale presets now accept legacy flat match keys as a compatibility fallback while still preferring nested `match` sections.
+- `tools/verify_map_definition.gd` now includes a negative validation probe for POI, obstacle, spawn, and zone profile failures.
+
+**Verification**
+
+- `verify_map_definition.gd` passed.
+
+---
+
 ## v2.0.3 — Read-Only Full Map UI Foundation
 
 **Scope**
@@ -130,5 +145,5 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.4`: expand MapDefinition validation for POI radii, obstacle bounds, spawn/loot coverage, and zone radius sanity before additional scale presets.
+- `v2.0.5`: add the next scale preset candidate and smoke it conservatively before larger player-count work.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.

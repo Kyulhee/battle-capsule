@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.3 — Read-only Full Map UI foundation`.
-- Next structural slice: `v2.0.4 — MapDefinition validation expansion`.
+- Latest completed slice: `v2.0.4 — MapDefinition validation expansion`.
+- Next structural slice: `v2.0.5 — conservative next scale preset smoke`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -19,18 +19,19 @@
 - `d445692 docs: sync asset and v2 handoff` — compacted handoff/devlog docs and added `ASSET_STATUS.md`.
 - `14a1a33 feat: add map definition compatibility layer` — added `MapDefinition.gd` and validation tooling.
 - `2e69bb7 feat: merge map definition scale presets` — added baseline/medium scale preset data and runtime merge support.
-- Current v2.0.3 slice adds the read-only Full Map overlay and smoke verification.
+- `ada6ad4 feat: add read-only full map overlay` — added the read-only Full Map overlay and smoke verification.
+- Current v2.0.4 slice expands MapDefinition validation for POI, obstacle, spawn/loot, and zone sanity checks.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.4 — MapDefinition validation expansion`
+`v2.0.5 — conservative next scale preset smoke`
 
 - Keep `Main.gd` as match-global orchestrator.
-- Extend `tools/verify_map_definition.gd` and/or add focused validation helpers for POI radii, obstacle bounds, spawn radius, loot hotspot coverage, and zone radius sanity.
-- Keep validation read-only; do not add new maps or scale presets in the same slice.
-- Preserve the Full Map overlay as presentation-only; no routing, mission theming, or gameplay decisions.
+- Add only one next scale preset candidate after reviewing v2.0.4 validation output.
+- Smoke the preset through `verify_map_definition.gd`, Godot headless load, and `simulate_matches.py`.
+- Keep tuning conservative; do not jump to 99-player work.
 - Do not start 99-player tuning until the definition and validation path is stable.
 
 ## Asset Notes

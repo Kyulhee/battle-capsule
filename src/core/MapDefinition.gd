@@ -17,6 +17,11 @@ const DEFAULT_ZONE := {
 	"stages": {},
 }
 
+const IMPLICIT_INITIAL_ZONE_RADIUS := 50.0
+const IMPLICIT_NEXT_ZONE_RADIUS_MULT := 0.6
+const MAX_REASONABLE_POI_RADIUS_RATIO := 0.25
+const MAX_ITEM_DENSITY := 1.5
+
 @export var id: String = ""
 @export var display_name: String = ""
 @export var source_path: String = ""
@@ -150,13 +155,23 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 		var poi: Dictionary = map_spec.pois[i]
 		var pos := _vector2_from_array(poi.get("pos", []), Vector2.INF)
 		var radius := float(poi.get("radius", 0.0))
+		var item_density := float(poi.get("item_density", 0.0))
+		var rare_bias := float(poi.get("rare_bias", 0.0))
 		if not pos.is_finite():
 			issues.append("POI %d has invalid pos." % i)
 			continue
 		if radius <= 0.0:
 			issues.append("POI %d has non-positive radius." % i)
+		elif radius > world_size * MAX_REASONABLE_POI_RADIUS_RATIO:
+			issues.append("POI %d radius %.1f is too large for world_size %.1f." % [i, radius, world_size])
 		if absf(pos.x) + radius > half_size or absf(pos.y) + radius > half_size:
 			issues.append("POI %d extends outside world bounds." % i)
+		if item_density < 0.0:
+			issues.append("POI %d has negative item_density." % i)
+		elif item_density > MAX_ITEM_DENSITY:
+			issues.append("POI %d item_density %.2f exceeds %.2f." % [i, item_density, MAX_ITEM_DENSITY])
+		if rare_bias < 0.0 or rare_bias > 1.0:
+			issues.append("POI %d rare_bias %.2f must be within 0..1." % [i, rare_bias])
 
 	for i in range(map_spec.obstacles.size()):
 		var obstacle: Dictionary = map_spec.obstacles[i]
@@ -168,22 +183,36 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 		if scale.x <= 0.0 or scale.y <= 0.0 or scale.z <= 0.0:
 			issues.append("Obstacle %d has non-positive scale." % i)
 			continue
-		var extent := maxf(scale.x, scale.z) * 0.5
+		var extent := _obstacle_axis_extent(obstacle, scale)
 		var jitter := _vector2_from_array(obstacle.get("jitter", [0.0, 0.0]), Vector2.ZERO)
-		extent += maxf(absf(jitter.x), absf(jitter.y))
-		if absf(pos.x) + extent > half_size or absf(pos.y) + extent > half_size:
+		extent += Vector2(absf(jitter.x), absf(jitter.y))
+		if absf(pos.x) + extent.x > half_size or absf(pos.y) + extent.y > half_size:
 			issues.append("Obstacle %d extends outside world bounds." % i)
 
 	var match_tuning := get_match_tuning(game_config, {}, preset_name)
+	var runtime_tuning := get_runtime_tuning(game_config, {}, preset_name)
 	var spawn_radius := float(match_tuning.get("spawn_radius", 0.0))
 	if spawn_radius <= 0.0:
 		issues.append("spawn_radius must be positive.")
 	elif spawn_radius > half_size:
 		issues.append("spawn_radius %.1f exceeds world half-size %.1f." % [spawn_radius, half_size])
+	var spawn_section := _dictionary(runtime_tuning.get("spawn", {}))
+	var inner_radius := float(spawn_section.get("inner_radius", 0.0))
+	var entity_clearance := float(spawn_section.get("entity_clearance", 0.0))
+	if inner_radius < 0.0:
+		issues.append("runtime.spawn.inner_radius must be non-negative.")
+	elif spawn_radius < inner_radius:
+		issues.append("spawn_radius %.1f is smaller than runtime.spawn.inner_radius %.1f." % [spawn_radius, inner_radius])
+	if spawn_radius + maxf(0.0, entity_clearance) > half_size:
+		issues.append("spawn_radius %.1f plus entity_clearance %.1f exceeds world half-size %.1f." % [spawn_radius, entity_clearance, half_size])
 
 	var loot_count := int(match_tuning.get("loot_count", 0))
 	if loot_count > 0 and _loot_hotspot_count() <= 0:
 		issues.append("loot_count is positive but map has no loot-capable POIs.")
+	elif loot_count > 0 and _loot_density_total() <= 0.0:
+		issues.append("loot_count is positive but total loot density is zero.")
+
+	_validate_zone_sanity(issues, game_config, preset_name, half_size)
 
 	return issues
 
@@ -203,8 +232,10 @@ func summary(game_config = null, preset_name: String = "") -> Dictionary:
 		"bot_count": int(match_tuning.get("bot_count", 0)),
 		"loot_count": int(match_tuning.get("loot_count", 0)),
 		"spawn_radius": float(match_tuning.get("spawn_radius", 0.0)),
+		"loot_hotspot_count": _loot_hotspot_count() if map_spec != null else 0,
 		"zone_wait_time": float(zone_tuning.get("wait_time", 0.0)),
 		"zone_shrink_time": float(zone_tuning.get("shrink_time", 0.0)),
+		"zone_initial_radius": float(zone_tuning.get("initial_radius", IMPLICIT_INITIAL_ZONE_RADIUS)),
 		"zone_stage_count": _dictionary(zone_tuning.get("stages", {})).size(),
 		"scale_preset_count": scale_presets.size(),
 	}
@@ -214,7 +245,16 @@ func _preset_section(preset_name: String, section_name: String) -> Dictionary:
 	if preset_name.is_empty():
 		return {}
 	var preset := get_scale_preset(preset_name)
-	return _dictionary(preset.get(section_name, {}))
+	var section := _dictionary(preset.get(section_name, {}))
+	if not section.is_empty():
+		return section
+	if section_name == "match":
+		var flat_match := {}
+		for key in DEFAULT_MATCH.keys():
+			if preset.has(key):
+				flat_match[key] = preset[key]
+		return flat_match
+	return {}
 
 
 static func _map_spec_from_data(data: Dictionary) -> Resource:
@@ -272,12 +312,67 @@ static func _vector3_from_array(value, fallback: Vector3) -> Vector3:
 	return Vector3(float(value[0]), float(value[1]), float(value[2]))
 
 
+static func _obstacle_axis_extent(obstacle: Dictionary, scale: Vector3) -> Vector2:
+	var obs_type := String(obstacle.get("type", ""))
+	var half_extents := Vector2(scale.x, scale.z)
+	match obs_type:
+		"bush_patch":
+			half_extents = Vector2(scale.x * 1.5, scale.z * 1.5)
+		"rock_cluster":
+			var rock_radius := maxf(scale.x, scale.z) * 1.6
+			half_extents = Vector2(rock_radius, rock_radius)
+	var rot := deg_to_rad(float(obstacle.get("rot", 0.0)))
+	var c := absf(cos(rot))
+	var s := absf(sin(rot))
+	return Vector2(
+		c * half_extents.x + s * half_extents.y,
+		s * half_extents.x + c * half_extents.y
+	)
+
+
 func _loot_hotspot_count() -> int:
 	var count := 0
 	for poi in map_spec.pois:
 		if float(poi.get("item_density", 0.0)) > 0.0:
 			count += 1
 	return count
+
+
+func _loot_density_total() -> float:
+	var total := 0.0
+	for poi in map_spec.pois:
+		total += maxf(0.0, float(poi.get("item_density", 0.0)))
+	return total
+
+
+func _validate_zone_sanity(issues: Array[String], game_config, preset_name: String, half_size: float) -> void:
+	var zone_tuning := get_zone_tuning(game_config, {}, preset_name)
+	var initial_radius := float(zone_tuning.get("initial_radius", IMPLICIT_INITIAL_ZONE_RADIUS))
+	var next_radius := float(zone_tuning.get("next_radius", initial_radius * IMPLICIT_NEXT_ZONE_RADIUS_MULT))
+	if initial_radius <= 0.0:
+		issues.append("zone.initial_radius must be positive.")
+	elif initial_radius > half_size:
+		issues.append("zone.initial_radius %.1f exceeds world half-size %.1f." % [initial_radius, half_size])
+	if next_radius <= 0.0:
+		issues.append("zone.next_radius must be positive.")
+	elif next_radius >= initial_radius:
+		issues.append("zone.next_radius %.1f must be smaller than initial_radius %.1f." % [next_radius, initial_radius])
+	for key in ["wait_time", "shrink_time", "initial_timer"]:
+		if float(zone_tuning.get(key, 0.0)) <= 0.0:
+			issues.append("zone.%s must be positive." % key)
+	if float(zone_tuning.get("damage_per_second", 0.0)) < 0.0:
+		issues.append("zone.damage_per_second must be non-negative.")
+	var stages := _dictionary(zone_tuning.get("stages", {}))
+	for stage_key in stages.keys():
+		var stage := _dictionary(stages[stage_key])
+		if stage.is_empty():
+			issues.append("zone.stages.%s must be a Dictionary." % String(stage_key))
+			continue
+		for key in ["wait_time", "shrink_time"]:
+			if stage.has(key) and float(stage.get(key, 0.0)) <= 0.0:
+				issues.append("zone.stages.%s.%s must be positive." % [String(stage_key), key])
+		if stage.has("damage_per_second") and float(stage.get("damage_per_second", 0.0)) < 0.0:
+			issues.append("zone.stages.%s.damage_per_second must be non-negative." % String(stage_key))
 
 
 static func _slug(value: String) -> String:

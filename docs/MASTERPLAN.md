@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.3: Read-only Full Map UI foundation |
-| Next structural slice | v2.0.4: MapDefinition validation expansion |
+| Latest completed slice | v2.0.4: MapDefinition validation expansion |
+| Next structural slice | v2.0.5: conservative next scale preset smoke |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -245,7 +245,7 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 
 1. Add a compatibility loader so current `MapSpec` JSON can be wrapped as the first `MapDefinition`. Done in v2.0.1.
 2. Move map-specific spawn radius, loot count/density, and zone radius profile into definition-owned or preset-owned data while preserving `game_config.json` fallback behavior. Done in v2.0.2.
-3. Add validation tooling for world bounds, POI radii, obstacle bounds, spawn radius, loot hotspot coverage, and zone radius sanity.
+3. Add validation tooling for world bounds, POI radii, obstacle bounds, spawn radius, loot hotspot coverage, and zone radius sanity. Done in v2.0.4.
 4. Build a Full Map UI foundation from the same minimap feature data; keep it read-only at first. Done in v2.0.3.
 5. Scale bots by presets before 99-player work: 11 -> 24 -> 40 -> 60 -> 99, with AI LOD and telemetry checks at each step.
 
@@ -273,6 +273,12 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Added a read-only Full Map overlay toggled from `Main.gd` during active matches.
 - The overlay renders world bounds, POIs, generated obstacle footprints, current/next zone, player facing, and supply marker state from `MapDefinition` / `MapSpec` / `WorldBuilder.get_minimap_features()`.
 - Added `tools/verify_full_map_overlay.gd` for projection, layout bounds, generated feature ingestion, and runtime marker smoke coverage.
+
+**v2.0.4 result**
+
+- Expanded `MapDefinition.validate()` to catch POI density/bias issues, oversized POI radii, rotated obstacle footprint bounds, spawn/runtime clearance conflicts, loot density gaps, and implicit zone radius sanity.
+- `tools/verify_map_definition.gd` now includes negative validation probes so the new checks are pinned.
+- Preset compatibility now supports flat match keys as a fallback while nested `match` sections remain preferred.
 
 ## Deferred Asset Upgrades
 
