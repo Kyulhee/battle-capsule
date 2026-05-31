@@ -49,11 +49,12 @@
 | ArtifactSelectionPanelBuilder | artifact selection modal UI | `Main.gd` | static UI builder |
 | HellAnnouncementBuilder | Hell announcement modal UI | `Main.gd` | static UI builder |
 | EventTextBuilder | transient event text overlay | `Main.gd` | static UI builder |
+| FullMapOverlay | read-only full map presentation | `Main.gd` | Control UI overlay |
 | MenuController | panel routing and menu button wiring | `Main.gd` | RefCounted UI controller |
 | MatchBootstrap | match-start initialization helpers | `Main.gd` | static system helper |
 | MatchTuning | match/zone tuning interpretation | `Main.gd` | static system helper |
 | MatchRuntimeTuning | Main runtime spawn/navigation/loot fallback tuning | `Main.gd` | static system helper |
-| MapDefinition | map/match-scale compatibility wrapper and validation source | future map/full-map slices | Resource data wrapper |
+| MapDefinition | map/match-scale compatibility wrapper and validation source | `Main.gd`, map UI validation | Resource data wrapper |
 | BotSpawnPlanner | bot archetype plan generation | `Main.gd` | static system helper |
 | LootSpawner | loot hotspot and position calculation | `Main.gd` | RefCounted loot system helper |
 | SupplyDropController | supply drop timing and cluster calculation | `Main.gd` | RefCounted loot system helper |
@@ -66,7 +67,7 @@
 ## 파일별 양방향 참조
 
 ### `src/Main.gd`
-- **현재 역할**: match-global orchestrator. v1.10.20 기준 1097줄.
+- **현재 역할**: match-global orchestrator. v2.0.3 기준 1085줄.
 - **의도적으로 소유**: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, supply minimap state, scene callbacks, exported scene/count defaults, Telemetry hook calls.
 - **data/config-backed merge points**: `bot_count`, `loot_count`, `spawn_radius`, base zone exports are loaded/overridden through `GameConfig`/`MatchTuning` and CLI parsing before match start.
 - **분리 완료**: item/resource references, runtime spawn/navigation/loot/supply fallback tuning, menu/panel builders, match bootstrap/tuning helpers, pressure effect execution, bot spawn planning, loot/supply pickup creation, zone/supply world presentation.
@@ -474,7 +475,7 @@
 ### `src/core/MapDefinition.gd`
 - **읽는 파일**: 기존 MapSpec JSON dictionary, optional GameConfig-compatible fallback object.
 - **공개 API**: `load_from_json()`, `load_from_data()`, `load_from_map_spec()`, `get_match_tuning()`, `get_runtime_tuning()`, `get_zone_tuning()`, `validate()`, `summary()`.
-- **소유 범위**: v2.0 compatibility wrapper for map id/name, map spec, match/runtime/zone overrides, scale presets, and validation. `Main.gd` consumes selected preset data, while `WorldBuilder` and `Minimap` still consume `MapSpec`.
+- **소유 범위**: v2.0 compatibility wrapper for map id/name, map spec, match/runtime/zone overrides, scale presets, and validation. `Main.gd` consumes selected preset data, while `WorldBuilder`, `Minimap`, and `FullMapOverlay` still consume presentation-safe map data.
 - **수정 영향**: merge/clamp behavior를 바꾸면 `tools/verify_map_definition.gd`, `GameConfig.gd`, `MatchTuning.gd`, `MatchRuntimeTuning.gd`, `Main.gd` scale application plan을 함께 확인.
 
 ### `src/ui/Minimap.gd`
@@ -482,13 +483,18 @@
 - **렌더 순서**: 낮은 layer(부쉬) → 높은 layer(장애물) 순서로 그려 하늘에서 본 최종 덮임 형태를 표현.
 - **수정 영향**: 새 장애물 타입을 추가하면 `WorldBuilder` footprint 기록과 `Minimap._feature_colors()`를 함께 확인.
 
+### `src/ui/FullMapOverlay.gd`
+- **읽는 파일**: `MapDefinition` display name, wrapped `MapSpec` POIs/world size, `WorldBuilder.get_minimap_features()` generated footprints, `Main.zone`/supply/player state.
+- **소유 범위**: active-match read-only map overlay rendering and world-to-map projection. `Main.gd` owns toggle state and passes data; the overlay does not route, mutate gameplay, or choose missions.
+- **수정 영향**: map feature shape/layer/color changes should update `Minimap.gd`, `FullMapOverlay.gd`, and `tools/verify_full_map_overlay.gd` together.
+
 ---
 
 ## 변경 → 연쇄 영향
 
 | 변경 대상 | 직접 파일 | 반드시 확인할 파일 |
 |---|---|---|
-| `ZoneController` 공개 API | `ZoneController.gd` | `Main.gd`, `Bot.gd`, `Player.gd`, `Minimap.gd` |
+| `ZoneController` 공개 API | `ZoneController.gd` | `Main.gd`, `Bot.gd`, `Player.gd`, `Minimap.gd`, `FullMapOverlay.gd` |
 | `WeaponSlotManager` 공개 API | `WeaponSlotManager.gd` | `Player.gd` (시그널 연결), `Main.gd` (`player_ref.slots.*`) |
 | Weapon slot tuning values | `src/core/WeaponSlotTuning.gd` | `WeaponSlotManager.gd`, Player HUD ammo text, pressure ammo effects, simulations |
 | `MissionTracker` 훅 추가/변경 | `MissionTracker.gd` | `Main.gd` (훅 호출 추가), 존 관련이면 `ZoneController.gd` |
@@ -516,6 +522,7 @@
 | Settings modal UI | `SettingsPanelBuilder.gd` | `Main.gd` settings callbacks, `user://settings.cfg` key compatibility |
 | Result panel UI | `ResultPanelBuilder.gd` | `Main.gd` finalization/score data, Telemetry score fields |
 | Pause overlay UI | `PausePanelBuilder.gd` | `Main.gd` pause state/input callbacks, `MenuVisualBuilder.gd` shared button style |
+| Full Map overlay UI | `src/ui/FullMapOverlay.gd` | `Main.gd` map sync/input callbacks, `WorldBuilder.gd` generated footprint data, `MapDefinition.gd`, `MapSpec.gd`, `Minimap.gd` feature color parity |
 | Artifact selection UI | `ArtifactSelectionPanelBuilder.gd` | `ArtifactCatalog.gd`, `Main.gd` pending/apply flow, `Player.gd` `apply_artifact()` |
 | Hell announcement UI | `HellAnnouncementBuilder.gd` | `Main.gd` Hell modifier/dismiss wiring, `HellEventController.gd` modifier description |
 | Event text overlay | `EventTextBuilder.gd` | `Main.gd` event signal wiring, `HellEventController.gd` event text requests |
@@ -525,7 +532,7 @@
 | Match/zone tuning config 또는 CLI alias | `MatchTuning.gd` | `Main.gd` apply path, `data/game_config.json`, `tools/simulate_matches.py`, TESTING/문서 예시 |
 | Main runtime tuning | `MatchRuntimeTuning.gd`, `data/game_config.json` `runtime`, `MapDefinition.gd` scale presets | `Main.gd` spawn/navigation/supply/zone-stage loot paths, `LootSpawner.gd` density scaling, `GameConfig.gd`, simulations |
 | Bot count/archetype ratio | `BotSpawnPlanner.gd` | `Main.gd` spawn wiring, `Bot.gd` archetype enum, `BotDoctrine.gd`, Telemetry archetype reports |
-| Loot/supply pickup creation | `src/systems/loot/LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap supply display |
+| Loot/supply pickup creation | `src/systems/loot/LootSpawnDirector.gd` | `Main.gd` supply/loot state, `LootSpawner.gd`, `SupplyDropController.gd`, `Pickup.gd`, `ItemData.gd`, Minimap/FullMapOverlay supply display |
 | Mission tuning threshold | `src/systems/mission/MissionTuning.gd` | `Main.gd` kill context, `MissionTracker.gd` counters, `MissionEvaluator.gd`, `MissionHudFormatter.gd`, `MissionDescriptionFormatter.gd`, `PressureMissionDescriptionFormatter.gd`, `PressureConditionEvaluator.gd`, simulations |
 | Bonus mission description | `src/systems/mission/MissionDescriptionFormatter.gd` | `MissionCatalog.gd` target fields, `MissionHudFormatter.gd` weapon labels, result/menu mission display |
 | Pressure mission description | `src/systems/mission/PressureMissionDescriptionFormatter.gd` | `MissionCatalog.gd` pressure conditions, `MissionHudFormatter.gd` progress text, `PressureConditionEvaluator.gd`, pressure simulations |
@@ -538,7 +545,7 @@
 | Pressure reward/penalty effect | `PressureEffectCatalog.gd` + `PressureEffectApplier.gd` | `MissionCatalog.gd` descriptor pools, `MissionTracker.gd` HUD text, `Main.gd` returned state updates, `Player.gd`, `ZoneController.gd`, `Bot.gd` |
 | Bot Doctrine/아키타입 보정 | `BotDoctrine.gd` | `Bot.gd` 실행부, `Telemetry.gd` (doctrine/전술 카운트), `Main.gd` (`configure_ai`) |
 | Bot 아키타입 외형 | `BotVisualKit.gd` | `Bot.gd` (`configure_ai` 후 apply), headless 종료 로그 |
-| `MapDefinition` / `MapSpec` 구조 | `MapDefinition.gd`, `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `Main.gd` autostart world generation, Full Map UI plan |
+| `MapDefinition` / `MapSpec` 구조 | `MapDefinition.gd`, `MapSpec.gd` | `WorldBuilder.gd`, `Minimap.gd`, `FullMapOverlay.gd`, `Main.gd` autostart world generation |
 | Death drop 표시 이름/색상 | `DropDisplayCatalog.gd` | `Player.gd`, `Bot.gd`, `Pickup.gd` label output |
 | `Pickup` 인터페이스 | `Pickup.gd` | `Player.gd` (래퍼 메서드), `Bot.gd` (드롭 로직) |
 | How to Play 행 구조 | `HelpCatalog.gd` | `HelpPanelBuilder.gd`, `Main.gd` Help panel wiring |

@@ -6,6 +6,23 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.3 — Read-Only Full Map UI Foundation
+
+**Scope**
+
+- Added `src/ui/FullMapOverlay.gd`, a presentation-only full-screen map overlay for world bounds, POIs, generated obstacle footprints, current/next zone, player facing, and supply marker state.
+- `Main.gd` now syncs map UI data through `_sync_map_views()` and toggles the Full Map overlay with `M`; `ESC` closes the overlay before pause.
+- The overlay reuses `MapDefinition`, wrapped `MapSpec`, and `WorldBuilder.get_minimap_features()` data without owning match decisions.
+- Added `tools/verify_full_map_overlay.gd` to pin layout bounds, world-to-map projection, generated feature ingestion, and runtime marker state.
+
+**Verification**
+
+- `verify_full_map_overlay.gd` passed.
+- `verify_map_definition.gd` passed.
+- Godot headless project load passed with expected AssetCatalog warning only.
+
+---
+
 ## v2.0.2 — Definition-Driven Scale Preset Merge
 
 **Scope**
@@ -113,5 +130,5 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.3`: build a read-only Full Map UI foundation from the same map feature data.
+- `v2.0.4`: expand MapDefinition validation for POI radii, obstacle bounds, spawn/loot coverage, and zone radius sanity before additional scale presets.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.

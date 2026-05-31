@@ -68,6 +68,12 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v1.12 artifact visual gallery capture (requires normal renderer; writes C:/tmp/artifact_visual_gallery.png)
 ./Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_artifact_visual_gallery.gd
 
+# v2.0 MapDefinition smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_map_definition.gd
+
+# v2.0 Full Map overlay smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_full_map_overlay.gd
+
 # 결과 파일 위치 (Windows)
 # %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
 ```

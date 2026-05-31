@@ -19,6 +19,7 @@ var hell_modifier: HellModifier = HellModifier.SCARCITY
 var _hell_announce_active: bool = false
 var _hell_announce_panel: Control = null
 var _pause_panel: Control = null
+var _full_map_overlay: Control = null
 
 @export var loot_count: int = 40
 @export var spawn_radius: float = 45.0
@@ -66,6 +67,7 @@ const EventTextBuilderScript = preload("res://src/ui/overlays/EventTextBuilder.g
 const GameConfigScript = preload("res://src/core/GameConfig.gd")
 const DebugFlagsScript = preload("res://src/core/DebugFlags.gd")
 const DebugOverlayScript = preload("res://src/ui/DebugOverlay.gd")
+const FullMapOverlayScript = preload("res://src/ui/FullMapOverlay.gd")
 const HelpPanelBuilderScript = preload("res://src/ui/HelpPanelBuilder.gd")
 const HellEventControllerScript = preload("res://src/systems/hell/HellEventController.gd")
 const HellAnnouncementBuilderScript = preload("res://src/ui/panels/HellAnnouncementBuilder.gd")
@@ -308,19 +310,24 @@ func start_game():
 		)
 		_show_hell_announcement()
 	
-	# Final Minimap Sync
-	var minimap = get_node_or_null("CanvasLayer/Control/HUD/Minimap")
-	if minimap and minimap.has_method("set_map_spec"):
-		var minimap_features: Array[Dictionary] = []
-		if world_builder and world_builder.has_method("get_minimap_features"):
-			minimap_features = world_builder.get_minimap_features()
-		minimap.set_map_spec(map_spec, minimap_features)
+	# Final map UI sync
+	_sync_map_views()
 
 	# Apply artifact to player (skipped in simulation)
 	if player_ref and player_ref.has_method("apply_artifact") and not is_simulation:
 		var art = ArtifactCatalogScript.prepare_for_difficulty(_pending_artifact, difficulty as int)
 		player_ref.apply_artifact(art)
 		_pending_artifact = {}
+
+func _sync_map_views():
+	var minimap = get_node_or_null("CanvasLayer/Control/HUD/Minimap")
+	if minimap and minimap.has_method("set_map_spec"):
+		var minimap_features: Array[Dictionary] = []
+		if world_builder and world_builder.has_method("get_minimap_features"):
+			minimap_features = world_builder.get_minimap_features()
+		minimap.set_map_spec(map_spec, minimap_features)
+	if is_instance_valid(_full_map_overlay):
+		_configure_full_map_overlay()
 
 func _show_panel(panel_name: String):
 	if menu_controller:
@@ -368,6 +375,8 @@ func return_to_menu():
 	get_tree().reload_current_scene()
 
 func _toggle_pause():
+	if _is_full_map_open():
+		_hide_full_map()
 	if is_instance_valid(_pause_panel):
 		_pause_panel.queue_free()
 		_pause_panel = null
@@ -385,16 +394,61 @@ func _create_pause_panel() -> Control:
 		Callable(self, "_apply_btn_style")
 	)
 
+func _toggle_full_map():
+	if current_state != GameState.PLAYING:
+		return
+	if _is_full_map_open():
+		_hide_full_map()
+	else:
+		_show_full_map()
+
+func _show_full_map():
+	_ensure_full_map_overlay()
+	_configure_full_map_overlay()
+	if is_instance_valid(_full_map_overlay) and _full_map_overlay.has_method("show_map"):
+		_full_map_overlay.show_map()
+
+func _hide_full_map():
+	if is_instance_valid(_full_map_overlay) and _full_map_overlay.has_method("hide_map"):
+		_full_map_overlay.hide_map()
+
+func _is_full_map_open() -> bool:
+	return is_instance_valid(_full_map_overlay) and _full_map_overlay.has_method("is_open") and bool(_full_map_overlay.is_open())
+
+func _ensure_full_map_overlay():
+	if is_instance_valid(_full_map_overlay):
+		return
+	_full_map_overlay = FullMapOverlayScript.new()
+	_full_map_overlay.name = "FullMapOverlay"
+	_full_map_overlay.layout_mode = 1
+	_full_map_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_full_map_overlay.z_index = 12
+	$CanvasLayer/Control.add_child(_full_map_overlay)
+
+func _configure_full_map_overlay():
+	if not is_instance_valid(_full_map_overlay):
+		return
+	var minimap_features: Array[Dictionary] = []
+	if world_builder and world_builder.has_method("get_minimap_features"):
+		minimap_features = world_builder.get_minimap_features()
+	if _full_map_overlay.has_method("configure"):
+		_full_map_overlay.configure(self, map_definition, map_spec, minimap_features, map_scale_preset)
+
 func _input(event):
 	if not (event is InputEventKey) or not event.pressed: return
 	match event.keycode:
 		KEY_F12:
 			_take_screenshot("debug_screenshot_manual.png")
 		KEY_ESCAPE:
-			if _hell_announce_active:
+			if _is_full_map_open():
+				_hide_full_map()
+			elif _hell_announce_active:
 				_dismiss_hell_announcement()
 			elif current_state == GameState.PLAYING:
 				_toggle_pause()
+		KEY_M:
+			if not _hell_announce_active:
+				_toggle_full_map()
 		KEY_SPACE:
 			if _hell_announce_active:
 				_dismiss_hell_announcement()
