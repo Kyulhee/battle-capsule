@@ -1,8 +1,24 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-05-30. Compressed recent work log. Full historical detail is preserved in `docs/devlog/` and `docs/archive/`.
+> Last updated: 2026-06-01. Compressed recent work log. Full historical detail is preserved in `docs/devlog/` and `docs/archive/`.
 
 Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-version summaries unless exact history is needed.
+
+---
+
+## v2.0.5 — SettingsManager Boundary Extraction
+
+**Scope**
+
+- Added `src/core/SettingsManager.gd` to own `user://settings.cfg` load/save, master volume application, fullscreen state, clamping, and runtime sync.
+- `Main.gd` now keeps only settings panel callbacks and delegates persistence/audio/display mutation to `SettingsManager`.
+- Added `tools/verify_settings_manager.gd` for save/load, clamp, fullscreen state, and missing-file fallback smoke coverage.
+
+**Verification**
+
+- `verify_settings_manager.gd` passed.
+- Godot headless project load passed with expected AssetCatalog warning only.
+- `python tools\simulate_matches.py 1 normal` passed.
 
 ---
 
@@ -145,5 +161,5 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.5`: add the next scale preset candidate and smoke it conservatively before larger player-count work.
+- `v2.0.6`: add the next scale preset candidate and smoke it conservatively before larger player-count work.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.

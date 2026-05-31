@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-05-30 (v1.12.11 artifact icon completion)
+> Last updated: 2026-06-01 (v2.0.5 SettingsManager extraction)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.4: MapDefinition validation expansion |
-| Next structural slice | v2.0.5: conservative next scale preset smoke |
+| Latest completed slice | v2.0.5: SettingsManager boundary extraction |
+| Next structural slice | v2.0.6: conservative next scale preset smoke |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -279,6 +279,12 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Expanded `MapDefinition.validate()` to catch POI density/bias issues, oversized POI radii, rotated obstacle footprint bounds, spawn/runtime clearance conflicts, loot density gaps, and implicit zone radius sanity.
 - `tools/verify_map_definition.gd` now includes negative validation probes so the new checks are pinned.
 - Preset compatibility now supports flat match keys as a fallback while nested `match` sections remain preferred.
+
+**v2.0.5 result**
+
+- Added `SettingsManager.gd` so settings file persistence, master volume application, fullscreen state, and clamping are no longer implemented directly in `Main.gd`.
+- `Main.gd` keeps settings panel callbacks as scene wiring only.
+- Added `tools/verify_settings_manager.gd` to pin load/save/clamp/missing-file behavior.
 
 ## Deferred Asset Upgrades
 

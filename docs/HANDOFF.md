@@ -1,12 +1,12 @@
 # Next Chat Handoff
 
-> Last updated: 2026-05-30. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
+> Last updated: 2026-06-01. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
 
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.4 — MapDefinition validation expansion`.
-- Next structural slice: `v2.0.5 — conservative next scale preset smoke`.
+- Latest completed slice: `v2.0.5 — SettingsManager boundary extraction`.
+- Next structural slice: `v2.0.6 — conservative next scale preset smoke`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -20,13 +20,14 @@
 - `14a1a33 feat: add map definition compatibility layer` — added `MapDefinition.gd` and validation tooling.
 - `2e69bb7 feat: merge map definition scale presets` — added baseline/medium scale preset data and runtime merge support.
 - `ada6ad4 feat: add read-only full map overlay` — added the read-only Full Map overlay and smoke verification.
-- Current v2.0.4 slice expands MapDefinition validation for POI, obstacle, spawn/loot, and zone sanity checks.
+- `7790567 test: expand map definition validation` — expanded MapDefinition validation for POI, obstacle, spawn/loot, and zone sanity checks.
+- Current v2.0.5 slice moves settings persistence/audio/display mutation into `SettingsManager.gd`.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.5 — conservative next scale preset smoke`
+`v2.0.6 — conservative next scale preset smoke`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Add only one next scale preset candidate after reviewing v2.0.4 validation output.

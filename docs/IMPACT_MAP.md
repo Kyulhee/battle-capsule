@@ -1,7 +1,7 @@
 # Impact Map — 배틀캡슐
 
 > **정확성 규칙**: 이 파일이 실제 코드와 다를 경우 즉시 사용자에게 보고하고 수정하라.  
-> 기준 버전: v2.0-dev transition / 마지막 검증: 2026-05-30
+> 기준 버전: v2.0-dev transition / 마지막 검증: 2026-06-01
 
 ---
 
@@ -40,6 +40,7 @@
 | BotVisualSkinController | Bot archetype skin root apply/sync/hide lifecycle | `Bot.gd` | RefCounted visual helper |
 | HellEventController | Hell blackout/bombardment runtime | `Main.gd` | RefCounted hell system controller |
 | HellTuning | Hell event tuning and visual defaults | `HellEventController.gd`, `GameConfig.gd` | static tuning helper |
+| SettingsManager | settings persistence, master volume, fullscreen state | `Main.gd` | RefCounted settings helper |
 | MenuVisualBuilder | menu background/button presentation | `Main.gd` | static UI builder |
 | WorldPresentationBuilder | zone ring and supply pillar world presentation | `Main.gd` | static UI/world builder |
 | DifficultySelectorBuilder | difficulty selector/tooltip UI | `Main.gd` | static UI builder |
@@ -67,10 +68,10 @@
 ## 파일별 양방향 참조
 
 ### `src/Main.gd`
-- **현재 역할**: match-global orchestrator. v2.0.3 기준 1085줄.
+- **현재 역할**: match-global orchestrator. v2.0.5 기준 1078줄.
 - **의도적으로 소유**: `zone`, `mission_tracker`, `player_ref`, `alive_count`, `game_over`, `difficulty`, pressure flags, supply minimap state, scene callbacks, exported scene/count defaults, Telemetry hook calls.
 - **data/config-backed merge points**: `bot_count`, `loot_count`, `spawn_radius`, base zone exports are loaded/overridden through `GameConfig`/`MatchTuning` and CLI parsing before match start.
-- **분리 완료**: item/resource references, runtime spawn/navigation/loot/supply fallback tuning, menu/panel builders, match bootstrap/tuning helpers, pressure effect execution, bot spawn planning, loot/supply pickup creation, zone/supply world presentation.
+- **분리 완료**: item/resource references, settings persistence/audio/display mutation, runtime spawn/navigation/loot/supply fallback tuning, menu/panel builders, match bootstrap/tuning helpers, pressure effect execution, bot spawn planning, loot/supply pickup creation, zone/supply world presentation.
 - **v1.11 이월**: Hell start-state policy, mission/artifact feasibility glue, result text formatting, debug snapshot aggregation, and non-Main tuning/data boundaries in Player/Bot/Mission/Hell/Loot/UI helpers. Bonus mission context thresholds for supply/perception/detected counts now live in `MissionTuning.gd`.
 
 ### `src/systems/zone/ZoneController.gd`
@@ -323,7 +324,14 @@
 - **읽는 파일**: 직접 scene 참조 없음.
 - **호출자**: `Main.gd` `_on_settings_pressed()`.
 - **역할**: Settings modal UI, volume slider text, fullscreen button text, close button construction.
-- **소유하지 않는 것**: `AudioServer`, `DisplayServer`, settings save/load keys. Main이 callback으로 유지.
+- **소유하지 않는 것**: `AudioServer`, `DisplayServer`, settings save/load keys. `SettingsManager.gd`가 callback target으로 유지.
+
+### `src/core/SettingsManager.gd`
+- **읽는 파일**: `user://settings.cfg` 또는 명시적으로 넘긴 settings path.
+- **호출자**: `Main.gd` `_ready()` / settings panel callbacks, `tools/verify_settings_manager.gd`.
+- **역할**: settings file load/save, master volume clamp/application, fullscreen state sync/toggle/application.
+- **소유하지 않는 것**: Settings panel node construction, menu routing, scene callback lifetime.
+- **수정 영향**: settings schema/key를 바꾸면 `SettingsPanelBuilder.gd`, `Main.gd` callbacks, `tools/verify_settings_manager.gd`, user save compatibility를 함께 확인.
 
 ### `src/ui/panels/ResultPanelBuilder.gd`
 - **읽는 파일**: 직접 scene 참조 없음.
@@ -519,7 +527,7 @@
 | Hell 정전/포격 이벤트 | `data/game_config.json` `hell` + `HellTuning.gd` + `src/systems/hell/HellEventController.gd` | `Main.gd` start/tick wiring, `Player.gd` SCARCITY reads, `Telemetry.gd`, Hell simulations |
 | Difficulty selector UI | `DifficultySelectorBuilder.gd` | `Main.gd` difficulty callbacks, `DifficultyCatalog.gd` labels/descriptions |
 | Zone/supply world presentation | `WorldPresentationBuilder.gd` | `Main.gd` zone/supply wiring, `ZoneController.gd`, `SupplyDropController.gd`, `LootSpawnDirector.gd` |
-| Settings modal UI | `SettingsPanelBuilder.gd` | `Main.gd` settings callbacks, `user://settings.cfg` key compatibility |
+| Settings modal UI/settings persistence | `SettingsPanelBuilder.gd`, `SettingsManager.gd` | `Main.gd` settings callbacks, `user://settings.cfg` key compatibility, `tools/verify_settings_manager.gd` |
 | Result panel UI | `ResultPanelBuilder.gd` | `Main.gd` finalization/score data, Telemetry score fields |
 | Pause overlay UI | `PausePanelBuilder.gd` | `Main.gd` pause state/input callbacks, `MenuVisualBuilder.gd` shared button style |
 | Full Map overlay UI | `src/ui/FullMapOverlay.gd` | `Main.gd` map sync/input callbacks, `WorldBuilder.gd` generated footprint data, `MapDefinition.gd`, `MapSpec.gd`, `Minimap.gd` feature color parity |

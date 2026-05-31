@@ -1,8 +1,8 @@
 # 배틀캡슐 아키텍처 보고서 (v1.11-dev)
 
-> 최종 업데이트: 2026-05-30
+> 최종 업데이트: 2026-06-01
 > 이 문서는 v2.0-dev transition 기준이다. v1.11 subsystem boundaries 위에 MapDefinition compatibility layer가 추가되었고, runtime match orchestration은 아직 Main-owned이다.
-> `Main.gd`는 v2.0.3 기준 1085줄이며, match-global state/wiring orchestrator로 남긴다.
+> `Main.gd`는 v2.0.5 기준 1078줄이며, match-global state/wiring orchestrator로 남긴다.
 
 ---
 
@@ -34,7 +34,7 @@
 ├──────────────────────┴──────────────────────────────┤
 │  Core Modules / Runtime Controllers                  │
 │  WeaponSlotManager · MissionTracker                 │
-│  GameConfig · AssetCatalog · Telemetry · Sfx        │
+│  GameConfig · AssetCatalog · SettingsManager · Sfx  │
 │  Systems           match bootstrap/tuning/spawn/effects│
 │                    hell runtime · zone lifecycle    │
 │                    loot/supply helpers · missions   │
@@ -67,6 +67,7 @@
 | `src/core/WeaponSlotTuning.gd` | weapon reload times and reserve-ammo caps | WeaponSlotManager가 inventory/reload state와 algorithms를 유지하고 tuning values만 참조 |
 | `src/core/DifficultyCatalog.gd` | 난이도 label/description/color 정의 | Main 메뉴와 Records가 같은 UI 데이터를 참조 |
 | `src/core/HelpCatalog.gd` | How to Play 섹션/행 데이터 정의 | `HelpPanelBuilder.gd`가 읽어 key/icon/desc 행으로 렌더 |
+| `src/core/SettingsManager.gd` | settings file persistence, master volume, fullscreen state | Main settings callbacks delegate save/load/audio/display mutation |
 | `src/systems/mission/MissionBadgeStore.gd` | 미션 achievement badge JSON read/write | MissionTracker public badge wrappers가 사용 |
 | `src/systems/mission/MissionCatalog.gd` | 보너스 미션 목록과 hard/Hell 압박 미션 descriptor pool | MissionTracker public static wrappers가 읽고, 평가는 MissionTracker가 수행 |
 | `src/systems/mission/MissionTuning.gd` | 보너스/압박 미션이 공유하는 supply radius, detection threshold, detected bot count, low-HP, all-weapon target values, pressure feasibility cutoffs | Main, MissionTracker, MissionEvaluator, MissionHudFormatter, MissionDescriptionFormatter, PressureConditionEvaluator가 같은 값 참조 |

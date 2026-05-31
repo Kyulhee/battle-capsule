@@ -86,6 +86,7 @@ const PausePanelBuilderScript = preload("res://src/ui/panels/PausePanelBuilder.g
 const PressureEffectApplierScript = preload("res://src/systems/match/PressureEffectApplier.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
 const ResultPanelBuilderScript = preload("res://src/ui/panels/ResultPanelBuilder.gd")
+const SettingsManagerScript = preload("res://src/core/SettingsManager.gd")
 const SettingsPanelBuilderScript = preload("res://src/ui/SettingsPanelBuilder.gd")
 const SupplyDropControllerScript = preload("res://src/systems/loot/SupplyDropController.gd")
 const WorldPresentationBuilderScript = preload("res://src/ui/WorldPresentationBuilder.gd")
@@ -110,6 +111,7 @@ var debug_overlay = null
 var supply_controller = null
 var hell_events = null
 var menu_controller = null
+var settings_manager = null
 
 # Dynamic Supply
 var supply_telegraphed: bool = false
@@ -143,7 +145,9 @@ func _ready():
 	debug_flags.load_from_cmdline(OS.get_cmdline_user_args())
 	if debug_flags.enabled:
 		print("[DEBUG] Flags: %s" % debug_flags.describe())
-	_load_settings()
+	settings_manager = SettingsManagerScript.new()
+	settings_manager.load_or_default()
+	settings_manager.apply_current()
 	# Check for autostart
 	var autostart_requested = false
 	for arg in OS.get_cmdline_user_args():
@@ -1162,25 +1166,14 @@ func _dismiss_hell_announcement():
 
 # ─── SETTINGS ────────────────────────────────────────────────────────────────
 
-func _load_settings():
-	var cfg = ConfigFile.new()
-	if cfg.load("user://settings.cfg") != OK: return
-	var vol: float = cfg.get_value("audio", "master_volume", 1.0)
-	AudioServer.set_bus_volume_db(0, linear_to_db(vol))
-	if cfg.get_value("display", "fullscreen", false):
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-
-func _save_settings(vol_linear: float, fullscreen: bool):
-	var cfg = ConfigFile.new()
-	cfg.set_value("audio", "master_volume", vol_linear)
-	cfg.set_value("display", "fullscreen", fullscreen)
-	cfg.save("user://settings.cfg")
-
 func _on_settings_pressed():
+	if settings_manager == null:
+		settings_manager = SettingsManagerScript.new()
+		settings_manager.sync_from_runtime()
 	SettingsPanelBuilderScript.show(
 		$CanvasLayer/Control,
-		db_to_linear(AudioServer.get_bus_volume_db(0)),
-		DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN,
+		settings_manager.current_volume(),
+		settings_manager.is_fullscreen(),
 		Callable(self, "_on_settings_volume_changed"),
 		Callable(self, "_toggle_fullscreen_setting"),
 		Callable(self, "_on_settings_closed"),
@@ -1188,18 +1181,16 @@ func _on_settings_pressed():
 	)
 
 func _on_settings_volume_changed(vol_linear: float):
-	AudioServer.set_bus_volume_db(0, linear_to_db(vol_linear))
+	if settings_manager:
+		settings_manager.set_volume(vol_linear)
 
 func _toggle_fullscreen_setting() -> bool:
-	var new_fullscreen = not (DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN)
-	if new_fullscreen:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
-	else:
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
-	return new_fullscreen
+	return settings_manager.toggle_fullscreen() if settings_manager else false
 
 func _on_settings_closed(vol_linear: float):
-	_save_settings(vol_linear, DisplayServer.window_get_mode() == DisplayServer.WINDOW_MODE_FULLSCREEN)
+	if settings_manager:
+		settings_manager.set_volume(vol_linear, false)
+		settings_manager.save()
 
 func _show_event_text(msg: String, col: Color):
 	EventTextBuilderScript.show($CanvasLayer/Control, msg, col)

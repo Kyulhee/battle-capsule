@@ -74,6 +74,9 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v2.0 Full Map overlay smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_full_map_overlay.gd
 
+# v2.0 SettingsManager smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_settings_manager.gd
+
 # 결과 파일 위치 (Windows)
 # %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
 ```
