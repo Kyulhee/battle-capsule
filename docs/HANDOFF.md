@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.13 — 60-bot spawn distribution telemetry`.
-- Next structural slice: `v2.0.14 — larger-map/spawn-envelope prerequisite plan`.
+- Latest completed slice: `v2.0.14 — larger-map spawn envelope prerequisite`.
+- Next structural slice: `v2.0.15 — non-default larger map candidate`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -29,19 +29,21 @@
 - `cfb56ba test: add 60 bot telemetry gate` — retuned `xlarge_60` distribution and added the repeated scale telemetry gate.
 - `6a45c8b feat: add ai update budget telemetry` — added sampled AI update-budget telemetry and analyzer/gate reporting without adding AI LOD behavior.
 - `78667a5 tune 60 bot zone pacing` — added explicit progressive `xlarge_60` zone stage timings.
-- Current v2.0.13 slice adds spawn distribution telemetry and scale-gate reporting.
+- `21e988a feat: add spawn distribution telemetry` — added spawn distribution telemetry and scale-gate reporting.
+- Current v2.0.14 slice adds `scale_envelopes.target_99` as a planning target, not a playable runtime preset.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.14 — larger-map/spawn-envelope prerequisite plan`
+`v2.0.15 — non-default larger map candidate`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep `xlarge_60` as the active test surface; do not add a 99-player preset yet.
 - Current 5-run `xlarge_60` telemetry passed with spawn distribution: placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, saturation=0.24.
+- `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - Treat the current 120m map / 56m spawn radius as viable for 60 bots but too tight to extrapolate to 99 players.
-- Next work should define a larger map/spawn envelope plan before adding any 99-player preset.
+- Next work should create a non-default larger map candidate or map-rescale prototype that satisfies `scale_envelopes.target_99`.
 - Keep using `python tools\simulate_matches.py 5 normal scale_preset=xlarge_60`, `python tools\analyze_results.py tools\sim_runs_current`, and `python tools\check_scale_telemetry.py tools\sim_runs_current` as the repeated-run gate.
 
 ## Asset Notes

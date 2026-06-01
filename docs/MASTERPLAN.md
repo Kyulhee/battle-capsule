@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-02 (v2.0.13 spawn distribution telemetry)
+> Last updated: 2026-06-02 (v2.0.14 larger-map spawn envelope)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.13: 60-bot spawn distribution telemetry |
-| Next structural slice | v2.0.14: larger-map/spawn-envelope prerequisite plan |
+| Latest completed slice | v2.0.14: larger-map spawn envelope prerequisite |
+| Next structural slice | v2.0.15: non-default larger map candidate |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -336,6 +336,13 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Repeated 5-run `xlarge_60` telemetry passed: placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, max attempts=7, saturation=0.24.
 - Current 120m map / 56m spawn radius is technically viable for 60 bots, but the minimum spacing already sits at the clearance floor.
 - 99-player tuning remains blocked until a larger map/spawn envelope is explicitly planned.
+
+**v2.0.14 result**
+
+- Added `scale_envelopes.target_99` to the definition as a planning envelope, not a runtime preset.
+- The 99-bot prerequisite is now explicit: minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius, with 8m inner radius, 3.5m clearance, and saturation guardrails.
+- Added `tools/verify_scale_envelope.gd` so `target_99` cannot be confused with a playable `scale_preset` and the envelope math stays pinned.
+- Next work should create a non-default larger map candidate or map-rescale prototype that satisfies this envelope before any 99-player runtime preset.
 
 ## Deferred Asset Upgrades
 

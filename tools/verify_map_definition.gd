@@ -38,6 +38,15 @@ func _init():
 	if int(summary.get("scale_preset_count", 0)) != 4:
 		_fail("Legacy MapDefinition did not load scale presets.")
 		return
+	if int(summary.get("scale_envelope_count", 0)) != 1:
+		_fail("Legacy MapDefinition did not load scale envelopes.")
+		return
+	if not legacy_definition.has_scale_envelope("target_99"):
+		_fail("Legacy MapDefinition did not expose target_99 scale envelope.")
+		return
+	if legacy_definition.has_scale_preset("target_99"):
+		_fail("target_99 must not be exposed as a runtime scale preset.")
+		return
 	if not _verify_position_queries(legacy_definition):
 		return
 	var medium_summary: Dictionary = legacy_definition.summary(game_config, "medium_24")

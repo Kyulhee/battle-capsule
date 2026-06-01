@@ -71,6 +71,9 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v2.0 MapDefinition smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_map_definition.gd
 
+# v2.0 larger-map / 99-target envelope smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_scale_envelope.gd
+
 # v2.0 40-bot scale preset smoke
 python tools/simulate_matches.py 1 normal scale_preset=large_40
 
@@ -174,6 +177,19 @@ python tools/check_scale_telemetry.py tools/sim_runs_current
 | `annulus_saturation` | 스폰 annulus 면적 대비 clearance 원 점유 추정치 | 1에 가까워질수록 현재 맵 envelope로 확장 불가 |
 
 `tools/check_scale_telemetry.py`는 `spawn` 그룹이 존재하면 fallback 사용과 최소 최근접 거리를 함께 검사합니다. v2.0.13 기준 `xlarge_60`은 5회 반복에서 placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, saturation=0.24였습니다.
+
+### `scale_envelopes`
+
+`scale_envelopes`는 플레이 가능한 `scale_presets`가 아니라 큰 맵/대규모 플레이어 수를 열기 위한 사전 조건입니다.
+
+| 지표 | 설명 | 이상 판단 기준 |
+|---|---|---|
+| `target_99.world_size_min` | 99봇용 최소 world size | 현재 120m보다 커야 함 |
+| `target_99.spawn_radius_min` | 99봇용 최소 spawn radius | 현재 56m보다 커야 함 |
+| `target_99.max_annulus_saturation` | 최소 envelope의 허용 spawn 밀도 | 현재 60봇 saturation보다 높으면 99 확장 근거 부족 |
+| `target_99.boundary_margin_min` | spawn radius + clearance 이후 경계 여유 | 0에 가까우면 current map처럼 확장 여유 없음 |
+
+`tools/verify_scale_envelope.gd`는 `target_99`가 runtime `scale_preset`으로 노출되지 않고, 최소/선호 envelope가 현재 60봇 envelope보다 느슨한지 확인합니다.
 
 ### `economy`
 

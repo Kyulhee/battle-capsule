@@ -6,6 +6,27 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.14 — Larger-Map Spawn Envelope Prerequisite
+
+**Scope**
+
+- Added definition-owned `scale_envelopes.target_99` as a planning target, not a runtime `scale_preset`.
+- Captured 99-bot prerequisites from the 60-bot spawn telemetry: minimum 160m world / 72m spawn radius, preferred 180m world / 78m spawn radius, 8m inner radius, 3.5m entity clearance, and saturation guardrails.
+- Added `tools/verify_scale_envelope.gd` to keep `target_99` out of runtime presets and verify the envelope math against current `xlarge_60`.
+- Extended `MapDefinition` to load, expose, summarize, and sanity-check `scale_envelopes`.
+
+**Verification**
+
+- `verify_map_definition.gd` passed with `target_99` exposed as an envelope only.
+- `verify_scale_envelope.gd` passed: current `xlarge_60` saturation=0.24 / boundary margin=0.5m; `target_99` min=160m world + 72m spawn, preferred=180m world + 78m spawn.
+
+**Decision**
+
+- 99-player tuning remains blocked until a new or rescaled map spec satisfies the `target_99` envelope.
+- The next implementation slice should build a non-default larger map candidate or map-rescale prototype before adding a 99-player runtime preset.
+
+---
+
 ## v2.0.13 — 60-Bot Spawn Distribution Telemetry
 
 **Scope**

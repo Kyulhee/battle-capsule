@@ -132,6 +132,30 @@
       }
     }
   },
+  "scale_envelopes": {
+    "target_99": {
+      "status": "planned",
+      "source_preset": "xlarge_60",
+      "bot_count": 99,
+      "total_entities": 100,
+      "world_size_min": 160.0,
+      "world_size_preferred": 180.0,
+      "spawn_radius_min": 72.0,
+      "spawn_radius_preferred": 78.0,
+      "inner_radius": 8.0,
+      "entity_clearance": 3.5,
+      "boundary_margin_min": 4.0,
+      "max_annulus_saturation": 0.24,
+      "preferred_annulus_saturation": 0.21,
+      "requires": [
+        "new_or_rescaled_map_spec",
+        "poi_and_obstacle_rescale",
+        "loot_density_rescale",
+        "zone_profile_rescale",
+        "pathing_and_ai_lod_validation"
+      ]
+    }
+  },
   "pois": [
     { "name": "Central Meadow",     "pos": [  0,   0], "radius": 16, "role": "loot_hub",          "item_density": 0.95, "rare_bias": 0.25 },
     { "name": "North Clearing",     "pos": [  0,  34], "radius": 11, "role": "loot_hub",          "item_density": 0.82, "rare_bias": 0.20 },

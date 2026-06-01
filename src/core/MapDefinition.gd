@@ -30,6 +30,7 @@ const MAX_ITEM_DENSITY := 1.5
 @export var runtime_overrides: Dictionary = {}
 @export var zone_overrides: Dictionary = {}
 @export var scale_presets: Dictionary = {}
+@export var scale_envelopes: Dictionary = {}
 
 
 func load_from_json(json_text: String, source_path_value: String = "", game_config = null) -> bool:
@@ -62,6 +63,7 @@ func load_from_data(data: Dictionary, source_path_value: String = "", _game_conf
 	runtime_overrides = _dictionary(data.get("runtime", {}))
 	zone_overrides = _dictionary(data.get("zone", {}))
 	scale_presets = _dictionary(data.get("scale_presets", {}))
+	scale_envelopes = _dictionary(data.get("scale_envelopes", {}))
 	return true
 
 
@@ -72,6 +74,7 @@ func load_from_map_spec(spec: Resource, source_path_value: String = "") -> bool:
 	runtime_overrides.clear()
 	zone_overrides.clear()
 	scale_presets.clear()
+	scale_envelopes.clear()
 	if spec != null:
 		display_name = String(spec.metadata.get("name", "Untitled Map"))
 		id = String(spec.metadata.get("id", _slug(display_name)))
@@ -224,6 +227,14 @@ func has_scale_preset(preset_name: String) -> bool:
 	return preset_name.is_empty() or scale_presets.has(preset_name)
 
 
+func get_scale_envelope(envelope_name: String) -> Dictionary:
+	return _dictionary(scale_envelopes.get(envelope_name, {}))
+
+
+func has_scale_envelope(envelope_name: String) -> bool:
+	return scale_envelopes.has(envelope_name)
+
+
 func validate(game_config = null, preset_name: String = "") -> Array[String]:
 	var issues: Array[String] = []
 	if id.strip_edges().is_empty():
@@ -306,6 +317,7 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 		issues.append("loot_count is positive but total loot density is zero.")
 
 	_validate_zone_sanity(issues, game_config, preset_name, half_size)
+	_validate_scale_envelopes(issues)
 
 	return issues
 
@@ -331,6 +343,7 @@ func summary(game_config = null, preset_name: String = "") -> Dictionary:
 		"zone_initial_radius": float(zone_tuning.get("initial_radius", IMPLICIT_INITIAL_ZONE_RADIUS)),
 		"zone_stage_count": _dictionary(zone_tuning.get("stages", {})).size(),
 		"scale_preset_count": scale_presets.size(),
+		"scale_envelope_count": scale_envelopes.size(),
 	}
 
 
@@ -466,6 +479,35 @@ func _validate_zone_sanity(issues: Array[String], game_config, preset_name: Stri
 				issues.append("zone.stages.%s.%s must be positive." % [String(stage_key), key])
 		if stage.has("damage_per_second") and float(stage.get("damage_per_second", 0.0)) < 0.0:
 			issues.append("zone.stages.%s.damage_per_second must be non-negative." % String(stage_key))
+
+
+func _validate_scale_envelopes(issues: Array[String]) -> void:
+	for envelope_key in scale_envelopes.keys():
+		var envelope_name := String(envelope_key)
+		var envelope := _dictionary(scale_envelopes[envelope_key])
+		if envelope.is_empty():
+			issues.append("scale_envelopes.%s must be a Dictionary." % envelope_name)
+			continue
+		var bot_count := int(envelope.get("bot_count", -1))
+		var total_entities := int(envelope.get("total_entities", bot_count + 1))
+		if bot_count < 0:
+			issues.append("scale_envelopes.%s.bot_count must be non-negative." % envelope_name)
+		if total_entities <= 0:
+			issues.append("scale_envelopes.%s.total_entities must be positive." % envelope_name)
+		elif bot_count >= 0 and total_entities < bot_count + 1:
+			issues.append("scale_envelopes.%s.total_entities must include player + bots." % envelope_name)
+		for field in ["world_size_min", "spawn_radius_min", "inner_radius", "entity_clearance"]:
+			if envelope.has(field) and float(envelope.get(field, 0.0)) <= 0.0:
+				issues.append("scale_envelopes.%s.%s must be positive." % [envelope_name, field])
+		if envelope.has("world_size_preferred") and float(envelope.get("world_size_preferred", 0.0)) < float(envelope.get("world_size_min", 0.0)):
+			issues.append("scale_envelopes.%s.world_size_preferred must be >= world_size_min." % envelope_name)
+		if envelope.has("spawn_radius_preferred") and float(envelope.get("spawn_radius_preferred", 0.0)) < float(envelope.get("spawn_radius_min", 0.0)):
+			issues.append("scale_envelopes.%s.spawn_radius_preferred must be >= spawn_radius_min." % envelope_name)
+		if envelope.has("boundary_margin_min") and float(envelope.get("boundary_margin_min", 0.0)) < 0.0:
+			issues.append("scale_envelopes.%s.boundary_margin_min must be non-negative." % envelope_name)
+		for field in ["max_annulus_saturation", "preferred_annulus_saturation"]:
+			if envelope.has(field) and float(envelope.get(field, 0.0)) <= 0.0:
+				issues.append("scale_envelopes.%s.%s must be positive." % [envelope_name, field])
 
 
 static func _slug(value: String) -> String:
