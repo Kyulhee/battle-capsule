@@ -16,12 +16,13 @@ static func from_game_config(game_config, current: Dictionary) -> Dictionary:
 	}
 
 static func from_cmdline_arg(arg: String) -> Dictionary:
-	var lower = arg.to_lower()
-	if not lower.contains("="):
+	var separator_index := arg.find("=")
+	if separator_index < 0:
 		return {}
 
-	var key = lower.get_slice("=", 0)
-	var value = lower.get_slice("=", 1)
+	var key := arg.substr(0, separator_index).strip_edges().to_lower()
+	var raw_value := arg.substr(separator_index + 1).strip_edges()
+	var value := raw_value.to_lower()
 	match key:
 		"difficulty":
 			var difficulty = _difficulty_index(value)
@@ -43,6 +44,9 @@ static func from_cmdline_arg(arg: String) -> Dictionary:
 			return {"tuning": {"zone_initial_timer": maxf(0.1, float(value))}}
 		"scale_preset", "map_scale_preset":
 			return {"scale_preset": value}
+		"map_spec", "map_spec_path", "map_definition", "map_definition_path":
+			if not raw_value.is_empty():
+				return {"map_spec_path": raw_value}
 	return {}
 
 static func _difficulty_index(value: String) -> int:

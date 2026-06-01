@@ -6,6 +6,29 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.16 — Candidate Map Runtime Loading Smoke
+
+**Scope**
+
+- Added `map_spec_path` as a safe CLI/test override in `Main.gd`; the exported default remains `res://data/mapSpec_example.json`.
+- Added `map_spec_path`, `map_spec`, `map_definition_path`, and `map_definition` command-line aliases through `MatchTuning.gd`.
+- Preserved raw command-line value casing for resource paths so mixed-case filenames like `mapSpec_large_candidate.json` load reliably.
+- Added `tools/verify_map_runtime_path.gd` to pin CLI path parsing, candidate definition loading, and `xlarge_60` preset resolution.
+
+**Verification**
+
+- `verify_map_runtime_path.gd` passed.
+- Godot headless load with `map_spec_path=res://data/mapSpec_large_candidate.json scale_preset=xlarge_60` loaded `Mountain Forest Alpha Large Candidate`.
+- 5-run candidate-map `xlarge_60` simulation passed: avg duration 99.7s, no runs under 60s, no zero damage/shot/plan sentinels.
+- Candidate-map scale gate passed: fallback=0.0/run, min nearest=3.5m, avg nearest=9.6m, saturation=0.12, AI avg=311.8us.
+
+**Decision**
+
+- The larger candidate is now runtime-smokable without becoming the default map.
+- The next slice can consider a guarded 99-target probe on the candidate path only; do not switch the default map or promote 99-player tuning globally.
+
+---
+
 ## v2.0.15 — Non-Default Large Map Candidate
 
 **Scope**

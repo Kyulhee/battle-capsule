@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.15 — non-default large map candidate`.
-- Next structural slice: `v2.0.16 — candidate map runtime loading/smoke`.
+- Latest completed slice: `v2.0.16 — candidate map runtime loading/smoke`.
+- Next structural slice: `v2.0.17 — guarded 99-target candidate probe`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -30,22 +30,24 @@
 - `6a45c8b feat: add ai update budget telemetry` — added sampled AI update-budget telemetry and analyzer/gate reporting without adding AI LOD behavior.
 - `78667a5 tune 60 bot zone pacing` — added explicit progressive `xlarge_60` zone stage timings.
 - `21e988a feat: add spawn distribution telemetry` — added spawn distribution telemetry and scale-gate reporting.
-- Current v2.0.15 slice adds `data/mapSpec_large_candidate.json` and `tools/verify_large_map_candidate.gd`; the candidate is non-default and `target_99` remains a planning envelope, not a playable runtime preset.
+- `21e9eea feat: add target scale envelope` — added `scale_envelopes.target_99` as planning data, not a runtime preset.
+- `27d9969 feat: add large map candidate` — added the non-default 180m candidate map and envelope validation.
+- Current v2.0.16 slice adds `map_spec_path` CLI/test loading and `tools/verify_map_runtime_path.gd`; the candidate is runtime-smokable without becoming the default map.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.16 — candidate map runtime loading/smoke`
+`v2.0.17 — guarded 99-target candidate probe`
 
 - Keep `Main.gd` as match-global orchestrator.
-- Keep the default map unchanged unless explicitly switching through a safe test/CLI path.
-- Keep `xlarge_60` as the active test surface; do not add a 99-player preset yet.
-- Current 5-run `xlarge_60` telemetry passed with spawn distribution: placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, saturation=0.24.
+- Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
+- Current default-map 5-run `xlarge_60` telemetry passed with spawn distribution: placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, saturation=0.24.
+- Candidate-map 5-run `xlarge_60` telemetry passed: avg duration 99.7s, fallback=0.0/run, min nearest=3.5m, avg nearest=9.6m, saturation=0.12, no zero sentinels.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should add a runtime smoke path for loading the non-default candidate map, then run it first at `scale_preset=xlarge_60`.
-- Keep using `verify_large_map_candidate.gd`, `python tools\simulate_matches.py 5 normal scale_preset=xlarge_60`, `python tools\analyze_results.py tools\sim_runs_current`, and `python tools\check_scale_telemetry.py tools\sim_runs_current` as scale gates.
+- Next work may add a clearly named candidate-only 99-target probe preset, then run telemetry before any default/global promotion.
+- Keep using `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes
 

@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-02 (v2.0.15 non-default large map candidate)
+> Last updated: 2026-06-02 (v2.0.16 candidate map runtime loading)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.15: non-default large map candidate |
-| Next structural slice | v2.0.16: candidate map runtime loading/smoke |
+| Latest completed slice | v2.0.16: candidate map runtime loading/smoke |
+| Next structural slice | v2.0.17: guarded 99-target candidate probe |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -351,6 +351,14 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - `target_99` remains an envelope only; no 99-player runtime preset or default map switch was added.
 - Added `tools/verify_large_map_candidate.gd`; it passed with 8.5m boundary margin and target_99 preferred saturation=0.20.
 - Next work should add a safe candidate-map runtime loading/smoke path before any 99-player preset.
+
+**v2.0.16 result**
+
+- Added a `map_spec_path` CLI/test override while keeping `res://data/mapSpec_example.json` as the exported default.
+- `MatchTuning.gd` now preserves raw resource path casing and accepts `map_spec_path`, `map_spec`, `map_definition_path`, and `map_definition` aliases.
+- Added `tools/verify_map_runtime_path.gd` for CLI path parsing and candidate `xlarge_60` resolution.
+- Candidate-map `xlarge_60` passed 5-run telemetry: avg duration 99.7s, fallback=0.0/run, min nearest=3.5m, saturation=0.12, no zero sentinels.
+- Next work may add a guarded 99-target probe only on the non-default candidate path; no default map switch or global 99-player preset yet.
 
 ## Deferred Asset Upgrades
 

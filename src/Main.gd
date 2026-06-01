@@ -24,6 +24,7 @@ var _full_map_overlay: Control = null
 @export var loot_count: int = 40
 @export var spawn_radius: float = 45.0
 @export var map_scale_preset: String = "baseline"
+@export var map_spec_path: String = "res://data/mapSpec_example.json"
 
 var railgun_item: ItemData = null
 var pickup_scene: PackedScene = null
@@ -606,29 +607,42 @@ func _apply_cmdline_arg(arg: String):
 		return
 	if parsed.has("difficulty"):
 		difficulty = int(parsed["difficulty"]) as Difficulty
+	if parsed.has("map_spec_path"):
+		_set_map_spec_path(String(parsed["map_spec_path"]))
 	if parsed.has("scale_preset"):
 		map_scale_preset = String(parsed["scale_preset"])
 	_apply_match_tuning(parsed.get("tuning", {}))
 
 func _apply_pre_tuning_cmdline_arg(arg: String):
 	var parsed = MatchTuningScript.from_cmdline_arg(arg)
+	if parsed.has("map_spec_path"):
+		_set_map_spec_path(String(parsed["map_spec_path"]))
 	if parsed.has("scale_preset"):
 		map_scale_preset = String(parsed["scale_preset"])
+
+func _set_map_spec_path(path: String) -> void:
+	var next_path := path.strip_edges()
+	if next_path.is_empty():
+		return
+	map_spec_path = next_path
 
 func _load_map_spec():
 	if map_spec != null:
 		return
-	var file = FileAccess.open("res://data/mapSpec_example.json", FileAccess.READ)
+	var source_path := map_spec_path.strip_edges()
+	if source_path.is_empty():
+		source_path = "res://data/mapSpec_example.json"
+	var file = FileAccess.open(source_path, FileAccess.READ)
 	if file:
 		var json_text = file.get_as_text()
 		map_definition = MapDefinitionScript.new()
-		if map_definition.load_from_json(json_text, "res://data/mapSpec_example.json", game_config):
+		if map_definition.load_from_json(json_text, source_path, game_config):
 			map_spec = map_definition.map_spec
 		else:
 			map_definition = null
 			map_spec = MapSpecScript.from_json(json_text)
 	else:
-		push_error("Main: mapSpec_example.json not found!")
+		push_error("Main: %s not found!" % source_path)
 
 func _process(delta):
 	if get_tree().paused: return

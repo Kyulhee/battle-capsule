@@ -77,6 +77,10 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v2.0 non-default large map candidate smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_large_map_candidate.gd
 
+# v2.0 candidate map runtime path smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_map_runtime_path.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_large_candidate.json scale_preset=xlarge_60
+
 # v2.0 40-bot scale preset smoke
 python tools/simulate_matches.py 1 normal scale_preset=large_40
 
@@ -85,6 +89,11 @@ python tools/simulate_matches.py 1 normal scale_preset=xlarge_60
 
 # v2.0 60-bot repeated telemetry gate
 python tools/simulate_matches.py 5 normal scale_preset=xlarge_60
+python tools/analyze_results.py tools/sim_runs_current
+python tools/check_scale_telemetry.py tools/sim_runs_current
+
+# v2.0 non-default candidate-map repeated telemetry gate
+python tools/simulate_matches.py 5 normal map_spec_path=res://data/mapSpec_large_candidate.json scale_preset=xlarge_60
 python tools/analyze_results.py tools/sim_runs_current
 python tools/check_scale_telemetry.py tools/sim_runs_current
 
