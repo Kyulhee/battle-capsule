@@ -6,6 +6,25 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.10 — 60-Bot Distribution Tuning And Telemetry Gate
+
+**Scope**
+
+- Retuned `xlarge_60` as the active 60-bot test surface: 120 loot, 1.05 hotspot density multiplier, 0.08/0.08 stage loot wave probabilities, 6x stage wave count multiplier, and 30s initial zone timer.
+- Added `tools/check_scale_telemetry.py` to fail repeated scale runs on zero combat sentinels, short duration, too-fast/too-slow first upgrade, excessive recover deaths, stuck volume, or disengage volume.
+- Kept 99-player tuning blocked; this slice tightens the 60-bot gate instead of adding a larger preset.
+
+**Verification**
+
+- `verify_map_definition.gd` passed.
+- `python tools\simulate_matches.py 5 normal scale_preset=xlarge_60` passed.
+- `python tools\analyze_results.py tools\sim_runs_current` reported avg duration 100.2s, 0 runs under 60s, avg first upgrade 11.1s, and no zero-damage/shot/plan sentinels.
+- `python tools\check_scale_telemetry.py tools\sim_runs_current` passed.
+- Godot headless project load passed with expected AssetCatalog warning only.
+- `python tools\simulate_matches.py 1 normal` passed.
+
+---
+
 ## v2.0.9 — 60-Bot Telemetry Repeat And Scale Decision
 
 **Scope**
@@ -232,5 +251,5 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.10`: tighten 60-bot spawn/loot distribution and scale telemetry gates before any 99-player preset.
+- `v2.0.11`: add AI update-budget / LOD telemetry at 60-bot scale before any 99-player preset.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.

@@ -84,7 +84,7 @@ func _init():
 	if int(xlarge_summary.get("bot_count", 0)) != 60:
 		_fail("Legacy MapDefinition did not apply xlarge_60 bot_count preset.")
 		return
-	if int(xlarge_summary.get("loot_count", 0)) != 144:
+	if int(xlarge_summary.get("loot_count", 0)) != 120:
 		_fail("Legacy MapDefinition did not apply xlarge_60 loot_count preset.")
 		return
 	if float(xlarge_summary.get("spawn_radius", 0.0)) != 56.0:
@@ -96,11 +96,20 @@ func _init():
 		_fail("Legacy MapDefinition did not apply xlarge_60 safe_spawn_attempts preset.")
 		return
 	var xlarge_loot: Dictionary = xlarge_runtime.get("loot", {})
-	if absf(float(xlarge_loot.get("hotspot_density_mult", 0.0)) - 1.15) > 0.001:
+	if absf(float(xlarge_loot.get("hotspot_density_mult", 0.0)) - 1.05) > 0.001:
 		_fail("Legacy MapDefinition did not apply xlarge_60 hotspot_density_mult preset.")
 		return
+	if absf(float(xlarge_loot.get("stage_wave_base_prob", 0.0)) - 0.08) > 0.001:
+		_fail("Legacy MapDefinition did not apply xlarge_60 stage_wave_base_prob preset.")
+		return
+	if absf(float(xlarge_loot.get("stage_wave_prob_per_stage", 0.0)) - 0.08) > 0.001:
+		_fail("Legacy MapDefinition did not apply xlarge_60 stage_wave_prob_per_stage preset.")
+		return
+	if int(xlarge_loot.get("stage_wave_count_mult", 0)) != 6:
+		_fail("Legacy MapDefinition did not apply xlarge_60 stage_wave_count_mult preset.")
+		return
 	var xlarge_zone: Dictionary = legacy_definition.get_zone_tuning(game_config, {}, "xlarge_60")
-	if float(xlarge_zone.get("initial_timer", 0.0)) != 22.0:
+	if float(xlarge_zone.get("initial_timer", 0.0)) != 30.0:
 		_fail("Legacy MapDefinition did not apply xlarge_60 zone initial_timer preset.")
 		return
 	if float(xlarge_zone.get("wait_time", 0.0)) != 36.0:

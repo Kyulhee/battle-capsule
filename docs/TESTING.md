@@ -80,6 +80,7 @@ python tools/simulate_matches.py 1 normal scale_preset=xlarge_60
 # v2.0 60-bot repeated telemetry gate
 python tools/simulate_matches.py 5 normal scale_preset=xlarge_60
 python tools/analyze_results.py tools/sim_runs_current
+python tools/check_scale_telemetry.py tools/sim_runs_current
 
 # v2.0 Full Map overlay smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_full_map_overlay.gd

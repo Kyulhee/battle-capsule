@@ -89,7 +89,7 @@
     "xlarge_60": {
       "match": {
         "bot_count": 60,
-        "loot_count": 144,
+        "loot_count": 120,
         "spawn_radius": 56.0
       },
       "runtime": {
@@ -97,11 +97,14 @@
           "safe_spawn_attempts": 80
         },
         "loot": {
-          "hotspot_density_mult": 1.15
+          "stage_wave_base_prob": 0.08,
+          "stage_wave_prob_per_stage": 0.08,
+          "stage_wave_count_mult": 6,
+          "hotspot_density_mult": 1.05
         }
       },
       "zone": {
-        "initial_timer": 22.0,
+        "initial_timer": 30.0,
         "wait_time": 36.0,
         "shrink_time": 26.0
       }

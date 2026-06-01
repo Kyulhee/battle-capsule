@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-01 (v2.0.9 60-bot telemetry decision)
+> Last updated: 2026-06-01 (v2.0.10 60-bot telemetry gate)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.9: 60-bot telemetry repeat and scale decision |
-| Next structural slice | v2.0.10: 60-bot spawn/loot distribution and telemetry gates |
+| Latest completed slice | v2.0.10: 60-bot distribution tuning and telemetry gate |
+| Next structural slice | v2.0.11: AI update-budget / LOD telemetry probe |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -309,6 +309,12 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Repeated `scale_preset=xlarge_60` for 5 normal simulations and analyzed `tools/sim_runs_current`.
 - Result was stable at the regression-sentinel level: no zero damage, zero weapon damage, zero shot, or zero combat plan runs; average duration 93.2s.
 - 99-player tuning remains blocked because first upgrade averaged 9.5s and disengage/stuck/survival volumes are high enough to require 60-bot spawn/loot distribution and telemetry gates first.
+
+**v2.0.10 result**
+
+- Retuned current `xlarge_60` to 120 loot, 1.05 hotspot density multiplier, 0.08/0.08 stage wave probabilities, 6x stage wave count multiplier, and 30s initial zone timer.
+- Added `tools/check_scale_telemetry.py` as a repeated-run scale gate over zero sentinels, duration floor, first-upgrade pacing, recover deaths, stuck volume, and disengage volume.
+- Repeated 5-run `xlarge_60` telemetry passed the new gate: avg duration 100.2s, avg first upgrade 11.1s, no zero damage/shot/plan sentinels.
 
 ## Deferred Asset Upgrades
 

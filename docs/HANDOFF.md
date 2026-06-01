@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.9 — 60-bot telemetry repeat and scale decision`.
-- Next structural slice: `v2.0.10 — 60-bot spawn/loot distribution and telemetry gates`.
+- Latest completed slice: `v2.0.10 — 60-bot distribution tuning and telemetry gate`.
+- Next structural slice: `v2.0.11 — AI update-budget / LOD telemetry probe`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -25,19 +25,20 @@
 - `2cf1365 test: add large scale preset smoke` — added and smoked the conservative `large_40` scale preset.
 - `5c0d21a feat: add map definition position queries` — added MapDefinition world-position query helpers and connected Minimap/FullMapOverlay to them.
 - `1862a45 test: add 60 bot scale preset smoke` — added and smoked the conservative `xlarge_60` scale preset.
-- Current v2.0.9 slice repeated 5 `xlarge_60` simulations and kept 99-player tuning blocked until distribution/telemetry gates are tightened.
+- `7fe0db9 docs: record 60 bot telemetry decision` — repeated 5 `xlarge_60` simulations and kept 99-player tuning blocked until distribution/telemetry gates are tightened.
+- Current v2.0.10 slice retunes `xlarge_60` distribution and adds `tools/check_scale_telemetry.py`.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.10 — 60-bot spawn/loot distribution and telemetry gates`
+`v2.0.11 — AI update-budget / LOD telemetry probe`
 
 - Keep `Main.gd` as match-global orchestrator.
-- Keep `xlarge_60` as the active test surface; do not add a 99-player preset.
-- Tighten first-upgrade pacing and spawn/loot distribution without hiding regression sentinels.
-- Add or document telemetry gates for repeated scale runs: zero sentinel checks, first-upgrade range, stuck/disengage volume, and duration floor.
-- Consider AI LOD only after distribution telemetry is stable or performance counters show update-budget pressure.
+- Keep `xlarge_60` as the active test surface; do not add a 99-player preset yet.
+- Add lightweight telemetry for AI update budget or per-state update volume before implementing LOD.
+- Use `python tools\simulate_matches.py 5 normal scale_preset=xlarge_60`, `python tools\analyze_results.py tools\sim_runs_current`, and `python tools\check_scale_telemetry.py tools\sim_runs_current` as the repeated-run gate.
+- If budget telemetry shows pressure, plan bounded AI LOD; if not, continue with map-size/spawn distribution work before 99-player tuning.
 
 ## Asset Notes
 
