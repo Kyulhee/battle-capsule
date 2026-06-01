@@ -11,8 +11,11 @@ PROJECT_PATH = "."
 NUM_MATCHES = int(sys.argv[1]) if len(sys.argv) > 1 else 20
 DIFFICULTY = ""
 EXTRA_ARGS = []
+OUT_DIR = Path("tools") / "sim_runs_current"
 for raw_arg in sys.argv[2:]:
-    if "=" in raw_arg:
+    if raw_arg.startswith("out_dir=") or raw_arg.startswith("sim_out_dir="):
+        OUT_DIR = Path(raw_arg.split("=", 1)[1])
+    elif "=" in raw_arg:
         EXTRA_ARGS.append(raw_arg)
     elif not DIFFICULTY:
         DIFFICULTY = raw_arg
@@ -22,7 +25,6 @@ TIMEOUT_PER_MATCH = 300
 
 APPDATA = Path(os.environ.get("APPDATA", ""))
 SIM_RESULT_PATH = APPDATA / "Godot" / "app_userdata" / "BattleRoyalePrototype" / "sim_result_latest.json"
-OUT_DIR = Path("tools") / "sim_runs_current"
 
 
 def run_match(match_id: int) -> dict:

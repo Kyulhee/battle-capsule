@@ -6,6 +6,29 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.19 — Normalized 60-vs-99 Candidate Comparison
+
+**Scope**
+
+- Added `out_dir=` / `sim_out_dir=` support to `tools/simulate_matches.py` so scale comparison runs can be kept outside the repo.
+- Added `tools/compare_scale_profiles.py` to compare two run directories using normalized per spawned entity/minute rates, spawn distribution, AI update cost, and doctrine state mix.
+- Kept gameplay data unchanged; this slice is comparison tooling plus a fresh candidate-map 60-vs-99 telemetry pass.
+
+**Verification**
+
+- `python -m py_compile tools\simulate_matches.py tools\compare_scale_profiles.py tools\analyze_results.py tools\check_scale_telemetry.py` passed.
+- Candidate `xlarge_60` 5-run set passed the scale gate from `C:\tmp\game_dev_candidate_60`.
+- Candidate `target_99_probe` 5-run set passed the scale gate from `C:\tmp\game_dev_candidate_99`.
+- `compare_scale_profiles.py` reported 99 vs 60: duration +7.1s, spawn saturation +0.08, AI avg +123.9us, ZONE_ESCAPE +2.14pp, DISENGAGE +5.32pp.
+
+**Decision**
+
+- Spawn and AI budget still look acceptable for the candidate-only 99 probe.
+- The main 99-specific pressure is behavioral density: higher DISENGAGE share and slightly higher ZONE_ESCAPE share.
+- Do not tune by lowering gates; next work should inspect whether zone profile, spawn/POI density, or outnumbered behavior is the right adjustment point.
+
+---
+
 ## v2.0.18 — 99-Probe Scale-Normalized Analysis
 
 **Scope**

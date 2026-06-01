@@ -107,6 +107,11 @@ python tools/simulate_matches.py 5 normal map_spec_path=res://data/mapSpec_large
 python tools/analyze_results.py tools/sim_runs_current
 python tools/check_scale_telemetry.py tools/sim_runs_current
 
+# v2.0 normalized 60-vs-99 candidate comparison
+python tools/simulate_matches.py 5 normal out_dir=C:\tmp\game_dev_candidate_60 map_spec_path=res://data/mapSpec_large_candidate.json scale_preset=xlarge_60
+python tools/simulate_matches.py 5 normal out_dir=C:\tmp\game_dev_candidate_99 map_spec_path=res://data/mapSpec_large_candidate.json scale_preset=target_99_probe
+python tools/compare_scale_profiles.py C:\tmp\game_dev_candidate_60 C:\tmp\game_dev_candidate_99 --baseline-label xlarge_60 --target-label target_99
+
 # v2.0 Full Map overlay smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_full_map_overlay.gd
 
