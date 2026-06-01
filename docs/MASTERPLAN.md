@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-01 (v2.0.10 60-bot telemetry gate)
+> Last updated: 2026-06-02 (v2.0.11 AI update-budget telemetry)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.10: 60-bot distribution tuning and telemetry gate |
-| Next structural slice | v2.0.11: AI update-budget / LOD telemetry probe |
+| Latest completed slice | v2.0.11: AI update-budget telemetry probe |
+| Next structural slice | v2.0.12: 60-bot LOD decision and scale-prerequisite plan |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -315,6 +315,13 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Retuned current `xlarge_60` to 120 loot, 1.05 hotspot density multiplier, 0.08/0.08 stage wave probabilities, 6x stage wave count multiplier, and 30s initial zone timer.
 - Added `tools/check_scale_telemetry.py` as a repeated-run scale gate over zero sentinels, duration floor, first-upgrade pacing, recover deaths, stuck volume, and disengage volume.
 - Repeated 5-run `xlarge_60` telemetry passed the new gate: avg duration 100.2s, avg first upgrade 11.1s, no zero damage/shot/plan sentinels.
+
+**v2.0.11 result**
+
+- Added sampled AI update-budget telemetry by bot state and archetype without adding LOD behavior.
+- `tools/analyze_results.py` and `tools/check_scale_telemetry.py` now report AI update budget from the saved `ai` telemetry group.
+- Repeated 5-run `xlarge_60` telemetry passed: avg duration 97.3s, avg first upgrade 12.6s, no zero damage/shot/plan sentinels, AI update budget samples=25210, avg=363.3us, max=28459us.
+- Current evidence does not force immediate AI LOD; v2.0.12 should decide whether to plan bounded LOD now or continue with map-size/spawn distribution prerequisites before 99-player tuning.
 
 ## Deferred Asset Upgrades
 

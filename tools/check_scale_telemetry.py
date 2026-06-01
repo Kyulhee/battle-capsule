@@ -46,6 +46,8 @@ def main() -> int:
     parser.add_argument("--max-avg-stuck", type=float, default=60.0)
     parser.add_argument("--max-avg-disengage", type=float, default=130.0)
     parser.add_argument("--max-recover-death-ratio", type=float, default=0.25)
+    parser.add_argument("--max-ai-avg-usec", type=float, default=4500.0)
+    parser.add_argument("--max-ai-max-usec", type=float, default=50000.0)
     args = parser.parse_args()
 
     runs = load_runs(Path(args.run_dir))
@@ -63,6 +65,9 @@ def main() -> int:
     died_in_recover = [int(r.get("tactics", {}).get("died_in_recover", 0)) for r in runs]
     disengage = [int(r.get("tactics", {}).get("disengage_triggered", 0)) for r in runs]
     stuck = [int(r.get("tactics", {}).get("stuck_triggered", 0)) for r in runs]
+    ai_samples = sum(int(r.get("ai", {}).get("update_samples", 0)) for r in runs)
+    ai_total_usec = sum(int(r.get("ai", {}).get("update_total_usec", 0)) for r in runs)
+    ai_max_usec = max((int(r.get("ai", {}).get("update_max_usec", 0)) for r in runs), default=0)
 
     failures: list[str] = []
     if avg(durations) < args.min_avg_duration:
@@ -89,6 +94,12 @@ def main() -> int:
         failures.append(f"avg stuck {avg(stuck):.1f} > {args.max_avg_stuck:.1f}")
     if avg(disengage) > args.max_avg_disengage:
         failures.append(f"avg disengage {avg(disengage):.1f} > {args.max_avg_disengage:.1f}")
+    if ai_samples > 0:
+        ai_avg_usec = ai_total_usec / ai_samples
+        if ai_avg_usec > args.max_ai_avg_usec:
+            failures.append(f"AI avg update {ai_avg_usec:.1f}us > {args.max_ai_avg_usec:.1f}us")
+        if ai_max_usec > args.max_ai_max_usec:
+            failures.append(f"AI max update {ai_max_usec}us > {args.max_ai_max_usec:.0f}us")
 
     zero_damage = run_numbers(
         runs,
@@ -116,6 +127,10 @@ def main() -> int:
     print(f"Avg first upgrade: {avg(first_upgrade) if first_upgrade else -1.0:.1f}s")
     print(f"Recover death ratio: {recover_death_ratio:.3f}")
     print(f"Avg stuck/disengage: {avg(stuck):.1f} / {avg(disengage):.1f}")
+    if ai_samples > 0:
+        print(f"AI update budget: samples={ai_samples}, avg={ai_total_usec / ai_samples:.1f}us, max={ai_max_usec}us")
+    else:
+        print("AI update budget: not recorded")
     if failures:
         print("FAIL:")
         for failure in failures:

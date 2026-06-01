@@ -15,6 +15,7 @@ extends Node
 #   "mission"  — active mission id, result (success/fail/none)
 #   "pressure" — pressure mission triggered/cleared/failed counts (Hard opt-in / Hell)
 #   "artifact" — selected artifact id and bounded artifact trigger events
+#   "ai"       — sampled bot update budget by state and archetype
 #   "doctrine" — merged bot AI profiles and selected combat plans
 
 # ── Group toggles ─────────────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ var enabled_groups: Dictionary = {
 	"pressure":  true,
 	"artifact":  true,
 	"archetype": true,
+	"ai":        true,
 	"doctrine":  true,
 }
 
@@ -172,6 +174,14 @@ func _reset_metrics():
 			"archetype_distribution":   {},  # 스폰 수 {AGGRESSIVE:3, DEFENSIVE:3, ...}
 			"archetype_alive_at_zone2": {},  # 존 2단계 생존 수
 			"archetype_deaths":         {},  # 아키타입별 사망 수
+		},
+		# ai update budget
+		"ai": {
+			"update_samples": 0,
+			"update_total_usec": 0,
+			"update_max_usec": 0,
+			"update_by_state": {},
+			"update_by_archetype": {},
 		},
 		# doctrine
 		"doctrine": {
@@ -390,6 +400,30 @@ func log_archetype_alive_at_zone2(distribution: Dictionary):
 	if not match_in_progress or not _g("archetype"): return
 	metrics.archetype.archetype_alive_at_zone2 = distribution.duplicate()
 
+# ── Log functions — ai ───────────────────────────────────────────────────────
+
+func log_ai_update(archetype_name: String, state_name: String, elapsed_usec: int):
+	if not match_in_progress or not _g("ai"): return
+	var elapsed = max(0, elapsed_usec)
+	metrics.ai.update_samples += 1
+	metrics.ai.update_total_usec += elapsed
+	metrics.ai.update_max_usec = max(metrics.ai.update_max_usec, elapsed)
+	_log_ai_update_bucket(metrics.ai.update_by_state, state_name, elapsed)
+	_log_ai_update_bucket(metrics.ai.update_by_archetype, archetype_name, elapsed)
+
+func _log_ai_update_bucket(buckets: Dictionary, key: String, elapsed_usec: int):
+	var bucket_key = key if key != "" else "unknown"
+	if not buckets.has(bucket_key):
+		buckets[bucket_key] = {
+			"samples": 0,
+			"total_usec": 0,
+			"max_usec": 0,
+		}
+	var bucket = buckets[bucket_key]
+	bucket["samples"] = int(bucket.get("samples", 0)) + 1
+	bucket["total_usec"] = int(bucket.get("total_usec", 0)) + elapsed_usec
+	bucket["max_usec"] = max(int(bucket.get("max_usec", 0)), elapsed_usec)
+
 # ── Log functions — doctrine ─────────────────────────────────────────────────
 
 func log_doctrine_profile(summary: Dictionary):
@@ -509,6 +543,7 @@ func _save_sim_result():
 	if _g("pressure"):   out["pressure"]   = metrics.pressure.duplicate(true)
 	if _g("artifact"):   out["artifact"]   = metrics.artifact.duplicate(true)
 	if _g("archetype"):  out["archetype"]  = metrics.archetype.duplicate(true)
+	if _g("ai"):         out["ai"]         = metrics.ai.duplicate(true)
 	if _g("doctrine"):   out["doctrine"]   = metrics.doctrine.duplicate(true)
 	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)
 	if file:
@@ -616,6 +651,28 @@ func _print_report():
 		print("  Spawned:        %s" % str(metrics.archetype.archetype_distribution))
 		print("  Alive@zone2:    %s" % str(metrics.archetype.archetype_alive_at_zone2))
 		print("  Deaths:         %s" % str(metrics.archetype.archetype_deaths))
+	if _g("ai"):
+		print("── AI Update ───────────────────────────────")
+		var samples = int(metrics.ai.update_samples)
+		var avg_usec = float(metrics.ai.update_total_usec) / max(1, samples)
+		print("  Samples:        %d  avg: %.1fus  max: %dus" % [
+			samples,
+			avg_usec,
+			int(metrics.ai.update_max_usec),
+		])
+		if not metrics.ai.update_by_state.is_empty():
+			var state_summary = {}
+			for state_name in metrics.ai.update_by_state:
+				var bucket = metrics.ai.update_by_state[state_name]
+				var count = int(bucket.get("samples", 0))
+				if count <= 0:
+					continue
+				state_summary[state_name] = {
+					"avg_us": float(bucket.get("total_usec", 0)) / count,
+					"max_us": int(bucket.get("max_usec", 0)),
+					"count": count,
+				}
+			print("  By state:       %s" % str(state_summary))
 	if _g("doctrine"):
 		print("── Doctrine ────────────────────────────────")
 		print("  Profiles:       %s" % str(metrics.doctrine.profile_counts))

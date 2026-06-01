@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-01 (v2.0-dev 기준)
+> 마지막 업데이트: 2026-06-02 (v2.0-dev 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -149,6 +149,18 @@ python tools/check_scale_telemetry.py tools/sim_runs_current
 | `state_time_by_archetype` | 아키타입별 상태 누적 시간 | 특정 상태가 모든 아키타입에서 과도하게 같으면 state transition 튜닝 필요 |
 | `engage_range_by_archetype` | 아키타입별 교전거리 avg/min/max 계산용 집계 | SNIPER와 AGGRESSIVE 평균 교전거리가 장기간 동일하면 거리 선호 회귀 의심 |
 | `supply_decisions` | profile 기반 보급 관심 결정 | 보급 매치에서 일부 기록 가능, 과도한 증가 시 중앙 군집 의심 |
+
+### `ai`
+
+| 지표 | 설명 | 이상 판단 기준 |
+|---|---|---|
+| `update_samples` | 샘플링된 봇 physics 업데이트 수. 현재 4프레임마다 1회 기록 | 60봇 반복 런에서 0이면 Bot/Telemetry 연결 오류 |
+| `update_total_usec` | 샘플링된 업데이트 시간 합계 | `analyze_results.py`에서 평균 비용 계산용 |
+| `update_max_usec` | 단일 샘플 최대 업데이트 시간 | 큰 스파이크가 반복되면 AI LOD 또는 상태별 병목 확인 |
+| `update_by_state` | 상태별 샘플/합계/최대 업데이트 시간 | DISENGAGE/ATTACK만 계속 과도하면 해당 상태 로직부터 점검 |
+| `update_by_archetype` | 아키타입별 샘플/합계/최대 업데이트 시간 | 특정 아키타입만 비싸면 profile/plan 조건 확인 |
+
+`tools/check_scale_telemetry.py`는 `ai` 그룹이 존재하면 AI update budget을 함께 출력합니다. 현재 기본 guardrail은 v2.0.11 60봇 기준을 깨지 않는 느슨한 방어선이며, 실제 목표 임계치는 반복 데이터가 쌓인 뒤 별도 합의로 조정합니다.
 
 ### `economy`
 

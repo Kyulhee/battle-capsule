@@ -10,6 +10,7 @@ const BOT_TUNING         = preload("res://src/entities/bot/BotTuning.gd")
 const BOT_DEBUG_LABEL_BUILDER = preload("res://src/entities/bot/BotDebugLabelBuilder.gd")
 const BOT_MARKER_FORMATTER = preload("res://src/entities/bot/BotMarkerFormatter.gd")
 const BOT_VISUAL_SKIN_CONTROLLER = preload("res://src/entities/bot/BotVisualSkinController.gd")
+const AI_UPDATE_TELEMETRY_SAMPLE_INTERVAL := 4
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -73,6 +74,7 @@ var _doctrine_profile: Dictionary = {}
 var _difficulty_params: Dictionary = {}
 var _base_attack_range: float = -1.0
 var _base_vision_range: float = -1.0
+var _ai_update_telemetry_phase: int = 0
 
 # ─── ARCHETYPE ───────────────────────────────────────────────────────────────
 enum BotArchetype { AGGRESSIVE, DEFENSIVE, SNIPER, OPPORTUNIST }
@@ -155,6 +157,9 @@ func _on_died_zone_log():
 
 func _physics_process(delta):
 	if is_dead: return
+	var log_ai_update := _ai_update_telemetry_phase == 0
+	var ai_update_start_usec := Time.get_ticks_usec() if log_ai_update else 0
+	_ai_update_telemetry_phase = (_ai_update_telemetry_phase + 1) % AI_UPDATE_TELEMETRY_SAMPLE_INTERVAL
 	if fire_cooldown > 0: fire_cooldown -= delta
 	if _disengage_cooldown > 0: _disengage_cooldown -= delta
 	if _reaction_timer > 0: _reaction_timer -= delta
@@ -202,6 +207,8 @@ func _physics_process(delta):
 		$MeshInstance3D.scale.y = 0.62 if is_crouching else 1.0
 		$MeshInstance3D.position.y = _mesh_origin_y - 0.19 if is_crouching else _mesh_origin_y
 	_visual_skin.sync(self)
+	if log_ai_update:
+		_log_ai_update_budget(ai_update_start_usec)
 
 func use_heal():
 	if stats.advanced_heals > 0:
@@ -1172,6 +1179,14 @@ func _log_doctrine_state_time(delta: float):
 	if not has_node("/root/Telemetry"):
 		return
 	get_node("/root/Telemetry").log_doctrine_state_time(_archetype_name(), State.keys()[current_state], delta)
+
+func _log_ai_update_budget(start_usec: int):
+	if not has_node("/root/Telemetry"):
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("log_ai_update"):
+		return
+	tel.log_ai_update(_archetype_name(), State.keys()[current_state], Time.get_ticks_usec() - start_usec)
 
 # ─── DOCTRINE & DIFFICULTY ───────────────────────────────────────────────────
 

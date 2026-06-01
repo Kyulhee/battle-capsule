@@ -90,6 +90,10 @@ if __name__ == "__main__":
     doctrine_plan_by_archetype: dict[str, Counter] = {}
     doctrine_state_time_by_archetype: dict[str, Counter] = {}
     doctrine_range_by_archetype: dict[str, dict[str, float]] = {}
+    ai_samples = 0
+    ai_total_usec = 0
+    ai_max_usec = 0
+    ai_state_buckets: dict[str, dict[str, float]] = {}
     for r in results:
         doctrine = r.get("doctrine", {})
         doctrine_profiles.update(doctrine.get("profile_counts", {}))
@@ -113,6 +117,18 @@ if __name__ == "__main__":
             dst["total"] += float(bucket.get("total", 0.0))
             dst["min"] = min(dst["min"], float(bucket.get("min", dst["min"])))
             dst["max"] = max(dst["max"], float(bucket.get("max", dst["max"])))
+        ai = r.get("ai", {})
+        ai_samples += int(ai.get("update_samples", 0))
+        ai_total_usec += int(ai.get("update_total_usec", 0))
+        ai_max_usec = max(ai_max_usec, int(ai.get("update_max_usec", 0)))
+        for state, bucket in ai.get("update_by_state", {}).items():
+            count = int(bucket.get("samples", 0))
+            if count <= 0:
+                continue
+            dst = ai_state_buckets.setdefault(state, {"samples": 0.0, "total_usec": 0.0, "max_usec": 0.0})
+            dst["samples"] += count
+            dst["total_usec"] += float(bucket.get("total_usec", 0.0))
+            dst["max_usec"] = max(dst["max_usec"], float(bucket.get("max_usec", 0.0)))
 
     print("--- Simulation Analysis ---")
     print(f"Runs: {len(results)}")
@@ -185,6 +201,21 @@ if __name__ == "__main__":
     if doctrine_supply:
         supply_parts = [f"{decision}={count}" for decision, count in sorted(doctrine_supply.items())]
         print(f"Doctrine supply: {', '.join(supply_parts)}")
+    if ai_samples > 0:
+        print(f"AI update budget: samples={ai_samples}, avg={ai_total_usec / ai_samples:.1f}us, max={ai_max_usec}us")
+        top_states = sorted(
+            ai_state_buckets.items(),
+            key=lambda item: item[1]["total_usec"] / max(1.0, item[1]["samples"]),
+            reverse=True,
+        )[:4]
+        if top_states:
+            print("AI update by state:")
+            for state, bucket in top_states:
+                samples = max(1.0, bucket["samples"])
+                print(
+                    f"  {state}: avg={bucket['total_usec'] / samples:.1f}us "
+                    f"max={bucket['max_usec']:.0f}us n={int(bucket['samples'])}"
+                )
     if pressure_triggered:
         print(f"Pressure resolved: {pressure_resolved}/{pressure_triggered}")
 

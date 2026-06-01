@@ -1,8 +1,28 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-01. Compressed recent work log. Full historical detail is preserved in `docs/devlog/` and `docs/archive/`.
+> Last updated: 2026-06-02. Compressed recent work log. Full historical detail is preserved in `docs/devlog/` and `docs/archive/`.
 
 Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-version summaries unless exact history is needed.
+
+---
+
+## v2.0.11 — AI Update Budget Telemetry Probe
+
+**Scope**
+
+- Added sampled bot AI update-budget telemetry: every fourth bot physics update records total elapsed update time by state and archetype.
+- Extended saved simulation results with an `ai` group and taught `analyze_results.py` to report aggregate average/max update cost plus the highest-cost states.
+- Extended the 60-bot repeated telemetry gate to print AI update budget and fail only on loose guardrail thresholds when AI samples are present.
+- Kept this as instrumentation/backbone work; no AI LOD behavior or 99-player preset was added.
+
+**Verification**
+
+- `python -m py_compile tools\analyze_results.py tools\check_scale_telemetry.py` passed.
+- Godot headless project load passed with expected AssetCatalog warning only.
+- `verify_map_definition.gd` passed.
+- `python tools\simulate_matches.py 5 normal scale_preset=xlarge_60` passed.
+- `python tools\analyze_results.py tools\sim_runs_current` reported avg duration 97.3s, 0 runs under 60s, avg first upgrade 12.6s, and AI update budget samples=25210, avg=363.3us, max=28459us.
+- `python tools\check_scale_telemetry.py tools\sim_runs_current` passed with AI update budget included.
 
 ---
 
