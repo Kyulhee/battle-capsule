@@ -1,0 +1,183 @@
+{
+  "metadata": {
+    "id": "mountain_forest_alpha_large_candidate",
+    "name": "Mountain Forest Alpha Large Candidate",
+    "theme": "forest",
+    "version": "3.2-candidate",
+    "world_size": 180,
+    "layout": "expanded_outer_mountain_mid_trees_inner_brush"
+  },
+  "match": {
+    "bot_count": 11,
+    "loot_count": 56,
+    "spawn_radius": 60.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 90,
+      "inner_radius": 8.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "wait_time": 38.0,
+    "shrink_time": 28.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 24.0,
+    "stages": {
+      "2": {
+        "wait_time": 32.0,
+        "shrink_time": 24.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 24.0,
+        "shrink_time": 18.0,
+        "damage_per_second": 8.0
+      },
+      "4": {
+        "wait_time": 16.0,
+        "shrink_time": 13.0,
+        "damage_per_second": 12.0
+      },
+      "5": {
+        "wait_time": 10.0,
+        "shrink_time": 10.0,
+        "damage_per_second": 16.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 11,
+        "loot_count": 56,
+        "spawn_radius": 60.0
+      }
+    },
+    "xlarge_60": {
+      "match": {
+        "bot_count": 60,
+        "loot_count": 150,
+        "spawn_radius": 78.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 120,
+          "inner_radius": 8.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.08,
+          "stage_wave_prob_per_stage": 0.08,
+          "stage_wave_count_mult": 7,
+          "hotspot_density_mult": 1.08
+        }
+      },
+      "zone": {
+        "initial_timer": 40.0,
+        "wait_time": 40.0,
+        "shrink_time": 30.0,
+        "stages": {
+          "2": {
+            "wait_time": 34.0,
+            "shrink_time": 26.0,
+            "damage_per_second": 4.0
+          },
+          "3": {
+            "wait_time": 24.0,
+            "shrink_time": 20.0,
+            "damage_per_second": 8.0
+          },
+          "4": {
+            "wait_time": 16.0,
+            "shrink_time": 14.0,
+            "damage_per_second": 12.0
+          },
+          "5": {
+            "wait_time": 10.0,
+            "shrink_time": 10.0,
+            "damage_per_second": 16.0
+          }
+        }
+      }
+    }
+  },
+  "scale_envelopes": {
+    "target_99": {
+      "status": "planned",
+      "source_preset": "xlarge_60",
+      "bot_count": 99,
+      "total_entities": 100,
+      "world_size_min": 160.0,
+      "world_size_preferred": 180.0,
+      "spawn_radius_min": 72.0,
+      "spawn_radius_preferred": 78.0,
+      "inner_radius": 8.0,
+      "entity_clearance": 3.5,
+      "boundary_margin_min": 4.0,
+      "max_annulus_saturation": 0.24,
+      "preferred_annulus_saturation": 0.21,
+      "requires": [
+        "new_or_rescaled_map_spec",
+        "poi_and_obstacle_rescale",
+        "loot_density_rescale",
+        "zone_profile_rescale",
+        "pathing_and_ai_lod_validation"
+      ]
+    }
+  },
+  "pois": [
+    { "name": "Central Meadow", "pos": [0, 0], "radius": 22, "role": "loot_hub", "item_density": 0.95, "rare_bias": 0.25 },
+    { "name": "North Clearing", "pos": [0, 54], "radius": 16, "role": "loot_hub", "item_density": 0.82, "rare_bias": 0.20 },
+    { "name": "South Creek Bend", "pos": [18, -60], "radius": 16, "role": "loot_hub", "item_density": 0.78, "rare_bias": 0.18 },
+    { "name": "West Ridge Gap", "pos": [-66, -10], "radius": 17, "role": "transit_choke", "item_density": 0.48, "rare_bias": 0.12 },
+    { "name": "East Pine Lane", "pos": [66, 20], "radius": 17, "role": "recovery_pocket", "item_density": 0.50, "rare_bias": 0.14 },
+    { "name": "Northwest Slope", "pos": [-48, 50], "radius": 14, "role": "recovery_pocket", "item_density": 0.52, "rare_bias": 0.14 },
+    { "name": "Northeast Slope", "pos": [50, 56], "radius": 14, "role": "transit_choke", "item_density": 0.50, "rare_bias": 0.12 },
+    { "name": "Southwest Brush", "pos": [-52, -54], "radius": 14, "role": "concealment_field", "item_density": 0.38, "rare_bias": 0.08 },
+    { "name": "Southeast Brush", "pos": [56, -50], "radius": 14, "role": "concealment_field", "item_density": 0.38, "rare_bias": 0.08 },
+    { "name": "Inner Brush North", "pos": [-22, 24], "radius": 15, "role": "concealment_field", "item_density": 0.36, "rare_bias": 0.08 },
+    { "name": "Inner Brush South", "pos": [26, -26], "radius": 15, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.08 }
+  ],
+  "obstacles": [
+    { "type": "canyon_wall", "pos": [-78, 52], "scale": [10.0, 4.5, 2.0], "rot": 32 },
+    { "type": "canyon_wall", "pos": [-82, 6], "scale": [8.5, 4.0, 2.0], "rot": 78 },
+    { "type": "canyon_wall", "pos": [-70, -54], "scale": [11.0, 4.2, 2.0], "rot": -28 },
+    { "type": "canyon_wall", "pos": [76, 58], "scale": [10.0, 4.5, 2.0], "rot": -36 },
+    { "type": "canyon_wall", "pos": [82, 8], "scale": [8.5, 4.0, 2.0], "rot": -78 },
+    { "type": "canyon_wall", "pos": [66, -66], "scale": [11.5, 4.2, 2.0], "rot": 32 },
+    { "type": "canyon_wall", "pos": [-12, 80], "scale": [10.5, 4.0, 2.0], "rot": 4 },
+    { "type": "canyon_wall", "pos": [12, -80], "scale": [10.5, 4.0, 2.0], "rot": -2 },
+    { "type": "tree_cluster", "pos": [-52, 34], "scale": [5.8, 5.0, 4.6], "rot": 15, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-45, -18], "scale": [4.8, 5.0, 4.6], "rot": -12, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-30, 58], "scale": [4.8, 5.0, 4.0], "rot": -8, "jitter": [1.2, 1.2], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [6, 60], "scale": [4.8, 5.0, 4.6], "rot": 8, "jitter": [1.2, 1.2], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [48, 42], "scale": [5.8, 5.0, 4.6], "rot": -18, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [60, -10], "scale": [5.2, 5.0, 4.6], "rot": 5, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [42, -54], "scale": [4.8, 5.0, 4.6], "rot": 14, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-40, -58], "scale": [5.2, 5.0, 4.6], "rot": -10, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-68, 12], "scale": [4.8, 5.0, 4.0], "rot": 22, "jitter": [1.2, 1.2], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [14, -42], "scale": [4.2, 5.0, 4.0], "rot": -16, "jitter": [1.2, 1.2], "rot_jitter": 12 },
+    { "type": "bush_patch", "pos": [-15, 15], "scale": [4.6, 1.0, 3.8], "rot": -12 },
+    { "type": "bush_patch", "pos": [18, 18], "scale": [4.0, 1.0, 4.6], "rot": 18 },
+    { "type": "bush_patch", "pos": [-10, -22], "scale": [4.8, 1.0, 4.0], "rot": 4 },
+    { "type": "bush_patch", "pos": [28, -28], "scale": [4.2, 1.0, 4.2], "rot": -20 },
+    { "type": "bush_patch", "pos": [-34, 0], "scale": [3.8, 1.0, 4.2], "rot": 26 },
+    { "type": "bush_patch", "pos": [8, 36], "scale": [4.0, 1.0, 3.8], "rot": 10 },
+    { "type": "bush_patch", "pos": [42, -4], "scale": [3.8, 1.0, 3.8], "rot": -28 },
+    { "type": "rock_cluster", "pos": [-66, -8], "scale": [3.0, 3.0, 2.8], "rot": 35, "jitter": [1.0, 1.0], "rot_jitter": 18 },
+    { "type": "rock_cluster", "pos": [64, 22], "scale": [3.2, 3.0, 3.0], "rot": -20, "jitter": [1.0, 1.0], "rot_jitter": 18 },
+    { "type": "rock_cluster", "pos": [-22, 48], "scale": [2.6, 2.4, 2.6], "rot": 12, "jitter": [1.0, 1.0], "rot_jitter": 18 },
+    { "type": "rock_cluster", "pos": [50, -38], "scale": [2.8, 2.5, 2.6], "rot": -30, "jitter": [1.0, 1.0], "rot_jitter": 18 },
+    { "type": "rock_cluster", "pos": [0, -66], "scale": [2.4, 2.2, 2.4], "rot": 10, "jitter": [1.0, 1.0], "rot_jitter": 18 },
+    { "type": "log_pile", "pos": [-18, 42], "scale": [4.2, 1.3, 1.4], "rot": 26 },
+    { "type": "log_pile", "pos": [24, 45], "scale": [3.8, 1.3, 1.4], "rot": -38 },
+    { "type": "log_pile", "pos": [-52, -36], "scale": [3.8, 1.3, 1.4], "rot": 62 },
+    { "type": "log_pile", "pos": [36, 5], "scale": [3.6, 1.3, 1.4], "rot": 8 },
+    { "type": "log_pile", "pos": [4, -34], "scale": [3.8, 1.3, 1.4], "rot": -18 }
+  ]
+}

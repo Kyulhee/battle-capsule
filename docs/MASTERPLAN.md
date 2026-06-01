@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-02 (v2.0.14 larger-map spawn envelope)
+> Last updated: 2026-06-02 (v2.0.15 non-default large map candidate)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.14: larger-map spawn envelope prerequisite |
-| Next structural slice | v2.0.15: non-default larger map candidate |
+| Latest completed slice | v2.0.15: non-default large map candidate |
+| Next structural slice | v2.0.16: candidate map runtime loading/smoke |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -27,7 +27,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - Preserve single-source state ownership in `Main.gd` for `zone`, `mission_tracker`, `player_ref`, `alive_count`, game-over flow, pressure trigger flags, and Telemetry hook calls until a dedicated migration plan exists.
 - Prefer small catalog, tuning, formatter, evaluator, controller, director, planner, and store boundaries over broad gameplay rewrites.
 - Gameplay numbers shown in UI/descriptions should come from the same data/tuning used by logic whenever practical.
-- Do not start 99-player scale, new maps, mission map theming, bot artifacts, or artifact upgrade trees without an explicit migration plan.
+- Do not start 99-player runtime scale, default/playable map promotion, mission map theming, bot artifacts, or artifact upgrade trees without an explicit migration plan.
 - Active docs should stay compact. Raw/full details belong in `docs/archive/` or `docs/devlog/` snapshots.
 
 ## Active Docs
@@ -247,11 +247,11 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 2. Move map-specific spawn radius, loot count/density, and zone radius profile into definition-owned or preset-owned data while preserving `game_config.json` fallback behavior. Done in v2.0.2.
 3. Add validation tooling for world bounds, POI radii, obstacle bounds, spawn radius, loot hotspot coverage, and zone radius sanity. Done in v2.0.4.
 4. Build a Full Map UI foundation from the same minimap feature data; keep it read-only at first. Done in v2.0.3.
-5. Scale bots by presets before 99-player work: 11 -> 24 -> 40 -> 60 -> 99, with AI LOD and telemetry checks at each step.
+5. Scale bots by presets before 99-player work: 11 -> 24 -> 40 -> 60 -> 99, with AI LOD and telemetry checks at each step. 60-bot scale is the current active runtime surface; target_99 is still envelope/candidate data only.
 
 **Non-goals for the first v2.0 pass**
 
-- Do not add new maps, mission map theming, bot artifacts, artifact upgrade trees, fire spread, or interior/landmark gameplay.
+- Do not promote new default/playable maps, mission map theming, bot artifacts, artifact upgrade trees, fire spread, or interior/landmark gameplay.
 - Do not redesign landmark collision until a feature needs precise interiors or climbable structures.
 - Do not bulk-promote generated GLBs; keep prop upgrades tied to visual or gameplay needs.
 
@@ -343,6 +343,14 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - The 99-bot prerequisite is now explicit: minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius, with 8m inner radius, 3.5m clearance, and saturation guardrails.
 - Added `tools/verify_scale_envelope.gd` so `target_99` cannot be confused with a playable `scale_preset` and the envelope math stays pinned.
 - Next work should create a non-default larger map candidate or map-rescale prototype that satisfies this envelope before any 99-player runtime preset.
+
+**v2.0.15 result**
+
+- Added `data/mapSpec_large_candidate.json` as a non-default 180m candidate map with 11 POIs and 35 obstacles.
+- The candidate `xlarge_60` surface uses 60 bots, 150 loot, 78m spawn radius, 120 safe spawn attempts, and a slower early zone curve.
+- `target_99` remains an envelope only; no 99-player runtime preset or default map switch was added.
+- Added `tools/verify_large_map_candidate.gd`; it passed with 8.5m boundary margin and target_99 preferred saturation=0.20.
+- Next work should add a safe candidate-map runtime loading/smoke path before any 99-player preset.
 
 ## Deferred Asset Upgrades
 

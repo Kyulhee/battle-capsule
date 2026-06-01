@@ -6,6 +6,30 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.15 — Non-Default Large Map Candidate
+
+**Scope**
+
+- Added `data/mapSpec_large_candidate.json` as a separate 180m forest candidate map; `Main.gd` still loads the current default map.
+- Kept `target_99` as a `scale_envelope`, not a runtime `scale_preset`; the candidate exposes only `baseline` and `xlarge_60` presets.
+- Set the candidate `xlarge_60` test surface to 60 bots, 150 loot, 78m spawn radius, 120 safe spawn attempts, and a slower early zone curve.
+- Expanded candidate authored data to 11 POIs and 35 obstacles so target-envelope validation is tied to a concrete map spec instead of only abstract math.
+- Added `tools/verify_large_map_candidate.gd` to validate the candidate, verify it satisfies the `target_99` preferred world/spawn envelope, and keep `target_99` out of runtime presets.
+
+**Verification**
+
+- `verify_large_map_candidate.gd` passed: `xlarge_60` world=180m, spawn=78m, boundary margin=8.5m, target_99 preferred saturation=0.20.
+- `verify_map_definition.gd` and `verify_scale_envelope.gd` passed.
+- Godot headless project load passed with the expected AssetCatalog fallback warning only.
+- `git diff --check` passed.
+
+**Decision**
+
+- This is still scale-backbone work, not a playable 99-player expansion.
+- The next slice should add a safe candidate-map runtime loading/smoke path before any 99-player preset.
+
+---
+
 ## v2.0.14 — Larger-Map Spawn Envelope Prerequisite
 
 **Scope**

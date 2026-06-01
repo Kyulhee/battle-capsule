@@ -74,6 +74,9 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v2.0 larger-map / 99-target envelope smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_scale_envelope.gd
 
+# v2.0 non-default large map candidate smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_large_map_candidate.gd
+
 # v2.0 40-bot scale preset smoke
 python tools/simulate_matches.py 1 normal scale_preset=large_40
 
