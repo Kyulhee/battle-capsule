@@ -6,6 +6,28 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.17 — Guarded 99-Target Candidate Probe
+
+**Scope**
+
+- Added `target_99_probe` only to `data/mapSpec_large_candidate.json`; the default map still has no 99-player runtime preset.
+- Kept `target_99` as a `scale_envelope`, not a runtime `scale_preset`.
+- The probe uses 99 bots, 240 loot, 78m spawn radius, 180 safe spawn attempts, and slower early zone pacing on the 180m candidate map.
+- Added `tools/verify_candidate_99_probe.gd` to assert the probe is candidate-only, validates against the preferred `target_99` envelope, and is absent from the default map.
+
+**Verification**
+
+- `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_definition.gd`, and `verify_map_runtime_path.gd` passed.
+- 5-run candidate-map `target_99_probe` simulation passed: avg duration 129.4s, no runs under 60s, no zero damage/shot/plan sentinels.
+- Existing scale gate passed: fallback=0.0/run, min nearest=3.5m, avg nearest=7.7m, saturation=0.20, AI avg=439.9us.
+
+**Decision**
+
+- 99 bots are now technically smokeable on the non-default candidate path.
+- Do not promote this to the default map or global 99-player tuning yet; the next slice should analyze 99-probe pacing, zone escape volume, and engagement density before broader promotion.
+
+---
+
 ## v2.0.16 — Candidate Map Runtime Loading Smoke
 
 **Scope**

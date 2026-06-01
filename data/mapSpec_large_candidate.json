@@ -104,6 +104,52 @@
           }
         }
       }
+    },
+    "target_99_probe": {
+      "match": {
+        "bot_count": 99,
+        "loot_count": 240,
+        "spawn_radius": 78.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 180,
+          "inner_radius": 8.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.08,
+          "stage_wave_prob_per_stage": 0.08,
+          "stage_wave_count_mult": 9,
+          "hotspot_density_mult": 1.12
+        }
+      },
+      "zone": {
+        "initial_timer": 52.0,
+        "wait_time": 48.0,
+        "shrink_time": 34.0,
+        "stages": {
+          "2": {
+            "wait_time": 40.0,
+            "shrink_time": 28.0,
+            "damage_per_second": 4.0
+          },
+          "3": {
+            "wait_time": 28.0,
+            "shrink_time": 22.0,
+            "damage_per_second": 8.0
+          },
+          "4": {
+            "wait_time": 18.0,
+            "shrink_time": 16.0,
+            "damage_per_second": 12.0
+          },
+          "5": {
+            "wait_time": 12.0,
+            "shrink_time": 10.0,
+            "damage_per_second": 16.0
+          }
+        }
+      }
     }
   },
   "scale_envelopes": {

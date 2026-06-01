@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-02 (v2.0.16 candidate map runtime loading)
+> Last updated: 2026-06-02 (v2.0.17 guarded 99-target candidate probe)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.16: candidate map runtime loading/smoke |
-| Next structural slice | v2.0.17: guarded 99-target candidate probe |
+| Latest completed slice | v2.0.17: guarded 99-target candidate probe |
+| Next structural slice | v2.0.18: 99-probe telemetry analysis and tuning |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -359,6 +359,14 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Added `tools/verify_map_runtime_path.gd` for CLI path parsing and candidate `xlarge_60` resolution.
 - Candidate-map `xlarge_60` passed 5-run telemetry: avg duration 99.7s, fallback=0.0/run, min nearest=3.5m, saturation=0.12, no zero sentinels.
 - Next work may add a guarded 99-target probe only on the non-default candidate path; no default map switch or global 99-player preset yet.
+
+**v2.0.17 result**
+
+- Added `target_99_probe` only on the non-default 180m candidate map.
+- The default map still has no 99-player runtime preset, and `target_99` remains a planning envelope.
+- Added `tools/verify_candidate_99_probe.gd` to keep the probe candidate-only and verify envelope fit.
+- Candidate-map `target_99_probe` passed 5-run telemetry: avg duration 129.4s, fallback=0.0/run, min nearest=3.5m, saturation=0.20, AI avg=439.9us, no zero sentinels.
+- Next work should analyze 99-probe pacing, zone escape volume, and engagement density before default/global promotion.
 
 ## Deferred Asset Upgrades
 

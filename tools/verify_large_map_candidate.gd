@@ -116,8 +116,8 @@ func _verify_candidate(summary: Dictionary, source: Dictionary, envelope: Dictio
 	if int(summary.get("obstacle_count", 0)) < 30:
 		_fail("Candidate needs at least 30 obstacles.")
 		return false
-	if int(summary.get("scale_preset_count", 0)) != 2:
-		_fail("Candidate should only expose baseline and %s scale presets." % SOURCE_PRESET)
+	if int(summary.get("scale_preset_count", 0)) != 3:
+		_fail("Candidate should only expose baseline, %s, and target_99_probe scale presets." % SOURCE_PRESET)
 		return false
 	return true
 
