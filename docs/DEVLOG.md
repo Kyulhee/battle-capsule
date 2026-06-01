@@ -6,6 +6,28 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.18 — 99-Probe Scale-Normalized Analysis
+
+**Scope**
+
+- Extended `tools/analyze_results.py` with scale-normalized rates per spawned entity/minute.
+- Added aggregate doctrine state mix reporting so 60/99 bot runs can compare state pressure without relying only on raw event counts.
+- Kept this as telemetry analysis only; no gameplay tuning, default map switch, or 99-player global promotion was made.
+
+**Verification**
+
+- `python -m py_compile tools\analyze_results.py` passed.
+- `python tools\analyze_results.py tools\sim_runs_current` passed on the current 99-probe run set.
+- Current 99-probe normalized output: damage=27.7, shots=3.35, plans=1.83, disengage=0.56, stuck=0.11, zone_fire=1.02, survival=1.24 per spawned entity/min.
+- Current 99-probe state mix: ZONE_ESCAPE 26.0%, DISENGAGE 22.0%, CHASE 19.2%, ATTACK 18.9%, IDLE 14.0%.
+
+**Decision**
+
+- The 99-probe pass is not enough to promote the preset; zone escape and disengage state share are now the first explicit review targets.
+- The next slice should compare candidate `xlarge_60` and `target_99_probe` with the same normalized analyzer before changing gameplay numbers.
+
+---
+
 ## v2.0.17 — Guarded 99-Target Candidate Probe
 
 **Scope**

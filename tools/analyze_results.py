@@ -39,6 +39,29 @@ def combat_plan_total(run: dict) -> int:
     return max(tactics_total, doctrine_total)
 
 
+def spawned_entity_count(run: dict) -> int:
+    spawn = run.get("spawn", {})
+    requested = int(spawn.get("requested_count", 0))
+    if requested > 0:
+        return requested
+    archetype_distribution = run.get("archetype", {}).get("archetype_distribution", {})
+    bot_count = sum(int(v) for v in archetype_distribution.values())
+    if bot_count > 0:
+        return bot_count + 1
+    return 1
+
+
+def per_spawned_entity_minute(results: list[dict], value_fn) -> float:
+    total_value = 0.0
+    total_entity_minutes = 0.0
+    for run in results:
+        duration_min = float(run.get("core", {}).get("duration", 0.0)) / 60.0
+        entity_count = max(1, spawned_entity_count(run))
+        total_value += float(value_fn(run))
+        total_entity_minutes += duration_min * float(entity_count)
+    return total_value / max(1.0, total_entity_minutes)
+
+
 if __name__ == "__main__":
     results = load_runs(RUN_DIR)
     if not results:
@@ -166,6 +189,17 @@ if __name__ == "__main__":
             avg(zone_assisted_death),
         )
     )
+    print(
+        "Scale-normalized per spawned entity/min: damage={:.1f}, shots={:.2f}, plans={:.2f}, disengage={:.2f}, stuck={:.2f}, zone_fire={:.2f}, survival={:.2f}".format(
+            per_spawned_entity_minute(results, lambda r: r.get("combat", {}).get("total_damage_dealt", 0.0)),
+            per_spawned_entity_minute(results, lambda r: r.get("combat", {}).get("shots_fired", 0)),
+            per_spawned_entity_minute(results, combat_plan_total),
+            per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("disengage_triggered", 0)),
+            per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("stuck_triggered", 0)),
+            per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("zone_escape_fire", 0)),
+            per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("survival_break", 0)),
+        )
+    )
     print(f"Zone deaths: {sum(zone_deaths)} ({avg(zone_deaths):.1f}/run), max outside time: {max(max_outside_time):.1f}s")
     if spawn_runs:
         placed = [int(s.get("placed_count", 0)) for s in spawn_runs]
@@ -221,6 +255,17 @@ if __name__ == "__main__":
                 if seconds > 0.0
             ]
             print(f"  {archetype}: {', '.join(parts) if parts else 'none'}")
+        state_totals = Counter()
+        for states in doctrine_state_time_by_archetype.values():
+            state_totals.update(states)
+        total_state_time = sum(float(seconds) for seconds in state_totals.values())
+        if total_state_time > 0.0:
+            parts = [
+                f"{state}={100.0 * float(seconds) / total_state_time:.1f}%"
+                for state, seconds in sorted(state_totals.items(), key=lambda item: item[1], reverse=True)
+                if float(seconds) > 0.0
+            ]
+            print(f"Doctrine state mix: {', '.join(parts)}")
     if doctrine_range_by_archetype:
         print("Doctrine engage range by archetype:")
         for archetype, bucket in sorted(doctrine_range_by_archetype.items()):

@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.17 — guarded 99-target candidate probe`.
-- Next structural slice: `v2.0.18 — 99-probe telemetry analysis and tuning`.
+- Latest completed slice: `v2.0.18 — 99-probe normalized analysis`.
+- Next structural slice: `v2.0.19 — normalized 60-vs-99 candidate comparison`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -33,22 +33,25 @@
 - `21e9eea feat: add target scale envelope` — added `scale_envelopes.target_99` as planning data, not a runtime preset.
 - `27d9969 feat: add large map candidate` — added the non-default 180m candidate map and envelope validation.
 - `2b0a07b feat: add candidate map runtime loading` — added `map_spec_path` CLI/test loading for non-default candidate smokes.
-- Current v2.0.17 slice adds `target_99_probe` only to the non-default candidate map and `tools/verify_candidate_99_probe.gd`; the default map still has no 99-player runtime preset.
+- `31a7bcc feat: add candidate 99 probe` — added candidate-only `target_99_probe` and verified 5-run telemetry.
+- Current v2.0.18 slice extends `tools/analyze_results.py` with per spawned entity/minute rates and aggregate doctrine state mix; no gameplay tuning or default/global 99 promotion was made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.18 — 99-probe telemetry analysis and tuning`
+`v2.0.19 — normalized 60-vs-99 candidate comparison`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
 - Current default-map 5-run `xlarge_60` telemetry passed with spawn distribution: placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, saturation=0.24.
 - Candidate-map 5-run `xlarge_60` telemetry passed: avg duration 99.7s, fallback=0.0/run, min nearest=3.5m, avg nearest=9.6m, saturation=0.12, no zero sentinels.
 - Candidate-map 5-run `target_99_probe` telemetry passed: avg duration 129.4s, fallback=0.0/run, min nearest=3.5m, avg nearest=7.7m, saturation=0.20, AI avg=439.9us, no zero sentinels.
+- Current 99-probe normalized output: damage=27.7, shots=3.35, plans=1.83, disengage=0.56, stuck=0.11, zone_fire=1.02, survival=1.24 per spawned entity/min.
+- Current 99-probe state mix: ZONE_ESCAPE 26.0%, DISENGAGE 22.0%, CHASE 19.2%, ATTACK 18.9%, IDLE 14.0%.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should analyze 99-probe pacing, zone escape time, engagement density, and whether AI LOD is needed before any default/global promotion.
+- Next work should rerun candidate `xlarge_60` and `target_99_probe` through the normalized analyzer and compare state mix/rates before any tuning.
 - Keep using `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes
