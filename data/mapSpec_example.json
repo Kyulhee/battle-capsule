@@ -85,6 +85,26 @@
         "wait_time": 34.0,
         "shrink_time": 24.0
       }
+    },
+    "xlarge_60": {
+      "match": {
+        "bot_count": 60,
+        "loot_count": 144,
+        "spawn_radius": 56.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 80
+        },
+        "loot": {
+          "hotspot_density_mult": 1.15
+        }
+      },
+      "zone": {
+        "initial_timer": 22.0,
+        "wait_time": 36.0,
+        "shrink_time": 26.0
+      }
     }
   },
   "pois": [

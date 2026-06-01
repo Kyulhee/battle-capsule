@@ -6,6 +6,23 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.8 — Conservative 60-Bot Scale Feasibility
+
+**Scope**
+
+- Added `xlarge_60` to `data/mapSpec_example.json` as a bounded 60-bot scale preset.
+- The preset keeps spawn radius at 56m inside the current 120m world bounds, raises safe spawn attempts to 80, and uses 144 loot with a 1.15 hotspot density multiplier.
+- `tools/verify_map_definition.gd` now pins the `xlarge_60` match, runtime spawn/loot, and zone overrides.
+
+**Verification**
+
+- `verify_map_definition.gd` passed.
+- Godot headless project load passed with expected AssetCatalog warning only.
+- `python tools\simulate_matches.py 1 normal scale_preset=xlarge_60` passed with 60-bot distribution.
+- `python tools\simulate_matches.py 1 normal` passed.
+
+---
+
 ## v2.0.7 — MapDefinition Position Query Compatibility
 
 **Scope**
@@ -193,5 +210,5 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.8`: run a conservative 60-bot scale feasibility slice; add the preset only if validation and simulation sentinels stay clean.
+- `v2.0.9`: repeat 60-bot telemetry and decide whether AI LOD or spawn/loot distribution work is needed before any 99-player preset.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.

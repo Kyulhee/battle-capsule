@@ -74,6 +74,9 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v2.0 40-bot scale preset smoke
 python tools/simulate_matches.py 1 normal scale_preset=large_40
 
+# v2.0 60-bot scale preset smoke
+python tools/simulate_matches.py 1 normal scale_preset=xlarge_60
+
 # v2.0 Full Map overlay smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_full_map_overlay.gd
 

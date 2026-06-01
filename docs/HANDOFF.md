@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.7 — MapDefinition position query compatibility`.
-- Next structural slice: `v2.0.8 — conservative 60-bot scale feasibility`.
+- Latest completed slice: `v2.0.8 — conservative 60-bot scale feasibility`.
+- Next structural slice: `v2.0.9 — 60-bot telemetry repeat and AI LOD decision`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -23,19 +23,19 @@
 - `7790567 test: expand map definition validation` — expanded MapDefinition validation for POI, obstacle, spawn/loot, and zone sanity checks.
 - `8a24fbf refactor: extract settings manager` — moved settings persistence/audio/display mutation into `SettingsManager.gd`.
 - `2cf1365 test: add large scale preset smoke` — added and smoked the conservative `large_40` scale preset.
-- Current v2.0.7 slice adds MapDefinition world-position query helpers and connects Minimap/FullMapOverlay to them.
+- `5c0d21a feat: add map definition position queries` — added MapDefinition world-position query helpers and connected Minimap/FullMapOverlay to them.
+- Current v2.0.8 slice adds and smokes the conservative `xlarge_60` scale preset.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.8 — conservative 60-bot scale feasibility`
+`v2.0.9 — 60-bot telemetry repeat and AI LOD decision`
 
 - Keep `Main.gd` as match-global orchestrator.
-- Probe one conservative 60-bot preset after the v2.0.7 query path remains green.
-- Validate spawn radius plus entity clearance against current 120m world bounds before adding the preset.
-- Smoke with `verify_map_definition.gd`, Godot headless load, and `simulate_matches.py`.
-- If combat/regression sentinels degrade, stop and plan AI LOD or spawn/loot distribution work before larger presets.
+- Run repeated `scale_preset=xlarge_60` simulations and inspect duration, combat plans, zero-damage/zero-shot sentinels, recover/disengage volume, and early upgrade timing.
+- Decide whether to add AI LOD, spawn distribution, or loot distribution work before any 99-player preset.
+- Keep 99-player tuning blocked until 60-bot telemetry is stable across repeated runs.
 
 ## Asset Notes
 

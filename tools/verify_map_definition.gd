@@ -35,7 +35,7 @@ func _init():
 	if float(summary.get("spawn_radius", 0.0)) != 45.0:
 		_fail("Legacy MapDefinition did not inherit spawn_radius from GameConfig.")
 		return
-	if int(summary.get("scale_preset_count", 0)) != 3:
+	if int(summary.get("scale_preset_count", 0)) != 4:
 		_fail("Legacy MapDefinition did not load scale presets.")
 		return
 	if not _verify_position_queries(legacy_definition):
@@ -79,6 +79,35 @@ func _init():
 		return
 	if float(large_zone.get("shrink_time", 0.0)) != 24.0:
 		_fail("Legacy MapDefinition did not apply large_40 zone shrink_time preset.")
+		return
+	var xlarge_summary: Dictionary = legacy_definition.summary(game_config, "xlarge_60")
+	if int(xlarge_summary.get("bot_count", 0)) != 60:
+		_fail("Legacy MapDefinition did not apply xlarge_60 bot_count preset.")
+		return
+	if int(xlarge_summary.get("loot_count", 0)) != 144:
+		_fail("Legacy MapDefinition did not apply xlarge_60 loot_count preset.")
+		return
+	if float(xlarge_summary.get("spawn_radius", 0.0)) != 56.0:
+		_fail("Legacy MapDefinition did not apply xlarge_60 spawn_radius preset.")
+		return
+	var xlarge_runtime: Dictionary = legacy_definition.get_runtime_tuning(game_config, {}, "xlarge_60")
+	var xlarge_spawn: Dictionary = xlarge_runtime.get("spawn", {})
+	if int(xlarge_spawn.get("safe_spawn_attempts", 0)) != 80:
+		_fail("Legacy MapDefinition did not apply xlarge_60 safe_spawn_attempts preset.")
+		return
+	var xlarge_loot: Dictionary = xlarge_runtime.get("loot", {})
+	if absf(float(xlarge_loot.get("hotspot_density_mult", 0.0)) - 1.15) > 0.001:
+		_fail("Legacy MapDefinition did not apply xlarge_60 hotspot_density_mult preset.")
+		return
+	var xlarge_zone: Dictionary = legacy_definition.get_zone_tuning(game_config, {}, "xlarge_60")
+	if float(xlarge_zone.get("initial_timer", 0.0)) != 22.0:
+		_fail("Legacy MapDefinition did not apply xlarge_60 zone initial_timer preset.")
+		return
+	if float(xlarge_zone.get("wait_time", 0.0)) != 36.0:
+		_fail("Legacy MapDefinition did not apply xlarge_60 zone wait_time preset.")
+		return
+	if float(xlarge_zone.get("shrink_time", 0.0)) != 26.0:
+		_fail("Legacy MapDefinition did not apply xlarge_60 zone shrink_time preset.")
 		return
 
 	var parsed := _parse_json(json_text)

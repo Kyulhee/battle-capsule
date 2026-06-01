@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-01 (v2.0.7 MapDefinition position queries)
+> Last updated: 2026-06-01 (v2.0.8 60-bot scale feasibility)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.7: MapDefinition position query compatibility |
-| Next structural slice | v2.0.8: conservative 60-bot scale feasibility |
+| Latest completed slice | v2.0.8: conservative 60-bot scale feasibility |
+| Next structural slice | v2.0.9: 60-bot telemetry repeat and AI LOD decision |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -297,6 +297,12 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Added `MapDefinition` helpers for world bounds, bounds UV conversion, position clamping, and world-distance scaling.
 - Added defensive POI/obstacle descriptor accessors so map UI can ask the definition for presentation-safe placement data.
 - `FullMapOverlay` and `Minimap` now prefer `MapDefinition` query APIs while retaining `MapSpec` fallback compatibility.
+
+**v2.0.8 result**
+
+- Added the `xlarge_60` scale preset with 60 bots, 144 loot, 56m spawn radius, 80 safe spawn attempts, 1.15 hotspot density multiplier, and 22/36/26 zone timings.
+- Extended `verify_map_definition.gd` so the new preset's match/runtime/zone overrides are pinned.
+- Smoked `scale_preset=xlarge_60` through one normal simulation; do not move to 99-player tuning until repeated 60-bot telemetry is reviewed.
 
 ## Deferred Asset Upgrades
 
