@@ -6,6 +6,23 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.12 — 60-Bot Progressive Zone Pacing
+
+**Scope**
+
+- Made the `xlarge_60` zone curve explicit instead of relying on the baseline stage timings after the first shrink.
+- Retuned the 60-bot zone profile so early compression is slower, then stage timings accelerate: first shrink now ends later, stage 2 uses 30s wait / 24s shrink, then later stages step down to 22/18, 14/12, and 10/10.
+- Kept this as preset data tuning; no new map size, 99-player preset, or AI LOD behavior was added.
+
+**Verification**
+
+- `verify_map_definition.gd` passed with pinned `xlarge_60` stage overrides.
+- `python tools\simulate_matches.py 5 normal scale_preset=xlarge_60` passed.
+- `python tools\analyze_results.py tools\sim_runs_current` reported avg duration 103.9s, avg zone stage 2.00, 0 runs under 60s, avg first upgrade 11.8s, no zero damage/shot/plan sentinels, and AI update budget avg=369.8us.
+- `python tools\check_scale_telemetry.py tools\sim_runs_current` passed.
+
+---
+
 ## v2.0.11 — AI Update Budget Telemetry Probe
 
 **Scope**

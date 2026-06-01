@@ -104,9 +104,31 @@
         }
       },
       "zone": {
-        "initial_timer": 30.0,
+        "initial_timer": 34.0,
         "wait_time": 36.0,
-        "shrink_time": 26.0
+        "shrink_time": 28.0,
+        "stages": {
+          "2": {
+            "wait_time": 30.0,
+            "shrink_time": 24.0,
+            "damage_per_second": 4.0
+          },
+          "3": {
+            "wait_time": 22.0,
+            "shrink_time": 18.0,
+            "damage_per_second": 8.0
+          },
+          "4": {
+            "wait_time": 14.0,
+            "shrink_time": 12.0,
+            "damage_per_second": 12.0
+          },
+          "5": {
+            "wait_time": 10.0,
+            "shrink_time": 10.0,
+            "damage_per_second": 16.0
+          }
+        }
       }
     }
   },

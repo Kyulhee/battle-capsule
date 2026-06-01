@@ -109,14 +109,32 @@ func _init():
 		_fail("Legacy MapDefinition did not apply xlarge_60 stage_wave_count_mult preset.")
 		return
 	var xlarge_zone: Dictionary = legacy_definition.get_zone_tuning(game_config, {}, "xlarge_60")
-	if float(xlarge_zone.get("initial_timer", 0.0)) != 30.0:
+	if float(xlarge_zone.get("initial_timer", 0.0)) != 34.0:
 		_fail("Legacy MapDefinition did not apply xlarge_60 zone initial_timer preset.")
 		return
 	if float(xlarge_zone.get("wait_time", 0.0)) != 36.0:
 		_fail("Legacy MapDefinition did not apply xlarge_60 zone wait_time preset.")
 		return
-	if float(xlarge_zone.get("shrink_time", 0.0)) != 26.0:
+	if float(xlarge_zone.get("shrink_time", 0.0)) != 28.0:
 		_fail("Legacy MapDefinition did not apply xlarge_60 zone shrink_time preset.")
+		return
+	var xlarge_stages: Dictionary = xlarge_zone.get("stages", {})
+	var xlarge_stage2: Dictionary = xlarge_stages.get("2", {})
+	if float(xlarge_stage2.get("wait_time", 0.0)) != 30.0:
+		_fail("Legacy MapDefinition did not apply xlarge_60 stage 2 wait_time preset.")
+		return
+	if float(xlarge_stage2.get("shrink_time", 0.0)) != 24.0:
+		_fail("Legacy MapDefinition did not apply xlarge_60 stage 2 shrink_time preset.")
+		return
+	if float(xlarge_stage2.get("damage_per_second", 0.0)) != 4.0:
+		_fail("Legacy MapDefinition did not apply xlarge_60 stage 2 damage preset.")
+		return
+	var xlarge_stage5: Dictionary = xlarge_stages.get("5", {})
+	if float(xlarge_stage5.get("wait_time", 0.0)) != 10.0:
+		_fail("Legacy MapDefinition did not apply xlarge_60 stage 5 wait_time preset.")
+		return
+	if float(xlarge_stage5.get("damage_per_second", 0.0)) != 16.0:
+		_fail("Legacy MapDefinition did not apply xlarge_60 stage 5 damage preset.")
 		return
 
 	var parsed := _parse_json(json_text)

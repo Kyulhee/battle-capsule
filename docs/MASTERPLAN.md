@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-02 (v2.0.11 AI update-budget telemetry)
+> Last updated: 2026-06-02 (v2.0.12 progressive zone pacing)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.11: AI update-budget telemetry probe |
-| Next structural slice | v2.0.12: 60-bot LOD decision and scale-prerequisite plan |
+| Latest completed slice | v2.0.12: 60-bot progressive zone pacing |
+| Next structural slice | v2.0.13: 60-bot map-size/spawn distribution decision |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -322,6 +322,13 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - `tools/analyze_results.py` and `tools/check_scale_telemetry.py` now report AI update budget from the saved `ai` telemetry group.
 - Repeated 5-run `xlarge_60` telemetry passed: avg duration 97.3s, avg first upgrade 12.6s, no zero damage/shot/plan sentinels, AI update budget samples=25210, avg=363.3us, max=28459us.
 - Current evidence does not force immediate AI LOD; v2.0.12 should decide whether to plan bounded LOD now or continue with map-size/spawn distribution prerequisites before 99-player tuning.
+
+**v2.0.12 result**
+
+- Added explicit `xlarge_60` zone stage overrides because the prior preset slowed the first shrink but still inherited fast baseline stage 2+ timings.
+- New 60-bot pacing keeps early compression slower and accelerates later: stage 2 is 30s wait / 24s shrink, then later stages move to 22/18, 14/12, and 10/10.
+- Repeated 5-run `xlarge_60` telemetry passed: avg duration 103.9s, avg zone stage 2.00, avg first upgrade 11.8s, no zero damage/shot/plan sentinels, AI update budget avg=369.8us.
+- Next scale work should review whether the current 120m map and 56m spawn radius are still adequate for 60 bots before any 99-player preset.
 
 ## Deferred Asset Upgrades
 
