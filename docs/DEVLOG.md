@@ -6,6 +6,30 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.13 — 60-Bot Spawn Distribution Telemetry
+
+**Scope**
+
+- Added `spawn` telemetry for requested/placed entity count, fallback usage, nearest-spawn distance, average spawn attempts, max attempts, and spawn-annulus saturation.
+- `Main.gd` now records fallback spawn positions into `_spawn_positions` so later spawn checks and telemetry include the actual fallback placement.
+- Extended `analyze_results.py` and `check_scale_telemetry.py` to report spawn distribution and fail repeated scale runs if fallback spawns appear or nearest spacing drops below the clearance floor.
+- Kept this as measurement and gate work; no 99-player preset or larger map was added.
+
+**Verification**
+
+- `python -m py_compile tools\analyze_results.py tools\check_scale_telemetry.py` passed.
+- Godot headless project load passed with expected AssetCatalog warning only.
+- `python tools\simulate_matches.py 5 normal scale_preset=xlarge_60` passed.
+- `python tools\analyze_results.py tools\sim_runs_current` reported avg duration 120.0s, avg zone stage 2.40, no zero damage/shot/plan sentinels, and spawn distribution placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, max attempts=7, saturation=0.24.
+- `python tools\check_scale_telemetry.py tools\sim_runs_current` passed with spawn distribution included.
+
+**Decision**
+
+- Current 120m map / 56m spawn radius is technically viable for 60 bots, but minimum spacing is already at the clearance floor.
+- Do not add a 99-player preset on the same map envelope; larger scale needs a larger map/spawn envelope plan first.
+
+---
+
 ## v2.0.12 — 60-Bot Progressive Zone Pacing
 
 **Scope**

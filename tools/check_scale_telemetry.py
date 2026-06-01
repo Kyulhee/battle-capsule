@@ -48,6 +48,8 @@ def main() -> int:
     parser.add_argument("--max-recover-death-ratio", type=float, default=0.25)
     parser.add_argument("--max-ai-avg-usec", type=float, default=4500.0)
     parser.add_argument("--max-ai-max-usec", type=float, default=50000.0)
+    parser.add_argument("--max-avg-spawn-fallbacks", type=float, default=0.0)
+    parser.add_argument("--min-spawn-min-nearest", type=float, default=3.4)
     args = parser.parse_args()
 
     runs = load_runs(Path(args.run_dir))
@@ -68,6 +70,11 @@ def main() -> int:
     ai_samples = sum(int(r.get("ai", {}).get("update_samples", 0)) for r in runs)
     ai_total_usec = sum(int(r.get("ai", {}).get("update_total_usec", 0)) for r in runs)
     ai_max_usec = max((int(r.get("ai", {}).get("update_max_usec", 0)) for r in runs), default=0)
+    spawn_runs = [
+        r.get("spawn", {})
+        for r in runs
+        if int(r.get("spawn", {}).get("placed_count", 0)) > 0
+    ]
 
     failures: list[str] = []
     if avg(durations) < args.min_avg_duration:
@@ -100,6 +107,21 @@ def main() -> int:
             failures.append(f"AI avg update {ai_avg_usec:.1f}us > {args.max_ai_avg_usec:.1f}us")
         if ai_max_usec > args.max_ai_max_usec:
             failures.append(f"AI max update {ai_max_usec}us > {args.max_ai_max_usec:.0f}us")
+    if spawn_runs:
+        spawn_fallback = [int(s.get("fallback_count", 0)) for s in spawn_runs]
+        spawn_min_nearest = [float(s.get("min_nearest_distance", 0.0)) for s in spawn_runs]
+        mismatched = [
+            idx + 1
+            for idx, run in enumerate(runs)
+            if int(run.get("spawn", {}).get("placed_count", 0)) > 0
+            and int(run.get("spawn", {}).get("placed_count", 0)) != int(run.get("spawn", {}).get("requested_count", 0))
+        ]
+        if mismatched:
+            failures.append(f"spawn placed/requested mismatch runs: {mismatched}")
+        if avg(spawn_fallback) > args.max_avg_spawn_fallbacks:
+            failures.append(f"avg spawn fallbacks {avg(spawn_fallback):.1f} > {args.max_avg_spawn_fallbacks:.1f}")
+        if min(spawn_min_nearest) < args.min_spawn_min_nearest:
+            failures.append(f"spawn min nearest {min(spawn_min_nearest):.1f}m < {args.min_spawn_min_nearest:.1f}m")
 
     zero_damage = run_numbers(
         runs,
@@ -131,6 +153,25 @@ def main() -> int:
         print(f"AI update budget: samples={ai_samples}, avg={ai_total_usec / ai_samples:.1f}us, max={ai_max_usec}us")
     else:
         print("AI update budget: not recorded")
+    if spawn_runs:
+        spawn_fallback = [int(s.get("fallback_count", 0)) for s in spawn_runs]
+        spawn_min_nearest = [float(s.get("min_nearest_distance", 0.0)) for s in spawn_runs]
+        spawn_avg_nearest = [float(s.get("avg_nearest_distance", 0.0)) for s in spawn_runs]
+        spawn_avg_attempts = [float(s.get("avg_attempts", 0.0)) for s in spawn_runs]
+        spawn_max_attempts = [int(s.get("attempt_max", 0)) for s in spawn_runs]
+        spawn_saturation = [float(s.get("annulus_saturation", 0.0)) for s in spawn_runs]
+        print(
+            "Spawn distribution: fallback={:.1f}/run, min_nearest={:.1f}m, avg_nearest={:.1f}m, attempts={:.1f}/{} max, saturation={:.2f}".format(
+                avg(spawn_fallback),
+                min(spawn_min_nearest),
+                avg(spawn_avg_nearest),
+                avg(spawn_avg_attempts),
+                max(spawn_max_attempts),
+                avg(spawn_saturation),
+            )
+        )
+    else:
+        print("Spawn distribution: not recorded")
     if failures:
         print("FAIL:")
         for failure in failures:

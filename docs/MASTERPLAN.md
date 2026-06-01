@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-02 (v2.0.12 progressive zone pacing)
+> Last updated: 2026-06-02 (v2.0.13 spawn distribution telemetry)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.12: 60-bot progressive zone pacing |
-| Next structural slice | v2.0.13: 60-bot map-size/spawn distribution decision |
+| Latest completed slice | v2.0.13: 60-bot spawn distribution telemetry |
+| Next structural slice | v2.0.14: larger-map/spawn-envelope prerequisite plan |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -329,6 +329,13 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - New 60-bot pacing keeps early compression slower and accelerates later: stage 2 is 30s wait / 24s shrink, then later stages move to 22/18, 14/12, and 10/10.
 - Repeated 5-run `xlarge_60` telemetry passed: avg duration 103.9s, avg zone stage 2.00, avg first upgrade 11.8s, no zero damage/shot/plan sentinels, AI update budget avg=369.8us.
 - Next scale work should review whether the current 120m map and 56m spawn radius are still adequate for 60 bots before any 99-player preset.
+
+**v2.0.13 result**
+
+- Added spawn distribution telemetry and scale-gate output for requested/placed count, fallback usage, nearest spacing, attempt count, and spawn-annulus saturation.
+- Repeated 5-run `xlarge_60` telemetry passed: placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, max attempts=7, saturation=0.24.
+- Current 120m map / 56m spawn radius is technically viable for 60 bots, but the minimum spacing already sits at the clearance floor.
+- 99-player tuning remains blocked until a larger map/spawn envelope is explicitly planned.
 
 ## Deferred Asset Upgrades
 

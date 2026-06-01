@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.12 — 60-bot progressive zone pacing`.
-- Next structural slice: `v2.0.13 — 60-bot map-size/spawn distribution decision`.
+- Latest completed slice: `v2.0.13 — 60-bot spawn distribution telemetry`.
+- Next structural slice: `v2.0.14 — larger-map/spawn-envelope prerequisite plan`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -28,19 +28,20 @@
 - `7fe0db9 docs: record 60 bot telemetry decision` — repeated 5 `xlarge_60` simulations and kept 99-player tuning blocked until distribution/telemetry gates are tightened.
 - `cfb56ba test: add 60 bot telemetry gate` — retuned `xlarge_60` distribution and added the repeated scale telemetry gate.
 - `6a45c8b feat: add ai update budget telemetry` — added sampled AI update-budget telemetry and analyzer/gate reporting without adding AI LOD behavior.
-- Current v2.0.12 slice adds explicit progressive `xlarge_60` zone stage timings.
+- `78667a5 tune 60 bot zone pacing` — added explicit progressive `xlarge_60` zone stage timings.
+- Current v2.0.13 slice adds spawn distribution telemetry and scale-gate reporting.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.13 — 60-bot map-size/spawn distribution decision`
+`v2.0.14 — larger-map/spawn-envelope prerequisite plan`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep `xlarge_60` as the active test surface; do not add a 99-player preset yet.
-- Current 5-run `xlarge_60` telemetry passed after progressive zone pacing: avg duration 103.9s, avg zone stage 2.00, avg first upgrade 11.8s, AI update budget avg=369.8us.
-- Review whether the current 120m map and 56m spawn radius are adequate for 60 bots before any larger preset.
-- If spawn/distribution pressure remains high, plan map-size/spawn distribution prerequisites before 99-player tuning.
+- Current 5-run `xlarge_60` telemetry passed with spawn distribution: placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, saturation=0.24.
+- Treat the current 120m map / 56m spawn radius as viable for 60 bots but too tight to extrapolate to 99 players.
+- Next work should define a larger map/spawn envelope plan before adding any 99-player preset.
 - Keep using `python tools\simulate_matches.py 5 normal scale_preset=xlarge_60`, `python tools\analyze_results.py tools\sim_runs_current`, and `python tools\check_scale_telemetry.py tools\sim_runs_current` as the repeated-run gate.
 
 ## Asset Notes

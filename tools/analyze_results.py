@@ -64,6 +64,11 @@ if __name__ == "__main__":
     zone_assisted_death = [r.get("tactics", {}).get("zone_assisted_death", 0) for r in results]
     zone_deaths = [r.get("zone", {}).get("zone_deaths", 0) for r in results]
     max_outside_time = [r.get("zone", {}).get("max_outside_time", 0.0) for r in results]
+    spawn_runs = [
+        r.get("spawn", {})
+        for r in results
+        if int(r.get("spawn", {}).get("placed_count", 0)) > 0
+    ]
     first_upgrade = [
         r.get("economy", {}).get("first_upgrade_time", -1.0)
         for r in results
@@ -162,6 +167,32 @@ if __name__ == "__main__":
         )
     )
     print(f"Zone deaths: {sum(zone_deaths)} ({avg(zone_deaths):.1f}/run), max outside time: {max(max_outside_time):.1f}s")
+    if spawn_runs:
+        placed = [int(s.get("placed_count", 0)) for s in spawn_runs]
+        requested = [int(s.get("requested_count", 0)) for s in spawn_runs]
+        fallback = [int(s.get("fallback_count", 0)) for s in spawn_runs]
+        min_nearest = [float(s.get("min_nearest_distance", 0.0)) for s in spawn_runs]
+        avg_nearest = [float(s.get("avg_nearest_distance", 0.0)) for s in spawn_runs]
+        avg_attempts = [float(s.get("avg_attempts", 0.0)) for s in spawn_runs]
+        max_attempts = [int(s.get("attempt_max", 0)) for s in spawn_runs]
+        saturation = [float(s.get("annulus_saturation", 0.0)) for s in spawn_runs]
+        print(
+            "Spawn distribution: placed={:.1f}/{:.1f}, fallback={:.1f}/run, min_nearest avg/min={:.1f}/{:.1f}m, avg_nearest={:.1f}m".format(
+                avg(placed),
+                avg(requested),
+                avg(fallback),
+                avg(min_nearest),
+                min(min_nearest),
+                avg(avg_nearest),
+            )
+        )
+        print(
+            "Spawn attempts: avg={:.1f}, max={}, saturation={:.2f}".format(
+                avg(avg_attempts),
+                max(max_attempts),
+                avg(saturation),
+            )
+        )
     if first_upgrade:
         print(f"Avg first upgrade: {avg(first_upgrade):.1f}s")
     if first_upgrade_weapons:

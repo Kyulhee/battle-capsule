@@ -162,6 +162,19 @@ python tools/check_scale_telemetry.py tools/sim_runs_current
 
 `tools/check_scale_telemetry.py`는 `ai` 그룹이 존재하면 AI update budget을 함께 출력합니다. 현재 기본 guardrail은 v2.0.11 60봇 기준을 깨지 않는 느슨한 방어선이며, 실제 목표 임계치는 반복 데이터가 쌓인 뒤 별도 합의로 조정합니다.
 
+### `spawn`
+
+| 지표 | 설명 | 이상 판단 기준 |
+|---|---|---|
+| `requested_count` / `placed_count` | 요청한 플레이어+봇 수와 실제 배치 수 | 다르면 스폰 루프/텔레메트리 연결 오류 |
+| `fallback_count` | 안전 스폰 실패 후 fallback 범위에 배치한 수 | 60봇 반복 런에서 0이어야 함 |
+| `min_nearest_distance` | 가장 가까운 두 스폰 사이 거리 | `entity_clearance`보다 낮으면 스폰 안전거리 회귀 |
+| `avg_nearest_distance` | 각 스폰의 최근접 거리 평균 | 낮아질수록 초반 교전/혼잡 압력 증가 |
+| `avg_attempts` / `attempt_max` | 안전 위치를 찾는 평균/최대 시도 횟수 | 급증하면 스폰 반경/장애물/맵 크기 압박 |
+| `annulus_saturation` | 스폰 annulus 면적 대비 clearance 원 점유 추정치 | 1에 가까워질수록 현재 맵 envelope로 확장 불가 |
+
+`tools/check_scale_telemetry.py`는 `spawn` 그룹이 존재하면 fallback 사용과 최소 최근접 거리를 함께 검사합니다. v2.0.13 기준 `xlarge_60`은 5회 반복에서 placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, saturation=0.24였습니다.
+
 ### `economy`
 
 | 지표 | 설명 | 이상 판단 기준 |

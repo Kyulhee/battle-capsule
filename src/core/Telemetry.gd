@@ -11,6 +11,7 @@ extends Node
 #   "economy"  — heals, shields, weapon pickups, first upgrade timing
 #   "supply"   — supply capsule events
 #   "zone"     — zone deaths, outside time, final duel deaths
+#   "spawn"    — spawn placement density and fallback diagnostics
 #   "hell"     — blackout/bombardment event counts (Hell difficulty only)
 #   "mission"  — active mission id, result (success/fail/none)
 #   "pressure" — pressure mission triggered/cleared/failed counts (Hard opt-in / Hell)
@@ -27,6 +28,7 @@ var enabled_groups: Dictionary = {
 	"economy":   true,
 	"supply":    true,
 	"zone":      true,
+	"spawn":     true,
 	"hell":      true,
 	"mission":   true,
 	"pressure":  true,
@@ -143,6 +145,25 @@ func _reset_metrics():
 			"zone_deaths_by_state": {},
 			"max_outside_time": 0.0,
 			"final_duel_deaths": [],  # deaths when exactly 2 actors remained
+		},
+		# spawn
+		"spawn": {
+			"requested_count": 0,
+			"placed_count": 0,
+			"spawn_radius": 0.0,
+			"inner_radius": 0.0,
+			"entity_clearance": 0.0,
+			"world_size": 0.0,
+			"fallback_count": 0,
+			"attempt_total": 0,
+			"attempt_max": 0,
+			"avg_attempts": 0.0,
+			"min_nearest_distance": 0.0,
+			"avg_nearest_distance": 0.0,
+			"min_origin_distance": 0.0,
+			"avg_origin_distance": 0.0,
+			"max_origin_distance": 0.0,
+			"annulus_saturation": 0.0,
 		},
 		# hell
 		"hell": {
@@ -496,7 +517,10 @@ func log_artifact_event(event: String):
 # ── Stubs kept for call-site compatibility ────────────────────────────────────
 
 func log_stealth(_event: String): pass  # reserved for v0.5+ stealth metrics
-func log_spawn_metrics(_avg_dist: float, _los_rate: float): pass
+
+func log_spawn_metrics(summary: Dictionary):
+	if not match_in_progress or not _g("spawn"): return
+	metrics.spawn = summary.duplicate(true)
 
 # ── Persistence ───────────────────────────────────────────────────────────────
 
@@ -536,6 +560,7 @@ func _save_sim_result():
 	if _g("combat"):  out["combat"]  = metrics.combat.duplicate(true)
 	if _g("tactics"): out["tactics"] = metrics.tactics.duplicate(true)
 	if _g("zone"):    out["zone"]    = metrics.zone.duplicate(true)
+	if _g("spawn"):   out["spawn"]   = metrics.spawn.duplicate(true)
 	if _g("economy"): out["economy"] = metrics.economy.duplicate(true)
 	if _g("supply"):  out["supply"]   = metrics.supply.duplicate(true)
 	if _g("hell"):    out["hell"]     = metrics.hell.duplicate(true)
@@ -629,6 +654,22 @@ func _print_report():
 		print("── Supply ──────────────────────────────────")
 		print("  Telegraphed: %s  Visits: %d  Contests: %d" % [
 			str(metrics.supply.telegraphed), metrics.supply.visits, metrics.supply.contests
+		])
+	if _g("spawn") and int(metrics.spawn.placed_count) > 0:
+		print("── Spawn ───────────────────────────────────")
+		print("  Placed:         %d/%d  fallback: %d" % [
+			int(metrics.spawn.placed_count),
+			int(metrics.spawn.requested_count),
+			int(metrics.spawn.fallback_count),
+		])
+		print("  Nearest:        min %.1fm  avg %.1fm" % [
+			float(metrics.spawn.min_nearest_distance),
+			float(metrics.spawn.avg_nearest_distance),
+		])
+		print("  Attempts:       avg %.1f  max %d  saturation %.2f" % [
+			float(metrics.spawn.avg_attempts),
+			int(metrics.spawn.attempt_max),
+			float(metrics.spawn.annulus_saturation),
 		])
 	if _g("hell") and (metrics.hell.blackout_count > 0 or metrics.hell.bombardment_warned_count > 0):
 		print("── Hell ────────────────────────────────────")

@@ -35,6 +35,9 @@ var consumable_templates: Array[ItemData] = []
 var loot_hotspots: Array[Dictionary] = []
 var loot_spawner = null
 var _spawn_positions: Array = []
+var _spawn_fallback_count: int = 0
+var _spawn_attempt_total: int = 0
+var _spawn_attempt_max: int = 0
 
 var zone = null
 @export var zone_wait_time: float = 30.0
@@ -687,6 +690,9 @@ func _on_zone_warning():
 
 func spawn_entities():
 	_spawn_positions = []
+	_spawn_fallback_count = 0
+	_spawn_attempt_total = 0
+	_spawn_attempt_max = 0
 	# Spawn Player
 	var p = player_scene.instantiate()
 	$Entities.add_child(p)
@@ -715,24 +721,87 @@ func spawn_entities():
 		if has_node("/root/Telemetry"):
 			var aname = BotDoctrineScript.archetype_name(int(b.archetype))
 			get_node("/root/Telemetry").log_archetype_spawn(aname)
+	_log_spawn_distribution_metrics()
 
 func _get_safe_spawn_pos() -> Vector3:
 	var spawn_tuning = MatchRuntimeTuningScript.spawn(match_runtime_tuning)
 	var spawn_height = float(spawn_tuning["spawn_height"])
-	for _attempt in range(int(spawn_tuning["safe_spawn_attempts"])):
+	var safe_attempts = int(spawn_tuning["safe_spawn_attempts"])
+	for attempt in range(safe_attempts):
+		_spawn_attempt_total += 1
 		var angle = randf() * TAU
 		var dist = randf_range(float(spawn_tuning["inner_radius"]), spawn_radius)
 		var candidate = Vector2(cos(angle) * dist, sin(angle) * dist)
 		if _is_clear_of_obstacles(candidate) and _is_clear_of_entities(candidate):
 			var pos = Vector3(candidate.x, spawn_height, candidate.y)
 			_spawn_positions.append(pos)
+			_spawn_attempt_max = max(_spawn_attempt_max, attempt + 1)
 			return pos
 	var fallback_range = float(spawn_tuning["fallback_range"])
-	return Vector3(
+	var fallback_pos = Vector3(
 		randf_range(-fallback_range, fallback_range),
 		spawn_height,
 		randf_range(-fallback_range, fallback_range)
 	)
+	_spawn_positions.append(fallback_pos)
+	_spawn_fallback_count += 1
+	_spawn_attempt_max = max(_spawn_attempt_max, safe_attempts)
+	return fallback_pos
+
+func _log_spawn_distribution_metrics():
+	if not has_node("/root/Telemetry"):
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("log_spawn_metrics"):
+		return
+	var summary = _spawn_distribution_summary()
+	tel.log_spawn_metrics(summary)
+
+func _spawn_distribution_summary() -> Dictionary:
+	var spawn_tuning = MatchRuntimeTuningScript.spawn(match_runtime_tuning)
+	var count = _spawn_positions.size()
+	var inner_radius = float(spawn_tuning["inner_radius"])
+	var clearance = float(spawn_tuning["entity_clearance"])
+	var min_nearest = INF
+	var nearest_total = 0.0
+	var min_origin = INF
+	var max_origin = 0.0
+	var origin_total = 0.0
+	for i in range(count):
+		var pos = Vector2(_spawn_positions[i].x, _spawn_positions[i].z)
+		var origin_dist = pos.length()
+		min_origin = minf(min_origin, origin_dist)
+		max_origin = maxf(max_origin, origin_dist)
+		origin_total += origin_dist
+		var nearest = INF
+		for j in range(count):
+			if i == j:
+				continue
+			var other = Vector2(_spawn_positions[j].x, _spawn_positions[j].z)
+			nearest = minf(nearest, pos.distance_to(other))
+		if nearest < INF:
+			min_nearest = minf(min_nearest, nearest)
+			nearest_total += nearest
+	var annulus_area = maxf(1.0, PI * maxf(1.0, spawn_radius * spawn_radius - inner_radius * inner_radius))
+	var clearance_area = PI * clearance * clearance * count
+	return {
+		"requested_count": bot_count + 1,
+		"placed_count": count,
+		"spawn_radius": spawn_radius,
+		"inner_radius": inner_radius,
+		"entity_clearance": clearance,
+		"world_size": map_definition.get_world_size() if map_definition and map_definition.has_method("get_world_size") else 0.0,
+		"fallback_count": _spawn_fallback_count,
+		"attempt_total": _spawn_attempt_total,
+		"attempt_max": _spawn_attempt_max,
+		"avg_attempts": float(_spawn_attempt_total) / max(1, count),
+		"min_nearest_distance": min_nearest if min_nearest < INF else 0.0,
+		"avg_nearest_distance": nearest_total / max(1, count),
+		"min_origin_distance": min_origin if min_origin < INF else 0.0,
+		"avg_origin_distance": origin_total / max(1, count),
+		"max_origin_distance": max_origin,
+		"annulus_saturation": clearance_area / annulus_area,
+	}
 
 func _is_clear_of_entities(pos: Vector2, min_dist: float = -1.0) -> bool:
 	if min_dist < 0.0:
