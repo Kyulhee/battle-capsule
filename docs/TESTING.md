@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-05-30 (v1.12-dev 기준)
+> 마지막 업데이트: 2026-06-01 (v2.0-dev 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -70,6 +70,9 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 
 # v2.0 MapDefinition smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_map_definition.gd
+
+# v2.0 40-bot scale preset smoke
+python tools/simulate_matches.py 1 normal scale_preset=large_40
 
 # v2.0 Full Map overlay smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_full_map_overlay.gd

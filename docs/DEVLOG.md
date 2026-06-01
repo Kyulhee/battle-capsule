@@ -6,6 +6,22 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.6 — Conservative 40-Bot Scale Preset Smoke
+
+**Scope**
+
+- Added `large_40` to `data/mapSpec_example.json` as the next validated scale preset after `medium_24`.
+- The preset keeps spawn radius inside the current world bounds and nudges loot density / zone timing conservatively instead of jumping toward 99-player tuning.
+- `tools/verify_map_definition.gd` now pins the `large_40` match, runtime loot, and zone overrides.
+
+**Verification**
+
+- `verify_map_definition.gd` passed.
+- Godot headless project load passed with expected AssetCatalog warning only.
+- `python tools\simulate_matches.py 1 normal scale_preset=large_40` passed with 40-bot distribution.
+
+---
+
 ## v2.0.5 — SettingsManager Boundary Extraction
 
 **Scope**
@@ -161,5 +177,5 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.6`: add the next scale preset candidate and smoke it conservatively before larger player-count work.
+- `v2.0.7`: add MapDefinition position query compatibility so map/full-map consumers can ask validated definition data for world placement without duplicating spec math.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.

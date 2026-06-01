@@ -35,7 +35,7 @@ func _init():
 	if float(summary.get("spawn_radius", 0.0)) != 45.0:
 		_fail("Legacy MapDefinition did not inherit spawn_radius from GameConfig.")
 		return
-	if int(summary.get("scale_preset_count", 0)) != 2:
+	if int(summary.get("scale_preset_count", 0)) != 3:
 		_fail("Legacy MapDefinition did not load scale presets.")
 		return
 	var medium_summary: Dictionary = legacy_definition.summary(game_config, "medium_24")
@@ -52,6 +52,31 @@ func _init():
 	var medium_loot: Dictionary = medium_runtime.get("loot", {})
 	if absf(float(medium_loot.get("hotspot_density_mult", 0.0)) - 1.08) > 0.001:
 		_fail("Legacy MapDefinition did not apply medium_24 hotspot_density_mult preset.")
+		return
+	var large_summary: Dictionary = legacy_definition.summary(game_config, "large_40")
+	if int(large_summary.get("bot_count", 0)) != 40:
+		_fail("Legacy MapDefinition did not apply large_40 bot_count preset.")
+		return
+	if int(large_summary.get("loot_count", 0)) != 104:
+		_fail("Legacy MapDefinition did not apply large_40 loot_count preset.")
+		return
+	if float(large_summary.get("spawn_radius", 0.0)) != 56.0:
+		_fail("Legacy MapDefinition did not apply large_40 spawn_radius preset.")
+		return
+	var large_runtime: Dictionary = legacy_definition.get_runtime_tuning(game_config, {}, "large_40")
+	var large_loot: Dictionary = large_runtime.get("loot", {})
+	if absf(float(large_loot.get("hotspot_density_mult", 0.0)) - 1.12) > 0.001:
+		_fail("Legacy MapDefinition did not apply large_40 hotspot_density_mult preset.")
+		return
+	var large_zone: Dictionary = legacy_definition.get_zone_tuning(game_config, {}, "large_40")
+	if float(large_zone.get("initial_timer", 0.0)) != 20.0:
+		_fail("Legacy MapDefinition did not apply large_40 zone initial_timer preset.")
+		return
+	if float(large_zone.get("wait_time", 0.0)) != 34.0:
+		_fail("Legacy MapDefinition did not apply large_40 zone wait_time preset.")
+		return
+	if float(large_zone.get("shrink_time", 0.0)) != 24.0:
+		_fail("Legacy MapDefinition did not apply large_40 zone shrink_time preset.")
 		return
 
 	var parsed := _parse_json(json_text)
