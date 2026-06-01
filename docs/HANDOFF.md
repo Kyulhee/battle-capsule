@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.8 — conservative 60-bot scale feasibility`.
-- Next structural slice: `v2.0.9 — 60-bot telemetry repeat and AI LOD decision`.
+- Latest completed slice: `v2.0.9 — 60-bot telemetry repeat and scale decision`.
+- Next structural slice: `v2.0.10 — 60-bot spawn/loot distribution and telemetry gates`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -24,18 +24,20 @@
 - `8a24fbf refactor: extract settings manager` — moved settings persistence/audio/display mutation into `SettingsManager.gd`.
 - `2cf1365 test: add large scale preset smoke` — added and smoked the conservative `large_40` scale preset.
 - `5c0d21a feat: add map definition position queries` — added MapDefinition world-position query helpers and connected Minimap/FullMapOverlay to them.
-- Current v2.0.8 slice adds and smokes the conservative `xlarge_60` scale preset.
+- `1862a45 test: add 60 bot scale preset smoke` — added and smoked the conservative `xlarge_60` scale preset.
+- Current v2.0.9 slice repeated 5 `xlarge_60` simulations and kept 99-player tuning blocked until distribution/telemetry gates are tightened.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.9 — 60-bot telemetry repeat and AI LOD decision`
+`v2.0.10 — 60-bot spawn/loot distribution and telemetry gates`
 
 - Keep `Main.gd` as match-global orchestrator.
-- Run repeated `scale_preset=xlarge_60` simulations and inspect duration, combat plans, zero-damage/zero-shot sentinels, recover/disengage volume, and early upgrade timing.
-- Decide whether to add AI LOD, spawn distribution, or loot distribution work before any 99-player preset.
-- Keep 99-player tuning blocked until 60-bot telemetry is stable across repeated runs.
+- Keep `xlarge_60` as the active test surface; do not add a 99-player preset.
+- Tighten first-upgrade pacing and spawn/loot distribution without hiding regression sentinels.
+- Add or document telemetry gates for repeated scale runs: zero sentinel checks, first-upgrade range, stuck/disengage volume, and duration floor.
+- Consider AI LOD only after distribution telemetry is stable or performance counters show update-budget pressure.
 
 ## Asset Notes
 

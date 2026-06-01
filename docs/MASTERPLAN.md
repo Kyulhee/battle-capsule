@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-01 (v2.0.8 60-bot scale feasibility)
+> Last updated: 2026-06-01 (v2.0.9 60-bot telemetry decision)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.8: conservative 60-bot scale feasibility |
-| Next structural slice | v2.0.9: 60-bot telemetry repeat and AI LOD decision |
+| Latest completed slice | v2.0.9: 60-bot telemetry repeat and scale decision |
+| Next structural slice | v2.0.10: 60-bot spawn/loot distribution and telemetry gates |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -303,6 +303,12 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Added the `xlarge_60` scale preset with 60 bots, 144 loot, 56m spawn radius, 80 safe spawn attempts, 1.15 hotspot density multiplier, and 22/36/26 zone timings.
 - Extended `verify_map_definition.gd` so the new preset's match/runtime/zone overrides are pinned.
 - Smoked `scale_preset=xlarge_60` through one normal simulation; do not move to 99-player tuning until repeated 60-bot telemetry is reviewed.
+
+**v2.0.9 result**
+
+- Repeated `scale_preset=xlarge_60` for 5 normal simulations and analyzed `tools/sim_runs_current`.
+- Result was stable at the regression-sentinel level: no zero damage, zero weapon damage, zero shot, or zero combat plan runs; average duration 93.2s.
+- 99-player tuning remains blocked because first upgrade averaged 9.5s and disengage/stuck/survival volumes are high enough to require 60-bot spawn/loot distribution and telemetry gates first.
 
 ## Deferred Asset Upgrades
 

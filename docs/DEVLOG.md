@@ -6,6 +6,28 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.9 — 60-Bot Telemetry Repeat And Scale Decision
+
+**Scope**
+
+- Ran 5 repeated `scale_preset=xlarge_60` normal simulations and analyzed the current telemetry summary.
+- Recorded the scale decision: 60 bots has no combat/perception regression sentinel, but 99-player tuning remains blocked until spawn/loot distribution and scale telemetry gates are tightened.
+
+**Telemetry**
+
+- Runs: 5; avg duration 93.2s, min/max 75.2s / 131.6s, avg zone stage 2.60, runs under 60s: 0.
+- Regression sentinels: zero damage, zero weapon damage, zero shot, and zero combat plan all `none`.
+- Recover success: 230/527 (43.6%); died in RECOVER: 1 total.
+- Avg disengage triggers: 100.4; avg stuck triggers: 44.2; avg combat plans cover/reposition/kite: 147.2 / 128.0 / 4.2.
+- Avg first upgrade: 9.5s, which is too fast for the current scale target and points to loot/spawn distribution work before 99-player tuning.
+
+**Decision**
+
+- Do not add a 99-player preset yet.
+- Next slice should keep `xlarge_60` as the test surface and add distribution/telemetry gates before any larger scale preset.
+
+---
+
 ## v2.0.8 — Conservative 60-Bot Scale Feasibility
 
 **Scope**
@@ -210,5 +232,5 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.9`: repeat 60-bot telemetry and decide whether AI LOD or spawn/loot distribution work is needed before any 99-player preset.
+- `v2.0.10`: tighten 60-bot spawn/loot distribution and scale telemetry gates before any 99-player preset.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.
