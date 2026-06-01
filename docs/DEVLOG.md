@@ -6,6 +6,22 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.7 — MapDefinition Position Query Compatibility
+
+**Scope**
+
+- Added `MapDefinition` query helpers for world size/bounds, world-position bounds checks, clamping, bounds UV conversion, and world-distance scaling.
+- Added defensive POI and obstacle descriptor accessors so map UI can consume validated definition data without hand-parsing raw `MapSpec` dictionaries.
+- `FullMapOverlay` and `Minimap` now accept the active `MapDefinition` and prefer its query/descriptor APIs while preserving `MapSpec` fallback behavior.
+
+**Verification**
+
+- `verify_map_definition.gd` passed with position query and descriptor copy checks.
+- `verify_full_map_overlay.gd` passed.
+- Godot headless project load passed with expected AssetCatalog warning only.
+
+---
+
 ## v2.0.6 — Conservative 40-Bot Scale Preset Smoke
 
 **Scope**
@@ -177,5 +193,5 @@ Details are in `docs/devlog/v1.11.md` and `docs/devlog/v1.11_full_2026-05-26.md`
 
 ## Next
 
-- `v2.0.7`: add MapDefinition position query compatibility so map/full-map consumers can ask validated definition data for world placement without duplicating spec math.
+- `v2.0.8`: run a conservative 60-bot scale feasibility slice; add the preset only if validation and simulation sentinels stay clean.
 - Defer generated tree/rock/log/landmark GLB promotion until map visual upgrade is prioritized.

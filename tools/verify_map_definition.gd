@@ -38,6 +38,8 @@ func _init():
 	if int(summary.get("scale_preset_count", 0)) != 3:
 		_fail("Legacy MapDefinition did not load scale presets.")
 		return
+	if not _verify_position_queries(legacy_definition):
+		return
 	var medium_summary: Dictionary = legacy_definition.summary(game_config, "medium_24")
 	if int(medium_summary.get("bot_count", 0)) != 24:
 		_fail("Legacy MapDefinition did not apply medium_24 bot_count preset.")
@@ -209,6 +211,74 @@ func _verify_validation_issues(map_definition_script, game_config, parsed: Dicti
 		if not _issues_contain(issues, expected):
 			_fail("Expected validation issue not found: %s\nActual: %s" % [expected, _join_issues(issues)])
 			return false
+	return true
+
+
+func _verify_position_queries(definition) -> bool:
+	var world_size_2d: Vector2 = definition.get_world_size_2d()
+	if world_size_2d.distance_to(Vector2(120.0, 120.0)) > 0.001:
+		_fail("MapDefinition world_size_2d mismatch: %s." % [world_size_2d])
+		return false
+	var bounds: Rect2 = definition.get_world_bounds()
+	if bounds.position.distance_to(Vector2(-60.0, -60.0)) > 0.001 or bounds.size.distance_to(Vector2(120.0, 120.0)) > 0.001:
+		_fail("MapDefinition world bounds mismatch: %s." % [bounds])
+		return false
+	if not definition.is_world_position_inside(Vector2(59.0, 0.0)):
+		_fail("MapDefinition rejected an in-bounds world position.")
+		return false
+	if definition.is_world_position_inside(Vector2(59.0, 0.0), 2.0):
+		_fail("MapDefinition did not apply inward margin for world bounds.")
+		return false
+	if definition.is_world_position_inside(Vector2(61.0, 0.0)):
+		_fail("MapDefinition accepted an out-of-bounds world position.")
+		return false
+	var clamped: Vector2 = definition.clamp_world_position(Vector2(90.0, -90.0), 5.0)
+	if clamped.distance_to(Vector2(55.0, -55.0)) > 0.001:
+		_fail("MapDefinition clamp_world_position mismatch: %s." % [clamped])
+		return false
+	var center_uv: Vector2 = definition.world_to_bounds_uv(Vector2.ZERO)
+	if center_uv.distance_to(Vector2(0.5, 0.5)) > 0.001:
+		_fail("MapDefinition world origin UV mismatch: %s." % [center_uv])
+		return false
+	var top_left_uv: Vector2 = definition.world_to_bounds_uv(Vector2(-60.0, -60.0))
+	if top_left_uv.distance_to(Vector2.ZERO) > 0.001:
+		_fail("MapDefinition top-left UV mismatch: %s." % [top_left_uv])
+		return false
+	var restored: Vector2 = definition.bounds_uv_to_world(Vector2(0.75, 0.25))
+	if restored.distance_to(Vector2(30.0, -30.0)) > 0.001:
+		_fail("MapDefinition bounds UV restore mismatch: %s." % [restored])
+		return false
+	if absf(float(definition.world_distance_to_bounds_ratio(30.0)) - 0.25) > 0.001:
+		_fail("MapDefinition world distance ratio mismatch.")
+		return false
+	var pois: Array[Dictionary] = definition.get_poi_descriptors()
+	if pois.size() != 7:
+		_fail("MapDefinition POI descriptor count mismatch: %d." % pois.size())
+		return false
+	var first_poi := pois[0]
+	var first_poi_pos = first_poi.get("pos_2d", Vector2.INF)
+	if typeof(first_poi_pos) != TYPE_VECTOR2 or (first_poi_pos as Vector2).distance_to(Vector2.ZERO) > 0.001:
+		_fail("MapDefinition POI descriptor did not expose pos_2d.")
+		return false
+	first_poi["name"] = "Mutated Test POI"
+	var fresh_pois: Array[Dictionary] = definition.get_poi_descriptors()
+	if String(fresh_pois[0].get("name", "")) == "Mutated Test POI":
+		_fail("MapDefinition POI descriptors were not defensive copies.")
+		return false
+	var obstacles: Array[Dictionary] = definition.get_obstacle_descriptors()
+	if obstacles.size() != 35:
+		_fail("MapDefinition obstacle descriptor count mismatch: %d." % obstacles.size())
+		return false
+	var first_obstacle := obstacles[0]
+	if typeof(first_obstacle.get("pos_2d")) != TYPE_VECTOR2:
+		_fail("MapDefinition obstacle descriptor did not expose pos_2d.")
+		return false
+	if typeof(first_obstacle.get("scale_3d")) != TYPE_VECTOR3:
+		_fail("MapDefinition obstacle descriptor did not expose scale_3d.")
+		return false
+	if typeof(first_obstacle.get("bounds_extent_2d")) != TYPE_VECTOR2:
+		_fail("MapDefinition obstacle descriptor did not expose bounds_extent_2d.")
+		return false
 	return true
 
 

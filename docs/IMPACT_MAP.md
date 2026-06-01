@@ -482,17 +482,17 @@
 
 ### `src/core/MapDefinition.gd`
 - **읽는 파일**: 기존 MapSpec JSON dictionary, optional GameConfig-compatible fallback object.
-- **공개 API**: `load_from_json()`, `load_from_data()`, `load_from_map_spec()`, `get_match_tuning()`, `get_runtime_tuning()`, `get_zone_tuning()`, `validate()`, `summary()`.
-- **소유 범위**: v2.0 compatibility wrapper for map id/name, map spec, match/runtime/zone overrides, scale presets, and validation. `Main.gd` consumes selected preset data, while `WorldBuilder`, `Minimap`, and `FullMapOverlay` still consume presentation-safe map data.
+- **공개 API**: `load_from_json()`, `load_from_data()`, `load_from_map_spec()`, `get_match_tuning()`, `get_runtime_tuning()`, `get_zone_tuning()`, world bounds/query helpers, POI/obstacle descriptor helpers, `validate()`, `summary()`.
+- **소유 범위**: v2.0 compatibility wrapper for map id/name, map spec, match/runtime/zone overrides, scale presets, validation, and presentation-safe map placement queries. `Main.gd` consumes selected preset data, while `Minimap` and `FullMapOverlay` prefer query helpers with `MapSpec` fallback.
 - **수정 영향**: merge/clamp behavior를 바꾸면 `tools/verify_map_definition.gd`, `GameConfig.gd`, `MatchTuning.gd`, `MatchRuntimeTuning.gd`, `Main.gd` scale application plan을 함께 확인.
 
 ### `src/ui/Minimap.gd`
-- **읽는 파일**: `MapSpec`의 POI, `WorldBuilder.get_minimap_features()`의 실제 생성 footprint, `Main.zone`/supply/player 상태.
+- **읽는 파일**: `MapDefinition` POI/obstacle descriptors, fallback `MapSpec` POIs/obstacles, `WorldBuilder.get_minimap_features()`의 실제 생성 footprint, `Main.zone`/supply/player 상태.
 - **렌더 순서**: 낮은 layer(부쉬) → 높은 layer(장애물) 순서로 그려 하늘에서 본 최종 덮임 형태를 표현.
 - **수정 영향**: 새 장애물 타입을 추가하면 `WorldBuilder` footprint 기록과 `Minimap._feature_colors()`를 함께 확인.
 
 ### `src/ui/FullMapOverlay.gd`
-- **읽는 파일**: `MapDefinition` display name, wrapped `MapSpec` POIs/world size, `WorldBuilder.get_minimap_features()` generated footprints, `Main.zone`/supply/player state.
+- **읽는 파일**: `MapDefinition` display name and world placement queries, fallback wrapped `MapSpec` POIs/world size, `WorldBuilder.get_minimap_features()` generated footprints, `Main.zone`/supply/player state.
 - **소유 범위**: active-match read-only map overlay rendering and world-to-map projection. `Main.gd` owns toggle state and passes data; the overlay does not route, mutate gameplay, or choose missions.
 - **수정 영향**: map feature shape/layer/color changes should update `Minimap.gd`, `FullMapOverlay.gd`, and `tools/verify_full_map_overlay.gd` together.
 

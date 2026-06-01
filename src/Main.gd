@@ -329,7 +329,7 @@ func _sync_map_views():
 		var minimap_features: Array[Dictionary] = []
 		if world_builder and world_builder.has_method("get_minimap_features"):
 			minimap_features = world_builder.get_minimap_features()
-		minimap.set_map_spec(map_spec, minimap_features)
+		minimap.set_map_spec(map_spec, minimap_features, map_definition)
 	if is_instance_valid(_full_map_overlay):
 		_configure_full_map_overlay()
 

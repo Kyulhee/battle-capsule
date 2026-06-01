@@ -84,6 +84,99 @@ func get_world_size() -> float:
 	return float(map_spec.get_world_size())
 
 
+func get_world_size_2d() -> Vector2:
+	var world_size := get_world_size()
+	return Vector2(world_size, world_size)
+
+
+func get_world_half_extent() -> Vector2:
+	return get_world_size_2d() * 0.5
+
+
+func get_world_bounds() -> Rect2:
+	var world_size := get_world_size_2d()
+	return Rect2(-world_size * 0.5, world_size)
+
+
+func is_world_position_inside(world_pos: Vector2, margin: float = 0.0) -> bool:
+	var half_extent := get_world_half_extent()
+	var safe_margin := maxf(0.0, margin)
+	half_extent = Vector2(
+		maxf(0.0, half_extent.x - safe_margin),
+		maxf(0.0, half_extent.y - safe_margin)
+	)
+	return absf(world_pos.x) <= half_extent.x and absf(world_pos.y) <= half_extent.y
+
+
+func clamp_world_position(world_pos: Vector2, margin: float = 0.0) -> Vector2:
+	var half_extent := get_world_half_extent()
+	var safe_margin := maxf(0.0, margin)
+	half_extent = Vector2(
+		maxf(0.0, half_extent.x - safe_margin),
+		maxf(0.0, half_extent.y - safe_margin)
+	)
+	return Vector2(
+		clampf(world_pos.x, -half_extent.x, half_extent.x),
+		clampf(world_pos.y, -half_extent.y, half_extent.y)
+	)
+
+
+func world_to_bounds_uv(world_pos: Vector2) -> Vector2:
+	var world_size := get_world_size_2d()
+	var half_extent := world_size * 0.5
+	return Vector2(
+		(world_pos.x + half_extent.x) / maxf(1.0, world_size.x),
+		(world_pos.y + half_extent.y) / maxf(1.0, world_size.y)
+	)
+
+
+func bounds_uv_to_world(uv: Vector2) -> Vector2:
+	var world_size := get_world_size_2d()
+	var half_extent := world_size * 0.5
+	return Vector2(
+		uv.x * world_size.x - half_extent.x,
+		uv.y * world_size.y - half_extent.y
+	)
+
+
+func world_distance_to_bounds_ratio(world_distance: float) -> float:
+	var world_size := get_world_size_2d()
+	var reference_size := maxf(1.0, minf(world_size.x, world_size.y))
+	return world_distance / reference_size
+
+
+func get_poi_descriptors() -> Array[Dictionary]:
+	var descriptors: Array[Dictionary] = []
+	if map_spec == null:
+		return descriptors
+	for i in range(map_spec.pois.size()):
+		var poi := _dictionary(map_spec.pois[i])
+		poi["index"] = i
+		poi["pos_2d"] = _vector2_from_array(poi.get("pos", []), Vector2.ZERO)
+		poi["radius"] = maxf(0.0, float(poi.get("radius", 0.0)))
+		descriptors.append(poi)
+	return descriptors
+
+
+func get_obstacle_descriptors() -> Array[Dictionary]:
+	var descriptors: Array[Dictionary] = []
+	if map_spec == null:
+		return descriptors
+	for i in range(map_spec.obstacles.size()):
+		var obstacle := _dictionary(map_spec.obstacles[i])
+		var scale := _vector3_from_array(obstacle.get("scale", []), Vector3.ONE)
+		var jitter := _vector2_from_array(obstacle.get("jitter", [0.0, 0.0]), Vector2.ZERO)
+		var extent := _obstacle_axis_extent(obstacle, scale)
+		obstacle["index"] = i
+		obstacle["pos_2d"] = _vector2_from_array(obstacle.get("pos", []), Vector2.ZERO)
+		obstacle["scale_3d"] = scale
+		obstacle["jitter_2d"] = jitter
+		obstacle["axis_extent_2d"] = extent
+		obstacle["bounds_extent_2d"] = extent + Vector2(absf(jitter.x), absf(jitter.y))
+		descriptors.append(obstacle)
+	return descriptors
+
+
 func get_match_tuning(game_config = null, fallback: Dictionary = {}, preset_name: String = "") -> Dictionary:
 	var tuning := _merge_dict(DEFAULT_MATCH.duplicate(true), fallback.duplicate(true))
 	if game_config != null and game_config.has_method("match_value"):

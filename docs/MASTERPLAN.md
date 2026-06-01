@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-01 (v2.0.6 large_40 scale preset smoke)
+> Last updated: 2026-06-01 (v2.0.7 MapDefinition position queries)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.6: conservative 40-bot scale preset smoke |
-| Next structural slice | v2.0.7: MapDefinition position query compatibility |
+| Latest completed slice | v2.0.7: MapDefinition position query compatibility |
+| Next structural slice | v2.0.8: conservative 60-bot scale feasibility |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -291,6 +291,12 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Added the `large_40` scale preset with 40 bots, 104 loot, 56m spawn radius, 1.12 hotspot density multiplier, and slightly longer zone timings.
 - Extended `verify_map_definition.gd` so the new preset's match/runtime/zone overrides are pinned.
 - Smoked `scale_preset=large_40` through one normal simulation before any 60/99-player work.
+
+**v2.0.7 result**
+
+- Added `MapDefinition` helpers for world bounds, bounds UV conversion, position clamping, and world-distance scaling.
+- Added defensive POI/obstacle descriptor accessors so map UI can ask the definition for presentation-safe placement data.
+- `FullMapOverlay` and `Minimap` now prefer `MapDefinition` query APIs while retaining `MapSpec` fallback compatibility.
 
 ## Deferred Asset Upgrades
 

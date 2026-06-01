@@ -49,7 +49,9 @@ func set_map_data(definition, spec: Resource, features: Array[Dictionary], prese
 	map_spec = spec
 	scale_preset = preset_name
 	map_features = features.duplicate(true)
-	if map_spec != null and map_spec.has_method("get_world_size"):
+	if map_definition != null and map_definition.has_method("get_world_size_2d"):
+		map_size_3d = map_definition.get_world_size_2d()
+	elif map_spec != null and map_spec.has_method("get_world_size"):
 		var world_size := float(map_spec.get_world_size())
 		map_size_3d = Vector2(world_size, world_size)
 	queue_redraw()
@@ -197,15 +199,13 @@ func _map_rect() -> Rect2:
 
 
 func world_to_full_map(world_pos: Vector2, map_rect: Rect2) -> Vector2:
-	var half := map_size_3d * 0.5
-	var normalized := Vector2(
-		(world_pos.x + half.x) / maxf(1.0, map_size_3d.x),
-		(world_pos.y + half.y) / maxf(1.0, map_size_3d.y)
-	)
+	var normalized := _world_to_bounds_uv(world_pos)
 	return map_rect.position + Vector2(normalized.x * map_rect.size.x, normalized.y * map_rect.size.y)
 
 
 func world_size_to_full_map(world_size: float, map_rect: Rect2) -> float:
+	if map_definition != null and map_definition.has_method("world_distance_to_bounds_ratio"):
+		return map_definition.world_distance_to_bounds_ratio(world_size) * map_rect.size.x
 	return world_size * (map_rect.size.x / maxf(1.0, map_size_3d.x))
 
 
@@ -238,9 +238,8 @@ func _draw_grid(map_rect: Rect2) -> void:
 
 
 func _draw_pois(map_rect: Rect2) -> void:
-	for poi in map_spec.pois:
-		var pos = poi.get("pos", [0.0, 0.0])
-		var poi_pos := Vector2(float(pos[0]), float(pos[1]))
+	for poi in _poi_source():
+		var poi_pos := _descriptor_pos_2d(poi)
 		var screen_pos := world_to_full_map(poi_pos, map_rect)
 		var radius := world_size_to_full_map(float(poi.get("radius", 8.0)), map_rect)
 		var colors := _poi_colors(String(poi.get("role", "")))
@@ -429,16 +428,16 @@ func _sort_features(a: Dictionary, b: Dictionary) -> bool:
 
 func _build_fallback_features() -> Array[Dictionary]:
 	var features: Array[Dictionary] = []
-	if map_spec == null:
+	if map_spec == null and map_definition == null:
 		return features
-	for obs in map_spec.obstacles:
+	for obs in _obstacle_source():
 		var obs_type := String(obs.get("type", ""))
-		var scale = obs.get("scale", [1.0, 1.0, 1.0])
-		var size := Vector2(float(scale[0]) * 2.0, float(scale[2]) * 2.0)
+		var scale := _descriptor_scale_3d(obs)
+		var size := Vector2(scale.x * 2.0, scale.z * 2.0)
 		var shape := "rect"
-		var height := float(scale[1]) * 2.0
+		var height := scale.y * 2.0
 		if obs_type == "bush_patch":
-			size = Vector2(float(scale[0]) * 3.0, float(scale[2]) * 3.0)
+			size = Vector2(scale.x * 3.0, scale.z * 3.0)
 			shape = "ellipse"
 		features.append({
 			"type": obs_type,
@@ -451,6 +450,60 @@ func _build_fallback_features() -> Array[Dictionary]:
 			"order": features.size(),
 		})
 	return features
+
+
+func _world_to_bounds_uv(world_pos: Vector2) -> Vector2:
+	if map_definition != null and map_definition.has_method("world_to_bounds_uv"):
+		return map_definition.world_to_bounds_uv(world_pos)
+	var half := map_size_3d * 0.5
+	return Vector2(
+		(world_pos.x + half.x) / maxf(1.0, map_size_3d.x),
+		(world_pos.y + half.y) / maxf(1.0, map_size_3d.y)
+	)
+
+
+func _poi_source() -> Array[Dictionary]:
+	if map_definition != null and map_definition.has_method("get_poi_descriptors"):
+		return map_definition.get_poi_descriptors()
+	var pois: Array[Dictionary] = []
+	if map_spec == null:
+		return pois
+	for poi in map_spec.pois:
+		if typeof(poi) == TYPE_DICTIONARY:
+			pois.append(poi.duplicate(true))
+	return pois
+
+
+func _obstacle_source() -> Array[Dictionary]:
+	if map_definition != null and map_definition.has_method("get_obstacle_descriptors"):
+		return map_definition.get_obstacle_descriptors()
+	var obstacles: Array[Dictionary] = []
+	if map_spec == null:
+		return obstacles
+	for obstacle in map_spec.obstacles:
+		if typeof(obstacle) == TYPE_DICTIONARY:
+			obstacles.append(obstacle.duplicate(true))
+	return obstacles
+
+
+func _descriptor_pos_2d(descriptor: Dictionary) -> Vector2:
+	var pos_value = descriptor.get("pos_2d", null)
+	if typeof(pos_value) == TYPE_VECTOR2:
+		return pos_value
+	var pos = descriptor.get("pos", [0.0, 0.0])
+	if typeof(pos) == TYPE_ARRAY and pos.size() >= 2:
+		return Vector2(float(pos[0]), float(pos[1]))
+	return Vector2.ZERO
+
+
+func _descriptor_scale_3d(descriptor: Dictionary) -> Vector3:
+	var scale_value = descriptor.get("scale_3d", null)
+	if typeof(scale_value) == TYPE_VECTOR3:
+		return scale_value
+	var scale = descriptor.get("scale", [1.0, 1.0, 1.0])
+	if typeof(scale) == TYPE_ARRAY and scale.size() >= 3:
+		return Vector3(float(scale[0]), float(scale[1]), float(scale[2]))
+	return Vector3.ONE
 
 
 func _fallback_feature_layer(obs_type: String, height: float) -> int:

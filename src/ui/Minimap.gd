@@ -18,11 +18,16 @@ var supply_state = "none" # none, pending, active
 var supply_pulse = 0.0
 
 var map_spec: Resource = null
+var map_definition = null
 var minimap_features: Array[Dictionary] = []
 
-func set_map_spec(spec: Resource, features: Array[Dictionary] = []):
+func set_map_spec(spec: Resource, features: Array[Dictionary] = [], definition = null):
 	map_spec = spec
-	map_size_3d = Vector2(spec.get_world_size(), spec.get_world_size())
+	map_definition = definition
+	if map_definition != null and map_definition.has_method("get_world_size_2d"):
+		map_size_3d = map_definition.get_world_size_2d()
+	elif spec != null and spec.has_method("get_world_size"):
+		map_size_3d = Vector2(spec.get_world_size(), spec.get_world_size())
 	minimap_features = features.duplicate(true)
 	queue_redraw()
 
@@ -31,7 +36,7 @@ func _ready():
 	var main = get_tree().get_root().get_node_or_null("Main")
 	if main and main.get("map_spec"):
 		print("[MINIMAP] MapSpec pulled successfully from Main.")
-		set_map_spec(main.map_spec)
+		set_map_spec(main.map_spec, [], main.get("map_definition"))
 
 func _process(delta):
 	if not player:
@@ -77,10 +82,10 @@ func _draw():
 		return
 	
 	# 2. Draw POI Areas
-	for poi in map_spec.pois:
-		var pos = Vector2(poi.pos[0], poi.pos[1])
+	for poi in _poi_source():
+		var pos = _descriptor_pos_2d(poi)
 		var mini_pos = world_to_minimap(pos)
-		var mini_rad = world_size_to_minimap(poi.radius)
+		var mini_rad = world_size_to_minimap(float(poi.get("radius", 0.0)))
 		var role_color = Color(0.5, 0.5, 0.5, 0.05)
 		match poi.get("role", ""):
 			"loot_hub": role_color = Color(1.0, 0.8, 0.2, 0.08)
@@ -236,17 +241,17 @@ func _feature_colors(obs_type: String) -> Dictionary:
 
 func _build_fallback_features() -> Array[Dictionary]:
 	var features: Array[Dictionary] = []
-	if not map_spec:
+	if not map_spec and map_definition == null:
 		return features
-	for obs in map_spec.obstacles:
+	for obs in _obstacle_source():
 		var obs_type = String(obs.get("type", ""))
-		var scale = obs.get("scale", [1.0, 1.0, 1.0])
-		var size = Vector2(float(scale[0]) * 2.0, float(scale[2]) * 2.0)
+		var scale = _descriptor_scale_3d(obs)
+		var size = Vector2(scale.x * 2.0, scale.z * 2.0)
 		var shape = "rect"
-		var height = float(scale[1]) * 2.0
+		var height = scale.y * 2.0
 		var layer = _fallback_feature_layer(obs_type, height)
 		if obs_type == "bush_patch":
-			size = Vector2(float(scale[0]) * 3.0, float(scale[2]) * 3.0)
+			size = Vector2(scale.x * 3.0, scale.z * 3.0)
 			shape = "ellipse"
 		size = _fallback_cover_size(obs_type, size, height)
 		features.append({
@@ -260,6 +265,46 @@ func _build_fallback_features() -> Array[Dictionary]:
 			"order": features.size(),
 		})
 	return features
+
+func _poi_source() -> Array[Dictionary]:
+	if map_definition != null and map_definition.has_method("get_poi_descriptors"):
+		return map_definition.get_poi_descriptors()
+	var pois: Array[Dictionary] = []
+	if map_spec == null:
+		return pois
+	for poi in map_spec.pois:
+		if typeof(poi) == TYPE_DICTIONARY:
+			pois.append(poi.duplicate(true))
+	return pois
+
+func _obstacle_source() -> Array[Dictionary]:
+	if map_definition != null and map_definition.has_method("get_obstacle_descriptors"):
+		return map_definition.get_obstacle_descriptors()
+	var obstacles: Array[Dictionary] = []
+	if map_spec == null:
+		return obstacles
+	for obstacle in map_spec.obstacles:
+		if typeof(obstacle) == TYPE_DICTIONARY:
+			obstacles.append(obstacle.duplicate(true))
+	return obstacles
+
+func _descriptor_pos_2d(descriptor: Dictionary) -> Vector2:
+	var pos_value = descriptor.get("pos_2d", null)
+	if typeof(pos_value) == TYPE_VECTOR2:
+		return pos_value
+	var pos = descriptor.get("pos", [0.0, 0.0])
+	if typeof(pos) == TYPE_ARRAY and pos.size() >= 2:
+		return Vector2(float(pos[0]), float(pos[1]))
+	return Vector2.ZERO
+
+func _descriptor_scale_3d(descriptor: Dictionary) -> Vector3:
+	var scale_value = descriptor.get("scale_3d", null)
+	if typeof(scale_value) == TYPE_VECTOR3:
+		return scale_value
+	var scale = descriptor.get("scale", [1.0, 1.0, 1.0])
+	if typeof(scale) == TYPE_ARRAY and scale.size() >= 3:
+		return Vector3(float(scale[0]), float(scale[1]), float(scale[2]))
+	return Vector3.ONE
 
 func _fallback_feature_layer(obs_type: String, height: float) -> int:
 	match obs_type:
