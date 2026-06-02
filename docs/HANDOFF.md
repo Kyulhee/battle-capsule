@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.21 — persisted DISENGAGE reason telemetry`.
-- Next structural slice: `v2.0.22 — reason-aware 60-vs-99 candidate comparison`.
+- Latest completed slice: `v2.0.22 — reason-aware 60-vs-99 candidate comparison`.
+- Next structural slice: `v2.0.23 — 99-probe economy/combat tempo diagnosis`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -37,13 +37,14 @@
 - `051cb3a feat: add normalized scale analysis` — added per spawned entity/minute analyzer output and aggregate doctrine state mix.
 - `d5ffb1a feat: add scale profile comparison` — added `out_dir=` support plus normalized 60-vs-99 comparison tooling.
 - `6583693 feat: add scale pressure decision` — added pressure-decision output; no gameplay tuning or default/global 99 promotion was made.
-- Current v2.0.21 slice persists DISENGAGE entries and reasons while preserving `disengage_triggered` as the existing outnumbered/legacy scale-gate metric.
+- `ee8519b feat: add disengage reason telemetry` — persists DISENGAGE entries and reasons while preserving `disengage_triggered` as the existing outnumbered/legacy scale-gate metric.
+- Current v2.0.22 slice reran fresh reason-aware candidate 60-vs-99 sets; no gameplay tuning or default/global 99 promotion was made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.22 — reason-aware 60-vs-99 candidate comparison`
+`v2.0.23 — 99-probe economy/combat tempo diagnosis`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -56,9 +57,14 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - v2.0.20 pressure decision: spawn/pathing is not the current blocker; AI budget is not the current blocker; DISENGAGE pressure looks duration/exit-related rather than trigger-frequency-related; ZONE_ESCAPE should be reviewed after DISENGAGE exit behavior.
 - v2.0.21 reason telemetry: `tactics.disengage_entries` is full DISENGAGE entry volume; `tactics.disengage_reasons` and `tactics.disengage_reasons_by_archetype` are persisted; `disengage_triggered` remains the existing outnumbered/legacy gate metric.
 - v2.0.21 1-run smoke at `C:\tmp\game_dev_disengage_reason_smoke` confirmed persisted reason data and `check_scale_telemetry.py --min-runs 1` passed.
+- v2.0.22 fresh reason-aware candidate sets:
+  - `C:\tmp\game_dev_reason_candidate_60`: 5-run `xlarge_60`, avg duration 106.3s, first upgrade 12.8s, legacy disengage 79.2/run, entries 332.0/run, gate passed.
+  - `C:\tmp\game_dev_reason_candidate_99`: 5-run `target_99_probe`, avg duration 148.0s, first upgrade 27.4s, legacy disengage 129.0/run, entries 461.4/run, gate passed.
+- v2.0.22 comparison: 99 has DISENGAGE state +4.25pp but lower normalized entry/reason rates (entries/entity/min -1.20, survival_break -0.97, outnumbered -0.21), so outnumbered thresholds are not the first tuning target.
+- Stronger 99 signal: duration +41.8s, first upgrade +14.5s, damage/entity/min -11.63, shots/entity/min -1.42, plans/entity/min -0.99.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should rerun fresh 5-run `xlarge_60` and `target_99_probe` candidate sets, then use reason-aware compare output before any zone, spawn, or bot-threshold tuning.
+- Next work should diagnose 99-probe economy/combat tempo before any zone, spawn/POI density, or bot-threshold tuning.
 - Keep using `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes

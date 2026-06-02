@@ -6,6 +6,33 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.22 — Reason-Aware 60-vs-99 Candidate Comparison
+
+**Scope**
+
+- Ran fresh 5-run candidate-map sets with persisted DISENGAGE reason telemetry:
+  - `C:\tmp\game_dev_reason_candidate_60` using `xlarge_60`.
+  - `C:\tmp\game_dev_reason_candidate_99` using `target_99_probe`.
+- Compared the sets with `tools/compare_scale_profiles.py`.
+- Kept gameplay unchanged; this slice is telemetry analysis only.
+
+**Verification**
+
+- `check_scale_telemetry.py` passed on both fresh 5-run sets.
+- `xlarge_60`: avg duration 106.3s, first upgrade 12.8s, fallback 0.0/run, min nearest 3.6m, AI avg 361.8us.
+- `target_99_probe`: avg duration 148.0s, first upgrade 27.4s, fallback 0.0/run, min nearest 3.6m, AI avg 504.3us.
+- 99-vs-60 deltas: duration +41.8s, first upgrade +14.5s, damage/entity/min -11.63, shots/entity/min -1.42, plans/entity/min -0.99, DISENGAGE state +4.25pp.
+- Reason-aware deltas: DISENGAGE entries/entity/min -1.20, survival_break -0.97, outnumbered -0.21, `DISENGAGE sec/entry` +0.25.
+
+**Decision**
+
+- DISENGAGE pressure is not caused by higher entry frequency or a single overactive reason.
+- The stronger signal is 99-probe tempo dilution: slower first upgrade, lower combat rate, lower plan rate, and longer matches.
+- Do not tune DISENGAGE thresholds yet.
+- Next slice should diagnose 99-probe economy/combat tempo before changing zone pacing, spawn/POI density, or bot behavior thresholds.
+
+---
+
 ## v2.0.21 — Persisted DISENGAGE Reason Telemetry
 
 **Scope**

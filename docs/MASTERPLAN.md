@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.21 persisted DISENGAGE reason telemetry)
+> Last updated: 2026-06-03 (v2.0.22 reason-aware 60-vs-99 comparison)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.21: persisted DISENGAGE reason telemetry |
-| Next structural slice | v2.0.22: reason-aware 60-vs-99 candidate comparison |
+| Latest completed slice | v2.0.22: reason-aware 60-vs-99 candidate comparison |
+| Next structural slice | v2.0.23: 99-probe economy/combat tempo diagnosis |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -398,6 +398,14 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Reason-aware analyzer/compare output now reports entry rates, seconds per entry, and per-reason entity/min deltas.
 - 1-run candidate-map smoke confirmed the new telemetry is saved and existing scale gate semantics still pass with `--min-runs 1`.
 - Next work should rerun fresh candidate 60-vs-99 5-run sets and compare reason deltas before any behavior tuning.
+
+**v2.0.22 result**
+
+- Fresh 5-run candidate-map sets with reason telemetry passed scale gates for both `xlarge_60` and `target_99_probe`.
+- 99 vs 60: duration +41.8s, first upgrade +14.5s, damage/entity/min -11.63, shots/entity/min -1.42, plans/entity/min -0.99, DISENGAGE state +4.25pp.
+- Reason deltas do not support tuning outnumbered thresholds first: entries/entity/min -1.20, survival_break -0.97, outnumbered -0.21, `DISENGAGE sec/entry` +0.25.
+- The first 99-specific tuning target is economy/combat tempo dilution, not DISENGAGE trigger frequency.
+- Do not change zone pacing, spawn/POI density, or bot behavior thresholds until the tempo diagnosis is complete.
 
 ## Deferred Asset Upgrades
 
