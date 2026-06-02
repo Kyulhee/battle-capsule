@@ -510,8 +510,7 @@ func handle_attack_state(delta):
 
 	# Outnumbered: too many visible enemies → retreat to cover (threshold varies by personality)
 	if not _knife_mode and _disengage_cooldown <= 0 and _count_visible_enemies() >= _disengage_threshold:
-		if has_node("/root/Telemetry"):
-			get_node("/root/Telemetry").log_tactics("disengage_triggered")
+		_log_disengage_entry("outnumbered")
 		change_state(State.DISENGAGE)
 		return
 
@@ -524,8 +523,7 @@ func handle_attack_state(delta):
 			var est_enemy_remaining = maxf(0.0, target_actor.stats.max_health - _engagement_dmg_dealt)
 			var est_enemy_ratio = est_enemy_remaining / target_actor.stats.max_health
 			if est_enemy_ratio > hp_ratio + 0.15:
-				if has_node("/root/Telemetry"):
-					get_node("/root/Telemetry").log_tactics("disengage_losing_fight")
+				_log_disengage_entry("losing_fight")
 				change_state(State.DISENGAGE)
 				return
 
@@ -534,8 +532,7 @@ func handle_attack_state(delta):
 			and stats.max_ammo > 0 \
 			and float(stats.current_ammo) / float(stats.max_ammo) <= 0.25:
 		_retreating_to_reload = true
-		if has_node("/root/Telemetry"):
-			get_node("/root/Telemetry").log_tactics("reload_retreat")
+		_log_disengage_entry("reload_retreat")
 		change_state(State.DISENGAGE)
 		return
 
@@ -585,6 +582,7 @@ func handle_attack_state(delta):
 	if _sniper_min_engage_range > 0.0 and _disengage_cooldown <= 0:
 		var cur_dist = global_position.distance_to(target_actor.global_position) if is_instance_valid(target_actor) else INF
 		if cur_dist < _sniper_min_engage_range:
+			_log_disengage_entry("sniper_min_range")
 			change_state(State.DISENGAGE); return
 
 	# Human-like reset: prolonged face-to-face trades should break into a
@@ -594,6 +592,7 @@ func handle_attack_state(delta):
 			var tel = get_node("/root/Telemetry")
 			tel.log_combat_audit("attack_disengage")
 			tel.log_tactics("combat_reposition")
+		_log_disengage_entry("attack_timeout")
 		_retreating_to_reload = reserve_ammo > 0 and stats.max_ammo > 0 \
 			and float(stats.current_ammo) / float(stats.max_ammo) <= 0.5
 		change_state(State.DISENGAGE)
@@ -1522,6 +1521,7 @@ func _check_survival_overrides():
 					_retreating_to_reload = reserve_ammo > 0 and stats.current_ammo < stats.max_ammo
 					if has_node("/root/Telemetry"):
 						get_node("/root/Telemetry").log_tactics("survival_break")
+					_log_disengage_entry("survival_break")
 					change_state(State.DISENGAGE)
 				else:
 					change_state(State.RECOVER)
@@ -1531,6 +1531,7 @@ func _check_survival_overrides():
 				if can_still_fight:
 					if has_node("/root/Telemetry"):
 						get_node("/root/Telemetry").log_tactics("survival_break")
+					_log_disengage_entry("survival_break")
 					change_state(State.DISENGAGE)
 				else:
 					change_state(State.RECOVER)
@@ -1883,6 +1884,10 @@ func _cast_and_visualize(local_target_pos: Vector3):
 		trail.init(global_position + Vector3(0, 0.5, 0), world_target)
 
 # ─── STATE MACHINE ───────────────────────────────────────────────────────────
+
+func _log_disengage_entry(reason: String):
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_disengage_reason(reason, _archetype_name())
 
 func change_state(new_state: State):
 	if current_state == new_state: return

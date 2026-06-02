@@ -113,6 +113,12 @@ python tools/simulate_matches.py 5 normal out_dir=C:\tmp\game_dev_candidate_99 m
 python tools/compare_scale_profiles.py C:\tmp\game_dev_candidate_60 C:\tmp\game_dev_candidate_99 --baseline-label xlarge_60 --target-label target_99
 # The comparison includes a pressure-decision summary; do not tune by lowering gates.
 
+# v2.0 DISENGAGE reason telemetry smoke
+python tools/simulate_matches.py 1 normal out_dir=C:\tmp\game_dev_disengage_reason_smoke map_spec_path=res://data/mapSpec_large_candidate.json scale_preset=xlarge_60
+python tools/analyze_results.py C:\tmp\game_dev_disengage_reason_smoke
+python tools/check_scale_telemetry.py C:\tmp\game_dev_disengage_reason_smoke --min-runs 1
+python tools/compare_scale_profiles.py C:\tmp\game_dev_disengage_reason_smoke C:\tmp\game_dev_disengage_reason_smoke --baseline-label smoke_a --target-label smoke_b
+
 # v2.0 Full Map overlay smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_full_map_overlay.gd
 

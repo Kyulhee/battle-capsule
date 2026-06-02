@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.20 99-probe pressure decision)
+> Last updated: 2026-06-03 (v2.0.21 persisted DISENGAGE reason telemetry)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.20: 99-probe pressure decision |
-| Next structural slice | v2.0.21: persisted DISENGAGE reason telemetry |
+| Latest completed slice | v2.0.21: persisted DISENGAGE reason telemetry |
+| Next structural slice | v2.0.22: reason-aware 60-vs-99 candidate comparison |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -390,6 +390,14 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - DISENGAGE pressure looks duration/exit-related rather than trigger-frequency-related.
 - ZONE_ESCAPE rose mildly without higher normalized zone-fire, so review it after DISENGAGE exit behavior.
 - Do not tune zone profile, spawn/POI density, or outnumbered thresholds until persisted DISENGAGE reason telemetry is available.
+
+**v2.0.21 result**
+
+- Persisted full DISENGAGE entry volume as `tactics.disengage_entries` while preserving `disengage_triggered` as the existing outnumbered/legacy gate metric.
+- Persisted reason counts in `tactics.disengage_reasons` and `tactics.disengage_reasons_by_archetype`.
+- Reason-aware analyzer/compare output now reports entry rates, seconds per entry, and per-reason entity/min deltas.
+- 1-run candidate-map smoke confirmed the new telemetry is saved and existing scale gate semantics still pass with `--min-runs 1`.
+- Next work should rerun fresh candidate 60-vs-99 5-run sets and compare reason deltas before any behavior tuning.
 
 ## Deferred Asset Upgrades
 

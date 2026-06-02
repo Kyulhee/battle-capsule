@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.20 — 99-probe pressure decision`.
-- Next structural slice: `v2.0.21 — persisted DISENGAGE reason telemetry`.
+- Latest completed slice: `v2.0.21 — persisted DISENGAGE reason telemetry`.
+- Next structural slice: `v2.0.22 — reason-aware 60-vs-99 candidate comparison`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -36,13 +36,14 @@
 - `31a7bcc feat: add candidate 99 probe` — added candidate-only `target_99_probe` and verified 5-run telemetry.
 - `051cb3a feat: add normalized scale analysis` — added per spawned entity/minute analyzer output and aggregate doctrine state mix.
 - `d5ffb1a feat: add scale profile comparison` — added `out_dir=` support plus normalized 60-vs-99 comparison tooling.
-- Current v2.0.20 slice extends `compare_scale_profiles.py` with pressure-decision output; no gameplay tuning or default/global 99 promotion was made.
+- `6583693 feat: add scale pressure decision` — added pressure-decision output; no gameplay tuning or default/global 99 promotion was made.
+- Current v2.0.21 slice persists DISENGAGE entries and reasons while preserving `disengage_triggered` as the existing outnumbered/legacy scale-gate metric.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.21 — persisted DISENGAGE reason telemetry`
+`v2.0.22 — reason-aware 60-vs-99 candidate comparison`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -53,9 +54,11 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - Current 99-probe state mix: ZONE_ESCAPE 26.0%, DISENGAGE 22.0%, CHASE 19.2%, ATTACK 18.9%, IDLE 14.0%.
 - Fresh normalized comparison from `C:\tmp`: 99 vs 60 has duration +7.1s, spawn saturation +0.08, AI avg +123.9us, ZONE_ESCAPE +2.14pp, DISENGAGE +5.32pp.
 - v2.0.20 pressure decision: spawn/pathing is not the current blocker; AI budget is not the current blocker; DISENGAGE pressure looks duration/exit-related rather than trigger-frequency-related; ZONE_ESCAPE should be reviewed after DISENGAGE exit behavior.
+- v2.0.21 reason telemetry: `tactics.disengage_entries` is full DISENGAGE entry volume; `tactics.disengage_reasons` and `tactics.disengage_reasons_by_archetype` are persisted; `disengage_triggered` remains the existing outnumbered/legacy gate metric.
+- v2.0.21 1-run smoke at `C:\tmp\game_dev_disengage_reason_smoke` confirmed persisted reason data and `check_scale_telemetry.py --min-runs 1` passed.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should add persisted DISENGAGE reason telemetry because existing `disengage_losing_fight` / `reload_retreat` style call sites are not all reflected in saved tactics metrics.
+- Next work should rerun fresh 5-run `xlarge_60` and `target_99_probe` candidate sets, then use reason-aware compare output before any zone, spawn, or bot-threshold tuning.
 - Keep using `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes

@@ -39,6 +39,13 @@ def combat_plan_total(run: dict) -> int:
     return max(tactics_total, doctrine_total)
 
 
+def disengage_entry_count(run: dict) -> int:
+    tactics = run.get("tactics", {})
+    if "disengage_entries" in tactics:
+        return int(tactics.get("disengage_entries", 0))
+    return int(tactics.get("disengage_triggered", 0))
+
+
 def spawned_entity_count(run: dict) -> int:
     spawn = run.get("spawn", {})
     requested = int(spawn.get("requested_count", 0))
@@ -75,6 +82,7 @@ if __name__ == "__main__":
     recover_success = [r.get("tactics", {}).get("recover_success", 0) for r in results]
     died_in_recover = [r.get("tactics", {}).get("died_in_recover", 0) for r in results]
     disengage = [r.get("tactics", {}).get("disengage_triggered", 0) for r in results]
+    disengage_entries = [disengage_entry_count(r) for r in results]
     stuck = [r.get("tactics", {}).get("stuck_triggered", 0) for r in results]
     cover_peek = [r.get("tactics", {}).get("cover_peek", 0) for r in results]
     reposition = [r.get("tactics", {}).get("combat_reposition", 0) for r in results]
@@ -112,6 +120,8 @@ if __name__ == "__main__":
     pressure = [r.get("pressure", {}) for r in results]
     pressure_triggered = sum(p.get("pressure_triggered", 0) for p in pressure)
     pressure_resolved = sum(p.get("pressure_cleared", 0) + p.get("pressure_failed", 0) for p in pressure)
+    disengage_reasons = Counter()
+    disengage_reasons_by_archetype: dict[str, Counter] = {}
     doctrine_profiles = Counter()
     doctrine_plans = Counter()
     doctrine_supply = Counter()
@@ -123,6 +133,10 @@ if __name__ == "__main__":
     ai_max_usec = 0
     ai_state_buckets: dict[str, dict[str, float]] = {}
     for r in results:
+        tactics = r.get("tactics", {})
+        disengage_reasons.update(tactics.get("disengage_reasons", {}))
+        for archetype, reasons in tactics.get("disengage_reasons_by_archetype", {}).items():
+            disengage_reasons_by_archetype.setdefault(archetype, Counter()).update(reasons)
         doctrine = r.get("doctrine", {})
         doctrine_profiles.update(doctrine.get("profile_counts", {}))
         doctrine_plans.update(doctrine.get("combat_plan_counts", {}))
@@ -171,6 +185,21 @@ if __name__ == "__main__":
         f"({avg(died_in_recover):.1f}/run, {100.0 * total_recover_deaths / max(1, total_recover):.1f}% of bouts)"
     )
     print(f"Avg disengage triggers: {avg(disengage):.1f}")
+    print(f"Avg disengage entries: {avg(disengage_entries):.1f}")
+    if disengage_reasons:
+        reason_parts = []
+        for reason, count in sorted(disengage_reasons.items(), key=lambda item: item[1], reverse=True):
+            rate = per_spawned_entity_minute(
+                results,
+                lambda r, key=reason: r.get("tactics", {}).get("disengage_reasons", {}).get(key, 0),
+            )
+            reason_parts.append(f"{reason}={count} ({rate:.2f}/entity/min)")
+        print(f"Disengage reasons: {', '.join(reason_parts)}")
+    if disengage_reasons_by_archetype:
+        print("Disengage reasons by archetype:")
+        for archetype, reasons in sorted(disengage_reasons_by_archetype.items()):
+            parts = [f"{reason}={count}" for reason, count in sorted(reasons.items(), key=lambda item: item[1], reverse=True)]
+            print(f"  {archetype}: {', '.join(parts) if parts else 'none'}")
     print(f"Avg stuck triggers: {avg(stuck):.1f}")
     print(
         "Avg combat plans: cover={:.1f}, reposition={:.1f}, kite={:.1f}, survival={:.1f}".format(
@@ -190,11 +219,12 @@ if __name__ == "__main__":
         )
     )
     print(
-        "Scale-normalized per spawned entity/min: damage={:.1f}, shots={:.2f}, plans={:.2f}, disengage={:.2f}, stuck={:.2f}, zone_fire={:.2f}, survival={:.2f}".format(
+        "Scale-normalized per spawned entity/min: damage={:.1f}, shots={:.2f}, plans={:.2f}, disengage={:.2f}, entries={:.2f}, stuck={:.2f}, zone_fire={:.2f}, survival={:.2f}".format(
             per_spawned_entity_minute(results, lambda r: r.get("combat", {}).get("total_damage_dealt", 0.0)),
             per_spawned_entity_minute(results, lambda r: r.get("combat", {}).get("shots_fired", 0)),
             per_spawned_entity_minute(results, combat_plan_total),
             per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("disengage_triggered", 0)),
+            per_spawned_entity_minute(results, disengage_entry_count),
             per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("stuck_triggered", 0)),
             per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("zone_escape_fire", 0)),
             per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("survival_break", 0)),

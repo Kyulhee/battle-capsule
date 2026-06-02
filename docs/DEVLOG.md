@@ -1,8 +1,32 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-02. Compressed recent work log. Full historical detail is preserved in `docs/devlog/` and `docs/archive/`.
+> Last updated: 2026-06-03. Compressed recent work log. Full historical detail is preserved in `docs/devlog/` and `docs/archive/`.
 
 Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-version summaries unless exact history is needed.
+
+---
+
+## v2.0.21 — Persisted DISENGAGE Reason Telemetry
+
+**Scope**
+
+- Added persisted `tactics.disengage_entries`, `tactics.disengage_reasons`, and `tactics.disengage_reasons_by_archetype`.
+- Instrumented DISENGAGE entry reasons: `outnumbered`, `losing_fight`, `reload_retreat`, `sniper_min_range`, `attack_timeout`, and `survival_break`.
+- Preserved existing `disengage_triggered` gate semantics as the outnumbered/legacy trigger metric; full entry volume is now reported separately as `disengage_entries`.
+- Extended `tools/analyze_results.py` and `tools/compare_scale_profiles.py` with reason-aware output.
+- Kept gameplay unchanged; this slice is instrumentation and reporting only.
+
+**Verification**
+
+- `python -m py_compile tools\compare_scale_profiles.py tools\simulate_matches.py tools\analyze_results.py tools\check_scale_telemetry.py` passed.
+- 1-run candidate-map smoke passed with `xlarge_60` and wrote persisted DISENGAGE reason data to `C:\tmp\game_dev_disengage_reason_smoke`.
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_disengage_reason_smoke --min-runs 1` passed.
+- `compare_scale_profiles.py` prints `disengage entries/entity/min`, `DISENGAGE sec/entry`, and reason rates when reason telemetry is present.
+
+**Decision**
+
+- Do not tune behavior yet.
+- Next slice should rerun candidate `xlarge_60` and `target_99_probe` 5-run sets, then compare reason-aware DISENGAGE deltas before changing zone, spawn, or bot thresholds.
 
 ---
 

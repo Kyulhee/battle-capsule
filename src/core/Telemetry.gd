@@ -113,6 +113,9 @@ func _reset_metrics():
 			"patrol_timeout": 0,
 			"weapon_drop_spawned": 0,
 			"disengage_triggered": 0,
+			"disengage_entries": 0,
+			"disengage_reasons": {},
+			"disengage_reasons_by_archetype": {},
 			"cover_peek": 0,
 			"combat_reposition": 0,
 			"combat_kite": 0,
@@ -308,7 +311,9 @@ func log_tactics(event: String, _value: float = 0.0):
 		"patrol_entered":      metrics.tactics.patrol_entered += 1
 		"patrol_timeout":      metrics.tactics.patrol_timeout += 1
 		"weapon_drop_spawned": metrics.tactics.weapon_drop_spawned += 1
-		"disengage_triggered": metrics.tactics.disengage_triggered += 1
+		"disengage_triggered": log_disengage_reason("outnumbered")
+		"disengage_losing_fight": log_disengage_reason("losing_fight")
+		"reload_retreat": log_disengage_reason("reload_retreat")
 		"cover_peek":       metrics.tactics.cover_peek += 1
 		"combat_reposition": metrics.tactics.combat_reposition += 1
 		"combat_kite":      metrics.tactics.combat_kite += 1
@@ -318,6 +323,23 @@ func log_tactics(event: String, _value: float = 0.0):
 		"retreat_melee_counter": metrics.tactics.retreat_melee_counter += 1
 		"stuck_while_threatened": metrics.tactics.stuck_while_threatened += 1
 		"zone_assisted_death": metrics.tactics.zone_assisted_death += 1
+
+func log_disengage_reason(reason: String, archetype_name: String = ""):
+	if not match_in_progress or not _g("tactics"): return
+	var key = reason.strip_edges().to_lower()
+	if key == "":
+		key = "unknown"
+	metrics.tactics.disengage_entries += 1
+	if key == "outnumbered":
+		metrics.tactics.disengage_triggered += 1
+	metrics.tactics.disengage_reasons[key] = int(metrics.tactics.disengage_reasons.get(key, 0)) + 1
+	var archetype_key = archetype_name.strip_edges().to_upper()
+	if archetype_key == "":
+		return
+	if not metrics.tactics.disengage_reasons_by_archetype.has(archetype_key):
+		metrics.tactics.disengage_reasons_by_archetype[archetype_key] = {}
+	var by_reason = metrics.tactics.disengage_reasons_by_archetype[archetype_key]
+	by_reason[key] = int(by_reason.get(key, 0)) + 1
 
 func log_combat_audit(event: String, value: float = 0.0):
 	if not match_in_progress or not _g("combat"): return
@@ -622,6 +644,13 @@ func _print_report():
 		print("  Died in RECOVER: %d" % metrics.tactics.died_in_recover)
 		print("  Stuck triggers: %d" % metrics.tactics.stuck_triggered)
 		print("  Disengage triggers: %d" % metrics.tactics.disengage_triggered)
+		print("  Disengage entries: %d" % metrics.tactics.disengage_entries)
+		if not metrics.tactics.disengage_reasons.is_empty():
+			var disengage_parts = []
+			for reason in metrics.tactics.disengage_reasons:
+				disengage_parts.append("%s=%d" % [reason, int(metrics.tactics.disengage_reasons.get(reason, 0))])
+			disengage_parts.sort()
+			print("  Disengage reasons: %s" % ", ".join(disengage_parts))
 		print("  Combat plans: cover=%d  reposition=%d  kite=%d  survival=%d" % [
 			metrics.tactics.cover_peek,
 			metrics.tactics.combat_reposition,

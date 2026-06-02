@@ -32,6 +32,13 @@ def combat_plan_total(run: dict) -> int:
     return max(tactics_total, doctrine_total)
 
 
+def disengage_entry_count(run: dict) -> int:
+    tactics = run.get("tactics", {})
+    if "disengage_entries" in tactics:
+        return int(tactics.get("disengage_entries", 0))
+    return int(tactics.get("disengage_triggered", 0))
+
+
 def spawned_entity_count(run: dict) -> int:
     spawn = run.get("spawn", {})
     requested = int(spawn.get("requested_count", 0))
@@ -71,6 +78,23 @@ def doctrine_state_mix(runs: list[dict]) -> dict[str, float]:
     return {state: 100.0 * float(value) / total for state, value in totals.items()}
 
 
+def disengage_reason_totals(runs: list[dict]) -> Counter:
+    totals = Counter()
+    for run in runs:
+        totals.update(run.get("tactics", {}).get("disengage_reasons", {}))
+    return totals
+
+
+def disengage_reason_rates(runs: list[dict]) -> dict[str, float]:
+    rates = {}
+    for reason in disengage_reason_totals(runs):
+        rates[reason] = per_spawned_entity_minute(
+            runs,
+            lambda r, key=reason: r.get("tactics", {}).get("disengage_reasons", {}).get(key, 0),
+        )
+    return rates
+
+
 def summarize(runs: list[dict]) -> dict[str, float]:
     durations = [float(r.get("core", {}).get("duration", 0.0)) for r in runs]
     first_upgrade = [
@@ -86,7 +110,7 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     ai_samples = sum(int(r.get("ai", {}).get("update_samples", 0)) for r in runs)
     ai_total_usec = sum(int(r.get("ai", {}).get("update_total_usec", 0)) for r in runs)
     ai_max_usec = max((int(r.get("ai", {}).get("update_max_usec", 0)) for r in runs), default=0)
-    disengage_events = sum(int(r.get("tactics", {}).get("disengage_triggered", 0)) for r in runs)
+    disengage_entries = sum(disengage_entry_count(r) for r in runs)
     state_totals = doctrine_state_totals(runs)
     state_mix = doctrine_state_mix(runs)
     summary = {
@@ -104,6 +128,7 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "disengage_per_entity_min": per_spawned_entity_minute(
             runs, lambda r: r.get("tactics", {}).get("disengage_triggered", 0)
         ),
+        "disengage_entry_per_entity_min": per_spawned_entity_minute(runs, disengage_entry_count),
         "stuck_per_entity_min": per_spawned_entity_minute(
             runs, lambda r: r.get("tactics", {}).get("stuck_triggered", 0)
         ),
@@ -115,7 +140,9 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         ),
         "ai_avg_usec": ai_total_usec / ai_samples if ai_samples > 0 else 0.0,
         "ai_max_usec": float(ai_max_usec),
-        "disengage_seconds_per_trigger": float(state_totals.get("DISENGAGE", 0.0)) / max(1, disengage_events),
+        "disengage_seconds_per_entry": float(state_totals.get("DISENGAGE", 0.0)) / max(1, disengage_entries),
+        "disengage_reason_counts": dict(disengage_reason_totals(runs)),
+        "disengage_reason_rates": disengage_reason_rates(runs),
         "state_zone_escape": state_mix.get("ZONE_ESCAPE", 0.0),
         "state_disengage": state_mix.get("DISENGAGE", 0.0),
         "state_attack": state_mix.get("ATTACK", 0.0),
@@ -148,12 +175,13 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("shots_per_entity_min", "shots/entity/min"),
         ("plans_per_entity_min", "plans/entity/min"),
         ("disengage_per_entity_min", "disengage/entity/min"),
+        ("disengage_entry_per_entity_min", "disengage entries/entity/min"),
         ("stuck_per_entity_min", "stuck/entity/min"),
         ("zone_fire_per_entity_min", "zone fire/entity/min"),
         ("survival_per_entity_min", "survival/entity/min"),
         ("ai_avg_usec", "AI avg usec"),
         ("ai_max_usec", "AI max usec"),
-        ("disengage_seconds_per_trigger", "DISENGAGE sec/trigger"),
+        ("disengage_seconds_per_entry", "DISENGAGE sec/entry"),
         ("state_zone_escape", "state ZONE_ESCAPE %"),
         ("state_disengage", "state DISENGAGE %"),
         ("state_attack", "state ATTACK %"),
@@ -166,7 +194,31 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         a = float(summary_a.get(key, 0.0))
         b = float(summary_b.get(key, 0.0))
         print(f"{label:<28} {a:>14.2f} {b:>14.2f} {b - a:>14.2f}")
+    print_disengage_reason_comparison(label_a, summary_a, label_b, summary_b)
     print_pressure_decision(summary_a, summary_b)
+
+
+def print_disengage_reason_comparison(
+    label_a: str,
+    summary_a: dict[str, float],
+    label_b: str,
+    summary_b: dict[str, float],
+) -> None:
+    rates_a = summary_a.get("disengage_reason_rates", {})
+    rates_b = summary_b.get("disengage_reason_rates", {})
+    reasons = sorted(
+        set(rates_a) | set(rates_b),
+        key=lambda reason: max(float(rates_a.get(reason, 0.0)), float(rates_b.get(reason, 0.0))),
+        reverse=True,
+    )
+    if not reasons:
+        return
+    print("Disengage reasons/entity/min:")
+    print(f"{'Reason':<28} {label_a:>14} {label_b:>14} {'delta':>14}")
+    for reason in reasons:
+        a = float(rates_a.get(reason, 0.0))
+        b = float(rates_b.get(reason, 0.0))
+        print(f"{reason:<28} {a:>14.2f} {b:>14.2f} {b - a:>14.2f}")
 
 
 def print_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
@@ -175,14 +227,14 @@ def print_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, fl
     )
     min_nearest = float(summary_b.get("spawn_min_nearest", 0.0))
     ai_delta = float(summary_b.get("ai_avg_usec", 0.0)) - float(summary_a.get("ai_avg_usec", 0.0))
-    disengage_rate_delta = float(summary_b.get("disengage_per_entity_min", 0.0)) - float(
-        summary_a.get("disengage_per_entity_min", 0.0)
+    disengage_rate_delta = float(summary_b.get("disengage_entry_per_entity_min", 0.0)) - float(
+        summary_a.get("disengage_entry_per_entity_min", 0.0)
     )
     disengage_share_delta = float(summary_b.get("state_disengage", 0.0)) - float(
         summary_a.get("state_disengage", 0.0)
     )
-    disengage_duration_delta = float(summary_b.get("disengage_seconds_per_trigger", 0.0)) - float(
-        summary_a.get("disengage_seconds_per_trigger", 0.0)
+    disengage_duration_delta = float(summary_b.get("disengage_seconds_per_entry", 0.0)) - float(
+        summary_a.get("disengage_seconds_per_entry", 0.0)
     )
     zone_share_delta = float(summary_b.get("state_zone_escape", 0.0)) - float(
         summary_a.get("state_zone_escape", 0.0)
@@ -202,11 +254,11 @@ def print_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, fl
         print("  - AI budget is not the current blocker.")
     if disengage_share_delta >= 4.0 and disengage_rate_delta <= 0.05:
         print(
-            "  - DISENGAGE pressure looks duration/exit-related, not trigger-frequency-related "
-            "(state share rose while normalized trigger rate did not)."
+            "  - DISENGAGE pressure looks duration/exit-related, not entry-frequency-related "
+            "(state share rose while normalized entry rate did not)."
         )
     elif disengage_share_delta >= 4.0:
-        print("  - DISENGAGE pressure looks trigger-frequency-related; inspect outnumbered thresholds and scan density.")
+        print("  - DISENGAGE pressure looks entry-frequency-related; inspect reason deltas before behavior tuning.")
     else:
         print("  - DISENGAGE share did not move enough to justify behavior tuning by itself.")
     if disengage_duration_delta >= 1.0:
