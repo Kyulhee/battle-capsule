@@ -39,6 +39,15 @@ def combat_plan_total(run: dict) -> int:
     return max(tactics_total, doctrine_total)
 
 
+def weapon_pickup_total(run: dict) -> int:
+    return sum(int(v) for v in run.get("economy", {}).get("weapon_pickups", {}).values())
+
+
+def non_pistol_pickup_total(run: dict) -> int:
+    pickups = run.get("economy", {}).get("weapon_pickups", {})
+    return sum(int(v) for weapon, v in pickups.items() if weapon != "pistol")
+
+
 def disengage_entry_count(run: dict) -> int:
     tactics = run.get("tactics", {})
     if "disengage_entries" in tactics:
@@ -228,6 +237,15 @@ if __name__ == "__main__":
             per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("stuck_triggered", 0)),
             per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("zone_escape_fire", 0)),
             per_spawned_entity_minute(results, lambda r: r.get("tactics", {}).get("survival_break", 0)),
+        )
+    )
+    print(
+        "Economy-normalized per spawned entity/min: weapons={:.2f}, non_pistol={:.2f}, rare={:.2f}, heals={:.2f}, shields={:.2f}".format(
+            per_spawned_entity_minute(results, weapon_pickup_total),
+            per_spawned_entity_minute(results, non_pistol_pickup_total),
+            per_spawned_entity_minute(results, lambda r: r.get("economy", {}).get("rare_pickups", 0)),
+            per_spawned_entity_minute(results, lambda r: r.get("economy", {}).get("heals_used", 0)),
+            per_spawned_entity_minute(results, lambda r: r.get("economy", {}).get("shields_picked", 0)),
         )
     )
     print(f"Zone deaths: {sum(zone_deaths)} ({avg(zone_deaths):.1f}/run), max outside time: {max(max_outside_time):.1f}s")

@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.22 reason-aware 60-vs-99 comparison)
+> Last updated: 2026-06-03 (v2.0.23 99-probe economy/combat tempo diagnosis)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.22: reason-aware 60-vs-99 candidate comparison |
-| Next structural slice | v2.0.23: 99-probe economy/combat tempo diagnosis |
+| Latest completed slice | v2.0.23: 99-probe economy/combat tempo diagnosis |
+| Next structural slice | v2.0.24: candidate-only 99-probe loot/economy adjustment |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -406,6 +406,14 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Reason deltas do not support tuning outnumbered thresholds first: entries/entity/min -1.20, survival_break -0.97, outnumbered -0.21, `DISENGAGE sec/entry` +0.25.
 - The first 99-specific tuning target is economy/combat tempo dilution, not DISENGAGE trigger frequency.
 - Do not change zone pacing, spawn/POI density, or bot behavior thresholds until the tempo diagnosis is complete.
+
+**v2.0.23 result**
+
+- `compare_scale_profiles.py` now reports economy tempo rows and a `Tempo decision` summary.
+- `analyze_results.py` now reports economy-normalized rows for single run directories.
+- Fresh 99 vs 60 economy deltas: weapon pickups/entity/min -0.15, non-pistol pickups/entity/min -0.07, rare pickups/entity/min -0.12.
+- Raw 99 loot count is close to 60 density, so the issue is actual non-pistol/rare access and combat throughput, not just total loot count.
+- Next tuning should be candidate-only and target loot/economy access before zone pacing or bot-threshold changes.
 
 ## Deferred Asset Upgrades
 

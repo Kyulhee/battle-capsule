@@ -6,6 +6,33 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.23 — 99-Probe Economy/Combat Tempo Diagnosis
+
+**Scope**
+
+- Extended `tools/compare_scale_profiles.py` with economy-normalized tempo rows and a `Tempo decision` summary.
+- Extended `tools/analyze_results.py` with economy-normalized per spawned entity/minute output.
+- Reused the fresh v2.0.22 candidate sets; no gameplay data was changed.
+
+**Verification**
+
+- `python -m py_compile tools\compare_scale_profiles.py tools\simulate_matches.py tools\analyze_results.py tools\check_scale_telemetry.py` passed.
+- `git diff --check` passed.
+- `compare_scale_profiles.py` on the fresh 60-vs-99 candidate sets reports:
+  - weapon pickups/entity/min 0.54 -> 0.39 (-0.15).
+  - non-pistol pickups/entity/min 0.11 -> 0.04 (-0.07).
+  - rare pickups/entity/min 0.18 -> 0.06 (-0.12).
+  - damage, shots, and plans all fall per entity/min.
+- `analyze_results.py` now prints economy-normalized rows for single run directories.
+
+**Decision**
+
+- The 99-probe tempo issue is economy plus combat throughput dilution.
+- Raw loot count is not the only target: `target_99_probe` already has 240 loot for 100 entities, close to `xlarge_60` density, but real non-pistol and rare pickup rates are lower.
+- Next tuning should be candidate-only and focus on non-pistol/rare access through loot hotspot density, wave mix, or POI distribution before changing zone pacing or bot behavior thresholds.
+
+---
+
 ## v2.0.22 — Reason-Aware 60-vs-99 Candidate Comparison
 
 **Scope**

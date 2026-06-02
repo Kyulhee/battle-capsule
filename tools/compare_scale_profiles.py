@@ -32,6 +32,15 @@ def combat_plan_total(run: dict) -> int:
     return max(tactics_total, doctrine_total)
 
 
+def weapon_pickup_total(run: dict) -> int:
+    return sum(int(v) for v in run.get("economy", {}).get("weapon_pickups", {}).values())
+
+
+def non_pistol_pickup_total(run: dict) -> int:
+    pickups = run.get("economy", {}).get("weapon_pickups", {})
+    return sum(int(v) for weapon, v in pickups.items() if weapon != "pistol")
+
+
 def disengage_entry_count(run: dict) -> int:
     tactics = run.get("tactics", {})
     if "disengage_entries" in tactics:
@@ -125,6 +134,15 @@ def summarize(runs: list[dict]) -> dict[str, float]:
             runs, lambda r: r.get("combat", {}).get("shots_fired", 0)
         ),
         "plans_per_entity_min": per_spawned_entity_minute(runs, combat_plan_total),
+        "weapon_pickups_per_entity_min": per_spawned_entity_minute(runs, weapon_pickup_total),
+        "non_pistol_pickups_per_entity_min": per_spawned_entity_minute(runs, non_pistol_pickup_total),
+        "rare_pickups_per_entity_min": per_spawned_entity_minute(
+            runs, lambda r: r.get("economy", {}).get("rare_pickups", 0)
+        ),
+        "heals_per_entity_min": per_spawned_entity_minute(runs, lambda r: r.get("economy", {}).get("heals_used", 0)),
+        "shields_per_entity_min": per_spawned_entity_minute(
+            runs, lambda r: r.get("economy", {}).get("shields_picked", 0)
+        ),
         "disengage_per_entity_min": per_spawned_entity_minute(
             runs, lambda r: r.get("tactics", {}).get("disengage_triggered", 0)
         ),
@@ -174,6 +192,11 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("damage_per_entity_min", "damage/entity/min"),
         ("shots_per_entity_min", "shots/entity/min"),
         ("plans_per_entity_min", "plans/entity/min"),
+        ("weapon_pickups_per_entity_min", "weapon pickups/entity/min"),
+        ("non_pistol_pickups_per_entity_min", "non-pistol pickups/entity/min"),
+        ("rare_pickups_per_entity_min", "rare pickups/entity/min"),
+        ("heals_per_entity_min", "heals/entity/min"),
+        ("shields_per_entity_min", "shields/entity/min"),
         ("disengage_per_entity_min", "disengage/entity/min"),
         ("disengage_entry_per_entity_min", "disengage entries/entity/min"),
         ("stuck_per_entity_min", "stuck/entity/min"),
@@ -195,6 +218,7 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         b = float(summary_b.get(key, 0.0))
         print(f"{label:<28} {a:>14.2f} {b:>14.2f} {b - a:>14.2f}")
     print_disengage_reason_comparison(label_a, summary_a, label_b, summary_b)
+    print_tempo_decision(summary_a, summary_b)
     print_pressure_decision(summary_a, summary_b)
 
 
@@ -269,6 +293,35 @@ def print_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, fl
         print("  - ZONE_ESCAPE pressure rose with zone-fire; review zone pacing and route density together.")
     else:
         print("  - ZONE_ESCAPE share is not the primary first tuning target.")
+
+
+def print_tempo_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    duration_delta = float(summary_b.get("duration", 0.0)) - float(summary_a.get("duration", 0.0))
+    first_upgrade_delta = float(summary_b.get("first_upgrade", 0.0)) - float(summary_a.get("first_upgrade", 0.0))
+    damage_delta = float(summary_b.get("damage_per_entity_min", 0.0)) - float(
+        summary_a.get("damage_per_entity_min", 0.0)
+    )
+    shots_delta = float(summary_b.get("shots_per_entity_min", 0.0)) - float(summary_a.get("shots_per_entity_min", 0.0))
+    plans_delta = float(summary_b.get("plans_per_entity_min", 0.0)) - float(summary_a.get("plans_per_entity_min", 0.0))
+    non_pistol_delta = float(summary_b.get("non_pistol_pickups_per_entity_min", 0.0)) - float(
+        summary_a.get("non_pistol_pickups_per_entity_min", 0.0)
+    )
+
+    print("Tempo decision:")
+    if first_upgrade_delta >= 8.0 and non_pistol_delta <= -0.03:
+        print("  - Economy tempo is diluted: first upgrade is later and non-pistol pickup rate is lower.")
+    elif first_upgrade_delta >= 8.0:
+        print("  - First upgrade is much later; inspect pickup access and upgrade weapon distribution.")
+    else:
+        print("  - First upgrade timing is not the main tempo blocker.")
+    if damage_delta <= -5.0 and shots_delta <= -0.5 and plans_delta <= -0.5:
+        print("  - Combat tempo is diluted: damage, shots, and combat plans all fell per entity/min.")
+    elif damage_delta <= -5.0 or shots_delta <= -0.5:
+        print("  - Combat throughput fell; inspect engagement density before changing retreat behavior.")
+    else:
+        print("  - Combat throughput did not fall enough to explain scale pressure by itself.")
+    if duration_delta >= 20.0:
+        print("  - Match duration stretched materially; diagnose economy/combat tempo before zone or bot-threshold tuning.")
 
 
 def main() -> int:
