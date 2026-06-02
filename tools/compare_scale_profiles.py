@@ -71,6 +71,15 @@ def per_spawned_entity_minute(runs: list[dict], value_fn) -> float:
     return total_value / max(1.0, total_entity_minutes)
 
 
+def per_match_minute(runs: list[dict], value_fn) -> float:
+    total_value = 0.0
+    total_minutes = 0.0
+    for run in runs:
+        total_value += float(value_fn(run))
+        total_minutes += float(run.get("core", {}).get("duration", 0.0)) / 60.0
+    return total_value / max(1.0, total_minutes)
+
+
 def doctrine_state_totals(runs: list[dict]) -> Counter:
     totals = Counter()
     for run in runs:
@@ -85,6 +94,34 @@ def doctrine_state_mix(runs: list[dict]) -> dict[str, float]:
     if total <= 0.0:
         return {}
     return {state: 100.0 * float(value) / total for state, value in totals.items()}
+
+
+def doctrine_state_seconds(runs: list[dict], state_name: str) -> float:
+    return float(doctrine_state_totals(runs).get(state_name, 0.0))
+
+
+def doctrine_engage_range_totals(runs: list[dict]) -> dict[str, float]:
+    result = {"count": 0.0, "total": 0.0, "min": 0.0, "max": 0.0}
+    min_value = None
+    max_value = 0.0
+    for run in runs:
+        for bucket in run.get("doctrine", {}).get("engage_range_by_archetype", {}).values():
+            count = int(bucket.get("count", 0))
+            if count <= 0:
+                continue
+            result["count"] += float(count)
+            result["total"] += float(bucket.get("total", 0.0))
+            bucket_min = float(bucket.get("min", 0.0))
+            bucket_max = float(bucket.get("max", 0.0))
+            min_value = bucket_min if min_value is None else min(min_value, bucket_min)
+            max_value = max(max_value, bucket_max)
+    result["min"] = 0.0 if min_value is None else float(min_value)
+    result["max"] = max_value
+    return result
+
+
+def doctrine_engage_sample_count(run: dict) -> int:
+    return sum(int(bucket.get("count", 0)) for bucket in run.get("doctrine", {}).get("engage_range_by_archetype", {}).values())
 
 
 def disengage_reason_totals(runs: list[dict]) -> Counter:
@@ -122,6 +159,8 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     disengage_entries = sum(disengage_entry_count(r) for r in runs)
     state_totals = doctrine_state_totals(runs)
     state_mix = doctrine_state_mix(runs)
+    engage_range = doctrine_engage_range_totals(runs)
+    attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
     summary = {
         "runs": float(len(runs)),
         "spawned_entities": avg([float(spawned_entity_count(r)) for r in runs]),
@@ -130,10 +169,23 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "damage_per_entity_min": per_spawned_entity_minute(
             runs, lambda r: r.get("combat", {}).get("total_damage_dealt", 0.0)
         ),
+        "damage_per_match_min": per_match_minute(
+            runs, lambda r: r.get("combat", {}).get("total_damage_dealt", 0.0)
+        ),
         "shots_per_entity_min": per_spawned_entity_minute(
             runs, lambda r: r.get("combat", {}).get("shots_fired", 0)
         ),
+        "shots_per_match_min": per_match_minute(runs, lambda r: r.get("combat", {}).get("shots_fired", 0)),
         "plans_per_entity_min": per_spawned_entity_minute(runs, combat_plan_total),
+        "plans_per_match_min": per_match_minute(runs, combat_plan_total),
+        "damage_per_attack_min": (
+            sum(float(r.get("combat", {}).get("total_damage_dealt", 0.0)) for r in runs) / max(1.0, attack_minutes)
+        ),
+        "shots_per_attack_min": (
+            sum(float(r.get("combat", {}).get("shots_fired", 0)) for r in runs) / max(1.0, attack_minutes)
+        ),
+        "engage_samples_per_entity_min": per_spawned_entity_minute(runs, doctrine_engage_sample_count),
+        "engage_range_avg": float(engage_range.get("total", 0.0)) / max(1.0, float(engage_range.get("count", 0.0))),
         "weapon_pickups_per_entity_min": per_spawned_entity_minute(runs, weapon_pickup_total),
         "non_pistol_pickups_per_entity_min": per_spawned_entity_minute(runs, non_pistol_pickup_total),
         "rare_pickups_per_entity_min": per_spawned_entity_minute(
@@ -165,6 +217,8 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "state_disengage": state_mix.get("DISENGAGE", 0.0),
         "state_attack": state_mix.get("ATTACK", 0.0),
         "state_chase": state_mix.get("CHASE", 0.0),
+        "state_combat_active": state_mix.get("ATTACK", 0.0) + state_mix.get("CHASE", 0.0),
+        "state_retreat_escape": state_mix.get("DISENGAGE", 0.0) + state_mix.get("ZONE_ESCAPE", 0.0),
         "state_idle": state_mix.get("IDLE", 0.0),
     }
     if spawn_runs:
@@ -190,8 +244,15 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("spawn_avg_nearest", "spawn avg nearest m"),
         ("spawn_saturation", "spawn saturation"),
         ("damage_per_entity_min", "damage/entity/min"),
+        ("damage_per_match_min", "damage/match min"),
         ("shots_per_entity_min", "shots/entity/min"),
+        ("shots_per_match_min", "shots/match min"),
         ("plans_per_entity_min", "plans/entity/min"),
+        ("plans_per_match_min", "plans/match min"),
+        ("damage_per_attack_min", "damage/ATTACK min"),
+        ("shots_per_attack_min", "shots/ATTACK min"),
+        ("engage_samples_per_entity_min", "engage samples/entity/min"),
+        ("engage_range_avg", "avg engage range m"),
         ("weapon_pickups_per_entity_min", "weapon pickups/entity/min"),
         ("non_pistol_pickups_per_entity_min", "non-pistol pickups/entity/min"),
         ("rare_pickups_per_entity_min", "rare pickups/entity/min"),
@@ -209,6 +270,8 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("state_disengage", "state DISENGAGE %"),
         ("state_attack", "state ATTACK %"),
         ("state_chase", "state CHASE %"),
+        ("state_combat_active", "state ATTACK+CHASE %"),
+        ("state_retreat_escape", "state RETREAT+ESCAPE %"),
         ("state_idle", "state IDLE %"),
     ]
     print("--- Scale Profile Comparison ---")
@@ -219,6 +282,7 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         print(f"{label:<28} {a:>14.2f} {b:>14.2f} {b - a:>14.2f}")
     print_disengage_reason_comparison(label_a, summary_a, label_b, summary_b)
     print_tempo_decision(summary_a, summary_b)
+    print_engagement_density_decision(summary_a, summary_b)
     print_pressure_decision(summary_a, summary_b)
 
 
@@ -322,6 +386,42 @@ def print_tempo_decision(summary_a: dict[str, float], summary_b: dict[str, float
         print("  - Combat throughput did not fall enough to explain scale pressure by itself.")
     if duration_delta >= 20.0:
         print("  - Match duration stretched materially; diagnose economy/combat tempo before zone or bot-threshold tuning.")
+
+
+def print_engagement_density_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    entity_ratio = float(summary_b.get("spawned_entities", 0.0)) / max(1.0, float(summary_a.get("spawned_entities", 0.0)))
+    damage_match_ratio = float(summary_b.get("damage_per_match_min", 0.0)) / max(
+        1.0, float(summary_a.get("damage_per_match_min", 0.0))
+    )
+    shots_match_ratio = float(summary_b.get("shots_per_match_min", 0.0)) / max(
+        1.0, float(summary_a.get("shots_per_match_min", 0.0))
+    )
+    plans_match_ratio = float(summary_b.get("plans_per_match_min", 0.0)) / max(
+        1.0, float(summary_a.get("plans_per_match_min", 0.0))
+    )
+    active_delta = float(summary_b.get("state_combat_active", 0.0)) - float(summary_a.get("state_combat_active", 0.0))
+    damage_attack_ratio = float(summary_b.get("damage_per_attack_min", 0.0)) / max(
+        1.0, float(summary_a.get("damage_per_attack_min", 0.0))
+    )
+    engage_sample_delta = float(summary_b.get("engage_samples_per_entity_min", 0.0)) - float(
+        summary_a.get("engage_samples_per_entity_min", 0.0)
+    )
+
+    print("Engagement density decision:")
+    if entity_ratio > 1.2 and damage_match_ratio < entity_ratio * 0.75 and shots_match_ratio < entity_ratio * 0.75:
+        print(
+            "  - Combat throughput is not scaling with population: match-minute damage/shots rose far less than entity count."
+        )
+    else:
+        print("  - Match-minute combat throughput scales close enough to population for this comparison.")
+    if damage_attack_ratio >= 0.90:
+        print("  - ATTACK-state damage efficiency is intact; the bottleneck is engagement density, not per-attack lethality.")
+    else:
+        print("  - ATTACK-state damage efficiency fell; inspect weapon mix, range, and hit conditions.")
+    if active_delta <= -3.0 or engage_sample_delta <= -0.5 or plans_match_ratio < entity_ratio * 0.75:
+        print("  - Active engagement coverage is thin; inspect target acquisition, chase routing, and encounter spacing.")
+    else:
+        print("  - Active engagement coverage did not fall enough to be the sole blocker.")
 
 
 def main() -> int:

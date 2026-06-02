@@ -111,7 +111,7 @@ python tools/check_scale_telemetry.py tools/sim_runs_current
 python tools/simulate_matches.py 5 normal out_dir=C:\tmp\game_dev_candidate_60 map_spec_path=res://data/mapSpec_large_candidate.json scale_preset=xlarge_60
 python tools/simulate_matches.py 5 normal out_dir=C:\tmp\game_dev_candidate_99 map_spec_path=res://data/mapSpec_large_candidate.json scale_preset=target_99_probe
 python tools/compare_scale_profiles.py C:\tmp\game_dev_candidate_60 C:\tmp\game_dev_candidate_99 --baseline-label xlarge_60 --target-label target_99
-# The comparison includes tempo/pressure-decision summaries; do not tune by lowering gates.
+# The comparison includes tempo, engagement-density, and pressure-decision summaries; do not tune by lowering gates.
 
 # v2.0 DISENGAGE reason telemetry smoke
 python tools/simulate_matches.py 1 normal out_dir=C:\tmp\game_dev_disengage_reason_smoke map_spec_path=res://data/mapSpec_large_candidate.json scale_preset=xlarge_60

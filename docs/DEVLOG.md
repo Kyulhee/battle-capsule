@@ -6,6 +6,40 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.25 — 99 Combat Throughput / Engagement Density Diagnosis
+
+**Scope**
+
+- Extended `tools/compare_scale_profiles.py` with engagement-density diagnostics:
+  - damage/shots/plans per match minute.
+  - damage/shots per `ATTACK` minute.
+  - engage samples per spawned entity/minute.
+  - combined `ATTACK+CHASE` and `DISENGAGE+ZONE_ESCAPE` state share.
+  - `Engagement density decision` summary.
+- Extended `tools/analyze_results.py` with the same single-directory engagement-density rows.
+- Kept gameplay unchanged; this slice is diagnostics only.
+
+**Verification**
+
+- `python -m py_compile tools\compare_scale_profiles.py tools\simulate_matches.py tools\analyze_results.py tools\check_scale_telemetry.py` passed.
+- `git diff --check` passed.
+- Compared fresh `xlarge_60` vs adjusted `target_99_loot_v3`:
+  - Entities: 61 -> 100 (+64%).
+  - Damage/match min: 2238.3 -> 2402.1 (+7%).
+  - Shots/match min: 273.3 -> 296.5 (+8%).
+  - Plans/match min: 169.5 -> 172.0 (+1%).
+  - Damage/ATTACK min: 770.5 -> 819.3.
+  - Shots/ATTACK min: 94.1 -> 101.1.
+  - `ATTACK+CHASE`: 41.32% -> 37.67%; `RETREAT+ESCAPE`: 44.13% -> 48.79%.
+
+**Decision**
+
+- Combat throughput is not scaling with population, even after the economy fix.
+- ATTACK-state efficiency is intact, so the bottleneck is not per-attack lethality.
+- Next work should inspect target acquisition, chase routing, and encounter spacing before zone pacing, damage, or bot retreat thresholds.
+
+---
+
 ## v2.0.24 — Candidate-Only 99-Probe Loot/Economy Adjustment
 
 **Scope**

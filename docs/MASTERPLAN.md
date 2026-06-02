@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.24 candidate-only 99-probe loot/economy adjustment)
+> Last updated: 2026-06-03 (v2.0.25 99 combat throughput / engagement density diagnosis)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.24: candidate-only 99-probe loot/economy adjustment |
-| Next structural slice | v2.0.25: 99 combat throughput / engagement density diagnosis |
+| Latest completed slice | v2.0.25: 99 combat throughput / engagement density diagnosis |
+| Next structural slice | v2.0.26: target acquisition / chase routing / encounter spacing probe |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -422,6 +422,14 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Adjusted 99 v3 gate passed; first upgrade improved from 27.4s to 16.6s and DISENGAGE state fell slightly.
 - Combat throughput remains the major gap versus 60: damage/entity/min -12.67, shots/entity/min -1.51, plans/entity/min -1.06, duration +42.7s.
 - Next work should diagnose engagement density/combat throughput before zone pacing or bot-threshold tuning.
+
+**v2.0.25 result**
+
+- `compare_scale_profiles.py` now reports match-minute throughput, ATTACK-minute efficiency, engage sample density, active combat share, and an engagement-density decision.
+- `analyze_results.py` now reports matching single-directory engagement-density rows.
+- 99 v3 has 64% more spawned entities than 60, but only +7% damage/match min, +8% shots/match min, and +1% plans/match min.
+- Damage/ATTACK min and shots/ATTACK min are not worse, so per-attack lethality is not the blocker.
+- Next work should inspect target acquisition, chase routing, and encounter spacing before zone, damage, or retreat-threshold tuning.
 
 ## Deferred Asset Upgrades
 

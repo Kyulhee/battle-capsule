@@ -78,6 +78,19 @@ def per_spawned_entity_minute(results: list[dict], value_fn) -> float:
     return total_value / max(1.0, total_entity_minutes)
 
 
+def per_match_minute(results: list[dict], value_fn) -> float:
+    total_value = 0.0
+    total_minutes = 0.0
+    for run in results:
+        total_value += float(value_fn(run))
+        total_minutes += float(run.get("core", {}).get("duration", 0.0)) / 60.0
+    return total_value / max(1.0, total_minutes)
+
+
+def doctrine_engage_sample_count(run: dict) -> int:
+    return sum(int(bucket.get("count", 0)) for bucket in run.get("doctrine", {}).get("engage_range_by_archetype", {}).values())
+
+
 if __name__ == "__main__":
     results = load_runs(RUN_DIR)
     if not results:
@@ -240,6 +253,13 @@ if __name__ == "__main__":
         )
     )
     print(
+        "Match-normalized throughput/min: damage={:.1f}, shots={:.1f}, plans={:.1f}".format(
+            per_match_minute(results, lambda r: r.get("combat", {}).get("total_damage_dealt", 0.0)),
+            per_match_minute(results, lambda r: r.get("combat", {}).get("shots_fired", 0)),
+            per_match_minute(results, combat_plan_total),
+        )
+    )
+    print(
         "Economy-normalized per spawned entity/min: weapons={:.2f}, non_pistol={:.2f}, rare={:.2f}, heals={:.2f}, shields={:.2f}".format(
             per_spawned_entity_minute(results, weapon_pickup_total),
             per_spawned_entity_minute(results, non_pistol_pickup_total),
@@ -314,6 +334,29 @@ if __name__ == "__main__":
                 if float(seconds) > 0.0
             ]
             print(f"Doctrine state mix: {', '.join(parts)}")
+            active_share = 100.0 * (
+                float(state_totals.get("ATTACK", 0.0)) + float(state_totals.get("CHASE", 0.0))
+            ) / total_state_time
+            retreat_share = 100.0 * (
+                float(state_totals.get("DISENGAGE", 0.0)) + float(state_totals.get("ZONE_ESCAPE", 0.0))
+            ) / total_state_time
+            attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
+            damage_per_attack_min = (
+                sum(float(r.get("combat", {}).get("total_damage_dealt", 0.0)) for r in results)
+                / max(1.0, attack_minutes)
+            )
+            shots_per_attack_min = (
+                sum(float(r.get("combat", {}).get("shots_fired", 0)) for r in results) / max(1.0, attack_minutes)
+            )
+            print(
+                "Engagement density: active_state={:.1f}%, retreat_escape={:.1f}%, damage/ATTACK_min={:.1f}, shots/ATTACK_min={:.1f}, engage_samples/entity/min={:.2f}".format(
+                    active_share,
+                    retreat_share,
+                    damage_per_attack_min,
+                    shots_per_attack_min,
+                    per_spawned_entity_minute(results, doctrine_engage_sample_count),
+                )
+            )
     if doctrine_range_by_archetype:
         print("Doctrine engage range by archetype:")
         for archetype, bucket in sorted(doctrine_range_by_archetype.items()):

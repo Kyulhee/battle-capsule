@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.24 — candidate-only 99-probe loot/economy adjustment`.
-- Next structural slice: `v2.0.25 — 99 combat throughput / engagement density diagnosis`.
+- Latest completed slice: `v2.0.25 — 99 combat throughput / engagement density diagnosis`.
+- Next structural slice: `v2.0.26 — target acquisition / chase routing / encounter spacing probe`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -41,12 +41,13 @@
 - `bd2a805 docs: record reason-aware scale comparison` — recorded the fresh reason-aware 60-vs-99 candidate comparison.
 - `9e11a5d feat: add scale tempo diagnostics` — adds economy tempo rows and tempo decision output.
 - Current v2.0.24 slice adds candidate-only `target_99_probe` economy tuning; no default/global 99 promotion was made.
+- Current v2.0.25 slice adds engagement-density diagnostics; no gameplay tuning or default/global 99 promotion was made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.25 — 99 combat throughput / engagement density diagnosis`
+`v2.0.26 — target acquisition / chase routing / encounter spacing probe`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -71,9 +72,12 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - v2.0.24 adjusted 99 output at `C:\tmp\game_dev_candidate_99_loot_v3`: gate passed, avg duration 149.0s, first upgrade 16.6s, legacy disengage 125.6/run, entries 437.6/run.
 - v3 vs previous 99: first upgrade -10.8s, non-pistol pickups/entity/min +0.03, rare pickups/entity/min +0.03, DISENGAGE state -0.68pp.
 - v3 vs 60 still has combat throughput gap: damage/entity/min -12.67, shots/entity/min -1.51, plans/entity/min -1.06, duration +42.7s.
+- v2.0.25 engagement-density comparison: 99 has 64% more entities than 60, but only +7% damage/match min, +8% shots/match min, and +1% plans/match min.
+- v2.0.25 also shows ATTACK efficiency is intact: damage/ATTACK min 770.5 -> 819.3, shots/ATTACK min 94.1 -> 101.1.
+- Active coverage is thinner at 99: `ATTACK+CHASE` 41.32% -> 37.67%, `RETREAT+ESCAPE` 44.13% -> 48.79%.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should diagnose engagement density/combat throughput before zone pacing or bot-threshold tuning.
+- Next work should inspect target acquisition, chase routing, and encounter spacing before zone pacing, damage, or bot retreat thresholds.
 - Keep using `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes
