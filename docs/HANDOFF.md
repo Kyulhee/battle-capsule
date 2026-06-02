@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.23 — 99-probe economy/combat tempo diagnosis`.
-- Next structural slice: `v2.0.24 — candidate-only 99-probe loot/economy adjustment`.
+- Latest completed slice: `v2.0.24 — candidate-only 99-probe loot/economy adjustment`.
+- Next structural slice: `v2.0.25 — 99 combat throughput / engagement density diagnosis`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -39,13 +39,14 @@
 - `6583693 feat: add scale pressure decision` — added pressure-decision output; no gameplay tuning or default/global 99 promotion was made.
 - `ee8519b feat: add disengage reason telemetry` — persists DISENGAGE entries and reasons while preserving `disengage_triggered` as the existing outnumbered/legacy scale-gate metric.
 - `bd2a805 docs: record reason-aware scale comparison` — recorded the fresh reason-aware 60-vs-99 candidate comparison.
-- Current v2.0.23 slice adds economy tempo rows and tempo decision output; no gameplay tuning or default/global 99 promotion was made.
+- `9e11a5d feat: add scale tempo diagnostics` — adds economy tempo rows and tempo decision output.
+- Current v2.0.24 slice adds candidate-only `target_99_probe` economy tuning; no default/global 99 promotion was made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.24 — candidate-only 99-probe loot/economy adjustment`
+`v2.0.25 — 99 combat throughput / engagement density diagnosis`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -66,9 +67,13 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - v2.0.23 tempo tooling: `compare_scale_profiles.py` now prints weapon/non-pistol/rare/heal/shield rates plus `Tempo decision`; `analyze_results.py` prints economy-normalized rows.
 - v2.0.23 tempo result: weapon pickups/entity/min -0.15, non-pistol pickups/entity/min -0.07, rare pickups/entity/min -0.12 for 99 vs 60.
 - Raw `target_99_probe` loot count is close to 60 density, so tune actual non-pistol/rare access and combat throughput rather than only raw loot count.
+- v2.0.24 tuning: added runtime loot `rare_bias_mult`; final `target_99_probe` v3 uses `loot_count=240`, `stage_wave_count_mult=9`, `hotspot_density_mult=1.16`, `rare_bias_mult=1.45`.
+- v2.0.24 adjusted 99 output at `C:\tmp\game_dev_candidate_99_loot_v3`: gate passed, avg duration 149.0s, first upgrade 16.6s, legacy disengage 125.6/run, entries 437.6/run.
+- v3 vs previous 99: first upgrade -10.8s, non-pistol pickups/entity/min +0.03, rare pickups/entity/min +0.03, DISENGAGE state -0.68pp.
+- v3 vs 60 still has combat throughput gap: damage/entity/min -12.67, shots/entity/min -1.51, plans/entity/min -1.06, duration +42.7s.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should make a candidate-only `target_99_probe` loot/economy adjustment, then rerun the 5-run gates and reason/tempo-aware comparison.
+- Next work should diagnose engagement density/combat throughput before zone pacing or bot-threshold tuning.
 - Keep using `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes

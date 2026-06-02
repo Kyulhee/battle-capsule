@@ -120,7 +120,8 @@
           "stage_wave_base_prob": 0.08,
           "stage_wave_prob_per_stage": 0.08,
           "stage_wave_count_mult": 9,
-          "hotspot_density_mult": 1.12
+          "hotspot_density_mult": 1.16,
+          "rare_bias_mult": 1.45
         }
       },
       "zone": {

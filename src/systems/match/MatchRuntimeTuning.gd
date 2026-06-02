@@ -23,6 +23,7 @@ const DEFAULTS := {
 		"stage_wave_prob_per_stage": 0.1,
 		"stage_wave_count_mult": 10,
 		"hotspot_density_mult": 1.0,
+		"rare_bias_mult": 1.0,
 	},
 	"supply_fallback": {
 		"range": 25.0,
@@ -90,6 +91,7 @@ static func _sanitize_loot(loot_tuning: Dictionary) -> Dictionary:
 		"stage_wave_prob_per_stage": maxf(0.0, float(loot_tuning.get("stage_wave_prob_per_stage", 0.1))),
 		"stage_wave_count_mult": max(0, int(loot_tuning.get("stage_wave_count_mult", 10))),
 		"hotspot_density_mult": maxf(0.0, float(loot_tuning.get("hotspot_density_mult", 1.0))),
+		"rare_bias_mult": maxf(0.0, float(loot_tuning.get("rare_bias_mult", 1.0))),
 	}
 
 static func _sanitize_supply_fallback(supply_tuning: Dictionary) -> Dictionary:

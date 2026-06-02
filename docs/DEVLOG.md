@@ -6,6 +6,33 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.24 — Candidate-Only 99-Probe Loot/Economy Adjustment
+
+**Scope**
+
+- Added runtime loot `rare_bias_mult` support with default `1.0`.
+- Wired `rare_bias_mult` into `LootSpawner` so hotspot rare bias can be scaled by runtime preset.
+- Applied candidate-only `target_99_probe` economy tuning:
+  - `hotspot_density_mult`: 1.12 -> 1.16.
+  - `rare_bias_mult`: 1.45.
+  - Kept raw `loot_count` at 240 and `stage_wave_count_mult` at 9 after a broader v2 attempt improved pickups but worsened duration/combat throughput.
+- Updated `verify_candidate_99_probe.gd` to guard the new economy probe knobs.
+
+**Verification**
+
+- `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, and `verify_map_runtime_path.gd` passed.
+- Adjusted 99 v3 5-run set at `C:\tmp\game_dev_candidate_99_loot_v3` passed `check_scale_telemetry.py`.
+- v3 vs previous 99: first upgrade 27.4s -> 16.6s, non-pistol pickups/entity/min 0.04 -> 0.07, rare pickups/entity/min 0.06 -> 0.10, DISENGAGE state 21.84% -> 21.16%.
+- v3 vs 60: first upgrade gap narrowed to +3.75s, but damage/entity/min (-12.67), shots/entity/min (-1.51), plans/entity/min (-1.06), and duration (+42.7s) remain poor.
+
+**Decision**
+
+- Keep the narrow v3 candidate economy adjustment; it fixes upgrade timing without worsening the scale gate.
+- Do not increase raw loot/wave volume broadly yet; the discarded v2 attempt improved pickups but stretched duration and reduced combat throughput.
+- Next slice should diagnose 99 combat throughput/engagement density before zone pacing or bot-threshold tuning.
+
+---
+
 ## v2.0.23 — 99-Probe Economy/Combat Tempo Diagnosis
 
 **Scope**

@@ -46,8 +46,9 @@ func _init():
 	var match_tuning: Dictionary = candidate.get_match_tuning(game_config, {}, PROBE_PRESET)
 	var runtime_tuning: Dictionary = candidate.get_runtime_tuning(game_config, {}, PROBE_PRESET)
 	var spawn_tuning: Dictionary = runtime_tuning_script.spawn(runtime_tuning)
+	var loot_tuning: Dictionary = runtime_tuning_script.loot(runtime_tuning)
 	var envelope: Dictionary = candidate.get_scale_envelope(TARGET_ENVELOPE)
-	if not _verify_probe(summary, match_tuning, spawn_tuning, envelope):
+	if not _verify_probe(summary, match_tuning, spawn_tuning, loot_tuning, envelope):
 		return
 
 	print("Candidate 99 probe smoke passed: bots=%d loot=%d world=%.0fm spawn=%.0fm saturation=%.2f." % [
@@ -76,7 +77,7 @@ func _load_definition(map_definition_script, game_config, path: String):
 	return definition
 
 
-func _verify_probe(summary: Dictionary, match_tuning: Dictionary, spawn_tuning: Dictionary, envelope: Dictionary) -> bool:
+func _verify_probe(summary: Dictionary, match_tuning: Dictionary, spawn_tuning: Dictionary, loot_tuning: Dictionary, envelope: Dictionary) -> bool:
 	var bot_count := int(match_tuning.get("bot_count", 0))
 	var total_entities := bot_count + 1
 	var envelope_entities := int(envelope.get("total_entities", 0))
@@ -91,6 +92,12 @@ func _verify_probe(summary: Dictionary, match_tuning: Dictionary, spawn_tuning: 
 		return false
 	if int(match_tuning.get("loot_count", 0)) < 220:
 		_fail("%s loot_count is below probe floor." % PROBE_PRESET)
+		return false
+	if float(loot_tuning.get("rare_bias_mult", 1.0)) < 1.2:
+		_fail("%s rare_bias_mult is below economy-tempo probe floor." % PROBE_PRESET)
+		return false
+	if float(loot_tuning.get("hotspot_density_mult", 1.0)) < 1.10:
+		_fail("%s hotspot_density_mult is below economy-tempo probe floor." % PROBE_PRESET)
 		return false
 	if world_size < float(envelope.get("world_size_preferred", 0.0)):
 		_fail("%s world size is below preferred envelope." % PROBE_PRESET)

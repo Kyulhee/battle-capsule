@@ -841,6 +841,8 @@ func _register_loot_hotspots():
 	if loot_spawner.has_method("configure_density_multiplier"):
 		var loot_tuning: Dictionary = MatchRuntimeTuningScript.loot(match_runtime_tuning)
 		loot_spawner.configure_density_multiplier(float(loot_tuning.get("hotspot_density_mult", 1.0)))
+		if loot_spawner.has_method("configure_rare_bias_multiplier"):
+			loot_spawner.configure_rare_bias_multiplier(float(loot_tuning.get("rare_bias_mult", 1.0)))
 	loot_spawner.register_from_map_spec(map_spec)
 	loot_hotspots = loot_spawner.hotspots.duplicate(true)
 
