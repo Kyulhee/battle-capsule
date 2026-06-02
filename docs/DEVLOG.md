@@ -6,6 +6,37 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.26 — CHASE Context / Encounter Spacing Probe
+
+**Scope**
+
+- Added persisted doctrine telemetry `chase_context_time_by_archetype`.
+- `Bot.gd` now tags `CHASE` time as `combat`, `loot`, `recover_loot`, or `unknown`.
+- Extended `tools/analyze_results.py` and `tools/compare_scale_profiles.py` with CHASE context mix output.
+- Ran fresh 5-run candidate sets:
+  - `C:\tmp\game_dev_chase_candidate_60`
+  - `C:\tmp\game_dev_chase_candidate_99`
+- Kept gameplay unchanged; this slice is diagnostics only.
+
+**Verification**
+
+- `python -m py_compile tools\compare_scale_profiles.py tools\simulate_matches.py tools\analyze_results.py tools\check_scale_telemetry.py` passed.
+- `git diff --check` passed.
+- Both fresh 5-run sets passed `check_scale_telemetry.py`.
+- Fresh 99 output: avg duration 141.5s, first upgrade 25.4s, legacy disengage 122.4/run, AI avg 518.6us.
+- CHASE context mix:
+  - `xlarge_60`: combat 50.0%, loot 29.2%, recover_loot 20.9%.
+  - `target_99`: combat 45.2%, loot 30.9%, recover_loot 24.0%.
+- Fresh 99 remains throughput-limited: damage/match min +8.6% vs 60 while entities are +64%.
+
+**Decision**
+
+- 99 active coverage is partly leaking into loot/recovery movement; CHASE combat share is lower and loot+recover CHASE is the majority.
+- Per-ATTACK efficiency remains intact, so do not tune damage first.
+- Next slice should inspect objective interrupts, recovery-loot path length, and pickup spacing before zone pacing or retreat thresholds.
+
+---
+
 ## v2.0.25 — 99 Combat Throughput / Engagement Density Diagnosis
 
 **Scope**

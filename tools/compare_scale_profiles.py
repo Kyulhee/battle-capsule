@@ -124,6 +124,22 @@ def doctrine_engage_sample_count(run: dict) -> int:
     return sum(int(bucket.get("count", 0)) for bucket in run.get("doctrine", {}).get("engage_range_by_archetype", {}).values())
 
 
+def chase_context_totals(runs: list[dict]) -> Counter:
+    totals = Counter()
+    for run in runs:
+        for contexts in run.get("doctrine", {}).get("chase_context_time_by_archetype", {}).values():
+            totals.update({context: float(seconds) for context, seconds in contexts.items()})
+    return totals
+
+
+def chase_context_mix(runs: list[dict]) -> dict[str, float]:
+    totals = chase_context_totals(runs)
+    total = sum(float(value) for value in totals.values())
+    if total <= 0.0:
+        return {}
+    return {context: 100.0 * float(value) / total for context, value in totals.items()}
+
+
 def disengage_reason_totals(runs: list[dict]) -> Counter:
     totals = Counter()
     for run in runs:
@@ -160,6 +176,7 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     state_totals = doctrine_state_totals(runs)
     state_mix = doctrine_state_mix(runs)
     engage_range = doctrine_engage_range_totals(runs)
+    chase_mix = chase_context_mix(runs)
     attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
     summary = {
         "runs": float(len(runs)),
@@ -220,6 +237,10 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "state_combat_active": state_mix.get("ATTACK", 0.0) + state_mix.get("CHASE", 0.0),
         "state_retreat_escape": state_mix.get("DISENGAGE", 0.0) + state_mix.get("ZONE_ESCAPE", 0.0),
         "state_idle": state_mix.get("IDLE", 0.0),
+        "chase_combat": chase_mix.get("combat", 0.0),
+        "chase_loot": chase_mix.get("loot", 0.0),
+        "chase_recover_loot": chase_mix.get("recover_loot", 0.0),
+        "chase_unknown": chase_mix.get("unknown", 0.0),
     }
     if spawn_runs:
         summary.update(
@@ -273,6 +294,10 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("state_combat_active", "state ATTACK+CHASE %"),
         ("state_retreat_escape", "state RETREAT+ESCAPE %"),
         ("state_idle", "state IDLE %"),
+        ("chase_combat", "CHASE combat %"),
+        ("chase_loot", "CHASE loot %"),
+        ("chase_recover_loot", "CHASE recover loot %"),
+        ("chase_unknown", "CHASE unknown %"),
     ]
     print("--- Scale Profile Comparison ---")
     print(f"{'Metric':<28} {label_a:>14} {label_b:>14} {'delta':>14}")
@@ -400,6 +425,8 @@ def print_engagement_density_decision(summary_a: dict[str, float], summary_b: di
         1.0, float(summary_a.get("plans_per_match_min", 0.0))
     )
     active_delta = float(summary_b.get("state_combat_active", 0.0)) - float(summary_a.get("state_combat_active", 0.0))
+    chase_combat_delta = float(summary_b.get("chase_combat", 0.0)) - float(summary_a.get("chase_combat", 0.0))
+    chase_loot_total_b = float(summary_b.get("chase_loot", 0.0)) + float(summary_b.get("chase_recover_loot", 0.0))
     damage_attack_ratio = float(summary_b.get("damage_per_attack_min", 0.0)) / max(
         1.0, float(summary_a.get("damage_per_attack_min", 0.0))
     )
@@ -422,6 +449,10 @@ def print_engagement_density_decision(summary_a: dict[str, float], summary_b: di
         print("  - Active engagement coverage is thin; inspect target acquisition, chase routing, and encounter spacing.")
     else:
         print("  - Active engagement coverage did not fall enough to be the sole blocker.")
+    if chase_combat_delta <= -5.0:
+        print("  - CHASE time shifted away from combat targets; inspect loot/recovery interruptions and enemy acquisition.")
+    elif chase_loot_total_b >= 35.0:
+        print("  - A large share of CHASE time is loot/recovery movement; inspect objective interrupts and pickup spacing.")
 
 
 def main() -> int:

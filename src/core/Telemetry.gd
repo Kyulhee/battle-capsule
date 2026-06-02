@@ -221,6 +221,7 @@ func _reset_metrics():
 			},
 			"plan_by_archetype": {},
 			"state_time_by_archetype": {},
+			"chase_context_time_by_archetype": {},
 			"engage_range_by_archetype": {},
 			"supply_decisions": {},
 		},
@@ -494,6 +495,17 @@ func log_doctrine_state_time(archetype_name: String, state_name: String, seconds
 		by_archetype[archetype_name] = {}
 	var state_times = by_archetype[archetype_name]
 	state_times[state_name] = float(state_times.get(state_name, 0.0)) + seconds
+
+func log_doctrine_chase_context(archetype_name: String, context_name: String, seconds: float):
+	if not match_in_progress or not _g("doctrine") or seconds <= 0.0: return
+	var context_key = context_name.strip_edges().to_lower()
+	if context_key == "":
+		context_key = "unknown"
+	var by_archetype = metrics.doctrine.chase_context_time_by_archetype
+	if not by_archetype.has(archetype_name):
+		by_archetype[archetype_name] = {}
+	var context_times = by_archetype[archetype_name]
+	context_times[context_key] = float(context_times.get(context_key, 0.0)) + seconds
 
 func log_doctrine_engage_range(archetype_name: String, distance: float):
 	if not match_in_progress or not _g("doctrine") or distance < 0.0: return

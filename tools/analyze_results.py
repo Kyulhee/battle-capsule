@@ -149,6 +149,7 @@ if __name__ == "__main__":
     doctrine_supply = Counter()
     doctrine_plan_by_archetype: dict[str, Counter] = {}
     doctrine_state_time_by_archetype: dict[str, Counter] = {}
+    doctrine_chase_context_by_archetype: dict[str, Counter] = {}
     doctrine_range_by_archetype: dict[str, dict[str, float]] = {}
     ai_samples = 0
     ai_total_usec = 0
@@ -168,6 +169,10 @@ if __name__ == "__main__":
         for archetype, states in doctrine.get("state_time_by_archetype", {}).items():
             doctrine_state_time_by_archetype.setdefault(archetype, Counter()).update(
                 {state: float(seconds) for state, seconds in states.items()}
+            )
+        for archetype, contexts in doctrine.get("chase_context_time_by_archetype", {}).items():
+            doctrine_chase_context_by_archetype.setdefault(archetype, Counter()).update(
+                {context: float(seconds) for context, seconds in contexts.items()}
             )
         for archetype, bucket in doctrine.get("engage_range_by_archetype", {}).items():
             count = int(bucket.get("count", 0))
@@ -357,6 +362,25 @@ if __name__ == "__main__":
                     per_spawned_entity_minute(results, doctrine_engage_sample_count),
                 )
             )
+    if doctrine_chase_context_by_archetype:
+        print("Doctrine CHASE context by archetype:")
+        chase_totals = Counter()
+        for archetype, contexts in sorted(doctrine_chase_context_by_archetype.items()):
+            chase_totals.update(contexts)
+            parts = [
+                f"{context}={seconds:.1f}s"
+                for context, seconds in sorted(contexts.items(), key=lambda item: item[1], reverse=True)
+                if float(seconds) > 0.0
+            ]
+            print(f"  {archetype}: {', '.join(parts) if parts else 'none'}")
+        total_chase_context = sum(float(seconds) for seconds in chase_totals.values())
+        if total_chase_context > 0.0:
+            parts = [
+                f"{context}={100.0 * float(seconds) / total_chase_context:.1f}%"
+                for context, seconds in sorted(chase_totals.items(), key=lambda item: item[1], reverse=True)
+                if float(seconds) > 0.0
+            ]
+            print(f"CHASE context mix: {', '.join(parts)}")
     if doctrine_range_by_archetype:
         print("Doctrine engage range by archetype:")
         for archetype, bucket in sorted(doctrine_range_by_archetype.items()):

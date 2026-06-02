@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.25 99 combat throughput / engagement density diagnosis)
+> Last updated: 2026-06-03 (v2.0.26 CHASE context / encounter spacing probe)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.25: 99 combat throughput / engagement density diagnosis |
-| Next structural slice | v2.0.26: target acquisition / chase routing / encounter spacing probe |
+| Latest completed slice | v2.0.26: CHASE context / encounter spacing probe |
+| Next structural slice | v2.0.27: objective interrupt / recovery-loot path / pickup spacing probe |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -430,6 +430,14 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - 99 v3 has 64% more spawned entities than 60, but only +7% damage/match min, +8% shots/match min, and +1% plans/match min.
 - Damage/ATTACK min and shots/ATTACK min are not worse, so per-attack lethality is not the blocker.
 - Next work should inspect target acquisition, chase routing, and encounter spacing before zone, damage, or retreat-threshold tuning.
+
+**v2.0.26 result**
+
+- Persisted `doctrine.chase_context_time_by_archetype` and tagged CHASE as `combat`, `loot`, `recover_loot`, or `unknown`.
+- Fresh 5-run 60 and adjusted 99 candidate sets both passed scale gates.
+- CHASE context mix shows 99 has less combat CHASE and more loot/recovery CHASE: 60 combat 50.0% vs 99 combat 45.2%; 99 loot+recover_loot 54.8%.
+- Fresh 99 still fails to scale match-minute combat throughput with population, while per-ATTACK efficiency remains intact.
+- Next work should inspect objective interrupts, recovery-loot path length, and pickup spacing before zone pacing or retreat thresholds.
 
 ## Deferred Asset Upgrades
 

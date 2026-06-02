@@ -1177,7 +1177,18 @@ func _asset_catalog():
 func _log_doctrine_state_time(delta: float):
 	if not has_node("/root/Telemetry"):
 		return
-	get_node("/root/Telemetry").log_doctrine_state_time(_archetype_name(), State.keys()[current_state], delta)
+	var tel = get_node("/root/Telemetry")
+	var archetype_name = _archetype_name()
+	tel.log_doctrine_state_time(archetype_name, State.keys()[current_state], delta)
+	if current_state == State.CHASE and tel.has_method("log_doctrine_chase_context"):
+		tel.log_doctrine_chase_context(archetype_name, _chase_context_name(), delta)
+
+func _chase_context_name() -> String:
+	if is_targeting_loot:
+		return "recover_loot" if _recovering else "loot"
+	if target_actor is Entity:
+		return "combat"
+	return "unknown"
 
 func _log_ai_update_budget(start_usec: int):
 	if not has_node("/root/Telemetry"):
