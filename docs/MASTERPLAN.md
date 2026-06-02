@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-02 (v2.0.19 normalized 60-vs-99 candidate comparison)
+> Last updated: 2026-06-03 (v2.0.20 99-probe pressure decision)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.19: normalized 60-vs-99 candidate comparison |
-| Next structural slice | v2.0.20: 99-probe density/zone pressure decision |
+| Latest completed slice | v2.0.20: 99-probe pressure decision |
+| Next structural slice | v2.0.21: persisted DISENGAGE reason telemetry |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -382,6 +382,14 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Fresh candidate-map 5-run gates passed for both `xlarge_60` and `target_99_probe`.
 - 99 vs 60 deltas: duration +7.1s, spawn saturation +0.08, AI avg +123.9us, ZONE_ESCAPE +2.14pp, DISENGAGE +5.32pp.
 - Next work should decide whether the higher 99 DISENGAGE/ZONE_ESCAPE share is a zone profile issue, spawn/POI density issue, or bot outnumbered-behavior issue.
+
+**v2.0.20 result**
+
+- `tools/compare_scale_profiles.py` now prints `DISENGAGE sec/trigger` and a pressure-decision summary.
+- Current 99 pressure is not spawn/pathing or AI budget.
+- DISENGAGE pressure looks duration/exit-related rather than trigger-frequency-related.
+- ZONE_ESCAPE rose mildly without higher normalized zone-fire, so review it after DISENGAGE exit behavior.
+- Do not tune zone profile, spawn/POI density, or outnumbered thresholds until persisted DISENGAGE reason telemetry is available.
 
 ## Deferred Asset Upgrades
 

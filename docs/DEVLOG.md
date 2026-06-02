@@ -6,6 +6,30 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.20 — 99-Probe Pressure Decision
+
+**Scope**
+
+- Extended `tools/compare_scale_profiles.py` with `DISENGAGE sec/trigger` and a pressure-decision summary.
+- The comparison now distinguishes spawn/pathing, AI budget, DISENGAGE trigger frequency, DISENGAGE duration/exit pressure, and ZONE_ESCAPE pressure.
+- Reviewed current bot state flow: DISENGAGE can be entered by outnumbered scans, losing fights, reload retreats, sniper min-range retreats, attack timeouts, and survival breaks, but current telemetry only persists part of those reasons.
+- Kept gameplay unchanged; this slice is a decision/tooling pass.
+
+**Verification**
+
+- `python -m py_compile tools\compare_scale_profiles.py tools\simulate_matches.py tools\analyze_results.py tools\check_scale_telemetry.py` passed.
+- `compare_scale_profiles.py` passed on `C:\tmp\game_dev_candidate_60` vs `C:\tmp\game_dev_candidate_99`.
+- The pressure decision reports spawn/pathing and AI are not current blockers.
+- It classifies 99 DISENGAGE pressure as duration/exit-related rather than trigger-frequency-related, because DISENGAGE state share rose while normalized trigger rate did not.
+- It classifies ZONE_ESCAPE as a secondary review item because state share rose mildly without higher normalized zone-fire.
+
+**Decision**
+
+- Do not tune zone timings, spawn density, or outnumbered thresholds yet.
+- Next slice should add persisted DISENGAGE reason telemetry so the 99 pressure can be attributed before behavior changes.
+
+---
+
 ## v2.0.19 — Normalized 60-vs-99 Candidate Comparison
 
 **Scope**

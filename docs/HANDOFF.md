@@ -1,12 +1,12 @@
 # Next Chat Handoff
 
-> Last updated: 2026-06-02. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
+> Last updated: 2026-06-03. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
 
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.19 — normalized 60-vs-99 candidate comparison`.
-- Next structural slice: `v2.0.20 — 99-probe density/zone pressure decision`.
+- Latest completed slice: `v2.0.20 — 99-probe pressure decision`.
+- Next structural slice: `v2.0.21 — persisted DISENGAGE reason telemetry`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -35,13 +35,14 @@
 - `2b0a07b feat: add candidate map runtime loading` — added `map_spec_path` CLI/test loading for non-default candidate smokes.
 - `31a7bcc feat: add candidate 99 probe` — added candidate-only `target_99_probe` and verified 5-run telemetry.
 - `051cb3a feat: add normalized scale analysis` — added per spawned entity/minute analyzer output and aggregate doctrine state mix.
-- Current v2.0.19 slice adds `out_dir=` support to `simulate_matches.py` plus `tools/compare_scale_profiles.py`; no gameplay tuning or default/global 99 promotion was made.
+- `d5ffb1a feat: add scale profile comparison` — added `out_dir=` support plus normalized 60-vs-99 comparison tooling.
+- Current v2.0.20 slice extends `compare_scale_profiles.py` with pressure-decision output; no gameplay tuning or default/global 99 promotion was made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.20 — 99-probe density/zone pressure decision`
+`v2.0.21 — persisted DISENGAGE reason telemetry`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -51,9 +52,10 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - Current 99-probe normalized output: damage=27.7, shots=3.35, plans=1.83, disengage=0.56, stuck=0.11, zone_fire=1.02, survival=1.24 per spawned entity/min.
 - Current 99-probe state mix: ZONE_ESCAPE 26.0%, DISENGAGE 22.0%, CHASE 19.2%, ATTACK 18.9%, IDLE 14.0%.
 - Fresh normalized comparison from `C:\tmp`: 99 vs 60 has duration +7.1s, spawn saturation +0.08, AI avg +123.9us, ZONE_ESCAPE +2.14pp, DISENGAGE +5.32pp.
+- v2.0.20 pressure decision: spawn/pathing is not the current blocker; AI budget is not the current blocker; DISENGAGE pressure looks duration/exit-related rather than trigger-frequency-related; ZONE_ESCAPE should be reviewed after DISENGAGE exit behavior.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should decide whether the 99-specific DISENGAGE/ZONE_ESCAPE increase points to zone profile, spawn/POI density, or outnumbered behavior before any tuning.
+- Next work should add persisted DISENGAGE reason telemetry because existing `disengage_losing_fight` / `reload_retreat` style call sites are not all reflected in saved tactics metrics.
 - Keep using `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes

@@ -55,11 +55,16 @@ def per_spawned_entity_minute(runs: list[dict], value_fn) -> float:
     return total_value / max(1.0, total_entity_minutes)
 
 
-def doctrine_state_mix(runs: list[dict]) -> dict[str, float]:
+def doctrine_state_totals(runs: list[dict]) -> Counter:
     totals = Counter()
     for run in runs:
         for states in run.get("doctrine", {}).get("state_time_by_archetype", {}).values():
             totals.update({state: float(seconds) for state, seconds in states.items()})
+    return totals
+
+
+def doctrine_state_mix(runs: list[dict]) -> dict[str, float]:
+    totals = doctrine_state_totals(runs)
     total = sum(float(value) for value in totals.values())
     if total <= 0.0:
         return {}
@@ -81,6 +86,8 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     ai_samples = sum(int(r.get("ai", {}).get("update_samples", 0)) for r in runs)
     ai_total_usec = sum(int(r.get("ai", {}).get("update_total_usec", 0)) for r in runs)
     ai_max_usec = max((int(r.get("ai", {}).get("update_max_usec", 0)) for r in runs), default=0)
+    disengage_events = sum(int(r.get("tactics", {}).get("disengage_triggered", 0)) for r in runs)
+    state_totals = doctrine_state_totals(runs)
     state_mix = doctrine_state_mix(runs)
     summary = {
         "runs": float(len(runs)),
@@ -108,6 +115,7 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         ),
         "ai_avg_usec": ai_total_usec / ai_samples if ai_samples > 0 else 0.0,
         "ai_max_usec": float(ai_max_usec),
+        "disengage_seconds_per_trigger": float(state_totals.get("DISENGAGE", 0.0)) / max(1, disengage_events),
         "state_zone_escape": state_mix.get("ZONE_ESCAPE", 0.0),
         "state_disengage": state_mix.get("DISENGAGE", 0.0),
         "state_attack": state_mix.get("ATTACK", 0.0),
@@ -145,6 +153,7 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("survival_per_entity_min", "survival/entity/min"),
         ("ai_avg_usec", "AI avg usec"),
         ("ai_max_usec", "AI max usec"),
+        ("disengage_seconds_per_trigger", "DISENGAGE sec/trigger"),
         ("state_zone_escape", "state ZONE_ESCAPE %"),
         ("state_disengage", "state DISENGAGE %"),
         ("state_attack", "state ATTACK %"),
@@ -157,6 +166,57 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         a = float(summary_a.get(key, 0.0))
         b = float(summary_b.get(key, 0.0))
         print(f"{label:<28} {a:>14.2f} {b:>14.2f} {b - a:>14.2f}")
+    print_pressure_decision(summary_a, summary_b)
+
+
+def print_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    spawn_fallback_delta = float(summary_b.get("spawn_fallback_per_run", 0.0)) - float(
+        summary_a.get("spawn_fallback_per_run", 0.0)
+    )
+    min_nearest = float(summary_b.get("spawn_min_nearest", 0.0))
+    ai_delta = float(summary_b.get("ai_avg_usec", 0.0)) - float(summary_a.get("ai_avg_usec", 0.0))
+    disengage_rate_delta = float(summary_b.get("disengage_per_entity_min", 0.0)) - float(
+        summary_a.get("disengage_per_entity_min", 0.0)
+    )
+    disengage_share_delta = float(summary_b.get("state_disengage", 0.0)) - float(
+        summary_a.get("state_disengage", 0.0)
+    )
+    disengage_duration_delta = float(summary_b.get("disengage_seconds_per_trigger", 0.0)) - float(
+        summary_a.get("disengage_seconds_per_trigger", 0.0)
+    )
+    zone_share_delta = float(summary_b.get("state_zone_escape", 0.0)) - float(
+        summary_a.get("state_zone_escape", 0.0)
+    )
+    zone_fire_delta = float(summary_b.get("zone_fire_per_entity_min", 0.0)) - float(
+        summary_a.get("zone_fire_per_entity_min", 0.0)
+    )
+
+    print("Pressure decision:")
+    if spawn_fallback_delta > 0.0 or min_nearest < 3.4:
+        print("  - Spawn/pathing remains the first blocker: fallback or nearest-spacing guard moved the wrong way.")
+    else:
+        print("  - Spawn/pathing is not the current blocker: fallback stayed at 0 and spacing stayed inside the gate.")
+    if ai_delta > 1000.0:
+        print("  - AI budget needs review before tuning behavior.")
+    else:
+        print("  - AI budget is not the current blocker.")
+    if disengage_share_delta >= 4.0 and disengage_rate_delta <= 0.05:
+        print(
+            "  - DISENGAGE pressure looks duration/exit-related, not trigger-frequency-related "
+            "(state share rose while normalized trigger rate did not)."
+        )
+    elif disengage_share_delta >= 4.0:
+        print("  - DISENGAGE pressure looks trigger-frequency-related; inspect outnumbered thresholds and scan density.")
+    else:
+        print("  - DISENGAGE share did not move enough to justify behavior tuning by itself.")
+    if disengage_duration_delta >= 1.0:
+        print("  - DISENGAGE duration per trigger increased; inspect cover travel, scatter, and exit conditions.")
+    if zone_share_delta >= 2.0 and zone_fire_delta <= 0.10:
+        print("  - ZONE_ESCAPE share rose mildly without higher normalized zone-fire; review zone pacing after disengage exit behavior.")
+    elif zone_share_delta >= 2.0:
+        print("  - ZONE_ESCAPE pressure rose with zone-fire; review zone pacing and route density together.")
+    else:
+        print("  - ZONE_ESCAPE share is not the primary first tuning target.")
 
 
 def main() -> int:
