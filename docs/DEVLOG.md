@@ -6,6 +6,32 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.29 — Fresh Route-Pressure Comparison
+
+**Scope**
+
+- Ran fresh 5-run candidate-map telemetry sets using the post-v2.0.28 route-pressure schema:
+  - `C:\tmp\game_dev_route_candidate_60_v20260603`
+  - `C:\tmp\game_dev_route_candidate_99_v20260603`
+- Kept gameplay, map data, AI behavior, loot, damage, and zone pacing unchanged.
+
+**Verification**
+
+- `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, and `verify_map_runtime_path.gd` passed.
+- Both fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`.
+- `xlarge_60`: avg duration 92.7s, first upgrade 10.0s, AI avg 307.2us, spawn fallback 0.0/run.
+- `target_99_probe`: avg duration 140.2s, first upgrade 17.7s, AI avg 424.0us, spawn fallback 0.0/run.
+- `compare_scale_profiles.py` passed on the fresh pair.
+
+**Decision**
+
+- 99 keeps broad route damage pressure close to 60: combat damage on route 63.2% -> 60.7%.
+- Combat remains concentrated on loot/recovery routes, not on intended contested terrain: primary-choke damage is 0.4% -> 1.0%, flank damage is 3.0% -> 2.7%, and transit-choke POI damage stays below 0.4%.
+- Per-attack lethality remains healthy, but 99 still has thinner active engagement coverage: `ATTACK+CHASE` 41.6% -> 38.3% and `RETREAT+ESCAPE` 43.7% -> 47.7%.
+- Next slice should be a candidate-only strategic-route pressure pass: make chokepoints, flanks, and power-position rotations materially contestable before AI aggression, damage, or generic zone-speed tuning.
+
+---
+
 ## v2.0.28 — Combat Location / Route Pressure Telemetry
 
 **Scope**

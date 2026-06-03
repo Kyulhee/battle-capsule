@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.28 combat location / route pressure telemetry)
+> Last updated: 2026-06-03 (v2.0.29 fresh route-pressure comparison)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.28: combat location / route pressure telemetry |
-| Next structural slice | v2.0.29: fresh 60-vs-99 route-pressure comparison |
+| Latest completed slice | v2.0.29: fresh 60-vs-99 route-pressure comparison |
+| Next structural slice | v2.0.30: candidate strategic-route pressure pass |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -454,6 +454,13 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - `analyze_results.py` and `compare_scale_profiles.py` report route-pressure mixes and decisions.
 - 1-run candidate `xlarge_60` smoke confirmed route-pressure telemetry is written and readable; the normal 1-run scale gate failed only due to an early 1.7s upgrade sample, so use fresh 5-run sets for balance decisions.
 - Next work should run fresh 60-vs-99 candidate route-pressure comparison before changing route layout, pickup spacing, AI aggression, damage, or zone pacing.
+
+**v2.0.29 result**
+
+- Fresh candidate-map 5-run `xlarge_60` and `target_99_probe` sets both passed scale gates.
+- 99 preserves broad route pressure but does not create intended contested terrain pressure: combat damage on route is 63.2% -> 60.7%, while primary-choke damage is only 0.4% -> 1.0%, flank damage is 3.0% -> 2.7%, and transit-choke POI damage stays below 0.4%.
+- 99 still has thinner active engagement coverage despite healthy per-ATTACK efficiency: `ATTACK+CHASE` 41.6% -> 38.3%, `RETREAT+ESCAPE` 43.7% -> 47.7%, damage/ATTACK min 758.8 -> 872.3.
+- Next work should be candidate-only strategic-route pressure design before AI aggression, damage, or generic zone-speed tuning.
 
 ## Deferred Asset Upgrades
 
