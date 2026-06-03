@@ -246,6 +246,10 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     recover_target_poi_roles = doctrine_context_counter(runs, "chase_target_poi_role_by_context", "recover_loot")
     recover_target_route_roles = doctrine_context_counter(runs, "chase_target_route_role_by_context", "recover_loot")
     recover_target_kinds = doctrine_context_counter(runs, "chase_target_kind_by_context", "recover_loot")
+    combat_target_poi_bands = doctrine_context_counter(runs, "chase_target_poi_band_by_context", "combat")
+    recover_target_poi_bands = doctrine_context_counter(runs, "chase_target_poi_band_by_context", "recover_loot")
+    combat_target_route_bands = doctrine_context_counter(runs, "chase_target_route_band_by_context", "combat")
+    recover_target_route_bands = doctrine_context_counter(runs, "chase_target_route_band_by_context", "recover_loot")
     spawn_weapon_routes = economy_kind_counter(runs, "pickup_spawn_route_role_by_kind", "weapon")
     spawn_ammo_routes = economy_kind_counter(runs, "pickup_spawn_route_role_by_kind", "ammo")
     spawn_heal_routes = economy_kind_counter(runs, "pickup_spawn_route_role_by_kind", "heal")
@@ -258,6 +262,12 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     spawn_ammo_poi = economy_kind_counter(runs, "pickup_spawn_poi_role_by_kind", "ammo")
     collect_weapon_poi = economy_kind_counter(runs, "pickup_collect_poi_role_by_kind", "weapon")
     collect_ammo_poi = economy_kind_counter(runs, "pickup_collect_poi_role_by_kind", "ammo")
+    collect_weapon_poi_bands = economy_kind_counter(runs, "pickup_collect_poi_band_by_kind", "weapon")
+    collect_ammo_poi_bands = economy_kind_counter(runs, "pickup_collect_poi_band_by_kind", "ammo")
+    spawn_weapon_poi_bands = economy_kind_counter(runs, "pickup_spawn_poi_band_by_kind", "weapon")
+    spawn_ammo_poi_bands = economy_kind_counter(runs, "pickup_spawn_poi_band_by_kind", "ammo")
+    soft_poi_band_keys = ["inside", "near_0_4m", "near_4_8m"]
+    near_poi_band_keys = ["near_0_4m", "near_4_8m"]
     attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
     summary = {
         "runs": float(len(runs)),
@@ -327,8 +337,26 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "chase_combat_self_in_poi_pct": excluding_share(combat_self_poi_roles, ["open", "none"]),
         "chase_combat_target_in_poi_pct": excluding_share(combat_target_poi_roles, ["open", "none"]),
         "chase_combat_target_on_route_pct": excluding_share(combat_target_route_roles, ["off_route", "none"]),
+        "chase_combat_target_near_poi_pct": counter_group_share(combat_target_poi_bands, near_poi_band_keys),
+        "chase_combat_target_inside_or_near_poi_pct": counter_group_share(
+            combat_target_poi_bands,
+            soft_poi_band_keys,
+        ),
+        "chase_combat_target_on_or_near_route_pct": counter_group_share(
+            combat_target_route_bands,
+            ["on_route", "near_0_4m", "near_4_8m"],
+        ),
         "chase_recover_target_in_poi_pct": excluding_share(recover_target_poi_roles, ["open", "none"]),
         "chase_recover_target_on_route_pct": excluding_share(recover_target_route_roles, ["off_route", "none"]),
+        "chase_recover_target_near_poi_pct": counter_group_share(recover_target_poi_bands, near_poi_band_keys),
+        "chase_recover_target_inside_or_near_poi_pct": counter_group_share(
+            recover_target_poi_bands,
+            soft_poi_band_keys,
+        ),
+        "chase_recover_target_on_or_near_route_pct": counter_group_share(
+            recover_target_route_bands,
+            ["on_route", "near_0_4m", "near_4_8m"],
+        ),
         "chase_recover_target_transit_poi_pct": counter_share(recover_target_poi_roles, "transit_choke"),
         "chase_recover_target_loot_hub_pct": counter_share(recover_target_poi_roles, "loot_hub"),
         "chase_recover_target_concealment_pct": counter_share(recover_target_poi_roles, "concealment"),
@@ -364,6 +392,18 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "pickup_spawn_ammo_in_poi_pct": excluding_share(spawn_ammo_poi, ["open", "none"]),
         "pickup_collect_weapon_in_poi_pct": excluding_share(collect_weapon_poi, ["open", "none"]),
         "pickup_collect_ammo_in_poi_pct": excluding_share(collect_ammo_poi, ["open", "none"]),
+        "pickup_spawn_weapon_inside_or_near_poi_pct": counter_group_share(spawn_weapon_poi_bands, soft_poi_band_keys),
+        "pickup_spawn_ammo_inside_or_near_poi_pct": counter_group_share(spawn_ammo_poi_bands, soft_poi_band_keys),
+        "pickup_collect_weapon_near_poi_pct": counter_group_share(collect_weapon_poi_bands, near_poi_band_keys),
+        "pickup_collect_ammo_near_poi_pct": counter_group_share(collect_ammo_poi_bands, near_poi_band_keys),
+        "pickup_collect_weapon_inside_or_near_poi_pct": counter_group_share(
+            collect_weapon_poi_bands,
+            soft_poi_band_keys,
+        ),
+        "pickup_collect_ammo_inside_or_near_poi_pct": counter_group_share(
+            collect_ammo_poi_bands,
+            soft_poi_band_keys,
+        ),
         "pickup_collect_heal_recovery_exit_pct": counter_share(collect_heal_routes, "recovery_exit"),
         "pickup_collect_armor_recovery_exit_pct": counter_share(collect_armor_routes, "recovery_exit"),
         "pickup_spawn_heal_recovery_exit_pct": counter_share(spawn_heal_routes, "recovery_exit"),
@@ -438,8 +478,14 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("chase_combat_self_in_poi_pct", "CHASE combat self POI %"),
         ("chase_combat_target_in_poi_pct", "CHASE combat target POI %"),
         ("chase_combat_target_on_route_pct", "CHASE combat target route %"),
+        ("chase_combat_target_near_poi_pct", "CHASE combat target near POI %"),
+        ("chase_combat_target_inside_or_near_poi_pct", "CHASE combat target soft POI %"),
+        ("chase_combat_target_on_or_near_route_pct", "CHASE combat target soft route %"),
         ("chase_recover_target_in_poi_pct", "CHASE recover target POI %"),
         ("chase_recover_target_on_route_pct", "CHASE recover target route %"),
+        ("chase_recover_target_near_poi_pct", "CHASE recover target near POI %"),
+        ("chase_recover_target_inside_or_near_poi_pct", "CHASE recover target soft POI %"),
+        ("chase_recover_target_on_or_near_route_pct", "CHASE recover target soft route %"),
         ("chase_recover_target_transit_poi_pct", "CHASE recover target transit POI %"),
         ("chase_recover_target_loot_hub_pct", "CHASE recover target loot hub %"),
         ("chase_recover_target_recovery_pocket_pct", "CHASE recover target recovery POI %"),
@@ -465,6 +511,12 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("pickup_spawn_ammo_in_poi_pct", "pickup spawn ammo POI %"),
         ("pickup_collect_weapon_in_poi_pct", "pickup collect weapon POI %"),
         ("pickup_collect_ammo_in_poi_pct", "pickup collect ammo POI %"),
+        ("pickup_spawn_weapon_inside_or_near_poi_pct", "pickup spawn weapon soft POI %"),
+        ("pickup_spawn_ammo_inside_or_near_poi_pct", "pickup spawn ammo soft POI %"),
+        ("pickup_collect_weapon_near_poi_pct", "pickup collect weapon near POI %"),
+        ("pickup_collect_ammo_near_poi_pct", "pickup collect ammo near POI %"),
+        ("pickup_collect_weapon_inside_or_near_poi_pct", "pickup collect weapon soft POI %"),
+        ("pickup_collect_ammo_inside_or_near_poi_pct", "pickup collect ammo soft POI %"),
         ("combat_hit_in_poi_pct", "combat hits in POI %"),
         ("combat_damage_in_poi_pct", "combat damage in POI %"),
         ("combat_hit_on_route_pct", "combat hits on route %"),
@@ -488,6 +540,7 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
     print_engagement_density_decision(summary_a, summary_b)
     print_chase_location_decision(summary_a, summary_b)
     print_pickup_location_decision(summary_a, summary_b)
+    print_poi_leakage_decision(summary_a, summary_b)
     print_route_pressure_decision(summary_a, summary_b)
     print_pressure_decision(summary_a, summary_b)
 
@@ -710,6 +763,62 @@ def print_pickup_location_decision(summary_a: dict[str, float], summary_b: dict[
         summary_b.get("pickup_collect_ammo_primary_choke_pct", 0.0)
     ) < 25.0:
         print("  - Primary chokes are not the main weapon/ammo collection source yet.")
+
+
+def print_poi_leakage_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    combat_inside_delta = float(summary_b.get("chase_combat_target_in_poi_pct", 0.0)) - float(
+        summary_a.get("chase_combat_target_in_poi_pct", 0.0)
+    )
+    combat_soft_delta = float(summary_b.get("chase_combat_target_inside_or_near_poi_pct", 0.0)) - float(
+        summary_a.get("chase_combat_target_inside_or_near_poi_pct", 0.0)
+    )
+    recover_inside_delta = float(summary_b.get("chase_recover_target_in_poi_pct", 0.0)) - float(
+        summary_a.get("chase_recover_target_in_poi_pct", 0.0)
+    )
+    recover_soft_delta = float(summary_b.get("chase_recover_target_inside_or_near_poi_pct", 0.0)) - float(
+        summary_a.get("chase_recover_target_inside_or_near_poi_pct", 0.0)
+    )
+    collect_weapon_inside_delta = float(summary_b.get("pickup_collect_weapon_in_poi_pct", 0.0)) - float(
+        summary_a.get("pickup_collect_weapon_in_poi_pct", 0.0)
+    )
+    collect_weapon_soft_delta = float(summary_b.get("pickup_collect_weapon_inside_or_near_poi_pct", 0.0)) - float(
+        summary_a.get("pickup_collect_weapon_inside_or_near_poi_pct", 0.0)
+    )
+    collect_ammo_inside_delta = float(summary_b.get("pickup_collect_ammo_in_poi_pct", 0.0)) - float(
+        summary_a.get("pickup_collect_ammo_in_poi_pct", 0.0)
+    )
+    collect_ammo_soft_delta = float(summary_b.get("pickup_collect_ammo_inside_or_near_poi_pct", 0.0)) - float(
+        summary_a.get("pickup_collect_ammo_inside_or_near_poi_pct", 0.0)
+    )
+    combat_soft_b = float(summary_b.get("chase_combat_target_inside_or_near_poi_pct", 0.0))
+    recover_soft_b = float(summary_b.get("chase_recover_target_inside_or_near_poi_pct", 0.0))
+    collect_weapon_soft_b = float(summary_b.get("pickup_collect_weapon_inside_or_near_poi_pct", 0.0))
+    collect_ammo_soft_b = float(summary_b.get("pickup_collect_ammo_inside_or_near_poi_pct", 0.0))
+
+    print("POI leakage decision:")
+    if combat_soft_b <= 0.0 and recover_soft_b <= 0.0 and collect_weapon_soft_b <= 0.0 and collect_ammo_soft_b <= 0.0:
+        print("  - No POI proximity telemetry was recorded; run a post-v2.0.33 simulation set.")
+        return
+    if combat_inside_delta <= -5.0 and combat_soft_delta >= combat_inside_delta + 4.0:
+        print("  - Combat CHASE targets are near POIs but outside strict radii; inspect POI radius/route overlap before AI tuning.")
+    elif combat_soft_delta <= -5.0:
+        print("  - Combat CHASE targets truly leak away from POI influence; inspect target acquisition and encounter spacing.")
+    else:
+        print("  - Combat CHASE soft-POI coverage is stable enough; POI radius alone is not the first suspect.")
+    if recover_inside_delta <= -5.0 and recover_soft_delta >= recover_inside_delta + 4.0:
+        print("  - Recovery targets sit near POI edges; inspect recovery route overlap before relocating pickups.")
+    elif recover_soft_delta <= -5.0:
+        print("  - Recovery targets move away from POI influence at target scale; inspect pickup sensing and patrol/recovery search.")
+    if (
+        collect_weapon_inside_delta <= -5.0
+        and collect_weapon_soft_delta >= collect_weapon_inside_delta + 4.0
+    ) or (
+        collect_ammo_inside_delta <= -5.0
+        and collect_ammo_soft_delta >= collect_ammo_inside_delta + 4.0
+    ):
+        print("  - Weapon/ammo collection is near POIs but outside strict radii; adjust POI overlap diagnostics before moving loot.")
+    elif collect_weapon_soft_delta <= -5.0 or collect_ammo_soft_delta <= -5.0:
+        print("  - Weapon/ammo collection loses even soft POI coverage; inspect open-area pickup collection and objective scanning.")
 
 
 def print_route_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:

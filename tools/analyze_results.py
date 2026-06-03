@@ -358,11 +358,15 @@ if __name__ == "__main__":
     collect_route_mix = format_economy_kind_mix(results, "pickup_collect_route_role_by_kind", pickup_kinds)
     spawn_poi_mix = format_economy_kind_mix(results, "pickup_spawn_poi_role_by_kind", pickup_kinds)
     collect_poi_mix = format_economy_kind_mix(results, "pickup_collect_poi_role_by_kind", pickup_kinds)
+    spawn_poi_band_mix = format_economy_kind_mix(results, "pickup_spawn_poi_band_by_kind", pickup_kinds)
+    collect_poi_band_mix = format_economy_kind_mix(results, "pickup_collect_poi_band_by_kind", pickup_kinds)
     if spawn_route_mix != "none" or collect_route_mix != "none":
         print(f"Pickup spawn route by kind: {spawn_route_mix}")
         print(f"Pickup collect route by kind: {collect_route_mix}")
         print(f"Pickup spawn POI by kind: {spawn_poi_mix}")
         print(f"Pickup collect POI by kind: {collect_poi_mix}")
+        print(f"Pickup spawn POI band by kind: {spawn_poi_band_mix}")
+        print(f"Pickup collect POI band by kind: {collect_poi_band_mix}")
     print(f"Zone deaths: {sum(zone_deaths)} ({avg(zone_deaths):.1f}/run), max outside time: {max(max_outside_time):.1f}s")
     if spawn_runs:
         placed = [int(s.get("placed_count", 0)) for s in spawn_runs]
@@ -476,10 +480,16 @@ if __name__ == "__main__":
         target_poi_mix = format_context_mix(results, "chase_target_poi_role_by_context", chase_contexts)
         target_route_mix = format_context_mix(results, "chase_target_route_role_by_context", chase_contexts)
         target_kind_mix = format_context_mix(results, "chase_target_kind_by_context", chase_contexts)
+        self_poi_band_mix = format_context_mix(results, "chase_self_poi_band_by_context", chase_contexts)
+        target_poi_band_mix = format_context_mix(results, "chase_target_poi_band_by_context", chase_contexts)
+        target_route_band_mix = format_context_mix(results, "chase_target_route_band_by_context", chase_contexts)
         if self_poi_mix != "none" or target_poi_mix != "none" or target_kind_mix != "none":
             print(f"CHASE self POI by context: {self_poi_mix}")
             print(f"CHASE target POI by context: {target_poi_mix}")
             print(f"CHASE target route by context: {target_route_mix}")
+            print(f"CHASE self POI band by context: {self_poi_band_mix}")
+            print(f"CHASE target POI band by context: {target_poi_band_mix}")
+            print(f"CHASE target route band by context: {target_route_band_mix}")
             print(f"CHASE target kind by context: {target_kind_mix}")
     if doctrine_range_by_archetype:
         print("Doctrine engage range by archetype:")

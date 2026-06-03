@@ -6,6 +6,36 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.33 — POI Proximity / Soft-Overlap Diagnostics
+
+**Scope**
+
+- Added diagnostic POI/route proximity bands without changing gameplay, map data, loot, AI behavior, damage, or zone pacing.
+- `MapDefinition.describe_strategic_position()` now reports nearest POI radius/edge distance and nearest route width/edge distance.
+- `Telemetry.gd` persists CHASE self/target POI bands, CHASE target route bands, and pickup spawn/collect POI/route bands.
+- `tools/analyze_results.py` prints CHASE and pickup POI/route band mixes.
+- `tools/compare_scale_profiles.py` compares soft POI/route coverage and adds a `POI leakage decision`.
+
+**Verification**
+
+- Python compile passed for scale analysis/simulation tools.
+- `verify_strategic_flow_map.gd` and `verify_candidate_99_probe.gd` passed.
+- 1-run 99 smoke at `C:\tmp\game_dev_poi_band_v2033_smoke` confirmed the new band fields are written; the single-run scale gate failed only on stuck variance, so it is schema smoke only.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_poi_band_60_v2033`: avg duration 128.0s, first upgrade 14.0s, stuck 44.8/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_poi_band_99_v2033`: avg duration 152.0s, first upgrade 25.4s, stuck 45.2/run, fallback 0.0/run.
+
+**Decision**
+
+- POI loss is not just strict-radius classification. Combat CHASE target soft-POI coverage still drops at 99: 83.9% -> 78.4%.
+- Combat CHASE target route coverage remains high: soft route 93.7% -> 90.4%, so entities are still on/near routes while drifting away from POI influence.
+- Recovery target soft-POI coverage is more stable: 86.7% -> 83.2%.
+- Pickup collection soft-POI loss is smaller than combat target loss: weapon 87.0% -> 82.8%, ammo 87.6% -> 83.2%.
+- Do not tune AI aggression, raw damage, zone speed, or recovery-exit loot relocation yet.
+- Next slice should inspect target acquisition source and encounter spacing around POI/route edges before changing map geometry or bot thresholds.
+
+---
+
 ## v2.0.32 — Pickup Location / Recovery-Exit Source Diagnostics
 
 **Scope**

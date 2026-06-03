@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.32 — pickup location / recovery-exit source diagnostics`.
-- Next structural slice: `v2.0.33 — POI target acquisition and route-overlap follow-up`.
+- Latest completed slice: `v2.0.33 — POI proximity / soft-overlap diagnostics`.
+- Next structural slice: `v2.0.34 — target acquisition source and encounter-position diagnostics`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -43,13 +43,13 @@
 - Current v2.0.24 slice adds candidate-only `target_99_probe` economy tuning; no default/global 99 promotion was made.
 - `b44d9dd feat: add engagement density diagnostics` — adds engagement-density diagnostics; no gameplay tuning or default/global 99 promotion was made.
 - `5fa689c feat: add route pressure telemetry` — adds combat-location / route-pressure telemetry; no gameplay tuning or default/global 99 promotion was made.
-- Current v2.0.32 slice adds pickup location diagnostics; default map/global 99 promotion was not made.
+- Current v2.0.33 slice adds POI proximity diagnostics; default map/global 99 promotion was not made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.33 — POI target acquisition and route-overlap follow-up`
+`v2.0.34 — target acquisition source and encounter-position diagnostics`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -73,7 +73,14 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - v2.0.32 result: recovery-exit weapon/ammo placement is not a 99-specific overstock signal. Weapon spawn recovery_exit is 24.8% -> 21.2%; ammo spawn recovery_exit is 26.3% -> 24.5%.
 - Weapon/ammo collection at recovery_exit also drops at 99: weapon 30.9% -> 27.4%, ammo 32.8% -> 28.9%.
 - Stronger signal is POI leakage: weapon collect POI 65.3% -> 54.6%, ammo collect POI 69.0% -> 55.5%, combat target POI 62.8% -> 53.0%, recover target POI 77.6% -> 59.1%.
-- Next work should inspect POI target acquisition, route/POI overlap width, and open-area pickup collection before AI aggression, raw damage, generic zone-speed tuning, or recovery-exit loot relocation.
+- v2.0.33 added POI/route proximity bands only: inside, near 0-4m, near 4-8m, and far beyond 8m for POIs; on-route/near/far for routes.
+- v2.0.33 fresh 5-run sets passed scale gates:
+  - `C:\tmp\game_dev_poi_band_60_v2033`: avg duration 128.0s, first upgrade 14.0s, stuck 44.8/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_poi_band_99_v2033`: avg duration 152.0s, first upgrade 25.4s, stuck 45.2/run, fallback 0.0/run.
+- v2.0.33 result: combat CHASE target soft-POI coverage still drops at 99, 83.9% -> 78.4%, so POI loss is not only a strict-radius artifact.
+- Combat target soft-route coverage remains high, 93.7% -> 90.4%, so entities are still on/near strategic routes while leaking from POI influence.
+- Pickup collection soft-POI loss is smaller than combat target loss: weapon 87.0% -> 82.8%, ammo 87.6% -> 83.2%.
+- Next work should inspect target acquisition source and target position at acquisition time before AI aggression, raw damage, generic zone-speed tuning, recovery-exit loot relocation, or POI radius changes.
 - Candidate `mapSpec_large_candidate.json` now has 6 route descriptors:
   - primary chokes: `west_ridge_choke`, `east_pine_choke`.
   - flanks: `north_slope_flank`, `south_creek_flank`.
@@ -82,11 +89,11 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - `MapDefinition.describe_strategic_position()` now classifies a world position into current POI role/name and route role/id.
 - `Entity.gd` logs strategic context for combat damage and combat kills.
 - `Telemetry.gd` aggregates hits/damage/kills by POI role, route role, and route id.
-- `analyze_results.py` prints combat-location, route-pressure, CHASE location, and pickup location mixes.
-- `compare_scale_profiles.py` prints route-pressure, CHASE location, and pickup location decisions.
+- `analyze_results.py` prints combat-location, route-pressure, CHASE location, pickup location, and proximity-band mixes.
+- `compare_scale_profiles.py` prints route-pressure, CHASE location, pickup location, and POI leakage decisions.
 - `tools/verify_strategic_flow_map.gd` guards candidate POI role coverage, route role coverage, primary-choke alternate routes, and connected POI references.
-- Current 99-probe normalized output from v2.0.32: damage=19.78, shots=2.44, plans=1.38, disengage=0.46, entries=1.84, stuck=0.18 per spawned entity/min.
-- Current 99-probe state mix from v2.0.32: ZONE_ESCAPE 28.1%, DISENGAGE 22.3%, CHASE 19.0%, ATTACK 17.6%, IDLE 13.0%.
+- Current 99-probe normalized output from v2.0.33: damage=19.40, shots=2.39, plans=1.25, disengage=0.45, entries=1.63, stuck=0.18 per spawned entity/min.
+- Current 99-probe state mix from v2.0.33: ZONE_ESCAPE 29.7%, DISENGAGE 21.6%, CHASE 19.4%, ATTACK 16.0%, IDLE 13.3%.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
 - Keep using `verify_strategic_flow_map.gd`, `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, candidate-path simulation, `analyze_results.py`, `compare_scale_profiles.py`, and `check_scale_telemetry.py` as scale gates.

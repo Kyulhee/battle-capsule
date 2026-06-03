@@ -211,12 +211,16 @@ func describe_strategic_position(world_pos: Vector2) -> Dictionary:
 		"nearest_poi_role": "none",
 		"nearest_poi_name": "none",
 		"nearest_poi_distance": -1.0,
+		"nearest_poi_radius": 0.0,
+		"nearest_poi_edge_distance": -1.0,
 		"route_role": "off_route",
 		"route_id": "off_route",
 		"route_on": false,
 		"nearest_route_role": "none",
 		"nearest_route_id": "none",
 		"nearest_route_distance": -1.0,
+		"nearest_route_width": 0.0,
+		"nearest_route_edge_distance": -1.0,
 	}
 
 	var nearest_poi_distance := INF
@@ -225,10 +229,13 @@ func describe_strategic_position(world_pos: Vector2) -> Dictionary:
 		var distance := world_pos.distance_to(poi_pos)
 		if distance < nearest_poi_distance:
 			nearest_poi_distance = distance
+			var radius := float(poi.get("radius", 0.0))
 			context["nearest_poi_role"] = String(poi.get("role", "none"))
 			context["nearest_poi_name"] = String(poi.get("name", "none"))
 			context["nearest_poi_distance"] = distance
-			if distance <= float(poi.get("radius", 0.0)):
+			context["nearest_poi_radius"] = radius
+			context["nearest_poi_edge_distance"] = maxf(0.0, distance - radius)
+			if distance <= radius:
 				context["poi_inside"] = true
 				context["poi_role"] = String(poi.get("role", "open"))
 				context["poi_name"] = String(poi.get("name", "none"))
@@ -239,10 +246,13 @@ func describe_strategic_position(world_pos: Vector2) -> Dictionary:
 		var distance := _route_distance(world_pos, points)
 		if distance < nearest_route_distance:
 			nearest_route_distance = distance
+			var width := float(route.get("width", 0.0))
 			context["nearest_route_role"] = String(route.get("role", "none"))
 			context["nearest_route_id"] = String(route.get("id", "none"))
 			context["nearest_route_distance"] = distance
-			if distance <= float(route.get("width", 0.0)):
+			context["nearest_route_width"] = width
+			context["nearest_route_edge_distance"] = maxf(0.0, distance - width)
+			if distance <= width:
 				context["route_on"] = true
 				context["route_role"] = String(route.get("role", "off_route"))
 				context["route_id"] = String(route.get("id", "off_route"))

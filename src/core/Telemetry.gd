@@ -148,6 +148,10 @@ func _reset_metrics():
 			"pickup_spawn_route_role_by_kind": {},
 			"pickup_collect_poi_role_by_kind": {},
 			"pickup_collect_route_role_by_kind": {},
+			"pickup_spawn_poi_band_by_kind": {},
+			"pickup_spawn_route_band_by_kind": {},
+			"pickup_collect_poi_band_by_kind": {},
+			"pickup_collect_route_band_by_kind": {},
 			"first_upgrade_time": -1.0,
 			"first_upgrade_weapon": "none",
 		},
@@ -242,6 +246,9 @@ func _reset_metrics():
 			"chase_self_route_role_by_context": {},
 			"chase_target_poi_role_by_context": {},
 			"chase_target_route_role_by_context": {},
+			"chase_self_poi_band_by_context": {},
+			"chase_target_poi_band_by_context": {},
+			"chase_target_route_band_by_context": {},
 			"chase_target_kind_by_context": {},
 			"engage_range_by_archetype": {},
 			"supply_decisions": {},
@@ -423,6 +430,8 @@ func log_pickup_location(event_name: String, item_type: String, context: Diction
 	var count_key = "pickup_%s_by_kind" % event_key
 	var poi_key = "pickup_%s_poi_role_by_kind" % event_key
 	var route_key = "pickup_%s_route_role_by_kind" % event_key
+	var poi_band_key = "pickup_%s_poi_band_by_kind" % event_key
+	var route_band_key = "pickup_%s_route_band_by_kind" % event_key
 	if metrics.economy.has(count_key):
 		_add_bucket_value(metrics.economy[count_key], kind, 1.0)
 	if metrics.economy.has(poi_key):
@@ -432,11 +441,25 @@ func log_pickup_location(event_name: String, item_type: String, context: Diction
 			String(context.get("poi_role", "open")),
 			1.0
 		)
+	if metrics.economy.has(poi_band_key):
+		_add_nested_bucket_value(
+			metrics.economy[poi_band_key],
+			kind,
+			_poi_distance_band(context),
+			1.0
+		)
 	if metrics.economy.has(route_key):
 		_add_nested_bucket_value(
 			metrics.economy[route_key],
 			kind,
 			String(context.get("route_role", "off_route")),
+			1.0
+		)
+	if metrics.economy.has(route_band_key):
+		_add_nested_bucket_value(
+			metrics.economy[route_band_key],
+			kind,
+			_route_distance_band(context),
 			1.0
 		)
 
@@ -613,6 +636,24 @@ func log_doctrine_chase_location(
 		metrics.doctrine.chase_target_route_role_by_context,
 		context_key,
 		String(target_context.get("route_role", "none")),
+		seconds
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.chase_self_poi_band_by_context,
+		context_key,
+		_poi_distance_band(self_context),
+		seconds
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.chase_target_poi_band_by_context,
+		context_key,
+		_poi_distance_band(target_context),
+		seconds
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.chase_target_route_band_by_context,
+		context_key,
+		_route_distance_band(target_context),
 		seconds
 	)
 	_add_nested_bucket_value(
@@ -928,3 +969,33 @@ func _add_nested_bucket_value(bucket: Dictionary, outer_key: String, inner_key: 
 		bucket[resolved_outer] = {}
 	var nested: Dictionary = bucket[resolved_outer]
 	_add_bucket_value(nested, inner_key, amount)
+
+func _poi_distance_band(context: Dictionary) -> String:
+	if bool(context.get("poi_inside", false)):
+		return "inside"
+	var role = String(context.get("poi_role", "open"))
+	if role != "" and role != "open" and role != "none":
+		return "inside"
+	var edge_distance = float(context.get("nearest_poi_edge_distance", -1.0))
+	if edge_distance < 0.0:
+		return "unknown"
+	if edge_distance <= 4.0:
+		return "near_0_4m"
+	if edge_distance <= 8.0:
+		return "near_4_8m"
+	return "far_8m_plus"
+
+func _route_distance_band(context: Dictionary) -> String:
+	if bool(context.get("route_on", false)):
+		return "on_route"
+	var role = String(context.get("route_role", "off_route"))
+	if role != "" and role != "off_route" and role != "none":
+		return "on_route"
+	var edge_distance = float(context.get("nearest_route_edge_distance", -1.0))
+	if edge_distance < 0.0:
+		return "unknown"
+	if edge_distance <= 4.0:
+		return "near_0_4m"
+	if edge_distance <= 8.0:
+		return "near_4_8m"
+	return "far_8m_plus"

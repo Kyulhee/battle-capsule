@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.32 pickup location diagnostics)
+> Last updated: 2026-06-03 (v2.0.33 POI proximity diagnostics)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.32: pickup location / recovery-exit source diagnostics |
-| Next structural slice | v2.0.33: POI target acquisition and route-overlap follow-up |
+| Latest completed slice | v2.0.33: POI proximity / soft-overlap diagnostics |
+| Next structural slice | v2.0.34: target acquisition source and encounter-position diagnostics |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -490,6 +490,16 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Weapon/ammo collection at recovery_exit also drops at 99: weapon 30.9% -> 27.4%, ammo 32.8% -> 28.9%.
 - The stronger signal is POI leakage: weapon collect POI 65.3% -> 54.6%, ammo collect POI 69.0% -> 55.5%, combat target POI 62.8% -> 53.0%, recover target POI 77.6% -> 59.1%.
 - Next work should inspect POI target acquisition, route/POI overlap width, and open-area pickup collection before AI aggression, raw damage, generic zone-speed tuning, or recovery-exit loot relocation.
+
+**v2.0.33 result**
+
+- Added POI/route proximity band diagnostics only; no gameplay, map, loot count, AI, damage, or zone tuning changed.
+- Analyzer and comparison tooling now expose CHASE/pickup inside/near/far POI bands plus a `POI leakage decision`.
+- Fresh 5-run candidate 60 and 99 sets both passed scale gates.
+- Combat CHASE target soft-POI coverage still drops at 99: 83.9% -> 78.4%, so POI loss is not only a strict-radius artifact.
+- Combat target soft-route coverage remains high: 93.7% -> 90.4%, so entities are still on/near strategic routes while leaking from POI influence.
+- Pickup collection soft-POI loss is smaller than combat target loss: weapon 87.0% -> 82.8%, ammo 87.6% -> 83.2%.
+- Next work should inspect target acquisition source and target position at acquisition time before AI aggression, raw damage, generic zone-speed tuning, recovery-exit loot relocation, or POI radius changes.
 
 ## Deferred Asset Upgrades
 
