@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.27 — strategic flow / route backbone probe`.
-- Next structural slice: `v2.0.28 — combat-location / route-pressure telemetry`.
+- Latest completed slice: `v2.0.28 — combat location / route pressure telemetry`.
+- Next structural slice: `v2.0.29 — fresh 60-vs-99 route-pressure comparison`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -42,13 +42,13 @@
 - `9e11a5d feat: add scale tempo diagnostics` — adds economy tempo rows and tempo decision output.
 - Current v2.0.24 slice adds candidate-only `target_99_probe` economy tuning; no default/global 99 promotion was made.
 - `b44d9dd feat: add engagement density diagnostics` — adds engagement-density diagnostics; no gameplay tuning or default/global 99 promotion was made.
-- Current v2.0.27 slice adds candidate strategic route data and validation; no gameplay tuning or default/global 99 promotion was made.
+- Current v2.0.28 slice adds combat-location / route-pressure telemetry; no gameplay tuning or default/global 99 promotion was made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.28 — combat-location / route-pressure telemetry`
+`v2.0.29 — fresh 60-vs-99 route-pressure comparison`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -58,7 +58,16 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
   - flanks: `north_slope_flank`, `south_creek_flank`.
   - loot/recovery flow: `central_meadow_cross`, `inner_brush_recovery_exit`.
 - `MapDefinition.get_route_descriptors()` exposes route points as `points_2d`, and route validation now checks id, role, width, point count, point validity, and bounds.
+- `MapDefinition.describe_strategic_position()` now classifies a world position into current POI role/name and route role/id.
+- `Entity.gd` logs strategic context for combat damage and combat kills.
+- `Telemetry.gd` aggregates hits/damage/kills by POI role, route role, and route id.
+- `analyze_results.py` prints combat-location and route-pressure mixes.
+- `compare_scale_profiles.py` prints route-pressure rows and a `Route pressure decision`.
 - `tools/verify_strategic_flow_map.gd` guards candidate POI role coverage, route role coverage, primary-choke alternate routes, and connected POI references.
+- v2.0.28 1-run candidate `xlarge_60` smoke at `C:\tmp\game_dev_route_pressure_smoke` confirmed telemetry output:
+  - combat damage on route 72.8%.
+  - damage route mix: loot_flow 37.0%, recovery_exit 34.5%, off_route 27.2%, flank 1.0%, primary_choke 0.2%.
+  - This is a schema smoke only. The normal 1-run scale gate failed because first upgrade happened at 1.7s, so do not use it as a balance pass.
 - Current default-map 5-run `xlarge_60` telemetry passed with spawn distribution: placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, saturation=0.24.
 - Candidate-map 5-run `xlarge_60` telemetry passed: avg duration 99.7s, fallback=0.0/run, min nearest=3.5m, avg nearest=9.6m, saturation=0.12, no zero sentinels.
 - Candidate-map 5-run `target_99_probe` telemetry passed: avg duration 129.4s, fallback=0.0/run, min nearest=3.5m, avg nearest=7.7m, saturation=0.20, AI avg=439.9us, no zero sentinels.
@@ -91,7 +100,7 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - 99 CHASE is majority loot/recovery movement, but this is not automatically a failure. Next telemetry should show whether movement crosses intended strategic routes and whether combat clusters around route/POI pressure.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should log combat location, nearest POI role, route proximity/occupancy, and zone-rotation route crossings before zone pacing, damage, pickup spacing, or bot retreat thresholds.
+- Next work should run fresh 5-run candidate `xlarge_60` and `target_99_probe` sets, compare route pressure, and only then decide whether route layout, pickup spacing, AI aggression, damage, or zone pacing needs tuning.
 - Keep using `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes

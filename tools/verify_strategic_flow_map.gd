@@ -45,6 +45,8 @@ func _init():
 		return
 	if not _verify_routes(routes, pois):
 		return
+	if not _verify_position_classification(definition):
+		return
 
 	print("Strategic flow map smoke passed: pois=%d routes=%d roles=%s route_roles=%s." % [
 		pois.size(),
@@ -121,6 +123,25 @@ func _verify_routes(routes: Array[Dictionary], pois: Array[Dictionary]) -> bool:
 		if not touched_poi_roles.has(required_role):
 			_fail("Strategic routes do not touch POI role '%s'." % String(required_role))
 			return false
+	return true
+
+
+func _verify_position_classification(definition) -> bool:
+	var west_choke: Dictionary = definition.describe_strategic_position(Vector2(-66.0, -10.0))
+	if String(west_choke.get("poi_role", "")) != "transit_choke":
+		_fail("West ridge choke should classify as transit_choke POI, got %s." % west_choke.get("poi_role", ""))
+		return false
+	if String(west_choke.get("route_role", "")) != "primary_choke":
+		_fail("West ridge choke should classify as primary_choke route, got %s." % west_choke.get("route_role", ""))
+		return false
+
+	var central: Dictionary = definition.describe_strategic_position(Vector2.ZERO)
+	if String(central.get("poi_role", "")) != "loot_hub":
+		_fail("Central meadow should classify as loot_hub POI, got %s." % central.get("poi_role", ""))
+		return false
+	if String(central.get("route_role", "")) != "loot_flow":
+		_fail("Central meadow should classify as loot_flow route, got %s." % central.get("route_role", ""))
+		return false
 	return true
 
 

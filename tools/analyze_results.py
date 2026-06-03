@@ -91,6 +91,24 @@ def doctrine_engage_sample_count(run: dict) -> int:
     return sum(int(bucket.get("count", 0)) for bucket in run.get("doctrine", {}).get("engage_range_by_archetype", {}).values())
 
 
+def combat_location_counter(results: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        values = run.get("combat", {}).get(key, {})
+        counter.update({name: float(value) for name, value in values.items()})
+    return counter
+
+
+def format_counter_mix(counter: Counter, limit: int = 5) -> str:
+    total = sum(float(value) for value in counter.values())
+    if total <= 0.0:
+        return "none"
+    parts = []
+    for name, value in counter.most_common(limit):
+        parts.append(f"{name}={100.0 * float(value) / total:.1f}%")
+    return ", ".join(parts)
+
+
 if __name__ == "__main__":
     results = load_runs(RUN_DIR)
     if not results:
@@ -264,6 +282,30 @@ if __name__ == "__main__":
             per_match_minute(results, combat_plan_total),
         )
     )
+    hit_poi_roles = combat_location_counter(results, "hit_location_by_poi_role")
+    damage_poi_roles = combat_location_counter(results, "damage_location_by_poi_role")
+    kill_poi_roles = combat_location_counter(results, "kill_location_by_poi_role")
+    hit_route_roles = combat_location_counter(results, "hit_location_by_route_role")
+    damage_route_roles = combat_location_counter(results, "damage_location_by_route_role")
+    kill_route_roles = combat_location_counter(results, "kill_location_by_route_role")
+    damage_route_ids = combat_location_counter(results, "damage_location_by_route_id")
+    if hit_poi_roles or damage_poi_roles or kill_poi_roles:
+        print(
+            "Combat location by POI role: hits=[{}], damage=[{}], kills=[{}]".format(
+                format_counter_mix(hit_poi_roles),
+                format_counter_mix(damage_poi_roles),
+                format_counter_mix(kill_poi_roles),
+            )
+        )
+    if hit_route_roles or damage_route_roles or kill_route_roles:
+        print(
+            "Combat route pressure: hits=[{}], damage=[{}], kills=[{}], damage route ids=[{}]".format(
+                format_counter_mix(hit_route_roles),
+                format_counter_mix(damage_route_roles),
+                format_counter_mix(kill_route_roles),
+                format_counter_mix(damage_route_ids),
+            )
+        )
     print(
         "Economy-normalized per spawned entity/min: weapons={:.2f}, non_pistol={:.2f}, rare={:.2f}, heals={:.2f}, shields={:.2f}".format(
             per_spawned_entity_minute(results, weapon_pickup_total),

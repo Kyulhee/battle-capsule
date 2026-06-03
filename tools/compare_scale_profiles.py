@@ -157,6 +157,28 @@ def disengage_reason_rates(runs: list[dict]) -> dict[str, float]:
     return rates
 
 
+def combat_location_counter(runs: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for run in runs:
+        values = run.get("combat", {}).get(key, {})
+        counter.update({name: float(value) for name, value in values.items()})
+    return counter
+
+
+def counter_share(counter: Counter, key: str) -> float:
+    total = sum(float(value) for value in counter.values())
+    if total <= 0.0:
+        return 0.0
+    return 100.0 * float(counter.get(key, 0.0)) / total
+
+
+def non_key_share(counter: Counter, excluded_key: str) -> float:
+    total = sum(float(value) for value in counter.values())
+    if total <= 0.0:
+        return 0.0
+    return 100.0 * (total - float(counter.get(excluded_key, 0.0))) / total
+
+
 def summarize(runs: list[dict]) -> dict[str, float]:
     durations = [float(r.get("core", {}).get("duration", 0.0)) for r in runs]
     first_upgrade = [
@@ -177,6 +199,11 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     state_mix = doctrine_state_mix(runs)
     engage_range = doctrine_engage_range_totals(runs)
     chase_mix = chase_context_mix(runs)
+    hit_poi_roles = combat_location_counter(runs, "hit_location_by_poi_role")
+    damage_poi_roles = combat_location_counter(runs, "damage_location_by_poi_role")
+    hit_route_roles = combat_location_counter(runs, "hit_location_by_route_role")
+    damage_route_roles = combat_location_counter(runs, "damage_location_by_route_role")
+    kill_route_roles = combat_location_counter(runs, "kill_location_by_route_role")
     attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
     summary = {
         "runs": float(len(runs)),
@@ -241,6 +268,16 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "chase_loot": chase_mix.get("loot", 0.0),
         "chase_recover_loot": chase_mix.get("recover_loot", 0.0),
         "chase_unknown": chase_mix.get("unknown", 0.0),
+        "combat_hit_in_poi_pct": non_key_share(hit_poi_roles, "open"),
+        "combat_damage_in_poi_pct": non_key_share(damage_poi_roles, "open"),
+        "combat_hit_on_route_pct": non_key_share(hit_route_roles, "off_route"),
+        "combat_damage_on_route_pct": non_key_share(damage_route_roles, "off_route"),
+        "combat_kill_on_route_pct": non_key_share(kill_route_roles, "off_route"),
+        "damage_primary_choke_pct": counter_share(damage_route_roles, "primary_choke"),
+        "damage_flank_pct": counter_share(damage_route_roles, "flank"),
+        "damage_loot_flow_pct": counter_share(damage_route_roles, "loot_flow"),
+        "damage_recovery_exit_pct": counter_share(damage_route_roles, "recovery_exit"),
+        "damage_transit_choke_poi_pct": counter_share(damage_poi_roles, "transit_choke"),
     }
     if spawn_runs:
         summary.update(
@@ -298,6 +335,16 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("chase_loot", "CHASE loot %"),
         ("chase_recover_loot", "CHASE recover loot %"),
         ("chase_unknown", "CHASE unknown %"),
+        ("combat_hit_in_poi_pct", "combat hits in POI %"),
+        ("combat_damage_in_poi_pct", "combat damage in POI %"),
+        ("combat_hit_on_route_pct", "combat hits on route %"),
+        ("combat_damage_on_route_pct", "combat damage on route %"),
+        ("combat_kill_on_route_pct", "combat kills on route %"),
+        ("damage_primary_choke_pct", "damage primary choke %"),
+        ("damage_flank_pct", "damage flank %"),
+        ("damage_loot_flow_pct", "damage loot flow %"),
+        ("damage_recovery_exit_pct", "damage recovery exit %"),
+        ("damage_transit_choke_poi_pct", "damage transit POI %"),
     ]
     print("--- Scale Profile Comparison ---")
     print(f"{'Metric':<28} {label_a:>14} {label_b:>14} {'delta':>14}")
@@ -308,6 +355,7 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
     print_disengage_reason_comparison(label_a, summary_a, label_b, summary_b)
     print_tempo_decision(summary_a, summary_b)
     print_engagement_density_decision(summary_a, summary_b)
+    print_route_pressure_decision(summary_a, summary_b)
     print_pressure_decision(summary_a, summary_b)
 
 
@@ -453,6 +501,33 @@ def print_engagement_density_decision(summary_a: dict[str, float], summary_b: di
         print("  - CHASE time shifted away from combat targets; inspect loot/recovery interruptions and enemy acquisition.")
     elif chase_loot_total_b >= 35.0:
         print("  - A large share of CHASE time is loot/recovery movement; inspect objective interrupts and pickup spacing.")
+
+
+def print_route_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    route_damage_delta = float(summary_b.get("combat_damage_on_route_pct", 0.0)) - float(
+        summary_a.get("combat_damage_on_route_pct", 0.0)
+    )
+    poi_damage_delta = float(summary_b.get("combat_damage_in_poi_pct", 0.0)) - float(
+        summary_a.get("combat_damage_in_poi_pct", 0.0)
+    )
+    primary_choke_b = float(summary_b.get("damage_primary_choke_pct", 0.0))
+    flank_b = float(summary_b.get("damage_flank_pct", 0.0))
+    transit_poi_b = float(summary_b.get("damage_transit_choke_poi_pct", 0.0))
+
+    print("Route pressure decision:")
+    if float(summary_b.get("combat_damage_on_route_pct", 0.0)) <= 0.0:
+        print("  - No route-pressure telemetry was recorded; run a post-v2.0.28 simulation set.")
+        return
+    if route_damage_delta < -5.0:
+        print("  - Target scale moved damage away from strategic routes; inspect route spacing and zone pull.")
+    else:
+        print("  - Target scale preserves or increases damage on strategic routes.")
+    if poi_damage_delta < -5.0:
+        print("  - Target scale moved damage out of POI influence; inspect loot hubs and recovery pockets.")
+    if primary_choke_b + flank_b < 25.0 and transit_poi_b < 12.0:
+        print("  - Choke/flank pressure is thin; map routes may not be contesting rotations yet.")
+    else:
+        print("  - Choke/flank pressure is present enough to analyze before AI aggression tuning.")
 
 
 def main() -> int:

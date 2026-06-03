@@ -210,8 +210,11 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 		current_health -= amount
 		health_changed.emit(current_health, stats.max_health)
 	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").log_damage(amount, source, weapon_type, dist)
-	_debug_log("damage", "%s took %.1f source=%s weapon=%s shield=%.1f hp=%.1f dist=%.1f" % [
+		var tel = get_node("/root/Telemetry")
+		tel.log_damage(amount, source, weapon_type, dist)
+		if tel.has_method("log_combat_location") and _is_combat_damage_source(source):
+			tel.log_combat_location("damage", amount, _strategic_position_context(global_position))
+		_debug_log("damage", "%s took %.1f source=%s weapon=%s shield=%.1f hp=%.1f dist=%.1f" % [
 		_debug_name(),
 		amount,
 		source,
@@ -297,6 +300,8 @@ func die(killer: Node3D = null):
 		var tel = get_node("/root/Telemetry")
 		# Log Death
 		tel.log_death(last_damage_source, get_telemetry_state())
+		if killer and killer is Entity and tel.has_method("log_combat_location") and _is_combat_damage_source(last_damage_source):
+			tel.log_combat_location("kill", 1.0, _strategic_position_context(global_position))
 		
 		# Kill — log only when killer is confirmed to be the player
 		if killer and killer.is_in_group("players"):
@@ -315,3 +320,21 @@ func die(killer: Node3D = null):
 	get_tree().root.add_child(eff)
 	eff.global_position = global_position + Vector3(0, 1, 0)
 	emit_signal("died")
+
+func _is_combat_damage_source(source: String) -> bool:
+	return source == "gun" or source == "melee"
+
+func _strategic_position_context(world_pos: Vector3) -> Dictionary:
+	var context := {
+		"poi_role": "open",
+		"poi_name": "none",
+		"route_role": "off_route",
+		"route_id": "off_route",
+	}
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		return context
+	var definition = main.get("map_definition")
+	if definition and definition.has_method("describe_strategic_position"):
+		return definition.describe_strategic_position(Vector2(world_pos.x, world_pos.z))
+	return context

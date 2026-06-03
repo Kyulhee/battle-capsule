@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.27 strategic flow / route backbone probe)
+> Last updated: 2026-06-03 (v2.0.28 combat location / route pressure telemetry)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.27: strategic flow / route backbone probe |
-| Next structural slice | v2.0.28: combat-location / route-pressure telemetry |
+| Latest completed slice | v2.0.28: combat location / route pressure telemetry |
+| Next structural slice | v2.0.29: fresh 60-vs-99 route-pressure comparison |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -445,7 +445,15 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Added candidate-map strategic `routes` data for primary chokes, flanks, loot flow, and recovery re-entry without changing runtime movement or bot behavior.
 - `MapDefinition` now exposes route descriptors and validates route id, role, width, point count, and world bounds when routes are present.
 - Added `verify_strategic_flow_map.gd` to guard candidate POI role coverage, route role coverage, primary-choke alternate routes, and route-to-POI references.
-- Next work should add telemetry for combat location, POI role proximity, route pressure, and zone-rotation crossings before changing AI aggression, damage, or zone pacing.
+
+**v2.0.28 result**
+
+- `MapDefinition.describe_strategic_position()` classifies combat positions into POI role/name and route role/id.
+- `Entity.gd` logs strategic context for combat damage and combat kills through `Telemetry.gd`.
+- Telemetry now aggregates hits, damage, and kills by POI role, route role, and route id.
+- `analyze_results.py` and `compare_scale_profiles.py` report route-pressure mixes and decisions.
+- 1-run candidate `xlarge_60` smoke confirmed route-pressure telemetry is written and readable; the normal 1-run scale gate failed only due to an early 1.7s upgrade sample, so use fresh 5-run sets for balance decisions.
+- Next work should run fresh 60-vs-99 candidate route-pressure comparison before changing route layout, pickup spacing, AI aggression, damage, or zone pacing.
 
 ## Deferred Asset Upgrades
 

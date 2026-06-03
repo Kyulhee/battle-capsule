@@ -98,6 +98,16 @@ func _reset_metrics():
 			"damage_by_weapon": {},
 			"kills_by_weapon": {},
 			"kill_distances": {},
+			"location_samples": 0,
+			"hit_location_by_poi_role": {},
+			"damage_location_by_poi_role": {},
+			"kill_location_by_poi_role": {},
+			"hit_location_by_route_role": {},
+			"damage_location_by_route_role": {},
+			"kill_location_by_route_role": {},
+			"hit_location_by_route_id": {},
+			"damage_location_by_route_id": {},
+			"kill_location_by_route_id": {},
 			"attack_max_continuous": 0.0,
 			"attack_disengage_count": 0,
 		},
@@ -292,6 +302,29 @@ func log_damage(amount: float, source: String, weapon_type: String, _dist: float
 	var w = _norm_weapon(weapon_type)
 	_ensure_combat_weapon(w)
 	metrics.combat.damage_by_weapon[w] = metrics.combat.damage_by_weapon.get(w, 0.0) + amount
+
+func log_combat_location(event: String, amount: float, context: Dictionary):
+	if not match_in_progress or not _g("combat"): return
+	var event_key = event.strip_edges().to_lower()
+	if event_key == "":
+		return
+	var poi_role := String(context.get("poi_role", "open"))
+	var route_role := String(context.get("route_role", "off_route"))
+	var route_id := String(context.get("route_id", "off_route"))
+	match event_key:
+		"damage", "hit":
+			metrics.combat.location_samples += 1
+			_add_bucket_count(metrics.combat.hit_location_by_poi_role, poi_role)
+			_add_bucket_count(metrics.combat.hit_location_by_route_role, route_role)
+			_add_bucket_count(metrics.combat.hit_location_by_route_id, route_id)
+			if amount > 0.0:
+				_add_bucket_value(metrics.combat.damage_location_by_poi_role, poi_role, amount)
+				_add_bucket_value(metrics.combat.damage_location_by_route_role, route_role, amount)
+				_add_bucket_value(metrics.combat.damage_location_by_route_id, route_id, amount)
+		"kill":
+			_add_bucket_count(metrics.combat.kill_location_by_poi_role, poi_role)
+			_add_bucket_count(metrics.combat.kill_location_by_route_role, route_role)
+			_add_bucket_count(metrics.combat.kill_location_by_route_id, route_id)
 
 func log_shot():
 	if not match_in_progress or not _g("combat"): return
@@ -798,3 +831,11 @@ func _ensure_combat_weapon(w: String):
 		metrics.combat.kills_by_weapon[w] = 0
 	if not metrics.combat.damage_by_weapon.has(w):
 		metrics.combat.damage_by_weapon[w] = 0.0
+
+func _add_bucket_count(bucket: Dictionary, key: String, amount: int = 1):
+	var bucket_key = key if key.strip_edges() != "" else "unknown"
+	bucket[bucket_key] = int(bucket.get(bucket_key, 0)) + amount
+
+func _add_bucket_value(bucket: Dictionary, key: String, amount: float):
+	var bucket_key = key if key.strip_edges() != "" else "unknown"
+	bucket[bucket_key] = float(bucket.get(bucket_key, 0.0)) + amount

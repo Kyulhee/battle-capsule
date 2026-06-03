@@ -6,6 +6,32 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.28 — Combat Location / Route Pressure Telemetry
+
+**Scope**
+
+- Added `MapDefinition.describe_strategic_position()` to classify a world position by current POI role and route role.
+- `Entity.gd` now tags combat damage and combat kills with strategic location context without changing damage, kill, AI, loot, or zone behavior.
+- `Telemetry.gd` now aggregates combat hits, damage, and kills by POI role, route role, and route id.
+- `tools/analyze_results.py` prints combat location and route-pressure mixes.
+- `tools/compare_scale_profiles.py` compares route-pressure shares and adds a `Route pressure decision`.
+
+**Verification**
+
+- Python compile passed for `compare_scale_profiles.py`, `analyze_results.py`, `simulate_matches.py`, and `check_scale_telemetry.py`.
+- `verify_strategic_flow_map.gd`, `verify_map_definition.gd`, and `verify_candidate_99_probe.gd` passed.
+- Candidate-map headless quit passed with the expected AssetCatalog missing-path warning.
+- 1-run candidate `xlarge_60` smoke at `C:\tmp\game_dev_route_pressure_smoke` wrote route-pressure telemetry and `analyze_results.py` printed POI/route mixes.
+- Schema smoke passed with `check_scale_telemetry.py --min-runs 1 --min-avg-first-upgrade 0`; the normal gate failed only because that single run upgraded at 1.7s, so do not treat it as a balance pass.
+- `git diff --check` passed.
+
+**Decision**
+
+- The route-pressure telemetry path is live.
+- Next slice should run fresh 5-run candidate `xlarge_60` and `target_99_probe` sets and compare route pressure before any map/AI/zone tuning.
+
+---
+
 ## v2.0.27 — Strategic Flow / Route Backbone Probe
 
 **Scope**

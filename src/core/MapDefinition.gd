@@ -203,6 +203,53 @@ func get_route_descriptors() -> Array[Dictionary]:
 	return descriptors
 
 
+func describe_strategic_position(world_pos: Vector2) -> Dictionary:
+	var context := {
+		"poi_role": "open",
+		"poi_name": "none",
+		"poi_inside": false,
+		"nearest_poi_role": "none",
+		"nearest_poi_name": "none",
+		"nearest_poi_distance": -1.0,
+		"route_role": "off_route",
+		"route_id": "off_route",
+		"route_on": false,
+		"nearest_route_role": "none",
+		"nearest_route_id": "none",
+		"nearest_route_distance": -1.0,
+	}
+
+	var nearest_poi_distance := INF
+	for poi in get_poi_descriptors():
+		var poi_pos: Vector2 = poi.get("pos_2d", Vector2.ZERO)
+		var distance := world_pos.distance_to(poi_pos)
+		if distance < nearest_poi_distance:
+			nearest_poi_distance = distance
+			context["nearest_poi_role"] = String(poi.get("role", "none"))
+			context["nearest_poi_name"] = String(poi.get("name", "none"))
+			context["nearest_poi_distance"] = distance
+			if distance <= float(poi.get("radius", 0.0)):
+				context["poi_inside"] = true
+				context["poi_role"] = String(poi.get("role", "open"))
+				context["poi_name"] = String(poi.get("name", "none"))
+
+	var nearest_route_distance := INF
+	for route in get_route_descriptors():
+		var points: Array = route.get("points_2d", [])
+		var distance := _route_distance(world_pos, points)
+		if distance < nearest_route_distance:
+			nearest_route_distance = distance
+			context["nearest_route_role"] = String(route.get("role", "none"))
+			context["nearest_route_id"] = String(route.get("id", "none"))
+			context["nearest_route_distance"] = distance
+			if distance <= float(route.get("width", 0.0)):
+				context["route_on"] = true
+				context["route_role"] = String(route.get("role", "off_route"))
+				context["route_id"] = String(route.get("id", "off_route"))
+
+	return context
+
+
 func get_match_tuning(game_config = null, fallback: Dictionary = {}, preset_name: String = "") -> Dictionary:
 	var tuning := _merge_dict(DEFAULT_MATCH.duplicate(true), fallback.duplicate(true))
 	if game_config != null and game_config.has_method("match_value"):
@@ -481,6 +528,28 @@ static func _obstacle_axis_extent(obstacle: Dictionary, scale: Vector3) -> Vecto
 		c * half_extents.x + s * half_extents.y,
 		s * half_extents.x + c * half_extents.y
 	)
+
+
+static func _route_distance(point: Vector2, points: Array) -> float:
+	if points.size() < 2:
+		return INF
+	var best := INF
+	for i in range(points.size() - 1):
+		var a: Vector2 = points[i]
+		var b: Vector2 = points[i + 1]
+		if not a.is_finite() or not b.is_finite():
+			continue
+		best = minf(best, _distance_to_segment(point, a, b))
+	return best
+
+
+static func _distance_to_segment(point: Vector2, a: Vector2, b: Vector2) -> float:
+	var ab := b - a
+	var length_sq := ab.length_squared()
+	if length_sq <= 0.0001:
+		return point.distance_to(a)
+	var t := clampf((point - a).dot(ab) / length_sq, 0.0, 1.0)
+	return point.distance_to(a + ab * t)
 
 
 func _loot_hotspot_count() -> int:
