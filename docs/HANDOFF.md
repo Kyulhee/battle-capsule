@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.30 — candidate strategic-route pressure pass`.
-- Next structural slice: `v2.0.31 — CHASE recovery / POI-pressure follow-up`.
+- Latest completed slice: `v2.0.31 — CHASE location / recovery target diagnostics`.
+- Next structural slice: `v2.0.32 — recovery-exit pickup spacing and POI target acquisition follow-up`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -43,32 +43,30 @@
 - Current v2.0.24 slice adds candidate-only `target_99_probe` economy tuning; no default/global 99 promotion was made.
 - `b44d9dd feat: add engagement density diagnostics` — adds engagement-density diagnostics; no gameplay tuning or default/global 99 promotion was made.
 - `5fa689c feat: add route pressure telemetry` — adds combat-location / route-pressure telemetry; no gameplay tuning or default/global 99 promotion was made.
-- Current v2.0.30 slice adds candidate-only strategic gate map pressure; default map/global 99 promotion was not made.
+- Current v2.0.31 slice adds CHASE location diagnostics; default map/global 99 promotion was not made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.31 — CHASE recovery / POI-pressure follow-up`
+`v2.0.32 — recovery-exit pickup spacing and POI target acquisition follow-up`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
 - v2.0.27 corrected the design target: do not tune bots to hit a CHASE combat percentage. Battle royale scale should verify strategic movement, contested routes, and power-position pressure first.
-- v2.0.29 fresh route-pressure comparison passed scale gates for both candidate-map sets:
-  - `C:\tmp\game_dev_route_candidate_60_v20260603`: avg duration 92.7s, first upgrade 10.0s, AI avg 307.2us, fallback 0.0/run.
-  - `C:\tmp\game_dev_route_candidate_99_v20260603`: avg duration 140.2s, first upgrade 17.7s, AI avg 424.0us, fallback 0.0/run.
-- Route-pressure conclusion: broad route combat is present, but contested-terrain pressure is weak. Combat damage on route is 63.2% -> 60.7%, while primary-choke damage is 0.4% -> 1.0%, flank damage is 3.0% -> 2.7%, and transit-choke POI damage stays below 0.4%.
 - v2.0.30 changed the candidate map to strategic gates:
   - Central Meadow radius/density reduced.
   - `West Ridge Overlook` and `East Pine Gate` added as transit-choke POIs.
   - West/East primary-choke route points now pass through those gates.
   - Only one offset high rock cover per gate remains; the first heavier-cover smoke failed on stuck triggers, so do not add more hard clutter without rerunning scale gates.
-- v2.0.30 fresh 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_route_gate_candidate_60_v2030`: avg duration 111.7s, first upgrade 10.6s, stuck 42.4/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_route_gate_candidate_99_v2030`: avg duration 135.0s, first upgrade 10.1s, stuck 42.6/run, fallback 0.0/run.
-- v2.0.30 result: 99 route pressure is now material enough to analyze. Combat damage on route is 70.1%, primary-choke damage is 24.7%, and transit-choke POI damage is 20.9%.
-- Remaining blocker: 99 still shifts CHASE away from combat and toward recovery. `ATTACK+CHASE` is 39.9% -> 37.8%, CHASE combat is 49.5% -> 40.0%, and CHASE recover-loot is 18.6% -> 27.7%.
-- v2.0.31 should inspect CHASE recovery/loot interruptions and 99 POI-pressure distribution before AI aggression, damage, or generic zone-speed tuning.
+- v2.0.31 added CHASE location diagnostics only: CHASE self/target POI context, target route context, and target kind by `combat`, `loot`, and `recover_loot`.
+- v2.0.31 fresh 5-run sets passed scale gates:
+  - `C:\tmp\game_dev_chase_location_60_v2031`: avg duration 113.3s, first upgrade 13.3s, stuck 29.8/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_chase_location_99_v2031`: avg duration 140.9s, first upgrade 11.0s, stuck 48.6/run, fallback 0.0/run.
+- v2.0.31 result: route pressure remains analyzable, but 99 active coverage is thinner while per-ATTACK efficiency is intact. `ATTACK+CHASE` is 40.5% -> 35.9%, damage/ATTACK min is 790.6 -> 904.2.
+- CHASE recover-loot at 99 is anchored on recovery exits and mostly weapon/ammo access: recovery_exit 32.1%, weapon target 34.4%, ammo target 51.4%, heal target 7.1%, armor target 3.5%.
+- Combat CHASE target POI pressure drops while target route pressure stays high: combat target POI 61.4% -> 55.3%, combat target route 73.5% -> 77.9%.
+- Next work should inspect candidate-only recovery-exit loot/ammo/weapon spacing, re-entry pressure, and POI target acquisition before AI aggression, raw damage, or generic zone-speed tuning.
 - Candidate `mapSpec_large_candidate.json` now has 6 route descriptors:
   - primary chokes: `west_ridge_choke`, `east_pine_choke`.
   - flanks: `north_slope_flank`, `south_creek_flank`.
@@ -77,47 +75,14 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - `MapDefinition.describe_strategic_position()` now classifies a world position into current POI role/name and route role/id.
 - `Entity.gd` logs strategic context for combat damage and combat kills.
 - `Telemetry.gd` aggregates hits/damage/kills by POI role, route role, and route id.
-- `analyze_results.py` prints combat-location and route-pressure mixes.
-- `compare_scale_profiles.py` prints route-pressure rows and a `Route pressure decision`.
+- `analyze_results.py` prints combat-location, route-pressure, and CHASE location mixes.
+- `compare_scale_profiles.py` prints route-pressure and CHASE location decisions.
 - `tools/verify_strategic_flow_map.gd` guards candidate POI role coverage, route role coverage, primary-choke alternate routes, and connected POI references.
-- v2.0.28 1-run candidate `xlarge_60` smoke at `C:\tmp\game_dev_route_pressure_smoke` confirmed telemetry output:
-  - combat damage on route 72.8%.
-  - damage route mix: loot_flow 37.0%, recovery_exit 34.5%, off_route 27.2%, flank 1.0%, primary_choke 0.2%.
-  - This is a schema smoke only. The normal 1-run scale gate failed because first upgrade happened at 1.7s, so do not use it as a balance pass.
-- Current default-map 5-run `xlarge_60` telemetry passed with spawn distribution: placed=61/61, fallback=0.0/run, min nearest=3.5m, avg nearest=7.1m, avg attempts=1.5, saturation=0.24.
-- Candidate-map 5-run `xlarge_60` telemetry passed: avg duration 99.7s, fallback=0.0/run, min nearest=3.5m, avg nearest=9.6m, saturation=0.12, no zero sentinels.
-- Candidate-map 5-run `target_99_probe` telemetry passed: avg duration 129.4s, fallback=0.0/run, min nearest=3.5m, avg nearest=7.7m, saturation=0.20, AI avg=439.9us, no zero sentinels.
-- Current 99-probe normalized output: damage=27.7, shots=3.35, plans=1.83, disengage=0.56, stuck=0.11, zone_fire=1.02, survival=1.24 per spawned entity/min.
-- Current 99-probe state mix: ZONE_ESCAPE 26.0%, DISENGAGE 22.0%, CHASE 19.2%, ATTACK 18.9%, IDLE 14.0%.
-- Fresh normalized comparison from `C:\tmp`: 99 vs 60 has duration +7.1s, spawn saturation +0.08, AI avg +123.9us, ZONE_ESCAPE +2.14pp, DISENGAGE +5.32pp.
-- v2.0.20 pressure decision: spawn/pathing is not the current blocker; AI budget is not the current blocker; DISENGAGE pressure looks duration/exit-related rather than trigger-frequency-related; ZONE_ESCAPE should be reviewed after DISENGAGE exit behavior.
-- v2.0.21 reason telemetry: `tactics.disengage_entries` is full DISENGAGE entry volume; `tactics.disengage_reasons` and `tactics.disengage_reasons_by_archetype` are persisted; `disengage_triggered` remains the existing outnumbered/legacy gate metric.
-- v2.0.21 1-run smoke at `C:\tmp\game_dev_disengage_reason_smoke` confirmed persisted reason data and `check_scale_telemetry.py --min-runs 1` passed.
-- v2.0.22 fresh reason-aware candidate sets:
-  - `C:\tmp\game_dev_reason_candidate_60`: 5-run `xlarge_60`, avg duration 106.3s, first upgrade 12.8s, legacy disengage 79.2/run, entries 332.0/run, gate passed.
-  - `C:\tmp\game_dev_reason_candidate_99`: 5-run `target_99_probe`, avg duration 148.0s, first upgrade 27.4s, legacy disengage 129.0/run, entries 461.4/run, gate passed.
-- v2.0.22 comparison: 99 has DISENGAGE state +4.25pp but lower normalized entry/reason rates (entries/entity/min -1.20, survival_break -0.97, outnumbered -0.21), so outnumbered thresholds are not the first tuning target.
-- Stronger 99 signal: duration +41.8s, first upgrade +14.5s, damage/entity/min -11.63, shots/entity/min -1.42, plans/entity/min -0.99.
-- v2.0.23 tempo tooling: `compare_scale_profiles.py` now prints weapon/non-pistol/rare/heal/shield rates plus `Tempo decision`; `analyze_results.py` prints economy-normalized rows.
-- v2.0.23 tempo result: weapon pickups/entity/min -0.15, non-pistol pickups/entity/min -0.07, rare pickups/entity/min -0.12 for 99 vs 60.
-- Raw `target_99_probe` loot count is close to 60 density, so tune actual non-pistol/rare access and combat throughput rather than only raw loot count.
-- v2.0.24 tuning: added runtime loot `rare_bias_mult`; final `target_99_probe` v3 uses `loot_count=240`, `stage_wave_count_mult=9`, `hotspot_density_mult=1.16`, `rare_bias_mult=1.45`.
-- v2.0.24 adjusted 99 output at `C:\tmp\game_dev_candidate_99_loot_v3`: gate passed, avg duration 149.0s, first upgrade 16.6s, legacy disengage 125.6/run, entries 437.6/run.
-- v3 vs previous 99: first upgrade -10.8s, non-pistol pickups/entity/min +0.03, rare pickups/entity/min +0.03, DISENGAGE state -0.68pp.
-- v3 vs 60 still has combat throughput gap: damage/entity/min -12.67, shots/entity/min -1.51, plans/entity/min -1.06, duration +42.7s.
-- v2.0.25 engagement-density comparison: 99 has 64% more entities than 60, but only +7% damage/match min, +8% shots/match min, and +1% plans/match min.
-- v2.0.25 also shows ATTACK efficiency is intact: damage/ATTACK min 770.5 -> 819.3, shots/ATTACK min 94.1 -> 101.1.
-- Active coverage is thinner at 99: `ATTACK+CHASE` 41.32% -> 37.67%, `RETREAT+ESCAPE` 44.13% -> 48.79%.
-- v2.0.26 telemetry: `doctrine.chase_context_time_by_archetype` splits CHASE time into `combat`, `loot`, `recover_loot`, and `unknown`.
-- v2.0.26 fresh sets:
-  - `C:\tmp\game_dev_chase_candidate_60`: gate passed, avg duration 101.7s, first upgrade 11.8s.
-  - `C:\tmp\game_dev_chase_candidate_99`: gate passed, avg duration 141.5s, first upgrade 25.4s, legacy disengage 122.4/run.
-- v2.0.26 CHASE context: 60 combat 50.0%, loot 29.2%, recover_loot 20.9%; 99 combat 45.2%, loot 30.9%, recover_loot 24.0%.
-- 99 CHASE is majority loot/recovery movement, but this is not automatically a failure. Next telemetry should show whether movement crosses intended strategic routes and whether combat clusters around route/POI pressure.
+- Current 99-probe normalized output from v2.0.31: damage=21.34, shots=2.61, plans=1.38, disengage=0.48, entries=1.70, stuck=0.21 per spawned entity/min.
+- Current 99-probe state mix from v2.0.31: ZONE_ESCAPE 28.4%, DISENGAGE 21.4%, CHASE 19.1%, ATTACK 16.7%, IDLE 14.3%.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should use the v2.0.30 fresh comparison to decide whether pickup spacing, recovery exits, objective interrupts, or target acquisition should change next. Avoid raw damage and generic zone-speed tuning until that diagnosis is clearer.
-- Keep using `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
+- Keep using `verify_strategic_flow_map.gd`, `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, candidate-path simulation, `analyze_results.py`, `compare_scale_profiles.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes
 

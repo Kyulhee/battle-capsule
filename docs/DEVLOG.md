@@ -6,6 +6,36 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.31 — CHASE Location / Recovery Target Diagnostics
+
+**Scope**
+
+- Added diagnostic CHASE location telemetry without changing gameplay, map data, loot, damage, AI aggression, or zone pacing.
+- `Bot.gd` now logs CHASE self context, target context, and target kind while CHASE time is recorded.
+- `Telemetry.gd` persists CHASE self/target POI role, target route role, and target kind by CHASE context.
+- `tools/analyze_results.py` prints CHASE self POI, target POI, target route, and target kind mixes by `combat`, `loot`, and `recover_loot`.
+- `tools/compare_scale_profiles.py` compares CHASE location rows and adds a `CHASE location decision`.
+
+**Verification**
+
+- Python compile passed for scale analysis/simulation tools.
+- `verify_strategic_flow_map.gd`, `verify_large_map_candidate.gd`, and `verify_candidate_99_probe.gd` passed.
+- 1-run 99 smoke at `C:\tmp\game_dev_chase_location_v2031_smoke` confirmed the new CHASE location fields are written; the normal 1-run scale gate failed only on stuck variance, so it is schema smoke only.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_chase_location_60_v2031`: avg duration 113.3s, first upgrade 13.3s, stuck 29.8/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_chase_location_99_v2031`: avg duration 140.9s, first upgrade 11.0s, stuck 48.6/run, fallback 0.0/run.
+
+**Decision**
+
+- Spawn/pathing, AI budget, raw route pressure, raw damage, and generic zone speed are still not the first tuning targets.
+- 99 keeps route combat pressure, but active coverage is thinner: `ATTACK+CHASE` 40.5% -> 35.9%, while damage/ATTACK min improves 790.6 -> 904.2.
+- 99 CHASE recover-loot is 24.7% and is anchored on recovery exits: recover target route is still high at 75.4%, but recovery-exit share is 32.1%.
+- Recover-loot movement is mostly weapon/ammo access, not healing: weapon target 34.4%, ammo target 51.4%, heal target 7.1%, armor target 3.5%.
+- Combat CHASE target POI pressure drops at 99: 61.4% -> 55.3%, while target route pressure stays high: 73.5% -> 77.9%.
+- Next slice should inspect candidate-only recovery-exit loot/ammo/weapon spacing, re-entry pressure, and target acquisition around POIs before AI aggression, damage, or zone-speed tuning.
+
+---
+
 ## v2.0.30 — Candidate Strategic-Route Pressure Pass
 
 **Scope**

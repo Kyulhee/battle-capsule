@@ -165,18 +165,44 @@ def combat_location_counter(runs: list[dict], key: str) -> Counter:
     return counter
 
 
+def doctrine_context_counter(runs: list[dict], key: str, context: str) -> Counter:
+    counter = Counter()
+    for run in runs:
+        values = run.get("doctrine", {}).get(key, {})
+        context_values = values.get(context, {})
+        if isinstance(context_values, dict):
+            counter.update({name: float(value) for name, value in context_values.items()})
+    return counter
+
+
+def counter_total(counter: Counter) -> float:
+    return sum(float(value) for value in counter.values())
+
+
 def counter_share(counter: Counter, key: str) -> float:
-    total = sum(float(value) for value in counter.values())
+    total = counter_total(counter)
     if total <= 0.0:
         return 0.0
     return 100.0 * float(counter.get(key, 0.0)) / total
 
 
-def non_key_share(counter: Counter, excluded_key: str) -> float:
-    total = sum(float(value) for value in counter.values())
+def counter_group_share(counter: Counter, keys: list[str]) -> float:
+    total = counter_total(counter)
     if total <= 0.0:
         return 0.0
-    return 100.0 * (total - float(counter.get(excluded_key, 0.0))) / total
+    return 100.0 * sum(float(counter.get(key, 0.0)) for key in keys) / total
+
+
+def excluding_share(counter: Counter, excluded_keys: list[str]) -> float:
+    total = counter_total(counter)
+    if total <= 0.0:
+        return 0.0
+    excluded = sum(float(counter.get(key, 0.0)) for key in excluded_keys)
+    return 100.0 * (total - excluded) / total
+
+
+def non_key_share(counter: Counter, excluded_key: str) -> float:
+    return excluding_share(counter, [excluded_key])
 
 
 def summarize(runs: list[dict]) -> dict[str, float]:
@@ -204,6 +230,12 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     hit_route_roles = combat_location_counter(runs, "hit_location_by_route_role")
     damage_route_roles = combat_location_counter(runs, "damage_location_by_route_role")
     kill_route_roles = combat_location_counter(runs, "kill_location_by_route_role")
+    combat_self_poi_roles = doctrine_context_counter(runs, "chase_self_poi_role_by_context", "combat")
+    combat_target_poi_roles = doctrine_context_counter(runs, "chase_target_poi_role_by_context", "combat")
+    combat_target_route_roles = doctrine_context_counter(runs, "chase_target_route_role_by_context", "combat")
+    recover_target_poi_roles = doctrine_context_counter(runs, "chase_target_poi_role_by_context", "recover_loot")
+    recover_target_route_roles = doctrine_context_counter(runs, "chase_target_route_role_by_context", "recover_loot")
+    recover_target_kinds = doctrine_context_counter(runs, "chase_target_kind_by_context", "recover_loot")
     attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
     summary = {
         "runs": float(len(runs)),
@@ -268,6 +300,28 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "chase_loot": chase_mix.get("loot", 0.0),
         "chase_recover_loot": chase_mix.get("recover_loot", 0.0),
         "chase_unknown": chase_mix.get("unknown", 0.0),
+        "chase_combat_location_seconds": counter_total(combat_target_poi_roles),
+        "chase_recover_location_seconds": counter_total(recover_target_kinds),
+        "chase_combat_self_in_poi_pct": excluding_share(combat_self_poi_roles, ["open", "none"]),
+        "chase_combat_target_in_poi_pct": excluding_share(combat_target_poi_roles, ["open", "none"]),
+        "chase_combat_target_on_route_pct": excluding_share(combat_target_route_roles, ["off_route", "none"]),
+        "chase_recover_target_in_poi_pct": excluding_share(recover_target_poi_roles, ["open", "none"]),
+        "chase_recover_target_on_route_pct": excluding_share(recover_target_route_roles, ["off_route", "none"]),
+        "chase_recover_target_transit_poi_pct": counter_share(recover_target_poi_roles, "transit_choke"),
+        "chase_recover_target_loot_hub_pct": counter_share(recover_target_poi_roles, "loot_hub"),
+        "chase_recover_target_concealment_pct": counter_share(recover_target_poi_roles, "concealment"),
+        "chase_recover_target_recovery_pocket_pct": counter_share(recover_target_poi_roles, "recovery_pocket"),
+        "chase_recover_target_primary_choke_pct": counter_share(recover_target_route_roles, "primary_choke"),
+        "chase_recover_target_loot_flow_pct": counter_share(recover_target_route_roles, "loot_flow"),
+        "chase_recover_target_recovery_exit_pct": counter_share(recover_target_route_roles, "recovery_exit"),
+        "chase_recover_target_pickup_total_pct": counter_group_share(
+            recover_target_kinds,
+            ["pickup_weapon", "pickup_ammo", "pickup_heal", "pickup_armor", "pickup_unknown"],
+        ),
+        "chase_recover_target_pickup_weapon_pct": counter_share(recover_target_kinds, "pickup_weapon"),
+        "chase_recover_target_pickup_ammo_pct": counter_share(recover_target_kinds, "pickup_ammo"),
+        "chase_recover_target_pickup_heal_pct": counter_share(recover_target_kinds, "pickup_heal"),
+        "chase_recover_target_pickup_armor_pct": counter_share(recover_target_kinds, "pickup_armor"),
         "combat_hit_in_poi_pct": non_key_share(hit_poi_roles, "open"),
         "combat_damage_in_poi_pct": non_key_share(damage_poi_roles, "open"),
         "combat_hit_on_route_pct": non_key_share(hit_route_roles, "off_route"),
@@ -335,6 +389,20 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("chase_loot", "CHASE loot %"),
         ("chase_recover_loot", "CHASE recover loot %"),
         ("chase_unknown", "CHASE unknown %"),
+        ("chase_combat_self_in_poi_pct", "CHASE combat self POI %"),
+        ("chase_combat_target_in_poi_pct", "CHASE combat target POI %"),
+        ("chase_combat_target_on_route_pct", "CHASE combat target route %"),
+        ("chase_recover_target_in_poi_pct", "CHASE recover target POI %"),
+        ("chase_recover_target_on_route_pct", "CHASE recover target route %"),
+        ("chase_recover_target_transit_poi_pct", "CHASE recover target transit POI %"),
+        ("chase_recover_target_loot_hub_pct", "CHASE recover target loot hub %"),
+        ("chase_recover_target_recovery_pocket_pct", "CHASE recover target recovery POI %"),
+        ("chase_recover_target_recovery_exit_pct", "CHASE recover target recovery exit %"),
+        ("chase_recover_target_loot_flow_pct", "CHASE recover target loot-flow %"),
+        ("chase_recover_target_pickup_weapon_pct", "CHASE recover weapon target %"),
+        ("chase_recover_target_pickup_ammo_pct", "CHASE recover ammo target %"),
+        ("chase_recover_target_pickup_heal_pct", "CHASE recover heal target %"),
+        ("chase_recover_target_pickup_armor_pct", "CHASE recover armor target %"),
         ("combat_hit_in_poi_pct", "combat hits in POI %"),
         ("combat_damage_in_poi_pct", "combat damage in POI %"),
         ("combat_hit_on_route_pct", "combat hits on route %"),
@@ -346,15 +414,17 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("damage_recovery_exit_pct", "damage recovery exit %"),
         ("damage_transit_choke_poi_pct", "damage transit POI %"),
     ]
+    label_width = max(28, max(len(label) for _, label in metrics) + 2)
     print("--- Scale Profile Comparison ---")
-    print(f"{'Metric':<28} {label_a:>14} {label_b:>14} {'delta':>14}")
+    print(f"{'Metric':<{label_width}} {label_a:>14} {label_b:>14} {'delta':>14}")
     for key, label in metrics:
         a = float(summary_a.get(key, 0.0))
         b = float(summary_b.get(key, 0.0))
-        print(f"{label:<28} {a:>14.2f} {b:>14.2f} {b - a:>14.2f}")
+        print(f"{label:<{label_width}} {a:>14.2f} {b:>14.2f} {b - a:>14.2f}")
     print_disengage_reason_comparison(label_a, summary_a, label_b, summary_b)
     print_tempo_decision(summary_a, summary_b)
     print_engagement_density_decision(summary_a, summary_b)
+    print_chase_location_decision(summary_a, summary_b)
     print_route_pressure_decision(summary_a, summary_b)
     print_pressure_decision(summary_a, summary_b)
 
@@ -501,6 +571,47 @@ def print_engagement_density_decision(summary_a: dict[str, float], summary_b: di
         print("  - CHASE time shifted away from combat targets; inspect loot/recovery interruptions and enemy acquisition.")
     elif chase_loot_total_b >= 35.0:
         print("  - A large share of CHASE time is loot/recovery movement; inspect objective interrupts and pickup spacing.")
+
+
+def print_chase_location_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    recover_location_seconds_b = float(summary_b.get("chase_recover_location_seconds", 0.0))
+    combat_location_seconds_b = float(summary_b.get("chase_combat_location_seconds", 0.0))
+    recover_share_b = float(summary_b.get("chase_recover_loot", 0.0))
+    recover_target_poi_b = float(summary_b.get("chase_recover_target_in_poi_pct", 0.0))
+    recover_target_route_b = float(summary_b.get("chase_recover_target_on_route_pct", 0.0))
+    recover_exit_b = float(summary_b.get("chase_recover_target_recovery_exit_pct", 0.0))
+    recover_loot_flow_b = float(summary_b.get("chase_recover_target_loot_flow_pct", 0.0))
+    recover_pickup_weapon_b = float(summary_b.get("chase_recover_target_pickup_weapon_pct", 0.0))
+    recover_pickup_ammo_b = float(summary_b.get("chase_recover_target_pickup_ammo_pct", 0.0))
+    recover_pickup_heal_b = float(summary_b.get("chase_recover_target_pickup_heal_pct", 0.0))
+    recover_pickup_armor_b = float(summary_b.get("chase_recover_target_pickup_armor_pct", 0.0))
+    combat_target_poi_delta = float(summary_b.get("chase_combat_target_in_poi_pct", 0.0)) - float(
+        summary_a.get("chase_combat_target_in_poi_pct", 0.0)
+    )
+    combat_target_route_delta = float(summary_b.get("chase_combat_target_on_route_pct", 0.0)) - float(
+        summary_a.get("chase_combat_target_on_route_pct", 0.0)
+    )
+
+    print("CHASE location decision:")
+    if recover_location_seconds_b <= 0.0 and combat_location_seconds_b <= 0.0:
+        print("  - No CHASE location telemetry was recorded; run a post-v2.0.31 simulation set.")
+        return
+    if recover_share_b < 20.0:
+        print("  - Recovery/loot CHASE is not large enough to lead the next tuning slice by itself.")
+    elif recover_target_poi_b < 45.0 and recover_target_route_b < 50.0:
+        print("  - Recovery/loot CHASE targets are often outside strategic POI/routes; inspect pickup scatter first.")
+    elif recover_exit_b >= 25.0:
+        print("  - Recovery/loot CHASE is anchored on recovery exits; inspect exit loot, heal access, and re-entry pressure.")
+    elif recover_loot_flow_b >= 30.0:
+        print("  - Recovery/loot CHASE is mostly on loot-flow routes; inspect whether route loot interrupts combat rotations.")
+    else:
+        print("  - Recovery/loot CHASE stays inside analyzable POI/route pressure; inspect target kind before map changes.")
+    if recover_pickup_weapon_b + recover_pickup_ammo_b >= 60.0:
+        print("  - Recovery movement is mostly weapon/ammo access, not healing; inspect ammo economy and weapon pickup spacing.")
+    elif recover_pickup_heal_b + recover_pickup_armor_b >= 60.0:
+        print("  - Recovery movement is mostly sustain access; inspect heal/shield placement before aggression tuning.")
+    if combat_target_poi_delta <= -5.0 or combat_target_route_delta <= -5.0:
+        print("  - Combat CHASE target pressure drops at target scale; inspect target acquisition and encounter-route spacing.")
 
 
 def print_route_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:

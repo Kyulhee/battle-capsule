@@ -1181,7 +1181,17 @@ func _log_doctrine_state_time(delta: float):
 	var archetype_name = _archetype_name()
 	tel.log_doctrine_state_time(archetype_name, State.keys()[current_state], delta)
 	if current_state == State.CHASE and tel.has_method("log_doctrine_chase_context"):
-		tel.log_doctrine_chase_context(archetype_name, _chase_context_name(), delta)
+		var context_name := _chase_context_name()
+		tel.log_doctrine_chase_context(archetype_name, context_name, delta)
+		if tel.has_method("log_doctrine_chase_location"):
+			tel.log_doctrine_chase_location(
+				archetype_name,
+				context_name,
+				_strategic_position_context(global_position),
+				_chase_target_position_context(),
+				_chase_target_kind(),
+				delta
+			)
 
 func _chase_context_name() -> String:
 	if is_targeting_loot:
@@ -1189,6 +1199,52 @@ func _chase_context_name() -> String:
 	if target_actor is Entity:
 		return "combat"
 	return "unknown"
+
+func _chase_target_position_context() -> Dictionary:
+	if is_instance_valid(target_actor):
+		return _strategic_position_context(target_actor.global_position)
+	return {
+		"poi_role": "none",
+		"poi_name": "none",
+		"route_role": "none",
+		"route_id": "none",
+	}
+
+func _chase_target_kind() -> String:
+	if target_actor is Entity:
+		return "entity"
+	if target_actor is Pickup:
+		var pickup := target_actor as Pickup
+		if pickup.item == null:
+			return "pickup_unknown"
+		match pickup.item.type:
+			ItemData.Type.WEAPON:
+				return "pickup_weapon"
+			ItemData.Type.AMMO:
+				return "pickup_ammo"
+			ItemData.Type.HEAL:
+				return "pickup_heal"
+			ItemData.Type.ARMOR:
+				return "pickup_armor"
+		return "pickup_unknown"
+	if is_instance_valid(target_actor):
+		return "node"
+	return "none"
+
+func _strategic_position_context(world_pos: Vector3) -> Dictionary:
+	var context := {
+		"poi_role": "open",
+		"poi_name": "none",
+		"route_role": "off_route",
+		"route_id": "off_route",
+	}
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		return context
+	var definition = main.get("map_definition")
+	if definition and definition.has_method("describe_strategic_position"):
+		return definition.describe_strategic_position(Vector2(world_pos.x, world_pos.z))
+	return context
 
 func _log_ai_update_budget(start_usec: int):
 	if not has_node("/root/Telemetry"):

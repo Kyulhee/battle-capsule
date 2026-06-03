@@ -99,6 +99,25 @@ def combat_location_counter(results: list[dict], key: str) -> Counter:
     return counter
 
 
+def doctrine_context_counter(results: list[dict], key: str, context: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        values = run.get("doctrine", {}).get(key, {})
+        context_values = values.get(context, {}) if isinstance(values, dict) else {}
+        if isinstance(context_values, dict):
+            counter.update({name: float(value) for name, value in context_values.items()})
+    return counter
+
+
+def format_context_mix(results: list[dict], key: str, contexts: list[str], limit: int = 4) -> str:
+    parts = []
+    for context in contexts:
+        counter = doctrine_context_counter(results, key, context)
+        if counter:
+            parts.append(f"{context}=[{format_counter_mix(counter, limit)}]")
+    return "; ".join(parts) if parts else "none"
+
+
 def format_counter_mix(counter: Counter, limit: int = 5) -> str:
     total = sum(float(value) for value in counter.values())
     if total <= 0.0:
@@ -423,6 +442,16 @@ if __name__ == "__main__":
                 if float(seconds) > 0.0
             ]
             print(f"CHASE context mix: {', '.join(parts)}")
+        chase_contexts = ["combat", "loot", "recover_loot"]
+        self_poi_mix = format_context_mix(results, "chase_self_poi_role_by_context", chase_contexts)
+        target_poi_mix = format_context_mix(results, "chase_target_poi_role_by_context", chase_contexts)
+        target_route_mix = format_context_mix(results, "chase_target_route_role_by_context", chase_contexts)
+        target_kind_mix = format_context_mix(results, "chase_target_kind_by_context", chase_contexts)
+        if self_poi_mix != "none" or target_poi_mix != "none" or target_kind_mix != "none":
+            print(f"CHASE self POI by context: {self_poi_mix}")
+            print(f"CHASE target POI by context: {target_poi_mix}")
+            print(f"CHASE target route by context: {target_route_mix}")
+            print(f"CHASE target kind by context: {target_kind_mix}")
     if doctrine_range_by_archetype:
         print("Doctrine engage range by archetype:")
         for archetype, bucket in sorted(doctrine_range_by_archetype.items()):

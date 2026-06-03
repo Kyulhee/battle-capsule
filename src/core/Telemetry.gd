@@ -232,6 +232,11 @@ func _reset_metrics():
 			"plan_by_archetype": {},
 			"state_time_by_archetype": {},
 			"chase_context_time_by_archetype": {},
+			"chase_self_poi_role_by_context": {},
+			"chase_self_route_role_by_context": {},
+			"chase_target_poi_role_by_context": {},
+			"chase_target_route_role_by_context": {},
+			"chase_target_kind_by_context": {},
 			"engage_range_by_archetype": {},
 			"supply_decisions": {},
 		},
@@ -540,6 +545,49 @@ func log_doctrine_chase_context(archetype_name: String, context_name: String, se
 	var context_times = by_archetype[archetype_name]
 	context_times[context_key] = float(context_times.get(context_key, 0.0)) + seconds
 
+func log_doctrine_chase_location(
+	_archetype_name: String,
+	context_name: String,
+	self_context: Dictionary,
+	target_context: Dictionary,
+	target_kind: String,
+	seconds: float
+):
+	if not match_in_progress or not _g("doctrine") or seconds <= 0.0: return
+	var context_key = context_name.strip_edges().to_lower()
+	if context_key == "":
+		context_key = "unknown"
+	_add_nested_bucket_value(
+		metrics.doctrine.chase_self_poi_role_by_context,
+		context_key,
+		String(self_context.get("poi_role", "open")),
+		seconds
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.chase_self_route_role_by_context,
+		context_key,
+		String(self_context.get("route_role", "off_route")),
+		seconds
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.chase_target_poi_role_by_context,
+		context_key,
+		String(target_context.get("poi_role", "none")),
+		seconds
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.chase_target_route_role_by_context,
+		context_key,
+		String(target_context.get("route_role", "none")),
+		seconds
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.chase_target_kind_by_context,
+		context_key,
+		target_kind,
+		seconds
+	)
+
 func log_doctrine_engage_range(archetype_name: String, distance: float):
 	if not match_in_progress or not _g("doctrine") or distance < 0.0: return
 	var by_archetype = metrics.doctrine.engage_range_by_archetype
@@ -839,3 +887,10 @@ func _add_bucket_count(bucket: Dictionary, key: String, amount: int = 1):
 func _add_bucket_value(bucket: Dictionary, key: String, amount: float):
 	var bucket_key = key if key.strip_edges() != "" else "unknown"
 	bucket[bucket_key] = float(bucket.get(bucket_key, 0.0)) + amount
+
+func _add_nested_bucket_value(bucket: Dictionary, outer_key: String, inner_key: String, amount: float):
+	var resolved_outer = outer_key if outer_key.strip_edges() != "" else "unknown"
+	if not bucket.has(resolved_outer):
+		bucket[resolved_outer] = {}
+	var nested: Dictionary = bucket[resolved_outer]
+	_add_bucket_value(nested, inner_key, amount)

@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.30 candidate strategic-route pressure pass)
+> Last updated: 2026-06-03 (v2.0.31 CHASE location diagnostics)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.30: candidate strategic-route pressure pass |
-| Next structural slice | v2.0.31: CHASE recovery / POI-pressure follow-up |
+| Latest completed slice | v2.0.31: CHASE location / recovery target diagnostics |
+| Next structural slice | v2.0.32: recovery-exit pickup spacing and POI target acquisition follow-up |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -470,6 +470,16 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - 99 now has material contested-terrain pressure: combat damage on route 70.1%, primary-choke damage 24.7%, transit-choke POI damage 20.9%.
 - The next blocker is no longer route existence. 99 still has thinner active coverage and more recovery movement: `ATTACK+CHASE` 39.9% -> 37.8%, CHASE combat 49.5% -> 40.0%, CHASE recover-loot 18.6% -> 27.7%.
 - Next work should inspect CHASE recovery/loot interruptions and POI pressure distribution before AI aggression, damage, or generic zone-speed tuning.
+
+**v2.0.31 result**
+
+- Added CHASE location diagnostics only: CHASE self POI/route context, target POI/route context, and target kind are now recorded by CHASE context.
+- Analyzer and comparison tooling now expose CHASE combat/loot/recover target location and a `CHASE location decision`.
+- Fresh 5-run candidate 60 and 99 sets both passed scale gates.
+- 99 active coverage is thinner while per-ATTACK efficiency is intact: `ATTACK+CHASE` 40.5% -> 35.9%, damage/ATTACK min 790.6 -> 904.2.
+- 99 recover-loot CHASE is anchored on recovery exits and mostly weapon/ammo access: recovery_exit 32.1%, weapon target 34.4%, ammo target 51.4%, heal target 7.1%.
+- Combat CHASE target POI pressure drops at 99 while target route pressure stays high: combat target POI 61.4% -> 55.3%, target route 73.5% -> 77.9%.
+- Next work should inspect candidate-only recovery-exit loot/ammo/weapon spacing, re-entry pressure, and POI target acquisition before AI aggression, raw damage, or generic zone-speed tuning.
 
 ## Deferred Asset Upgrades
 
