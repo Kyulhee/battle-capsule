@@ -128,6 +128,34 @@ def doctrine_source_counter(results: list[dict], key: str, source: str) -> Count
     return counter
 
 
+def doctrine_sample_buckets(results: list[dict], key: str) -> dict[str, dict[str, float]]:
+    buckets: dict[str, dict[str, float]] = {}
+    for run in results:
+        values = run.get("doctrine", {}).get(key, {})
+        if not isinstance(values, dict):
+            continue
+        for name, sample in values.items():
+            if not isinstance(sample, dict):
+                continue
+            count = int(sample.get("count", 0))
+            if count <= 0:
+                continue
+            bucket = buckets.setdefault(
+                name,
+                {
+                    "count": 0.0,
+                    "total": 0.0,
+                    "min": float(sample.get("min", 0.0)),
+                    "max": float(sample.get("max", 0.0)),
+                },
+            )
+            bucket["count"] += float(count)
+            bucket["total"] += float(sample.get("total", 0.0))
+            bucket["min"] = min(float(bucket["min"]), float(sample.get("min", bucket["min"])))
+            bucket["max"] = max(float(bucket["max"]), float(sample.get("max", bucket["max"])))
+    return buckets
+
+
 def economy_kind_counter(results: list[dict], key: str, kind: str) -> Counter:
     counter = Counter()
     for run in results:
@@ -154,6 +182,19 @@ def format_source_mix(results: list[dict], key: str, sources: list[str], limit: 
         if counter:
             parts.append(f"{source}=[{format_counter_mix(counter, limit)}]")
     return "; ".join(parts) if parts else "none"
+
+
+def format_sample_mix(samples: dict[str, dict[str, float]], limit: int = 5) -> str:
+    parts = []
+    for name, bucket in sorted(
+        samples.items(),
+        key=lambda item: float(item[1].get("count", 0.0)),
+        reverse=True,
+    )[:limit]:
+        count = float(bucket.get("count", 0.0))
+        avg_value = float(bucket.get("total", 0.0)) / max(1.0, count)
+        parts.append(f"{name}=avg{avg_value:.1f}s n={count:.0f}")
+    return ", ".join(parts) if parts else "none"
 
 
 def format_economy_kind_mix(results: list[dict], key: str, kinds: list[str], limit: int = 4) -> str:
@@ -561,6 +602,45 @@ if __name__ == "__main__":
         print(
             "Target acquisition state by source: {}".format(
                 format_source_mix(results, "target_acquisition_state_by_source", top_sources)
+            )
+        )
+    loot_objectives = doctrine_counter(results, "loot_objective_start_by_source")
+    if loot_objectives:
+        objective_sources = [source for source, _count in loot_objectives.most_common(6)]
+        objective_parts = [
+            f"{source}={count:.0f}"
+            for source, count in sorted(loot_objectives.items(), key=lambda item: item[1], reverse=True)
+            if float(count) > 0.0
+        ]
+        print(f"Loot objective starts by source: {', '.join(objective_parts)}")
+        print(
+            "Loot objective mode by source: {}".format(
+                format_source_mix(results, "loot_objective_mode_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective kind by source: {}".format(
+                format_source_mix(results, "loot_objective_kind_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective target POI band by source: {}".format(
+                format_source_mix(results, "loot_objective_target_poi_band_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective outcome by source: {}".format(
+                format_source_mix(results, "loot_objective_outcome_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective duration by source: {}".format(
+                format_sample_mix(doctrine_sample_buckets(results, "loot_objective_duration_by_source"))
+            )
+        )
+        print(
+            "Loot objective duration by outcome: {}".format(
+                format_sample_mix(doctrine_sample_buckets(results, "loot_objective_duration_by_outcome"))
             )
         )
     if doctrine_range_by_archetype:

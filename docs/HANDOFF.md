@@ -1,12 +1,12 @@
 # Next Chat Handoff
 
-> Last updated: 2026-06-03. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
+> Last updated: 2026-06-04. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
 
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.35 — acquisition route/POI overlap diagnostics`.
-- Next structural slice: `v2.0.36 — loot/recover CHASE interruption diagnostics`.
+- Latest completed slice: `v2.0.36 — loot objective interruption diagnostics`.
+- Next structural slice: `v2.0.37 — ammo access and objective selection diagnostics`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -45,13 +45,14 @@
 - `5fa689c feat: add route pressure telemetry` — adds combat-location / route-pressure telemetry; no gameplay tuning or default/global 99 promotion was made.
 - `1d3da69 feat: add poi proximity diagnostics` — added POI/route proximity bands; default map/global 99 promotion was not made.
 - `fbbfbf7 feat: add target acquisition diagnostics` — added target-acquisition source diagnostics; default map/global 99 promotion was not made.
-- Current v2.0.35 slice adds acquisition route/POI overlap diagnostics; default map/global 99 promotion was not made.
+- `4827635 feat: add acquisition overlap diagnostics` — added acquisition route/POI overlap diagnostics; default map/global 99 promotion was not made.
+- Current v2.0.36 slice adds loot objective interruption diagnostics; default map/global 99 promotion was not made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.36 — loot/recover CHASE interruption diagnostics`
+`v2.0.37 — ammo access and objective selection diagnostics`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -96,7 +97,14 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - v2.0.35 result: far-POI but route-bound acquisition is stable, 10.1% -> 10.6%; far-POI and on-route acquisition is only 3.1% -> 3.6%.
 - Acquisition remains mostly inside both soft POI and soft route influence, 82.2% -> 79.7%.
 - The stronger remaining signal is post-acquisition flow: CHASE combat 48.0% -> 39.9%, CHASE loot 29.7% -> 36.3%, weapon collect soft POI 86.4% -> 81.4%, ammo collect soft POI 88.4% -> 81.6%.
-- Next work should inspect loot/recover CHASE interruption timing, pickup collection pressure, and weapon/ammo objective pulls before AI aggression, raw damage, generic zone-speed tuning, recovery-exit loot relocation, or POI radius changes.
+- v2.0.36 added loot objective start/outcome diagnostics only: objective source, mode, target kind, target POI band, outcome, duration, and source/outcome decisions.
+- v2.0.36 fresh valid 5-run sets passed scale gates:
+  - `C:\tmp\game_dev_loot_objective_xlarge60_v2036`: avg duration 96.6s, first upgrade 13.8s, stuck 33.0/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_loot_objective_99_v2036`: avg duration 156.4s, first upgrade 12.0s, stuck 58.8/run, fallback 0.0/run.
+- v2.0.36 result: loot/recover CHASE is high but not the largest 99 delta in this pair. CHASE combat 46.1% -> 42.1%, loot 29.2% -> 33.1%, recover_loot 24.7% -> 24.8%.
+- Loot objectives are mostly weapon/ammo and increase at 99: 81.9% -> 86.8%. Combat low-ammo objective starts are stable and material: 32.2% -> 31.7%.
+- Objective outcomes improve at 99 rather than degrade: collect 26.0% -> 31.3%, interrupt 65.1% -> 58.2%, avg duration 0.56s -> 0.57s.
+- Next work should inspect ammo access/objective selection thresholds, combat low-ammo breakoff criteria, and recovery-exit weapon/ammo pressure before moving loot, changing aggression, damage, generic zone-speed tuning, or POI radius.
 - Candidate `mapSpec_large_candidate.json` now has 6 route descriptors:
   - primary chokes: `west_ridge_choke`, `east_pine_choke`.
   - flanks: `north_slope_flank`, `south_creek_flank`.
@@ -105,11 +113,11 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - `MapDefinition.describe_strategic_position()` now classifies a world position into current POI role/name and route role/id.
 - `Entity.gd` logs strategic context for combat damage and combat kills.
 - `Telemetry.gd` aggregates hits/damage/kills by POI role, route role, and route id.
-- `analyze_results.py` prints combat-location, route-pressure, CHASE location, pickup location, proximity-band, target-acquisition, and acquisition-overlap mixes.
-- `compare_scale_profiles.py` prints route-pressure, CHASE location, pickup location, POI leakage, target-acquisition, and acquisition-overlap decisions.
+- `analyze_results.py` prints combat-location, route-pressure, CHASE location, pickup location, proximity-band, target-acquisition, acquisition-overlap, and loot-objective mixes.
+- `compare_scale_profiles.py` prints route-pressure, CHASE location, pickup location, POI leakage, target-acquisition, acquisition-overlap, and loot-objective decisions.
 - `tools/verify_strategic_flow_map.gd` guards candidate POI role coverage, route role coverage, primary-choke alternate routes, and connected POI references.
-- Current 99-probe normalized output from v2.0.35: damage=17.22, shots=2.20, plans=1.21, disengage=0.41, entries=1.45, stuck=0.14 per spawned entity/min.
-- Current 99-probe state mix from v2.0.35: ZONE_ESCAPE 28.6%, DISENGAGE 21.7%, CHASE 20.1%, ATTACK 16.9%, IDLE 12.7%.
+- Current 99-probe normalized output from v2.0.36: damage=20.15, shots=2.45, plans=1.30, disengage=0.44, entries=1.35, stuck=0.23 per spawned entity/min.
+- Current 99-probe state mix from v2.0.36: ZONE_ESCAPE 29.3%, DISENGAGE 21.2%, CHASE 19.5%, ATTACK 17.0%, IDLE 12.9%.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
 - Keep using `verify_strategic_flow_map.gd`, `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, candidate-path simulation, `analyze_results.py`, `compare_scale_profiles.py`, and `check_scale_telemetry.py` as scale gates.

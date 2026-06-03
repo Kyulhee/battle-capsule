@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.35 acquisition route/POI overlap diagnostics)
+> Last updated: 2026-06-04 (v2.0.36 loot objective interruption diagnostics)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.35: acquisition route/POI overlap diagnostics |
-| Next structural slice | v2.0.36: loot/recover CHASE interruption diagnostics |
+| Latest completed slice | v2.0.36: loot objective interruption diagnostics |
+| Next structural slice | v2.0.37: ammo access and objective selection diagnostics |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -520,6 +520,16 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Acquisition remains mostly inside both soft POI and soft route influence: 82.2% -> 79.7%.
 - The stronger remaining signal is post-acquisition flow: CHASE combat 48.0% -> 39.9%, CHASE loot 29.7% -> 36.3%, weapon collect soft POI 86.4% -> 81.4%, ammo collect soft POI 88.4% -> 81.6%.
 - Next work should inspect loot/recover CHASE interruption timing, pickup collection pressure, and weapon/ammo objective pulls before AI aggression, raw damage, generic zone-speed tuning, recovery-exit loot relocation, or POI radius changes.
+
+**v2.0.36 result**
+
+- Added loot objective start/outcome diagnostics only; no gameplay, map, loot count, AI aggression, damage, or zone tuning changed.
+- Analyzer and comparison tooling now expose objective source, mode, target kind, target POI band, outcome, duration, and a `Loot objective decision`.
+- Fresh valid 5-run candidate `xlarge_60` and `target_99_probe` sets both passed scale gates.
+- Loot/recover CHASE is high but not the largest 99 delta in this pair: CHASE combat 46.1% -> 42.1%, loot 29.2% -> 33.1%, recover_loot 24.7% -> 24.8%.
+- Loot objectives are mostly weapon/ammo and increase at 99: 81.9% -> 86.8%; combat low-ammo objective starts are stable and material: 32.2% -> 31.7%.
+- Objective outcomes improve at 99 rather than degrade: collect 26.0% -> 31.3%, interrupt 65.1% -> 58.2%, avg duration 0.56s -> 0.57s.
+- The next suspect is ammo access/objective selection and recovery-exit weapon/ammo pressure, not pathing timeout, generic loot movement, aggression, or damage.
 
 ## Deferred Asset Upgrades
 

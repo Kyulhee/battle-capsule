@@ -45,6 +45,9 @@ var reserve_ammo: int = 0
 
 # True only when loot chase was triggered from RECOVER state (not IDLE opportunistic looting)
 var _recovering: bool = false
+var _loot_objective_source: String = ""
+var _loot_objective_mode: String = "none"
+var _loot_objective_kind: String = "none"
 # True when bot decided to rush with knife instead of retreating to RECOVER
 var _knife_mode: bool = false
 # Cover target used in DISENGAGE state
@@ -308,7 +311,7 @@ func handle_idle_state(delta):
 			_post_kill_loot_attempted = true
 			var nearby = _find_best_pickup(8.0)
 			if nearby and _count_visible_enemies() <= 1:
-				target_actor = nearby; is_targeting_loot = true; _recovering = false
+				_start_loot_objective(nearby, "post_kill_loot", false)
 				change_state(State.CHASE); return
 		var kill_scan_enemy = _find_nearest_target()
 		if kill_scan_enemy:
@@ -369,9 +372,7 @@ func handle_idle_state(delta):
 			nearest_loot.collect(self)
 			_try_reload()
 		else:
-			target_actor = nearest_loot
-			is_targeting_loot = true
-			_recovering = false
+			_start_loot_objective(nearest_loot, "idle_loot", false)
 			change_state(State.CHASE)
 		return
 
@@ -391,6 +392,8 @@ func handle_idle_state(delta):
 
 func handle_chase_state(delta):
 	if not _is_target_valid(target_actor):
+		if is_targeting_loot:
+			_finish_loot_objective("invalid_target")
 		target_actor = null; is_targeting_loot = false; change_state(State.IDLE); return
 
 	var dist = global_position.distance_to(target_actor.global_position)
@@ -412,19 +415,26 @@ func handle_chase_state(delta):
 		if state_timer > 5.0:
 			var alt = _find_best_pickup(_loot_radius)
 			if is_instance_valid(alt) and alt != target_actor:
-				target_actor = alt; state_timer = 0.0
+				var was_recovering := _recovering
+				_finish_loot_objective("retarget")
+				_start_loot_objective(alt, "loot_retarget", was_recovering)
+				state_timer = 0.0
 			else:
+				_finish_loot_objective("giveup")
 				target_actor = null; is_targeting_loot = false; _recovering = false
 				change_state(State.IDLE)
 			return
 		if dist > 2.5:
 			_nav_move_toward(target_actor.global_position, delta, false)
 		else:
+			var outcome := "arrived"
 			if target_actor.has_method("collect"):
 				target_actor.collect(self)
+				outcome = "collect"
 				_try_reload()
 				if _recovering and stats.current_ammo > 0:
 					if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_tactics("recovery_success")
+			_finish_loot_objective(outcome)
 			target_actor = null; is_targeting_loot = false; _recovering = false; change_state(State.IDLE)
 	else:
 		var dir = (target_actor.global_position - global_position).normalized()
@@ -471,6 +481,8 @@ func _maybe_interrupt_objective_for_enemy() -> bool:
 	if _recovering:
 		return false
 
+	if is_targeting_loot:
+		_finish_loot_objective("enemy_interrupt")
 	if not acquire_enemy_target(enemy, "objective_interrupt"):
 		return false
 
@@ -541,7 +553,7 @@ func handle_attack_state(delta):
 			float(stats.current_ammo) / float(stats.max_ammo) <= _combat_loot_threshold:
 		var nearby = _find_best_pickup(_combat_loot_radius)
 		if nearby:
-			target_actor = nearby; is_targeting_loot = true; _recovering = true
+			_start_loot_objective(nearby, "combat_low_ammo", true)
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_tactics("recovery_start")
 			change_state(State.CHASE); return
@@ -667,9 +679,7 @@ func handle_recover_state(delta):
 		# Wider search radius when actively looking for ammo
 		var loot = _find_best_pickup(_loot_radius)
 		if loot:
-			target_actor = loot
-			is_targeting_loot = true
-			_recovering = true
+			_start_loot_objective(loot, "recover_seek_loot", true)
 			change_state(State.CHASE)
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_tactics("recovery_start")
@@ -684,9 +694,7 @@ func handle_recover_state(delta):
 		# Wander to a random zone point until loot appears or timeout
 		var loot = _find_best_pickup(_loot_radius)
 		if loot:
-			target_actor = loot
-			is_targeting_loot = true
-			_recovering = true
+			_start_loot_objective(loot, "recover_patrol_loot", true)
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_tactics("recovery_start")
 			change_state(State.CHASE)
@@ -1215,8 +1223,11 @@ func _chase_target_position_context() -> Dictionary:
 func _chase_target_kind() -> String:
 	if target_actor is Entity:
 		return "entity"
-	if target_actor is Pickup:
-		var pickup := target_actor as Pickup
+	return _pickup_kind_for(target_actor)
+
+func _pickup_kind_for(candidate) -> String:
+	if candidate is Pickup:
+		var pickup := candidate as Pickup
 		if pickup.item == null:
 			return "pickup_unknown"
 		match pickup.item.type:
@@ -1229,9 +1240,59 @@ func _chase_target_kind() -> String:
 			ItemData.Type.ARMOR:
 				return "pickup_armor"
 		return "pickup_unknown"
-	if is_instance_valid(target_actor):
+	if is_instance_valid(candidate):
 		return "node"
 	return "none"
+
+func _start_loot_objective(loot_target: Node3D, source_name: String, recovering: bool) -> void:
+	target_actor = loot_target
+	is_targeting_loot = true
+	_recovering = recovering
+	_loot_objective_source = source_name.strip_edges().to_lower()
+	if _loot_objective_source == "":
+		_loot_objective_source = "unknown"
+	_loot_objective_mode = "recover_loot" if recovering else "loot"
+	_loot_objective_kind = _pickup_kind_for(loot_target)
+	_log_loot_objective_start(loot_target)
+
+func _finish_loot_objective(outcome_name: String) -> void:
+	if _loot_objective_source == "":
+		return
+	_log_loot_objective_outcome(outcome_name)
+	_loot_objective_source = ""
+	_loot_objective_mode = "none"
+	_loot_objective_kind = "none"
+
+func _log_loot_objective_start(loot_target: Node3D) -> void:
+	if not has_node("/root/Telemetry") or not is_instance_valid(loot_target):
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("log_doctrine_loot_objective_start"):
+		return
+	tel.log_doctrine_loot_objective_start(
+		_archetype_name(),
+		_loot_objective_source,
+		_loot_objective_mode,
+		State.keys()[current_state],
+		_loot_objective_kind,
+		_strategic_position_context(loot_target.global_position),
+		global_position.distance_to(loot_target.global_position)
+	)
+
+func _log_loot_objective_outcome(outcome_name: String) -> void:
+	if not has_node("/root/Telemetry"):
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("log_doctrine_loot_objective_outcome"):
+		return
+	tel.log_doctrine_loot_objective_outcome(
+		_archetype_name(),
+		_loot_objective_source,
+		_loot_objective_mode,
+		_loot_objective_kind,
+		outcome_name,
+		state_timer
+	)
 
 func _strategic_position_context(world_pos: Vector3) -> Dictionary:
 	var context := {
@@ -1373,6 +1434,8 @@ func _check_gunshot_sounds():
 		scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
 		_scan_alert = true
 		if direct_noise_lock and current_state in [State.IDLE, State.RECOVER, State.CHASE]:
+			if current_state == State.CHASE and is_targeting_loot:
+				_finish_loot_objective("gunshot_interrupt")
 			acquire_enemy_target(actor, "gunshot_lock")
 			if stats.current_ammo > 0:
 				change_state(State.CHASE)
@@ -1635,6 +1698,8 @@ func _peripheral_check():
 func acquire_enemy_target(enemy: Entity, source_name: String) -> bool:
 	if not is_instance_valid(enemy) or enemy.is_dead:
 		return false
+	if is_targeting_loot:
+		_finish_loot_objective("enemy_acquired")
 	target_actor = enemy
 	is_targeting_loot = false
 	_recovering = false
@@ -1874,6 +1939,8 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 		var passive = current_state == State.IDLE \
 			or (current_state == State.CHASE and is_targeting_loot)
 		if passive:
+			if current_state == State.CHASE and is_targeting_loot:
+				_finish_loot_objective("damage_interrupt")
 			acquire_enemy_target(source_node as Entity, "damage_passive")
 			change_state(State.CHASE)
 		elif current_state == State.DISENGAGE:
@@ -1979,6 +2046,20 @@ func _log_disengage_entry(reason: String):
 
 func change_state(new_state: State):
 	if current_state == new_state: return
+	if current_state == State.CHASE and is_targeting_loot and new_state != State.CHASE:
+		var loot_exit_outcome := "state_exit"
+		match new_state:
+			State.ZONE_ESCAPE:
+				loot_exit_outcome = "zone_interrupt"
+			State.RECOVER:
+				loot_exit_outcome = "recover_interrupt"
+			State.IDLE:
+				loot_exit_outcome = "idle_exit"
+			State.ATTACK:
+				loot_exit_outcome = "attack_interrupt"
+			State.DISENGAGE:
+				loot_exit_outcome = "disengage_interrupt"
+		_finish_loot_objective(loot_exit_outcome)
 	if current_state == State.DISENGAGE and new_state != State.DISENGAGE:
 		_disengage_cooldown = 10.0
 	if new_state != State.ATTACK: _knife_mode = false

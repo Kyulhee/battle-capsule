@@ -261,6 +261,17 @@ func _reset_metrics():
 			"target_acquisition_nearest_poi_role_by_source": {},
 			"target_acquisition_nearest_route_role_by_source": {},
 			"target_acquisition_distance_by_source": {},
+			"loot_objective_start_by_source": {},
+			"loot_objective_mode_by_source": {},
+			"loot_objective_origin_state_by_source": {},
+			"loot_objective_kind_by_source": {},
+			"loot_objective_target_poi_band_by_source": {},
+			"loot_objective_target_route_band_by_source": {},
+			"loot_objective_start_distance_by_source": {},
+			"loot_objective_outcome_by_source": {},
+			"loot_objective_outcome_by_kind": {},
+			"loot_objective_duration_by_source": {},
+			"loot_objective_duration_by_outcome": {},
 			"engage_range_by_archetype": {},
 			"supply_decisions": {},
 		},
@@ -766,6 +777,59 @@ func log_doctrine_target_acquisition(
 	if distance >= 0.0:
 		_add_sample_bucket(metrics.doctrine.target_acquisition_distance_by_source, source_key, distance)
 
+func log_doctrine_loot_objective_start(
+	_archetype_name: String,
+	source_name: String,
+	mode_name: String,
+	origin_state: String,
+	target_kind: String,
+	target_context: Dictionary,
+	distance: float
+):
+	if not match_in_progress or not _g("doctrine"): return
+	var source_key := _normalized_key(source_name, "unknown")
+	var mode_key := _normalized_key(mode_name, "unknown")
+	var state_key := origin_state.strip_edges()
+	if state_key == "":
+		state_key = "UNKNOWN"
+	var kind_key := _normalized_key(target_kind, "pickup_unknown")
+	_add_bucket_value(metrics.doctrine.loot_objective_start_by_source, source_key, 1.0)
+	_add_nested_bucket_value(metrics.doctrine.loot_objective_mode_by_source, source_key, mode_key, 1.0)
+	_add_nested_bucket_value(metrics.doctrine.loot_objective_origin_state_by_source, source_key, state_key, 1.0)
+	_add_nested_bucket_value(metrics.doctrine.loot_objective_kind_by_source, source_key, kind_key, 1.0)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_target_poi_band_by_source,
+		source_key,
+		_poi_distance_band(target_context),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_target_route_band_by_source,
+		source_key,
+		_route_distance_band(target_context),
+		1.0
+	)
+	if distance >= 0.0:
+		_add_sample_bucket(metrics.doctrine.loot_objective_start_distance_by_source, source_key, distance)
+
+func log_doctrine_loot_objective_outcome(
+	_archetype_name: String,
+	source_name: String,
+	mode_name: String,
+	target_kind: String,
+	outcome_name: String,
+	duration: float
+):
+	if not match_in_progress or not _g("doctrine"): return
+	var source_key := _normalized_key(source_name, "unknown")
+	var kind_key := _normalized_key(target_kind, "pickup_unknown")
+	var outcome_key := _normalized_key(outcome_name, "unknown")
+	_add_nested_bucket_value(metrics.doctrine.loot_objective_outcome_by_source, source_key, outcome_key, 1.0)
+	_add_nested_bucket_value(metrics.doctrine.loot_objective_outcome_by_kind, kind_key, outcome_key, 1.0)
+	if duration >= 0.0:
+		_add_sample_bucket(metrics.doctrine.loot_objective_duration_by_source, source_key, duration)
+		_add_sample_bucket(metrics.doctrine.loot_objective_duration_by_outcome, outcome_key, duration)
+
 func log_doctrine_supply(decision: String):
 	if not match_in_progress or not _g("doctrine"): return
 	var decisions = metrics.doctrine.supply_decisions
@@ -1071,6 +1135,10 @@ func _add_sample_bucket(bucket: Dictionary, key: String, value: float):
 	sample["total"] = float(sample.get("total", 0.0)) + value
 	sample["min"] = value if count == 0 else minf(float(sample.get("min", value)), value)
 	sample["max"] = value if count == 0 else maxf(float(sample.get("max", value)), value)
+
+func _normalized_key(value: String, fallback: String) -> String:
+	var key := value.strip_edges().to_lower()
+	return fallback if key == "" else key
 
 func _poi_distance_band(context: Dictionary) -> String:
 	if bool(context.get("poi_inside", false)):

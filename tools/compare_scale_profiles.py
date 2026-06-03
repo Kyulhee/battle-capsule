@@ -201,6 +201,34 @@ def doctrine_sources_counter(runs: list[dict], key: str, sources: list[str]) -> 
     return counter
 
 
+def doctrine_sample_buckets(runs: list[dict], key: str) -> dict[str, dict[str, float]]:
+    buckets: dict[str, dict[str, float]] = {}
+    for run in runs:
+        values = run.get("doctrine", {}).get(key, {})
+        if not isinstance(values, dict):
+            continue
+        for name, sample in values.items():
+            if not isinstance(sample, dict):
+                continue
+            count = int(sample.get("count", 0))
+            if count <= 0:
+                continue
+            bucket = buckets.setdefault(
+                name,
+                {
+                    "count": 0.0,
+                    "total": 0.0,
+                    "min": float(sample.get("min", 0.0)),
+                    "max": float(sample.get("max", 0.0)),
+                },
+            )
+            bucket["count"] += float(count)
+            bucket["total"] += float(sample.get("total", 0.0))
+            bucket["min"] = min(float(bucket["min"]), float(sample.get("min", bucket["min"])))
+            bucket["max"] = max(float(bucket["max"]), float(sample.get("max", bucket["max"])))
+    return buckets
+
+
 def economy_kind_counter(runs: list[dict], key: str, kind: str) -> Counter:
     counter = Counter()
     for run in runs:
@@ -227,6 +255,22 @@ def counter_group_share(counter: Counter, keys: list[str]) -> float:
     if total <= 0.0:
         return 0.0
     return 100.0 * sum(float(counter.get(key, 0.0)) for key in keys) / total
+
+
+def sample_avg(samples: dict[str, dict[str, float]], key: str) -> float:
+    bucket = samples.get(key, {})
+    count = float(bucket.get("count", 0.0))
+    if count <= 0.0:
+        return 0.0
+    return float(bucket.get("total", 0.0)) / count
+
+
+def sample_total_avg(samples: dict[str, dict[str, float]]) -> float:
+    total_count = sum(float(bucket.get("count", 0.0)) for bucket in samples.values())
+    if total_count <= 0.0:
+        return 0.0
+    total_value = sum(float(bucket.get("total", 0.0)) for bucket in samples.values())
+    return total_value / total_count
 
 
 def excluding_share(counter: Counter, excluded_keys: list[str]) -> float:
@@ -332,6 +376,29 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         for poi_band in soft_poi_band_keys
         for route_band in soft_route_band_keys
     ]
+    loot_objective_sources = doctrine_counter(runs, "loot_objective_start_by_source")
+    loot_objective_modes = doctrine_sources_counter(
+        runs,
+        "loot_objective_mode_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_kinds = doctrine_sources_counter(
+        runs,
+        "loot_objective_kind_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_outcomes = doctrine_sources_counter(
+        runs,
+        "loot_objective_outcome_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_target_poi_bands = doctrine_sources_counter(
+        runs,
+        "loot_objective_target_poi_band_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_duration_by_outcome = doctrine_sample_buckets(runs, "loot_objective_duration_by_outcome")
+    loot_objective_duration_by_source = doctrine_sample_buckets(runs, "loot_objective_duration_by_source")
     attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
     summary = {
         "runs": float(len(runs)),
@@ -502,6 +569,43 @@ def summarize(runs: list[dict]) -> dict[str, float]:
             target_acquisition_route_role_poi_bands,
             "recovery_exit/far_8m_plus",
         ),
+        "loot_objective_count": counter_total(loot_objective_sources),
+        "loot_objective_recover_mode_pct": counter_share(loot_objective_modes, "recover_loot"),
+        "loot_objective_weapon_ammo_pct": counter_group_share(
+            loot_objective_kinds,
+            ["pickup_weapon", "pickup_ammo"],
+        ),
+        "loot_objective_heal_armor_pct": counter_group_share(
+            loot_objective_kinds,
+            ["pickup_heal", "pickup_armor"],
+        ),
+        "loot_objective_idle_pct": counter_share(loot_objective_sources, "idle_loot"),
+        "loot_objective_combat_low_ammo_pct": counter_share(loot_objective_sources, "combat_low_ammo"),
+        "loot_objective_recover_seek_pct": counter_share(loot_objective_sources, "recover_seek_loot"),
+        "loot_objective_recover_patrol_pct": counter_share(loot_objective_sources, "recover_patrol_loot"),
+        "loot_objective_collect_pct": counter_share(loot_objective_outcomes, "collect"),
+        "loot_objective_giveup_pct": counter_share(loot_objective_outcomes, "giveup"),
+        "loot_objective_retarget_pct": counter_share(loot_objective_outcomes, "retarget"),
+        "loot_objective_interrupt_pct": counter_group_share(
+            loot_objective_outcomes,
+            [
+                "enemy_interrupt",
+                "enemy_acquired",
+                "damage_interrupt",
+                "gunshot_interrupt",
+                "zone_interrupt",
+                "attack_interrupt",
+                "disengage_interrupt",
+            ],
+        ),
+        "loot_objective_soft_poi_pct": counter_group_share(
+            loot_objective_target_poi_bands,
+            soft_poi_band_keys,
+        ),
+        "loot_objective_avg_duration": sample_total_avg(loot_objective_duration_by_source),
+        "loot_objective_collect_duration": sample_avg(loot_objective_duration_by_outcome, "collect"),
+        "loot_objective_giveup_duration": sample_avg(loot_objective_duration_by_outcome, "giveup"),
+        "loot_objective_interrupt_duration": sample_avg(loot_objective_duration_by_outcome, "enemy_interrupt"),
         "chase_recover_target_transit_poi_pct": counter_share(recover_target_poi_roles, "transit_choke"),
         "chase_recover_target_loot_hub_pct": counter_share(recover_target_poi_roles, "loot_hub"),
         "chase_recover_target_concealment_pct": counter_share(recover_target_poi_roles, "concealment"),
@@ -650,6 +754,22 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("target_acquisition_primary_choke_far_poi_pct", "target acq primary choke far POI %"),
         ("target_acquisition_loot_flow_far_poi_pct", "target acq loot-flow far POI %"),
         ("target_acquisition_recovery_exit_far_poi_pct", "target acq recovery-exit far POI %"),
+        ("loot_objective_count", "loot objectives"),
+        ("loot_objective_recover_mode_pct", "loot objective recover mode %"),
+        ("loot_objective_weapon_ammo_pct", "loot objective weapon/ammo %"),
+        ("loot_objective_heal_armor_pct", "loot objective heal/armor %"),
+        ("loot_objective_idle_pct", "loot objective idle source %"),
+        ("loot_objective_combat_low_ammo_pct", "loot objective combat ammo source %"),
+        ("loot_objective_recover_seek_pct", "loot objective recover seek source %"),
+        ("loot_objective_recover_patrol_pct", "loot objective recover patrol source %"),
+        ("loot_objective_collect_pct", "loot objective collect %"),
+        ("loot_objective_giveup_pct", "loot objective giveup %"),
+        ("loot_objective_retarget_pct", "loot objective retarget %"),
+        ("loot_objective_interrupt_pct", "loot objective interrupt %"),
+        ("loot_objective_soft_poi_pct", "loot objective target soft POI %"),
+        ("loot_objective_avg_duration", "loot objective avg duration s"),
+        ("loot_objective_collect_duration", "loot objective collect duration s"),
+        ("loot_objective_giveup_duration", "loot objective giveup duration s"),
         ("chase_recover_target_in_poi_pct", "CHASE recover target POI %"),
         ("chase_recover_target_on_route_pct", "CHASE recover target route %"),
         ("chase_recover_target_near_poi_pct", "CHASE recover target near POI %"),
@@ -709,6 +829,7 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
     print_engagement_density_decision(summary_a, summary_b)
     print_chase_location_decision(summary_a, summary_b)
     print_pickup_location_decision(summary_a, summary_b)
+    print_loot_objective_decision(summary_a, summary_b)
     print_poi_leakage_decision(summary_a, summary_b)
     print_target_acquisition_decision(summary_a, summary_b)
     print_route_pressure_decision(summary_a, summary_b)
@@ -933,6 +1054,54 @@ def print_pickup_location_decision(summary_a: dict[str, float], summary_b: dict[
         summary_b.get("pickup_collect_ammo_primary_choke_pct", 0.0)
     ) < 25.0:
         print("  - Primary chokes are not the main weapon/ammo collection source yet.")
+
+
+def print_loot_objective_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    objective_count_b = float(summary_b.get("loot_objective_count", 0.0))
+    chase_loot_delta = float(summary_b.get("chase_loot", 0.0)) - float(summary_a.get("chase_loot", 0.0))
+    chase_recover_delta = float(summary_b.get("chase_recover_loot", 0.0)) - float(
+        summary_a.get("chase_recover_loot", 0.0)
+    )
+    chase_combat_delta = float(summary_b.get("chase_combat", 0.0)) - float(summary_a.get("chase_combat", 0.0))
+    weapon_ammo_b = float(summary_b.get("loot_objective_weapon_ammo_pct", 0.0))
+    recover_mode_b = float(summary_b.get("loot_objective_recover_mode_pct", 0.0))
+    combat_ammo_source_b = float(summary_b.get("loot_objective_combat_low_ammo_pct", 0.0))
+    collect_b = float(summary_b.get("loot_objective_collect_pct", 0.0))
+    interrupt_b = float(summary_b.get("loot_objective_interrupt_pct", 0.0))
+    giveup_b = float(summary_b.get("loot_objective_giveup_pct", 0.0))
+    soft_poi_b = float(summary_b.get("loot_objective_soft_poi_pct", 0.0))
+    avg_duration_b = float(summary_b.get("loot_objective_avg_duration", 0.0))
+    weapon_collect_soft_delta = float(summary_b.get("pickup_collect_weapon_inside_or_near_poi_pct", 0.0)) - float(
+        summary_a.get("pickup_collect_weapon_inside_or_near_poi_pct", 0.0)
+    )
+    ammo_collect_soft_delta = float(summary_b.get("pickup_collect_ammo_inside_or_near_poi_pct", 0.0)) - float(
+        summary_a.get("pickup_collect_ammo_inside_or_near_poi_pct", 0.0)
+    )
+
+    print("Loot objective decision:")
+    if objective_count_b <= 0.0:
+        print("  - No loot objective telemetry was recorded; run a post-v2.0.36 simulation set.")
+        return
+    if chase_combat_delta <= -5.0 and chase_loot_delta + chase_recover_delta >= 5.0:
+        print("  - CHASE shifts from combat into loot/recover movement at target scale; inspect objective starts before combat tuning.")
+    elif chase_loot_delta + chase_recover_delta >= 5.0:
+        print("  - Loot/recover CHASE grows at target scale, but combat CHASE did not drop enough to lead alone.")
+    else:
+        print("  - Loot/recover CHASE share is not the main scale delta in this pair.")
+    if weapon_ammo_b >= 70.0:
+        print("  - Loot objectives are mostly weapon/ammo pulls; inspect ammo access and weapon objective selection.")
+    elif recover_mode_b >= 65.0:
+        print("  - Loot objectives are mostly recovery-mode pulls; inspect RECOVER search and re-entry timing.")
+    if combat_ammo_source_b >= 20.0:
+        print("  - Combat low-ammo breakoffs are material; inspect ammo thresholds before changing aggression.")
+    if collect_b >= 70.0 and (weapon_collect_soft_delta <= -5.0 or ammo_collect_soft_delta <= -5.0):
+        print("  - Objectives are usually collected, but pickup collection loses soft-POI coverage; inspect pickup access paths.")
+    elif interrupt_b >= 25.0:
+        print("  - Objective interruption is high; inspect enemy sensing during loot runs before moving pickups.")
+    elif giveup_b >= 20.0 or avg_duration_b >= 4.0:
+        print("  - Loot objectives are slow or abandoned; inspect pathing distance and objective retargeting.")
+    if soft_poi_b < 75.0:
+        print("  - Loot objective targets are weakly tied to POI influence; inspect pickup placement/classification before map promotion.")
 
 
 def print_poi_leakage_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:

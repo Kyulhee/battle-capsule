@@ -1,8 +1,39 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-03. Compressed recent work log. Full historical detail is preserved in `docs/devlog/` and `docs/archive/`.
+> Last updated: 2026-06-04. Compressed recent work log. Full historical detail is preserved in `docs/devlog/` and `docs/archive/`.
 
 Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-version summaries unless exact history is needed.
+
+---
+
+## v2.0.36 — Loot Objective Interruption Diagnostics
+
+**Scope**
+
+- Added diagnostic loot objective start/outcome telemetry without changing gameplay, map data, loot counts, AI aggression, damage, or zone pacing.
+- `Bot.gd` now records loot objective source, mode, target kind, target position band, outcome, and duration for idle loot, post-kill loot, combat low-ammo breakoffs, RECOVER seek/patrol loot, retargets, collects, giveups, and interrupt outcomes.
+- `Telemetry.gd` persists loot objective start/source/kind/mode/location, outcome, and duration buckets.
+- `tools/analyze_results.py` prints loot objective source, kind, target band, outcome, and duration mixes.
+- `tools/compare_scale_profiles.py` compares objective source/outcome/duration rows and adds a `Loot objective decision`.
+
+**Verification**
+
+- Python compile passed for scale analysis/simulation tools.
+- `verify_strategic_flow_map.gd` and `verify_candidate_99_probe.gd` passed.
+- 1-run 99 smoke at `C:\tmp\game_dev_loot_objective_v2036_smoke` confirmed the new fields are written and passed the 1-run scale gate.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_loot_objective_xlarge60_v2036`: avg duration 96.6s, first upgrade 13.8s, stuck 33.0/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_loot_objective_99_v2036`: avg duration 156.4s, first upgrade 12.0s, stuck 58.8/run, fallback 0.0/run.
+
+**Decision**
+
+- Loot/recover CHASE share is not the main 99 delta in this pair: CHASE loot 29.2% -> 33.1%, recover loot 24.7% -> 24.8%, combat 46.1% -> 42.1%.
+- Loot objectives are mostly weapon/ammo pulls: 81.9% -> 86.8%.
+- Combat low-ammo breakoffs are material and stable: 32.2% -> 31.7% of loot objective starts.
+- Objective interruption is high but lower at 99: 65.1% -> 58.2%; collection rises 26.0% -> 31.3%; average duration stays short at 0.56s -> 0.57s.
+- Recovery-exit weapon/ammo pressure is present in this pair: spawn and collection recovery_exit shares both remain material.
+- Do not tune AI aggression, raw damage, generic zone speed, or POI radius yet.
+- Next slice should inspect ammo access/objective selection thresholds and recovery-exit weapon/ammo pressure before moving loot or changing combat aggression.
 
 ---
 
