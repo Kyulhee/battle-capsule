@@ -504,6 +504,8 @@ def print_engagement_density_decision(summary_a: dict[str, float], summary_b: di
 
 
 def print_route_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    route_damage_b = float(summary_b.get("combat_damage_on_route_pct", 0.0))
+    poi_damage_b = float(summary_b.get("combat_damage_in_poi_pct", 0.0))
     route_damage_delta = float(summary_b.get("combat_damage_on_route_pct", 0.0)) - float(
         summary_a.get("combat_damage_on_route_pct", 0.0)
     )
@@ -515,15 +517,25 @@ def print_route_pressure_decision(summary_a: dict[str, float], summary_b: dict[s
     transit_poi_b = float(summary_b.get("damage_transit_choke_poi_pct", 0.0))
 
     print("Route pressure decision:")
-    if float(summary_b.get("combat_damage_on_route_pct", 0.0)) <= 0.0:
+    if route_damage_b <= 0.0:
         print("  - No route-pressure telemetry was recorded; run a post-v2.0.28 simulation set.")
         return
     if route_damage_delta < -5.0:
-        print("  - Target scale moved damage away from strategic routes; inspect route spacing and zone pull.")
+        if route_damage_b >= 60.0:
+            print(
+                "  - Target scale keeps high route damage but below baseline; inspect whether 60 is over-concentrated before widening routes."
+            )
+        else:
+            print("  - Target scale moved damage away from strategic routes; inspect route spacing and zone pull.")
     else:
         print("  - Target scale preserves or increases damage on strategic routes.")
     if poi_damage_delta < -5.0:
-        print("  - Target scale moved damage out of POI influence; inspect loot hubs and recovery pockets.")
+        if poi_damage_b >= 45.0:
+            print(
+                "  - Target scale keeps material POI damage but below baseline; inspect which POI roles lost pressure."
+            )
+        else:
+            print("  - Target scale moved damage out of POI influence; inspect loot hubs and recovery pockets.")
     if primary_choke_b + flank_b < 25.0 and transit_poi_b < 12.0:
         print("  - Choke/flank pressure is thin; map routes may not be contesting rotations yet.")
     else:

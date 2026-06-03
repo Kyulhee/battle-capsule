@@ -6,7 +6,7 @@ const PRESET := "target_99_probe"
 
 const REQUIRED_POI_ROLES := {
 	"loot_hub": 3,
-	"transit_choke": 2,
+	"transit_choke": 4,
 	"recovery_pocket": 2,
 	"concealment_field": 2,
 }
@@ -104,10 +104,16 @@ func _verify_routes(routes: Array[Dictionary], pois: Array[Dictionary]) -> bool:
 			return false
 		var role := String(route.get("role", ""))
 		if role == "primary_choke":
+			if points.size() < 5:
+				_fail("Primary choke %s should expose a multi-point gate path; got %d points." % [route.get("id", ""), points.size()])
+				return false
 			var alternate_id := String(route.get("alternate_route_id", "")).strip_edges()
 			if alternate_id.is_empty() or not route_ids.has(alternate_id):
 				_fail("Primary choke %s needs a valid alternate_route_id." % route.get("id", ""))
 				return false
+		if String(route.get("id", "")) == "central_meadow_cross" and float(route.get("width", 0.0)) > 16.0:
+			_fail("Central meadow route should not be wide enough to absorb side-gate pressure.")
+			return false
 		var connects: Array = route.get("connects", [])
 		if typeof(connects) != TYPE_ARRAY or connects.is_empty():
 			_fail("Route %s needs connected POI names." % route.get("id", ""))
@@ -133,6 +139,22 @@ func _verify_position_classification(definition) -> bool:
 		return false
 	if String(west_choke.get("route_role", "")) != "primary_choke":
 		_fail("West ridge choke should classify as primary_choke route, got %s." % west_choke.get("route_role", ""))
+		return false
+
+	var west_gate: Dictionary = definition.describe_strategic_position(Vector2(-34.0, 16.0))
+	if String(west_gate.get("poi_name", "")) != "West Ridge Overlook":
+		_fail("West pressure gate should classify as West Ridge Overlook, got %s." % west_gate.get("poi_name", ""))
+		return false
+	if String(west_gate.get("route_role", "")) != "primary_choke":
+		_fail("West pressure gate should classify as primary_choke route, got %s." % west_gate.get("route_role", ""))
+		return false
+
+	var east_gate: Dictionary = definition.describe_strategic_position(Vector2(42.0, -6.0))
+	if String(east_gate.get("poi_name", "")) != "East Pine Gate":
+		_fail("East pressure gate should classify as East Pine Gate, got %s." % east_gate.get("poi_name", ""))
+		return false
+	if String(east_gate.get("route_role", "")) != "primary_choke":
+		_fail("East pressure gate should classify as primary_choke route, got %s." % east_gate.get("route_role", ""))
 		return false
 
 	var central: Dictionary = definition.describe_strategic_position(Vector2.ZERO)

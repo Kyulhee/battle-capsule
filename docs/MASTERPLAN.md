@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.29 fresh route-pressure comparison)
+> Last updated: 2026-06-03 (v2.0.30 candidate strategic-route pressure pass)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.29: fresh 60-vs-99 route-pressure comparison |
-| Next structural slice | v2.0.30: candidate strategic-route pressure pass |
+| Latest completed slice | v2.0.30: candidate strategic-route pressure pass |
+| Next structural slice | v2.0.31: CHASE recovery / POI-pressure follow-up |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -461,6 +461,15 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - 99 preserves broad route pressure but does not create intended contested terrain pressure: combat damage on route is 63.2% -> 60.7%, while primary-choke damage is only 0.4% -> 1.0%, flank damage is 3.0% -> 2.7%, and transit-choke POI damage stays below 0.4%.
 - 99 still has thinner active engagement coverage despite healthy per-ATTACK efficiency: `ATTACK+CHASE` 41.6% -> 38.3%, `RETREAT+ESCAPE` 43.7% -> 47.7%, damage/ATTACK min 758.8 -> 872.3.
 - Next work should be candidate-only strategic-route pressure design before AI aggression, damage, or generic zone-speed tuning.
+
+**v2.0.30 result**
+
+- Candidate map `3.3-candidate` adds strategic gate POIs at West Ridge Overlook and East Pine Gate, retunes primary-choke paths through them, reduces Central Meadow dominance, and keeps only light offset high-rock cover after heavy-cover smoke raised stuck triggers too far.
+- `verify_strategic_flow_map.gd` now guards 4 transit-choke POIs, multi-point primary-choke paths, central-route width, and exact gate classification.
+- Fresh 5-run 60 and 99 candidate sets both passed scale gates after the obstacle reduction.
+- 99 now has material contested-terrain pressure: combat damage on route 70.1%, primary-choke damage 24.7%, transit-choke POI damage 20.9%.
+- The next blocker is no longer route existence. 99 still has thinner active coverage and more recovery movement: `ATTACK+CHASE` 39.9% -> 37.8%, CHASE combat 49.5% -> 40.0%, CHASE recover-loot 18.6% -> 27.7%.
+- Next work should inspect CHASE recovery/loot interruptions and POI pressure distribution before AI aggression, damage, or generic zone-speed tuning.
 
 ## Deferred Asset Upgrades
 

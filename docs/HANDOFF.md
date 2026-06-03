@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.29 — fresh 60-vs-99 route-pressure comparison`.
-- Next structural slice: `v2.0.30 — candidate strategic-route pressure pass`.
+- Latest completed slice: `v2.0.30 — candidate strategic-route pressure pass`.
+- Next structural slice: `v2.0.31 — CHASE recovery / POI-pressure follow-up`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -43,13 +43,13 @@
 - Current v2.0.24 slice adds candidate-only `target_99_probe` economy tuning; no default/global 99 promotion was made.
 - `b44d9dd feat: add engagement density diagnostics` — adds engagement-density diagnostics; no gameplay tuning or default/global 99 promotion was made.
 - `5fa689c feat: add route pressure telemetry` — adds combat-location / route-pressure telemetry; no gameplay tuning or default/global 99 promotion was made.
-- Current v2.0.29 slice records fresh 60-vs-99 route-pressure comparison; no gameplay tuning or default/global 99 promotion was made.
+- Current v2.0.30 slice adds candidate-only strategic gate map pressure; default map/global 99 promotion was not made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.30 — candidate strategic-route pressure pass`
+`v2.0.31 — CHASE recovery / POI-pressure follow-up`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -58,7 +58,17 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
   - `C:\tmp\game_dev_route_candidate_60_v20260603`: avg duration 92.7s, first upgrade 10.0s, AI avg 307.2us, fallback 0.0/run.
   - `C:\tmp\game_dev_route_candidate_99_v20260603`: avg duration 140.2s, first upgrade 17.7s, AI avg 424.0us, fallback 0.0/run.
 - Route-pressure conclusion: broad route combat is present, but contested-terrain pressure is weak. Combat damage on route is 63.2% -> 60.7%, while primary-choke damage is 0.4% -> 1.0%, flank damage is 3.0% -> 2.7%, and transit-choke POI damage stays below 0.4%.
-- v2.0.30 should make candidate-only route/POI changes that create materially contestable chokepoints, flanks, and power-position rotations before AI aggression, damage, or generic zone-speed tuning.
+- v2.0.30 changed the candidate map to strategic gates:
+  - Central Meadow radius/density reduced.
+  - `West Ridge Overlook` and `East Pine Gate` added as transit-choke POIs.
+  - West/East primary-choke route points now pass through those gates.
+  - Only one offset high rock cover per gate remains; the first heavier-cover smoke failed on stuck triggers, so do not add more hard clutter without rerunning scale gates.
+- v2.0.30 fresh 5-run sets passed scale gates:
+  - `C:\tmp\game_dev_route_gate_candidate_60_v2030`: avg duration 111.7s, first upgrade 10.6s, stuck 42.4/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_route_gate_candidate_99_v2030`: avg duration 135.0s, first upgrade 10.1s, stuck 42.6/run, fallback 0.0/run.
+- v2.0.30 result: 99 route pressure is now material enough to analyze. Combat damage on route is 70.1%, primary-choke damage is 24.7%, and transit-choke POI damage is 20.9%.
+- Remaining blocker: 99 still shifts CHASE away from combat and toward recovery. `ATTACK+CHASE` is 39.9% -> 37.8%, CHASE combat is 49.5% -> 40.0%, and CHASE recover-loot is 18.6% -> 27.7%.
+- v2.0.31 should inspect CHASE recovery/loot interruptions and 99 POI-pressure distribution before AI aggression, damage, or generic zone-speed tuning.
 - Candidate `mapSpec_large_candidate.json` now has 6 route descriptors:
   - primary chokes: `west_ridge_choke`, `east_pine_choke`.
   - flanks: `north_slope_flank`, `south_creek_flank`.
@@ -106,7 +116,7 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - 99 CHASE is majority loot/recovery movement, but this is not automatically a failure. Next telemetry should show whether movement crosses intended strategic routes and whether combat clusters around route/POI pressure.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Next work should change only candidate-map strategic pressure data/geometry, then rerun fresh 5-run `xlarge_60` and `target_99_probe` comparisons before deciding whether pickup spacing, AI aggression, damage, or zone pacing needs tuning.
+- Next work should use the v2.0.30 fresh comparison to decide whether pickup spacing, recovery exits, objective interrupts, or target acquisition should change next. Avoid raw damage and generic zone-speed tuning until that diagnosis is clearer.
 - Keep using `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, `verify_map_runtime_path.gd`, candidate-path simulation, `analyze_results.py`, and `check_scale_telemetry.py` as scale gates.
 
 ## Asset Notes

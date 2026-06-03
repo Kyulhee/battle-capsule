@@ -6,6 +6,38 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.30 — Candidate Strategic-Route Pressure Pass
+
+**Scope**
+
+- Updated only `data/mapSpec_large_candidate.json`; default map remains unchanged.
+- Reworked the candidate map from a central-meadow dominant flow into a strategic-gate layout:
+  - Central Meadow radius/density reduced.
+  - Added `West Ridge Overlook` and `East Pine Gate` as transit-choke POIs.
+  - Retuned West/East primary-choke routes to pass through the new gate POIs.
+  - Added one offset high rock cover per gate; removed heavier gate clutter after smoke showed excessive stuck triggers.
+- `verify_strategic_flow_map.gd` now requires 4 transit-choke POIs, multi-point primary-choke paths, bounded central route width, and direct classification checks for both new gate POIs.
+- `compare_scale_profiles.py` route-pressure decision now separates absolute target pressure from baseline-relative drops.
+
+**Verification**
+
+- `verify_strategic_flow_map.gd`, `verify_large_map_candidate.gd`, `verify_candidate_99_probe.gd`, and `verify_map_runtime_path.gd` passed.
+- Candidate-map headless quit passed for `xlarge_60` and `target_99_probe` with only the expected AssetCatalog warning.
+- Python compile passed for scale analysis/simulation tools.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_route_gate_candidate_60_v2030`: avg duration 111.7s, first upgrade 10.6s, stuck 42.4/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_route_gate_candidate_99_v2030`: avg duration 135.0s, first upgrade 10.1s, stuck 42.6/run, fallback 0.0/run.
+- `git diff --check` passed.
+
+**Decision**
+
+- Strategic gate pressure is now real enough to analyze: 99 combat damage on route is 70.1%, primary-choke damage is 24.7%, and transit-choke POI damage is 20.9%.
+- This fixes the v2.0.29 failure mode where 99 primary-choke damage was only 1.0% and transit-choke POI damage was 0.3%.
+- Remaining issue is not raw route pressure. 99 still has thinner active coverage and more recovery movement: `ATTACK+CHASE` 39.9% -> 37.8%, CHASE combat 49.5% -> 40.0%, CHASE recover-loot 18.6% -> 27.7%.
+- Next slice should inspect CHASE recovery/loot interruptions and POI pressure distribution before AI aggression, damage, or generic zone-speed tuning.
+
+---
+
 ## v2.0.29 — Fresh Route-Pressure Comparison
 
 **Scope**
