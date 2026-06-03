@@ -250,6 +250,13 @@ func _reset_metrics():
 			"chase_target_poi_band_by_context": {},
 			"chase_target_route_band_by_context": {},
 			"chase_target_kind_by_context": {},
+			"target_acquisition_by_source": {},
+			"target_acquisition_state_by_source": {},
+			"target_acquisition_poi_role_by_source": {},
+			"target_acquisition_poi_band_by_source": {},
+			"target_acquisition_route_role_by_source": {},
+			"target_acquisition_route_band_by_source": {},
+			"target_acquisition_distance_by_source": {},
 			"engage_range_by_archetype": {},
 			"supply_decisions": {},
 		},
@@ -680,6 +687,54 @@ func log_doctrine_engage_range(archetype_name: String, distance: float):
 	bucket["min"] = distance if count == 0 else minf(float(bucket.get("min", distance)), distance)
 	bucket["max"] = distance if count == 0 else maxf(float(bucket.get("max", distance)), distance)
 
+func log_doctrine_target_acquisition(
+	_archetype_name: String,
+	source_name: String,
+	state_name: String,
+	target_context: Dictionary,
+	distance: float
+):
+	if not match_in_progress or not _g("doctrine"): return
+	var source_key = source_name.strip_edges().to_lower()
+	if source_key == "":
+		source_key = "unknown"
+	var state_key = state_name.strip_edges()
+	if state_key == "":
+		state_key = "UNKNOWN"
+	_add_bucket_value(metrics.doctrine.target_acquisition_by_source, source_key, 1.0)
+	_add_nested_bucket_value(
+		metrics.doctrine.target_acquisition_state_by_source,
+		source_key,
+		state_key,
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.target_acquisition_poi_role_by_source,
+		source_key,
+		String(target_context.get("poi_role", "open")),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.target_acquisition_poi_band_by_source,
+		source_key,
+		_poi_distance_band(target_context),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.target_acquisition_route_role_by_source,
+		source_key,
+		String(target_context.get("route_role", "off_route")),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.target_acquisition_route_band_by_source,
+		source_key,
+		_route_distance_band(target_context),
+		1.0
+	)
+	if distance >= 0.0:
+		_add_sample_bucket(metrics.doctrine.target_acquisition_distance_by_source, source_key, distance)
+
 func log_doctrine_supply(decision: String):
 	if not match_in_progress or not _g("doctrine"): return
 	var decisions = metrics.doctrine.supply_decisions
@@ -969,6 +1024,22 @@ func _add_nested_bucket_value(bucket: Dictionary, outer_key: String, inner_key: 
 		bucket[resolved_outer] = {}
 	var nested: Dictionary = bucket[resolved_outer]
 	_add_bucket_value(nested, inner_key, amount)
+
+func _add_sample_bucket(bucket: Dictionary, key: String, value: float):
+	var bucket_key = key if key.strip_edges() != "" else "unknown"
+	if not bucket.has(bucket_key):
+		bucket[bucket_key] = {
+			"count": 0,
+			"total": 0.0,
+			"min": value,
+			"max": value,
+		}
+	var sample = bucket[bucket_key]
+	var count = int(sample.get("count", 0))
+	sample["count"] = count + 1
+	sample["total"] = float(sample.get("total", 0.0)) + value
+	sample["min"] = value if count == 0 else minf(float(sample.get("min", value)), value)
+	sample["max"] = value if count == 0 else maxf(float(sample.get("max", value)), value)
 
 func _poi_distance_band(context: Dictionary) -> String:
 	if bool(context.get("poi_inside", false)):

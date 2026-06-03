@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.33 POI proximity diagnostics)
+> Last updated: 2026-06-03 (v2.0.34 target acquisition diagnostics)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.33: POI proximity / soft-overlap diagnostics |
-| Next structural slice | v2.0.34: target acquisition source and encounter-position diagnostics |
+| Latest completed slice | v2.0.34: target acquisition source diagnostics |
+| Next structural slice | v2.0.35: route/POI overlap by acquisition source |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -500,6 +500,16 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Combat target soft-route coverage remains high: 93.7% -> 90.4%, so entities are still on/near strategic routes while leaking from POI influence.
 - Pickup collection soft-POI loss is smaller than combat target loss: weapon 87.0% -> 82.8%, ammo 87.6% -> 83.2%.
 - Next work should inspect target acquisition source and target position at acquisition time before AI aggression, raw damage, generic zone-speed tuning, recovery-exit loot relocation, or POI radius changes.
+
+**v2.0.34 result**
+
+- Added target-acquisition source diagnostics only; no gameplay, map, loot count, AI aggression, damage, or zone tuning changed.
+- Analyzer and comparison tooling now expose acquisition source mix, source->state, source->target POI/route bands, and a `Target acquisition decision`.
+- Fresh valid 5-run candidate `xlarge_60` and `target_99_probe` sets both passed scale gates.
+- Acquisition-time soft-POI coverage drops moderately at 99: 78.3% -> 73.5%; soft-route coverage remains high: 92.6% -> 88.7%.
+- Combat CHASE target soft-POI coverage is comparatively stable in this fresh pair: 81.3% -> 78.2%; combat target soft-route stays high: 91.8% -> 89.8%.
+- Source mix shifts toward reengage at 99: reengage 38.2% -> 43.1%; scan is the weakest active group at 99 with 71.9% soft POI and 19.6% of acquisitions.
+- Next work should inspect route/POI overlap by acquisition source and encounter spacing around scan/reengage/objective acquisitions before AI aggression, raw damage, generic zone-speed tuning, recovery-exit loot relocation, or POI radius changes.
 
 ## Deferred Asset Upgrades
 

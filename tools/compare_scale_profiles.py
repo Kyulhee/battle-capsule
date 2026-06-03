@@ -175,6 +175,32 @@ def doctrine_context_counter(runs: list[dict], key: str, context: str) -> Counte
     return counter
 
 
+def doctrine_counter(runs: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for run in runs:
+        values = run.get("doctrine", {}).get(key, {})
+        if isinstance(values, dict):
+            counter.update({name: float(value) for name, value in values.items()})
+    return counter
+
+
+def doctrine_source_counter(runs: list[dict], key: str, source: str) -> Counter:
+    counter = Counter()
+    for run in runs:
+        values = run.get("doctrine", {}).get(key, {})
+        source_values = values.get(source, {}) if isinstance(values, dict) else {}
+        if isinstance(source_values, dict):
+            counter.update({name: float(value) for name, value in source_values.items()})
+    return counter
+
+
+def doctrine_sources_counter(runs: list[dict], key: str, sources: list[str]) -> Counter:
+    counter = Counter()
+    for source in sources:
+        counter.update(doctrine_source_counter(runs, key, source))
+    return counter
+
+
 def economy_kind_counter(runs: list[dict], key: str, kind: str) -> Counter:
     counter = Counter()
     for run in runs:
@@ -268,6 +294,23 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     spawn_ammo_poi_bands = economy_kind_counter(runs, "pickup_spawn_poi_band_by_kind", "ammo")
     soft_poi_band_keys = ["inside", "near_0_4m", "near_4_8m"]
     near_poi_band_keys = ["near_0_4m", "near_4_8m"]
+    soft_route_band_keys = ["on_route", "near_0_4m", "near_4_8m"]
+    target_acquisition_sources = doctrine_counter(runs, "target_acquisition_by_source")
+    target_acquisition_poi_bands = doctrine_sources_counter(
+        runs,
+        "target_acquisition_poi_band_by_source",
+        list(target_acquisition_sources),
+    )
+    target_acquisition_route_bands = doctrine_sources_counter(
+        runs,
+        "target_acquisition_route_band_by_source",
+        list(target_acquisition_sources),
+    )
+    scan_sources = ["idle_reaction", "post_kill_scan"]
+    noise_damage_sources = ["gunshot_lock", "damage_passive", "damage_disengage", "damage_switch"]
+    reengage_sources = ["reload_reengage", "disengage_reengage", "recover_melee", "retreat_counteraction"]
+    objective_sources = ["objective_interrupt", "pressure_aggro"]
+    switch_sources = ["peripheral_switch"]
     attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
     summary = {
         "runs": float(len(runs)),
@@ -344,7 +387,7 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         ),
         "chase_combat_target_on_or_near_route_pct": counter_group_share(
             combat_target_route_bands,
-            ["on_route", "near_0_4m", "near_4_8m"],
+            soft_route_band_keys,
         ),
         "chase_recover_target_in_poi_pct": excluding_share(recover_target_poi_roles, ["open", "none"]),
         "chase_recover_target_on_route_pct": excluding_share(recover_target_route_roles, ["off_route", "none"]),
@@ -355,7 +398,44 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         ),
         "chase_recover_target_on_or_near_route_pct": counter_group_share(
             recover_target_route_bands,
-            ["on_route", "near_0_4m", "near_4_8m"],
+            soft_route_band_keys,
+        ),
+        "target_acquisition_count": counter_total(target_acquisition_sources),
+        "target_acquisition_soft_poi_pct": counter_group_share(
+            target_acquisition_poi_bands,
+            soft_poi_band_keys,
+        ),
+        "target_acquisition_soft_route_pct": counter_group_share(
+            target_acquisition_route_bands,
+            soft_route_band_keys,
+        ),
+        "target_acquisition_scan_pct": counter_group_share(target_acquisition_sources, scan_sources),
+        "target_acquisition_noise_damage_pct": counter_group_share(
+            target_acquisition_sources,
+            noise_damage_sources,
+        ),
+        "target_acquisition_reengage_pct": counter_group_share(target_acquisition_sources, reengage_sources),
+        "target_acquisition_objective_pct": counter_group_share(target_acquisition_sources, objective_sources),
+        "target_acquisition_switch_pct": counter_group_share(target_acquisition_sources, switch_sources),
+        "target_acquisition_scan_soft_poi_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_poi_band_by_source", scan_sources),
+            soft_poi_band_keys,
+        ),
+        "target_acquisition_noise_damage_soft_poi_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_poi_band_by_source", noise_damage_sources),
+            soft_poi_band_keys,
+        ),
+        "target_acquisition_reengage_soft_poi_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_poi_band_by_source", reengage_sources),
+            soft_poi_band_keys,
+        ),
+        "target_acquisition_objective_soft_poi_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_poi_band_by_source", objective_sources),
+            soft_poi_band_keys,
+        ),
+        "target_acquisition_switch_soft_poi_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_poi_band_by_source", switch_sources),
+            soft_poi_band_keys,
         ),
         "chase_recover_target_transit_poi_pct": counter_share(recover_target_poi_roles, "transit_choke"),
         "chase_recover_target_loot_hub_pct": counter_share(recover_target_poi_roles, "loot_hub"),
@@ -481,6 +561,19 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("chase_combat_target_near_poi_pct", "CHASE combat target near POI %"),
         ("chase_combat_target_inside_or_near_poi_pct", "CHASE combat target soft POI %"),
         ("chase_combat_target_on_or_near_route_pct", "CHASE combat target soft route %"),
+        ("target_acquisition_count", "target acquisitions"),
+        ("target_acquisition_soft_poi_pct", "target acq soft POI %"),
+        ("target_acquisition_soft_route_pct", "target acq soft route %"),
+        ("target_acquisition_scan_pct", "target acq scan %"),
+        ("target_acquisition_noise_damage_pct", "target acq noise/damage %"),
+        ("target_acquisition_reengage_pct", "target acq reengage %"),
+        ("target_acquisition_objective_pct", "target acq objective %"),
+        ("target_acquisition_switch_pct", "target acq switch %"),
+        ("target_acquisition_scan_soft_poi_pct", "target acq scan soft POI %"),
+        ("target_acquisition_noise_damage_soft_poi_pct", "target acq noise/dmg soft POI %"),
+        ("target_acquisition_reengage_soft_poi_pct", "target acq reengage soft POI %"),
+        ("target_acquisition_objective_soft_poi_pct", "target acq objective soft POI %"),
+        ("target_acquisition_switch_soft_poi_pct", "target acq switch soft POI %"),
         ("chase_recover_target_in_poi_pct", "CHASE recover target POI %"),
         ("chase_recover_target_on_route_pct", "CHASE recover target route %"),
         ("chase_recover_target_near_poi_pct", "CHASE recover target near POI %"),
@@ -541,6 +634,7 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
     print_chase_location_decision(summary_a, summary_b)
     print_pickup_location_decision(summary_a, summary_b)
     print_poi_leakage_decision(summary_a, summary_b)
+    print_target_acquisition_decision(summary_a, summary_b)
     print_route_pressure_decision(summary_a, summary_b)
     print_pressure_decision(summary_a, summary_b)
 
@@ -819,6 +913,58 @@ def print_poi_leakage_decision(summary_a: dict[str, float], summary_b: dict[str,
         print("  - Weapon/ammo collection is near POIs but outside strict radii; adjust POI overlap diagnostics before moving loot.")
     elif collect_weapon_soft_delta <= -5.0 or collect_ammo_soft_delta <= -5.0:
         print("  - Weapon/ammo collection loses even soft POI coverage; inspect open-area pickup collection and objective scanning.")
+
+
+def print_target_acquisition_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    acquisition_count_b = float(summary_b.get("target_acquisition_count", 0.0))
+    acquisition_soft_delta = float(summary_b.get("target_acquisition_soft_poi_pct", 0.0)) - float(
+        summary_a.get("target_acquisition_soft_poi_pct", 0.0)
+    )
+    combat_soft_delta = float(summary_b.get("chase_combat_target_inside_or_near_poi_pct", 0.0)) - float(
+        summary_a.get("chase_combat_target_inside_or_near_poi_pct", 0.0)
+    )
+    acquisition_route_b = float(summary_b.get("target_acquisition_soft_route_pct", 0.0))
+    combat_route_b = float(summary_b.get("chase_combat_target_on_or_near_route_pct", 0.0))
+    group_softs = {
+        "scan": float(summary_b.get("target_acquisition_scan_soft_poi_pct", 0.0)),
+        "noise_damage": float(summary_b.get("target_acquisition_noise_damage_soft_poi_pct", 0.0)),
+        "reengage": float(summary_b.get("target_acquisition_reengage_soft_poi_pct", 0.0)),
+        "objective": float(summary_b.get("target_acquisition_objective_soft_poi_pct", 0.0)),
+        "switch": float(summary_b.get("target_acquisition_switch_soft_poi_pct", 0.0)),
+    }
+    group_shares = {
+        "scan": float(summary_b.get("target_acquisition_scan_pct", 0.0)),
+        "noise_damage": float(summary_b.get("target_acquisition_noise_damage_pct", 0.0)),
+        "reengage": float(summary_b.get("target_acquisition_reengage_pct", 0.0)),
+        "objective": float(summary_b.get("target_acquisition_objective_pct", 0.0)),
+        "switch": float(summary_b.get("target_acquisition_switch_pct", 0.0)),
+    }
+    active_groups = {
+        group: soft
+        for group, soft in group_softs.items()
+        if group_shares.get(group, 0.0) >= 5.0
+    }
+
+    print("Target acquisition decision:")
+    if acquisition_count_b <= 0.0:
+        print("  - No target acquisition telemetry was recorded; run a post-v2.0.34 simulation set.")
+        return
+    if acquisition_soft_delta <= -5.0 and combat_soft_delta <= -5.0:
+        print("  - Combat targets already leak from POI influence at acquisition time; inspect acquisition source and encounter spacing.")
+    elif combat_soft_delta <= -5.0:
+        print("  - Acquisition starts near POIs but CHASE later drifts; inspect chase routing and target movement.")
+    else:
+        print("  - Acquisition-time soft-POI coverage is stable enough; do not tune aggression before locating source mix pressure.")
+    if acquisition_route_b >= 85.0 and combat_route_b >= 85.0:
+        print("  - Targets remain route-bound even when POI pressure drops, so route/POI overlap is still the likely map-side suspect.")
+    elif acquisition_route_b < 75.0:
+        print("  - Acquisition targets also leak from routes; inspect sensing radius and open-area scan sources.")
+    if active_groups:
+        weakest_group = min(active_groups, key=active_groups.get)
+        print(
+            f"  - Lowest active soft-POI acquisition group is {weakest_group} "
+            f"({active_groups[weakest_group]:.1f}% soft POI, {group_shares[weakest_group]:.1f}% of acquisitions)."
+        )
 
 
 def print_route_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:

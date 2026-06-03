@@ -312,7 +312,7 @@ func handle_idle_state(delta):
 				change_state(State.CHASE); return
 		var kill_scan_enemy = _find_nearest_target()
 		if kill_scan_enemy:
-			target_actor = kill_scan_enemy
+			acquire_enemy_target(kill_scan_enemy, "post_kill_scan")
 			change_state(State.CHASE)
 		return
 
@@ -345,8 +345,10 @@ func handle_idle_state(delta):
 			_pending_target = nearest_enemy
 			_reaction_timer = _reaction_delay
 		elif _reaction_timer <= 0:
-			target_actor = _pending_target
+			var pending_enemy := _pending_target
 			_pending_target = null
+			if not acquire_enemy_target(pending_enemy, "idle_reaction"):
+				return
 			if stats.current_ammo > 0:
 				change_state(State.CHASE)
 			else:
@@ -469,10 +471,8 @@ func _maybe_interrupt_objective_for_enemy() -> bool:
 	if _recovering:
 		return false
 
-	target_actor = enemy
-	is_targeting_loot = false
-	_recovering = false
-	last_known_target_pos = enemy.global_position
+	if not acquire_enemy_target(enemy, "objective_interrupt"):
+		return false
 
 	if stats.current_ammo > 0:
 		change_state(State.CHASE)
@@ -625,7 +625,7 @@ func handle_recover_state(delta):
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
 		var nearby_enemy = _find_nearest_target()
 		if nearby_enemy and global_position.distance_to(nearby_enemy.global_position) < BOT_TUNING.MELEE_RANGE * 2.5:
-			target_actor = nearby_enemy
+			acquire_enemy_target(nearby_enemy, "recover_melee")
 			_knife_mode = true
 			change_state(State.ATTACK)
 			return
@@ -801,8 +801,10 @@ func _try_retreat_counteraction(threat: Entity, delta: float, gun_event: String)
 	var dist = global_position.distance_to(threat.global_position)
 	if dist > BOT_TUNING.RETREAT_THREAT_SCAN_RANGE:
 		return false
-	target_actor = threat
-	last_known_target_pos = threat.global_position
+	if target_actor != threat:
+		acquire_enemy_target(threat, "retreat_counteraction")
+	else:
+		last_known_target_pos = threat.global_position
 	_face_retreat_threat(threat, delta)
 
 	if fire_cooldown <= 0.0 and dist <= BOT_TUNING.MELEE_RANGE * 1.05:
@@ -892,7 +894,7 @@ func handle_disengage_state(delta):
 			if stats.current_ammo > 0:
 				var reload_enemy = _find_nearest_target()
 				if reload_enemy:
-					target_actor = reload_enemy
+					acquire_enemy_target(reload_enemy, "reload_reengage")
 					change_state(State.CHASE)
 					return
 			change_state(State.IDLE)
@@ -902,8 +904,8 @@ func handle_disengage_state(delta):
 	if _count_visible_enemies() <= 1 and state_timer > 2.0:
 		var still_fragile = current_health / stats.max_health < _flee_hp_ratio + 0.12 and state_timer < 4.5
 		if not still_fragile:
-			target_actor = _find_nearest_target()
-			if target_actor:
+			var reengage_enemy = _find_nearest_target()
+			if acquire_enemy_target(reengage_enemy, "disengage_reengage"):
 				change_state(State.CHASE)
 			else:
 				change_state(State.IDLE)
@@ -1371,10 +1373,7 @@ func _check_gunshot_sounds():
 		scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
 		_scan_alert = true
 		if direct_noise_lock and current_state in [State.IDLE, State.RECOVER, State.CHASE]:
-			target_actor = actor
-			is_targeting_loot = false
-			_recovering = false
-			_pending_target = null
+			acquire_enemy_target(actor, "gunshot_lock")
 			if stats.current_ammo > 0:
 				change_state(State.CHASE)
 			else:
@@ -1633,10 +1632,35 @@ func _peripheral_check():
 		if cur_hp_ratio >= 0.25:
 			_switch_target(best)
 
-func _switch_target(new_target: Entity):
-	target_actor = new_target
-	last_known_target_pos = new_target.global_position
+func acquire_enemy_target(enemy: Entity, source_name: String) -> bool:
+	if not is_instance_valid(enemy) or enemy.is_dead:
+		return false
+	target_actor = enemy
+	is_targeting_loot = false
+	_recovering = false
+	_pending_target = null
+	last_known_target_pos = enemy.global_position
+	_log_target_acquisition(source_name, enemy)
+	return true
+
+func _switch_target(new_target: Entity, source_name: String = "peripheral_switch"):
+	if not acquire_enemy_target(new_target, source_name):
+		return
 	state_timer = 0.0
+
+func _log_target_acquisition(source_name: String, enemy: Entity):
+	if not has_node("/root/Telemetry") or not is_instance_valid(enemy):
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("log_doctrine_target_acquisition"):
+		return
+	tel.log_doctrine_target_acquisition(
+		_archetype_name(),
+		source_name,
+		State.keys()[current_state],
+		_strategic_position_context(enemy.global_position),
+		global_position.distance_to(enemy.global_position)
+	)
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -1850,13 +1874,10 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 		var passive = current_state == State.IDLE \
 			or (current_state == State.CHASE and is_targeting_loot)
 		if passive:
-			target_actor = source_node
-			is_targeting_loot = false
-			_pending_target = null
+			acquire_enemy_target(source_node as Entity, "damage_passive")
 			change_state(State.CHASE)
 		elif current_state == State.DISENGAGE:
-			target_actor = source_node
-			last_known_target_pos = source_node.global_position
+			acquire_enemy_target(source_node as Entity, "damage_disengage")
 			if current_health / stats.max_health > 0.55 and _count_visible_enemies() <= 1:
 				change_state(State.CHASE)
 		# HARD+: switch targets mid-combat when hit by a third party
@@ -1866,7 +1887,7 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 			if target_actor != null and is_instance_valid(target_actor) and target_actor is Entity:
 				cur_hp_ratio = target_actor.current_health / target_actor.stats.max_health
 			if cur_hp_ratio >= 0.25:
-				_switch_target(source_node)
+				_switch_target(source_node as Entity, "damage_switch")
 
 # ─── COMBAT ──────────────────────────────────────────────────────────────────
 

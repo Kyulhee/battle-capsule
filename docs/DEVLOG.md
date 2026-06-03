@@ -6,6 +6,37 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.34 — Target Acquisition Source Diagnostics
+
+**Scope**
+
+- Added diagnostic target-acquisition source telemetry without changing gameplay, map data, loot, AI aggression, damage, or zone pacing.
+- `Bot.gd` now routes enemy-target assignment through `acquire_enemy_target(source_name)` for idle scan, post-kill scan, objective interrupt, gunshot lock, damage reactions, disengage reengage, retreat counteraction, recover-melee, and peripheral switches.
+- `PressureEffectApplier.gd` logs pressure aggro through the same helper when available.
+- `Telemetry.gd` persists acquisition source counts, source->state, source->POI role/band, source->route role/band, and source distance samples.
+- `tools/analyze_results.py` prints target-acquisition source and band mixes.
+- `tools/compare_scale_profiles.py` compares acquisition source mix, acquisition soft POI/route coverage, and adds a `Target acquisition decision`.
+
+**Verification**
+
+- Python compile passed for scale analysis/simulation tools.
+- `verify_strategic_flow_map.gd` and `verify_candidate_99_probe.gd` passed.
+- 1-run 99 smoke at `C:\tmp\game_dev_target_acq_v2034_smoke` confirmed the new target-acquisition fields are written and passed the 1-run scale gate.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_target_acq_xlarge60_v2034`: avg duration 104.8s, first upgrade 16.7s, stuck 40.8/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_target_acq_99_v2034`: avg duration 148.7s, first upgrade 19.2s, stuck 48.6/run, fallback 0.0/run.
+
+**Decision**
+
+- 99 acquisition-time soft-POI coverage drops only moderately versus the valid 60 baseline: 78.3% -> 73.5%.
+- Combat CHASE target soft-POI coverage is nearly stable in this fresh pair: 81.3% -> 78.2%.
+- Acquisition and combat targets remain mostly route-bound: acquisition soft route 92.6% -> 88.7%, combat target soft route 91.8% -> 89.8%.
+- The weakest active acquisition group at 99 is scan: 71.9% soft POI and 19.6% of acquisitions. Reengage grows from 38.2% to 43.1% of acquisitions.
+- Do not tune AI aggression, raw damage, generic zone speed, recovery-exit loot, or POI radius yet.
+- Next slice should inspect route/POI overlap by acquisition source and encounter spacing around scan/reengage/objective acquisitions before changing gameplay numbers.
+
+---
+
 ## v2.0.33 — POI Proximity / Soft-Overlap Diagnostics
 
 **Scope**

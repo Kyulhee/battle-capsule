@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.33 — POI proximity / soft-overlap diagnostics`.
-- Next structural slice: `v2.0.34 — target acquisition source and encounter-position diagnostics`.
+- Latest completed slice: `v2.0.34 — target acquisition source diagnostics`.
+- Next structural slice: `v2.0.35 — route/POI overlap by acquisition source`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -43,13 +43,14 @@
 - Current v2.0.24 slice adds candidate-only `target_99_probe` economy tuning; no default/global 99 promotion was made.
 - `b44d9dd feat: add engagement density diagnostics` — adds engagement-density diagnostics; no gameplay tuning or default/global 99 promotion was made.
 - `5fa689c feat: add route pressure telemetry` — adds combat-location / route-pressure telemetry; no gameplay tuning or default/global 99 promotion was made.
-- Current v2.0.33 slice adds POI proximity diagnostics; default map/global 99 promotion was not made.
+- `1d3da69 feat: add poi proximity diagnostics` — added POI/route proximity bands; default map/global 99 promotion was not made.
+- Current v2.0.34 slice adds target-acquisition source diagnostics; default map/global 99 promotion was not made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.34 — target acquisition source and encounter-position diagnostics`
+`v2.0.35 — route/POI overlap by acquisition source`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -80,7 +81,14 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - v2.0.33 result: combat CHASE target soft-POI coverage still drops at 99, 83.9% -> 78.4%, so POI loss is not only a strict-radius artifact.
 - Combat target soft-route coverage remains high, 93.7% -> 90.4%, so entities are still on/near strategic routes while leaking from POI influence.
 - Pickup collection soft-POI loss is smaller than combat target loss: weapon 87.0% -> 82.8%, ammo 87.6% -> 83.2%.
-- Next work should inspect target acquisition source and target position at acquisition time before AI aggression, raw damage, generic zone-speed tuning, recovery-exit loot relocation, or POI radius changes.
+- v2.0.34 added target-acquisition source diagnostics only: source counts, source->state, source->target POI/route bands, and acquisition distance samples.
+- v2.0.34 fresh valid 5-run sets passed scale gates:
+  - `C:\tmp\game_dev_target_acq_xlarge60_v2034`: avg duration 104.8s, first upgrade 16.7s, stuck 40.8/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_target_acq_99_v2034`: avg duration 148.7s, first upgrade 19.2s, stuck 48.6/run, fallback 0.0/run.
+- v2.0.34 result: acquisition-time soft-POI coverage drops moderately, 78.3% -> 73.5%; acquisition soft-route stays high, 92.6% -> 88.7%.
+- Combat CHASE target soft-POI is comparatively stable in the valid pair, 81.3% -> 78.2%; combat target soft-route stays high, 91.8% -> 89.8%.
+- Source mix shifts toward reengage at 99: reengage 38.2% -> 43.1%; scan is the weakest active group with 71.9% soft POI and 19.6% of acquisitions.
+- Next work should inspect route/POI overlap by acquisition source and encounter spacing around scan/reengage/objective acquisitions before AI aggression, raw damage, generic zone-speed tuning, recovery-exit loot relocation, or POI radius changes.
 - Candidate `mapSpec_large_candidate.json` now has 6 route descriptors:
   - primary chokes: `west_ridge_choke`, `east_pine_choke`.
   - flanks: `north_slope_flank`, `south_creek_flank`.
@@ -89,11 +97,11 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - `MapDefinition.describe_strategic_position()` now classifies a world position into current POI role/name and route role/id.
 - `Entity.gd` logs strategic context for combat damage and combat kills.
 - `Telemetry.gd` aggregates hits/damage/kills by POI role, route role, and route id.
-- `analyze_results.py` prints combat-location, route-pressure, CHASE location, pickup location, and proximity-band mixes.
-- `compare_scale_profiles.py` prints route-pressure, CHASE location, pickup location, and POI leakage decisions.
+- `analyze_results.py` prints combat-location, route-pressure, CHASE location, pickup location, proximity-band, and target-acquisition mixes.
+- `compare_scale_profiles.py` prints route-pressure, CHASE location, pickup location, POI leakage, and target-acquisition decisions.
 - `tools/verify_strategic_flow_map.gd` guards candidate POI role coverage, route role coverage, primary-choke alternate routes, and connected POI references.
-- Current 99-probe normalized output from v2.0.33: damage=19.40, shots=2.39, plans=1.25, disengage=0.45, entries=1.63, stuck=0.18 per spawned entity/min.
-- Current 99-probe state mix from v2.0.33: ZONE_ESCAPE 29.7%, DISENGAGE 21.6%, CHASE 19.4%, ATTACK 16.0%, IDLE 13.3%.
+- Current 99-probe normalized output from v2.0.34: damage=20.27, shots=2.50, plans=1.41, disengage=0.47, entries=1.53, stuck=0.20 per spawned entity/min.
+- Current 99-probe state mix from v2.0.34: ZONE_ESCAPE 28.4%, DISENGAGE 22.0%, CHASE 20.2%, ATTACK 17.3%, IDLE 12.1%.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
 - Keep using `verify_strategic_flow_map.gd`, `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, candidate-path simulation, `analyze_results.py`, `compare_scale_profiles.py`, and `check_scale_telemetry.py` as scale gates.

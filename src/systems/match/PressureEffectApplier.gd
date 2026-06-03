@@ -92,9 +92,12 @@ static func _aggro_nearest_bot(player, actors: Array) -> void:
 			nearest_dist = dist
 			nearest = actor
 	if nearest and nearest.has_method("handle_idle_state"):
-		nearest.target_actor = player
-		nearest.is_targeting_loot = false
-		nearest.last_known_target_pos = player.global_position
+		if nearest.has_method("acquire_enemy_target"):
+			nearest.acquire_enemy_target(player, "pressure_aggro")
+		else:
+			nearest.target_actor = player
+			nearest.is_targeting_loot = false
+			nearest.last_known_target_pos = player.global_position
 		nearest.current_state = nearest.State.CHASE
 
 static func _is_active_bot(actor) -> bool:

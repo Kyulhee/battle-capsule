@@ -109,6 +109,25 @@ def doctrine_context_counter(results: list[dict], key: str, context: str) -> Cou
     return counter
 
 
+def doctrine_counter(results: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        values = run.get("doctrine", {}).get(key, {})
+        if isinstance(values, dict):
+            counter.update({name: float(value) for name, value in values.items()})
+    return counter
+
+
+def doctrine_source_counter(results: list[dict], key: str, source: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        values = run.get("doctrine", {}).get(key, {})
+        source_values = values.get(source, {}) if isinstance(values, dict) else {}
+        if isinstance(source_values, dict):
+            counter.update({name: float(value) for name, value in source_values.items()})
+    return counter
+
+
 def economy_kind_counter(results: list[dict], key: str, kind: str) -> Counter:
     counter = Counter()
     for run in results:
@@ -125,6 +144,15 @@ def format_context_mix(results: list[dict], key: str, contexts: list[str], limit
         counter = doctrine_context_counter(results, key, context)
         if counter:
             parts.append(f"{context}=[{format_counter_mix(counter, limit)}]")
+    return "; ".join(parts) if parts else "none"
+
+
+def format_source_mix(results: list[dict], key: str, sources: list[str], limit: int = 4) -> str:
+    parts = []
+    for source in sources:
+        counter = doctrine_source_counter(results, key, source)
+        if counter:
+            parts.append(f"{source}=[{format_counter_mix(counter, limit)}]")
     return "; ".join(parts) if parts else "none"
 
 
@@ -491,6 +519,30 @@ if __name__ == "__main__":
             print(f"CHASE target POI band by context: {target_poi_band_mix}")
             print(f"CHASE target route band by context: {target_route_band_mix}")
             print(f"CHASE target kind by context: {target_kind_mix}")
+    target_acquisition = doctrine_counter(results, "target_acquisition_by_source")
+    if target_acquisition:
+        source_parts = [
+            f"{source}={count:.0f}"
+            for source, count in sorted(target_acquisition.items(), key=lambda item: item[1], reverse=True)
+            if float(count) > 0.0
+        ]
+        print(f"Target acquisition by source: {', '.join(source_parts)}")
+        top_sources = [source for source, _count in target_acquisition.most_common(6)]
+        print(
+            "Target acquisition target POI band by source: {}".format(
+                format_source_mix(results, "target_acquisition_poi_band_by_source", top_sources)
+            )
+        )
+        print(
+            "Target acquisition target route band by source: {}".format(
+                format_source_mix(results, "target_acquisition_route_band_by_source", top_sources)
+            )
+        )
+        print(
+            "Target acquisition state by source: {}".format(
+                format_source_mix(results, "target_acquisition_state_by_source", top_sources)
+            )
+        )
     if doctrine_range_by_archetype:
         print("Doctrine engage range by archetype:")
         for archetype, bucket in sorted(doctrine_range_by_archetype.items()):
