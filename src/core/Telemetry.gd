@@ -256,6 +256,10 @@ func _reset_metrics():
 			"target_acquisition_poi_band_by_source": {},
 			"target_acquisition_route_role_by_source": {},
 			"target_acquisition_route_band_by_source": {},
+			"target_acquisition_overlap_by_source": {},
+			"target_acquisition_route_role_poi_band_by_source": {},
+			"target_acquisition_nearest_poi_role_by_source": {},
+			"target_acquisition_nearest_route_role_by_source": {},
 			"target_acquisition_distance_by_source": {},
 			"engage_range_by_archetype": {},
 			"supply_decisions": {},
@@ -701,6 +705,9 @@ func log_doctrine_target_acquisition(
 	var state_key = state_name.strip_edges()
 	if state_key == "":
 		state_key = "UNKNOWN"
+	var poi_band := _poi_distance_band(target_context)
+	var route_band := _route_distance_band(target_context)
+	var nearest_route_role := _nearest_route_role_key(target_context, route_band)
 	_add_bucket_value(metrics.doctrine.target_acquisition_by_source, source_key, 1.0)
 	_add_nested_bucket_value(
 		metrics.doctrine.target_acquisition_state_by_source,
@@ -717,7 +724,7 @@ func log_doctrine_target_acquisition(
 	_add_nested_bucket_value(
 		metrics.doctrine.target_acquisition_poi_band_by_source,
 		source_key,
-		_poi_distance_band(target_context),
+		poi_band,
 		1.0
 	)
 	_add_nested_bucket_value(
@@ -729,7 +736,31 @@ func log_doctrine_target_acquisition(
 	_add_nested_bucket_value(
 		metrics.doctrine.target_acquisition_route_band_by_source,
 		source_key,
-		_route_distance_band(target_context),
+		route_band,
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.target_acquisition_overlap_by_source,
+		source_key,
+		"%s/%s" % [poi_band, route_band],
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.target_acquisition_route_role_poi_band_by_source,
+		source_key,
+		"%s/%s" % [nearest_route_role, poi_band],
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.target_acquisition_nearest_poi_role_by_source,
+		source_key,
+		String(target_context.get("nearest_poi_role", "none")),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.target_acquisition_nearest_route_role_by_source,
+		source_key,
+		nearest_route_role,
 		1.0
 	)
 	if distance >= 0.0:
@@ -1070,3 +1101,13 @@ func _route_distance_band(context: Dictionary) -> String:
 	if edge_distance <= 8.0:
 		return "near_4_8m"
 	return "far_8m_plus"
+
+func _nearest_route_role_key(context: Dictionary, route_band: String) -> String:
+	if route_band == "far_8m_plus" or route_band == "unknown":
+		return "off_route"
+	var role := String(context.get("route_role", "off_route"))
+	if role == "" or role == "off_route" or role == "none":
+		role = String(context.get("nearest_route_role", "none"))
+	if role == "":
+		return "none"
+	return role

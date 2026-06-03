@@ -539,6 +539,26 @@ if __name__ == "__main__":
             )
         )
         print(
+            "Target acquisition POI/route overlap by source: {}".format(
+                format_source_mix(results, "target_acquisition_overlap_by_source", top_sources)
+            )
+        )
+        print(
+            "Target acquisition route role / POI band by source: {}".format(
+                format_source_mix(results, "target_acquisition_route_role_poi_band_by_source", top_sources)
+            )
+        )
+        print(
+            "Target acquisition nearest POI role by source: {}".format(
+                format_source_mix(results, "target_acquisition_nearest_poi_role_by_source", top_sources)
+            )
+        )
+        print(
+            "Target acquisition nearest route role by source: {}".format(
+                format_source_mix(results, "target_acquisition_nearest_route_role_by_source", top_sources)
+            )
+        )
+        print(
             "Target acquisition state by source: {}".format(
                 format_source_mix(results, "target_acquisition_state_by_source", top_sources)
             )

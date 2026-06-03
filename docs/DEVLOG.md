@@ -6,6 +6,36 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.35 — Acquisition Route/POI Overlap Diagnostics
+
+**Scope**
+
+- Added diagnostic route/POI overlap telemetry for target acquisition without changing gameplay, map data, loot, AI aggression, damage, or zone pacing.
+- `Telemetry.gd` now persists source->POI/route overlap, source->route-role/POI-band, source->nearest POI role, and source->nearest route role.
+- `tools/analyze_results.py` prints acquisition overlap and nearest role mixes by source.
+- `tools/compare_scale_profiles.py` compares far-POI/soft-route acquisition shares and reports the highest active source/route role.
+
+**Verification**
+
+- Python compile passed for scale analysis/simulation tools.
+- `verify_strategic_flow_map.gd` and `verify_candidate_99_probe.gd` passed.
+- 1-run 99 smoke at `C:\tmp\game_dev_acq_overlap_v2035_smoke` confirmed the new overlap fields are written and passed the 1-run scale gate.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_acq_overlap_xlarge60_v2035`: avg duration 106.0s, first upgrade 15.0s, stuck 27.0/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_acq_overlap_99_v2035`: avg duration 174.5s, first upgrade 18.5s, stuck 40.6/run, fallback 0.0/run.
+
+**Decision**
+
+- Target acquisition overlap is not the main 99-specific leak. Far-POI but route-bound acquisition is nearly flat: 10.1% -> 10.6%.
+- Acquisition remains mostly inside both soft POI and soft route influence: 82.2% -> 79.7%.
+- Scan remains the weakest active acquisition group, but its far-POI route-bound share is stable: 13.0% -> 12.2%.
+- The largest route-role far-POI acquisition share is primary_choke, but only 6.5% -> 7.4% of all acquisitions.
+- The stronger remaining signal is flow interruption: CHASE combat drops 48.0% -> 39.9%, CHASE loot rises 29.7% -> 36.3%, while pickup collection soft-POI drops for weapon/ammo.
+- Do not tune AI aggression, raw damage, generic zone speed, recovery-exit loot, or POI radius yet.
+- Next slice should inspect loot/recover CHASE interruption timing and pickup collection pressure before changing gameplay numbers.
+
+---
+
 ## v2.0.34 — Target Acquisition Source Diagnostics
 
 **Scope**

@@ -306,11 +306,32 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "target_acquisition_route_band_by_source",
         list(target_acquisition_sources),
     )
+    target_acquisition_overlaps = doctrine_sources_counter(
+        runs,
+        "target_acquisition_overlap_by_source",
+        list(target_acquisition_sources),
+    )
+    target_acquisition_route_role_poi_bands = doctrine_sources_counter(
+        runs,
+        "target_acquisition_route_role_poi_band_by_source",
+        list(target_acquisition_sources),
+    )
     scan_sources = ["idle_reaction", "post_kill_scan"]
     noise_damage_sources = ["gunshot_lock", "damage_passive", "damage_disengage", "damage_switch"]
     reengage_sources = ["reload_reengage", "disengage_reengage", "recover_melee", "retreat_counteraction"]
     objective_sources = ["objective_interrupt", "pressure_aggro"]
     switch_sources = ["peripheral_switch"]
+    far_poi_soft_route_overlap_keys = [
+        "far_8m_plus/on_route",
+        "far_8m_plus/near_0_4m",
+        "far_8m_plus/near_4_8m",
+    ]
+    far_poi_on_route_overlap_keys = ["far_8m_plus/on_route"]
+    soft_poi_soft_route_overlap_keys = [
+        "%s/%s" % (poi_band, route_band)
+        for poi_band in soft_poi_band_keys
+        for route_band in soft_route_band_keys
+    ]
     attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
     summary = {
         "runs": float(len(runs)),
@@ -436,6 +457,50 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "target_acquisition_switch_soft_poi_pct": counter_group_share(
             doctrine_sources_counter(runs, "target_acquisition_poi_band_by_source", switch_sources),
             soft_poi_band_keys,
+        ),
+        "target_acquisition_far_poi_soft_route_pct": counter_group_share(
+            target_acquisition_overlaps,
+            far_poi_soft_route_overlap_keys,
+        ),
+        "target_acquisition_far_poi_on_route_pct": counter_group_share(
+            target_acquisition_overlaps,
+            far_poi_on_route_overlap_keys,
+        ),
+        "target_acquisition_soft_poi_soft_route_pct": counter_group_share(
+            target_acquisition_overlaps,
+            soft_poi_soft_route_overlap_keys,
+        ),
+        "target_acquisition_scan_far_poi_soft_route_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_overlap_by_source", scan_sources),
+            far_poi_soft_route_overlap_keys,
+        ),
+        "target_acquisition_noise_damage_far_poi_soft_route_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_overlap_by_source", noise_damage_sources),
+            far_poi_soft_route_overlap_keys,
+        ),
+        "target_acquisition_reengage_far_poi_soft_route_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_overlap_by_source", reengage_sources),
+            far_poi_soft_route_overlap_keys,
+        ),
+        "target_acquisition_objective_far_poi_soft_route_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_overlap_by_source", objective_sources),
+            far_poi_soft_route_overlap_keys,
+        ),
+        "target_acquisition_switch_far_poi_soft_route_pct": counter_group_share(
+            doctrine_sources_counter(runs, "target_acquisition_overlap_by_source", switch_sources),
+            far_poi_soft_route_overlap_keys,
+        ),
+        "target_acquisition_primary_choke_far_poi_pct": counter_share(
+            target_acquisition_route_role_poi_bands,
+            "primary_choke/far_8m_plus",
+        ),
+        "target_acquisition_loot_flow_far_poi_pct": counter_share(
+            target_acquisition_route_role_poi_bands,
+            "loot_flow/far_8m_plus",
+        ),
+        "target_acquisition_recovery_exit_far_poi_pct": counter_share(
+            target_acquisition_route_role_poi_bands,
+            "recovery_exit/far_8m_plus",
         ),
         "chase_recover_target_transit_poi_pct": counter_share(recover_target_poi_roles, "transit_choke"),
         "chase_recover_target_loot_hub_pct": counter_share(recover_target_poi_roles, "loot_hub"),
@@ -574,6 +639,17 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("target_acquisition_reengage_soft_poi_pct", "target acq reengage soft POI %"),
         ("target_acquisition_objective_soft_poi_pct", "target acq objective soft POI %"),
         ("target_acquisition_switch_soft_poi_pct", "target acq switch soft POI %"),
+        ("target_acquisition_far_poi_soft_route_pct", "target acq far POI soft route %"),
+        ("target_acquisition_far_poi_on_route_pct", "target acq far POI on route %"),
+        ("target_acquisition_soft_poi_soft_route_pct", "target acq soft POI+route %"),
+        ("target_acquisition_scan_far_poi_soft_route_pct", "target acq scan far POI route %"),
+        ("target_acquisition_noise_damage_far_poi_soft_route_pct", "target acq noise/dmg far POI route %"),
+        ("target_acquisition_reengage_far_poi_soft_route_pct", "target acq reengage far POI route %"),
+        ("target_acquisition_objective_far_poi_soft_route_pct", "target acq objective far POI route %"),
+        ("target_acquisition_switch_far_poi_soft_route_pct", "target acq switch far POI route %"),
+        ("target_acquisition_primary_choke_far_poi_pct", "target acq primary choke far POI %"),
+        ("target_acquisition_loot_flow_far_poi_pct", "target acq loot-flow far POI %"),
+        ("target_acquisition_recovery_exit_far_poi_pct", "target acq recovery-exit far POI %"),
         ("chase_recover_target_in_poi_pct", "CHASE recover target POI %"),
         ("chase_recover_target_on_route_pct", "CHASE recover target route %"),
         ("chase_recover_target_near_poi_pct", "CHASE recover target near POI %"),
@@ -925,6 +1001,10 @@ def print_target_acquisition_decision(summary_a: dict[str, float], summary_b: di
     )
     acquisition_route_b = float(summary_b.get("target_acquisition_soft_route_pct", 0.0))
     combat_route_b = float(summary_b.get("chase_combat_target_on_or_near_route_pct", 0.0))
+    far_poi_soft_route_b = float(summary_b.get("target_acquisition_far_poi_soft_route_pct", 0.0))
+    far_poi_soft_route_delta = far_poi_soft_route_b - float(
+        summary_a.get("target_acquisition_far_poi_soft_route_pct", 0.0)
+    )
     group_softs = {
         "scan": float(summary_b.get("target_acquisition_scan_soft_poi_pct", 0.0)),
         "noise_damage": float(summary_b.get("target_acquisition_noise_damage_soft_poi_pct", 0.0)),
@@ -938,6 +1018,18 @@ def print_target_acquisition_decision(summary_a: dict[str, float], summary_b: di
         "reengage": float(summary_b.get("target_acquisition_reengage_pct", 0.0)),
         "objective": float(summary_b.get("target_acquisition_objective_pct", 0.0)),
         "switch": float(summary_b.get("target_acquisition_switch_pct", 0.0)),
+    }
+    group_far_route = {
+        "scan": float(summary_b.get("target_acquisition_scan_far_poi_soft_route_pct", 0.0)),
+        "noise_damage": float(summary_b.get("target_acquisition_noise_damage_far_poi_soft_route_pct", 0.0)),
+        "reengage": float(summary_b.get("target_acquisition_reengage_far_poi_soft_route_pct", 0.0)),
+        "objective": float(summary_b.get("target_acquisition_objective_far_poi_soft_route_pct", 0.0)),
+        "switch": float(summary_b.get("target_acquisition_switch_far_poi_soft_route_pct", 0.0)),
+    }
+    route_role_far_poi = {
+        "primary_choke": float(summary_b.get("target_acquisition_primary_choke_far_poi_pct", 0.0)),
+        "loot_flow": float(summary_b.get("target_acquisition_loot_flow_far_poi_pct", 0.0)),
+        "recovery_exit": float(summary_b.get("target_acquisition_recovery_exit_far_poi_pct", 0.0)),
     }
     active_groups = {
         group: soft
@@ -959,11 +1051,33 @@ def print_target_acquisition_decision(summary_a: dict[str, float], summary_b: di
         print("  - Targets remain route-bound even when POI pressure drops, so route/POI overlap is still the likely map-side suspect.")
     elif acquisition_route_b < 75.0:
         print("  - Acquisition targets also leak from routes; inspect sensing radius and open-area scan sources.")
+    if far_poi_soft_route_b >= 15.0 or far_poi_soft_route_delta >= 4.0:
+        print(
+            "  - Far-POI but route-bound acquisition is material "
+            f"({far_poi_soft_route_b:.1f}%, delta {far_poi_soft_route_delta:+.1f}); inspect route/POI overlap before tuning behavior."
+        )
     if active_groups:
         weakest_group = min(active_groups, key=active_groups.get)
         print(
             f"  - Lowest active soft-POI acquisition group is {weakest_group} "
             f"({active_groups[weakest_group]:.1f}% soft POI, {group_shares[weakest_group]:.1f}% of acquisitions)."
+        )
+    active_far_groups = {
+        group: far_share
+        for group, far_share in group_far_route.items()
+        if group_shares.get(group, 0.0) >= 5.0
+    }
+    if active_far_groups:
+        highest_far_group = max(active_far_groups, key=active_far_groups.get)
+        print(
+            f"  - Highest active far-POI route-bound acquisition group is {highest_far_group} "
+            f"({active_far_groups[highest_far_group]:.1f}% of that group's acquisitions)."
+        )
+    highest_route_role = max(route_role_far_poi, key=route_role_far_poi.get)
+    if route_role_far_poi[highest_route_role] >= 5.0:
+        print(
+            f"  - Largest route-role far-POI acquisition share is {highest_route_role} "
+            f"({route_role_far_poi[highest_route_role]:.1f}% of all acquisitions)."
         )
 
 
