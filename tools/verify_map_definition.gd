@@ -230,6 +230,7 @@ func _verify_validation_issues(map_definition_script, game_config, parsed: Dicti
 	var invalid_spec := parsed.duplicate(true)
 	invalid_spec["pois"] = _duplicate_array(parsed.get("pois", []))
 	invalid_spec["obstacles"] = _duplicate_array(parsed.get("obstacles", []))
+	invalid_spec["routes"] = _duplicate_array(parsed.get("routes", []))
 	if invalid_spec["pois"].size() > 0:
 		var invalid_poi: Dictionary = invalid_spec["pois"][0].duplicate(true)
 		invalid_poi["item_density"] = -0.25
@@ -240,6 +241,12 @@ func _verify_validation_issues(map_definition_script, game_config, parsed: Dicti
 		"pos": [54.0, 0.0],
 		"scale": [8.0, 2.0, 2.0],
 		"rot": 45.0,
+	})
+	invalid_spec["routes"].append({
+		"id": "",
+		"role": "invalid_role",
+		"width": 0.0,
+		"points": [[0.0, 0.0], [99.0, 0.0]],
 	})
 
 	var invalid_definition = map_definition_script.new()
@@ -272,6 +279,10 @@ func _verify_validation_issues(map_definition_script, game_config, parsed: Dicti
 		"zone.initial_radius 90.0 exceeds world half-size 60.0.",
 		"zone.next_radius 95.0 must be smaller than initial_radius 90.0.",
 		"zone.stages.2.wait_time must be positive.",
+		"Route 0 has empty id.",
+		"Route 0 role 'invalid_role' is unknown.",
+		"Route 0 width must be positive.",
+		"Route 0 point 1 extends outside world bounds.",
 	]:
 		if not _issues_contain(issues, expected):
 			_fail("Expected validation issue not found: %s\nActual: %s" % [expected, _join_issues(issues)])
@@ -343,6 +354,10 @@ func _verify_position_queries(definition) -> bool:
 		return false
 	if typeof(first_obstacle.get("bounds_extent_2d")) != TYPE_VECTOR2:
 		_fail("MapDefinition obstacle descriptor did not expose bounds_extent_2d.")
+		return false
+	var routes: Array[Dictionary] = definition.get_route_descriptors()
+	if not routes.is_empty():
+		_fail("Legacy default MapDefinition unexpectedly exposed strategic routes.")
 		return false
 	return true
 

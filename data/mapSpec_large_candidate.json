@@ -226,5 +226,67 @@
     { "type": "log_pile", "pos": [-52, -36], "scale": [3.8, 1.3, 1.4], "rot": 62 },
     { "type": "log_pile", "pos": [36, 5], "scale": [3.6, 1.3, 1.4], "rot": 8 },
     { "type": "log_pile", "pos": [4, -34], "scale": [3.8, 1.3, 1.4], "rot": -18 }
+  ],
+  "routes": [
+    {
+      "id": "west_ridge_choke",
+      "name": "West Ridge Choke",
+      "role": "primary_choke",
+      "points": [[-70, -54], [-66, -10], [-48, 50]],
+      "width": 11.0,
+      "connects": ["Southwest Brush", "West Ridge Gap", "Northwest Slope"],
+      "alternate_route_id": "central_meadow_cross",
+      "strategic_value": "edge_cutoff"
+    },
+    {
+      "id": "east_pine_choke",
+      "name": "East Pine Choke",
+      "role": "primary_choke",
+      "points": [[66, -66], [66, 20], [50, 56]],
+      "width": 11.0,
+      "connects": ["Southeast Brush", "East Pine Lane", "Northeast Slope"],
+      "alternate_route_id": "central_meadow_cross",
+      "strategic_value": "edge_cutoff"
+    },
+    {
+      "id": "central_meadow_cross",
+      "name": "Central Meadow Cross",
+      "role": "loot_flow",
+      "points": [[18, -60], [0, 0], [0, 54]],
+      "width": 18.0,
+      "connects": ["South Creek Bend", "Central Meadow", "North Clearing"],
+      "alternate_route_id": "north_slope_flank",
+      "strategic_value": "loot_to_zone_rotation"
+    },
+    {
+      "id": "north_slope_flank",
+      "name": "North Slope Flank",
+      "role": "flank",
+      "points": [[-48, 50], [0, 54], [50, 56]],
+      "width": 13.0,
+      "connects": ["Northwest Slope", "North Clearing", "Northeast Slope"],
+      "alternate_route_id": "west_ridge_choke",
+      "strategic_value": "choke_bypass"
+    },
+    {
+      "id": "south_creek_flank",
+      "name": "South Creek Flank",
+      "role": "flank",
+      "points": [[-52, -54], [18, -60], [56, -50]],
+      "width": 13.0,
+      "connects": ["Southwest Brush", "South Creek Bend", "Southeast Brush"],
+      "alternate_route_id": "east_pine_choke",
+      "strategic_value": "choke_bypass"
+    },
+    {
+      "id": "inner_brush_recovery_exit",
+      "name": "Inner Brush Recovery Exit",
+      "role": "recovery_exit",
+      "points": [[-22, 24], [0, 0], [26, -26], [66, 20]],
+      "width": 10.0,
+      "connects": ["Inner Brush North", "Central Meadow", "Inner Brush South", "East Pine Lane"],
+      "alternate_route_id": "central_meadow_cross",
+      "strategic_value": "recover_then_reenter"
+    }
   ]
 }

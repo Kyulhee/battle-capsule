@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.26 CHASE context / encounter spacing probe)
+> Last updated: 2026-06-03 (v2.0.27 strategic flow / route backbone probe)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.26: CHASE context / encounter spacing probe |
-| Next structural slice | v2.0.27: objective interrupt / recovery-loot path / pickup spacing probe |
+| Latest completed slice | v2.0.27: strategic flow / route backbone probe |
+| Next structural slice | v2.0.28: combat-location / route-pressure telemetry |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -437,7 +437,15 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Fresh 5-run 60 and adjusted 99 candidate sets both passed scale gates.
 - CHASE context mix shows 99 has less combat CHASE and more loot/recovery CHASE: 60 combat 50.0% vs 99 combat 45.2%; 99 loot+recover_loot 54.8%.
 - Fresh 99 still fails to scale match-minute combat throughput with population, while per-ATTACK efficiency remains intact.
-- Next work should inspect objective interrupts, recovery-loot path length, and pickup spacing before zone pacing or retreat thresholds.
+- Design correction: CHASE-to-combat share is not the target by itself. Battle royale flow needs loot movement, rotations, and contested power positions before tuning combat frequency.
+
+**v2.0.27 result**
+
+- Reframed the next scale question from objective-interrupt tuning to strategic flow: why entities move, which routes they cross, and where combat pressure should appear.
+- Added candidate-map strategic `routes` data for primary chokes, flanks, loot flow, and recovery re-entry without changing runtime movement or bot behavior.
+- `MapDefinition` now exposes route descriptors and validates route id, role, width, point count, and world bounds when routes are present.
+- Added `verify_strategic_flow_map.gd` to guard candidate POI role coverage, route role coverage, primary-choke alternate routes, and route-to-POI references.
+- Next work should add telemetry for combat location, POI role proximity, route pressure, and zone-rotation crossings before changing AI aggression, damage, or zone pacing.
 
 ## Deferred Asset Upgrades
 

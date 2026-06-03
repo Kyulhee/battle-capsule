@@ -21,6 +21,13 @@ const IMPLICIT_INITIAL_ZONE_RADIUS := 50.0
 const IMPLICIT_NEXT_ZONE_RADIUS_MULT := 0.6
 const MAX_REASONABLE_POI_RADIUS_RATIO := 0.25
 const MAX_ITEM_DENSITY := 1.5
+const VALID_ROUTE_ROLES := {
+	"primary_choke": true,
+	"flank": true,
+	"loot_flow": true,
+	"recovery_exit": true,
+	"zone_rotation": true,
+}
 
 @export var id: String = ""
 @export var display_name: String = ""
@@ -180,6 +187,22 @@ func get_obstacle_descriptors() -> Array[Dictionary]:
 	return descriptors
 
 
+func get_route_descriptors() -> Array[Dictionary]:
+	var descriptors: Array[Dictionary] = []
+	if map_spec == null:
+		return descriptors
+	for i in range(map_spec.routes.size()):
+		var route := _dictionary(map_spec.routes[i])
+		var points_2d: Array[Vector2] = []
+		for point_data in _array(route.get("points", [])):
+			points_2d.append(_vector2_from_array(point_data, Vector2.INF))
+		route["index"] = i
+		route["points_2d"] = points_2d
+		route["width"] = maxf(0.0, float(route.get("width", 0.0)))
+		descriptors.append(route)
+	return descriptors
+
+
 func get_match_tuning(game_config = null, fallback: Dictionary = {}, preset_name: String = "") -> Dictionary:
 	var tuning := _merge_dict(DEFAULT_MATCH.duplicate(true), fallback.duplicate(true))
 	if game_config != null and game_config.has_method("match_value"):
@@ -292,6 +315,30 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 		extent += Vector2(absf(jitter.x), absf(jitter.y))
 		if absf(pos.x) + extent.x > half_size or absf(pos.y) + extent.y > half_size:
 			issues.append("Obstacle %d extends outside world bounds." % i)
+
+	for i in range(map_spec.routes.size()):
+		var route := _dictionary(map_spec.routes[i])
+		var route_id := String(route.get("id", route.get("name", ""))).strip_edges()
+		var role := String(route.get("role", "")).strip_edges()
+		if route_id.is_empty():
+			issues.append("Route %d has empty id." % i)
+		if role.is_empty():
+			issues.append("Route %d has empty role." % i)
+		elif not VALID_ROUTE_ROLES.has(role):
+			issues.append("Route %d role '%s' is unknown." % [i, role])
+		if route.has("width") and float(route.get("width", 0.0)) <= 0.0:
+			issues.append("Route %d width must be positive." % i)
+		var points := _array(route.get("points", []))
+		if points.size() < 2:
+			issues.append("Route %d needs at least 2 points." % i)
+			continue
+		for point_index in range(points.size()):
+			var point := _vector2_from_array(points[point_index], Vector2.INF)
+			if not point.is_finite():
+				issues.append("Route %d point %d is invalid." % [i, point_index])
+				continue
+			if absf(point.x) > half_size or absf(point.y) > half_size:
+				issues.append("Route %d point %d extends outside world bounds." % [i, point_index])
 
 	var match_tuning := get_match_tuning(game_config, {}, preset_name)
 	var runtime_tuning := get_runtime_tuning(game_config, {}, preset_name)

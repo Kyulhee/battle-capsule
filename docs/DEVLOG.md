@@ -6,6 +6,31 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.27 — Strategic Flow / Route Backbone Probe
+
+**Scope**
+
+- Reframed the next 99-player scale question around battle royale flow instead of CHASE combat share targets.
+- Added candidate-map `routes` data for:
+  - primary chokes: `west_ridge_choke`, `east_pine_choke`.
+  - flank/bypass routes: `north_slope_flank`, `south_creek_flank`.
+  - loot flow and recovery re-entry: `central_meadow_cross`, `inner_brush_recovery_exit`.
+- `MapDefinition.gd` now exposes route descriptors and validates route id, role, width, points, and world bounds when route data exists.
+- Added `tools/verify_strategic_flow_map.gd` to guard candidate POI role coverage, route role coverage, alternate routes for primary chokes, and connected POI names.
+- Kept default map, bot behavior, zone pacing, and combat tuning unchanged.
+
+**Verification**
+
+- `verify_map_definition.gd`, `verify_large_map_candidate.gd`, and `verify_strategic_flow_map.gd` passed.
+- `git diff --check` passed.
+
+**Decision**
+
+- Do not tune bots to satisfy a CHASE combat percentage.
+- Next slice should add telemetry for combat location, POI role proximity, route pressure, and zone-rotation crossings before AI aggression, damage, or zone pacing changes.
+
+---
+
 ## v2.0.26 — CHASE Context / Encounter Spacing Probe
 
 **Scope**
