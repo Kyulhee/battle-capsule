@@ -175,6 +175,16 @@ def doctrine_context_counter(runs: list[dict], key: str, context: str) -> Counte
     return counter
 
 
+def economy_kind_counter(runs: list[dict], key: str, kind: str) -> Counter:
+    counter = Counter()
+    for run in runs:
+        values = run.get("economy", {}).get(key, {})
+        kind_values = values.get(kind, {}) if isinstance(values, dict) else {}
+        if isinstance(kind_values, dict):
+            counter.update({name: float(value) for name, value in kind_values.items()})
+    return counter
+
+
 def counter_total(counter: Counter) -> float:
     return sum(float(value) for value in counter.values())
 
@@ -236,6 +246,18 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     recover_target_poi_roles = doctrine_context_counter(runs, "chase_target_poi_role_by_context", "recover_loot")
     recover_target_route_roles = doctrine_context_counter(runs, "chase_target_route_role_by_context", "recover_loot")
     recover_target_kinds = doctrine_context_counter(runs, "chase_target_kind_by_context", "recover_loot")
+    spawn_weapon_routes = economy_kind_counter(runs, "pickup_spawn_route_role_by_kind", "weapon")
+    spawn_ammo_routes = economy_kind_counter(runs, "pickup_spawn_route_role_by_kind", "ammo")
+    spawn_heal_routes = economy_kind_counter(runs, "pickup_spawn_route_role_by_kind", "heal")
+    spawn_armor_routes = economy_kind_counter(runs, "pickup_spawn_route_role_by_kind", "armor")
+    collect_weapon_routes = economy_kind_counter(runs, "pickup_collect_route_role_by_kind", "weapon")
+    collect_ammo_routes = economy_kind_counter(runs, "pickup_collect_route_role_by_kind", "ammo")
+    collect_heal_routes = economy_kind_counter(runs, "pickup_collect_route_role_by_kind", "heal")
+    collect_armor_routes = economy_kind_counter(runs, "pickup_collect_route_role_by_kind", "armor")
+    spawn_weapon_poi = economy_kind_counter(runs, "pickup_spawn_poi_role_by_kind", "weapon")
+    spawn_ammo_poi = economy_kind_counter(runs, "pickup_spawn_poi_role_by_kind", "ammo")
+    collect_weapon_poi = economy_kind_counter(runs, "pickup_collect_poi_role_by_kind", "weapon")
+    collect_ammo_poi = economy_kind_counter(runs, "pickup_collect_poi_role_by_kind", "ammo")
     attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
     summary = {
         "runs": float(len(runs)),
@@ -322,6 +344,30 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "chase_recover_target_pickup_ammo_pct": counter_share(recover_target_kinds, "pickup_ammo"),
         "chase_recover_target_pickup_heal_pct": counter_share(recover_target_kinds, "pickup_heal"),
         "chase_recover_target_pickup_armor_pct": counter_share(recover_target_kinds, "pickup_armor"),
+        "pickup_spawn_weapon_count": counter_total(spawn_weapon_routes),
+        "pickup_spawn_ammo_count": counter_total(spawn_ammo_routes),
+        "pickup_collect_weapon_count": counter_total(collect_weapon_routes),
+        "pickup_collect_ammo_count": counter_total(collect_ammo_routes),
+        "pickup_spawn_weapon_on_route_pct": excluding_share(spawn_weapon_routes, ["off_route", "none"]),
+        "pickup_spawn_ammo_on_route_pct": excluding_share(spawn_ammo_routes, ["off_route", "none"]),
+        "pickup_collect_weapon_on_route_pct": excluding_share(collect_weapon_routes, ["off_route", "none"]),
+        "pickup_collect_ammo_on_route_pct": excluding_share(collect_ammo_routes, ["off_route", "none"]),
+        "pickup_spawn_weapon_recovery_exit_pct": counter_share(spawn_weapon_routes, "recovery_exit"),
+        "pickup_spawn_ammo_recovery_exit_pct": counter_share(spawn_ammo_routes, "recovery_exit"),
+        "pickup_collect_weapon_recovery_exit_pct": counter_share(collect_weapon_routes, "recovery_exit"),
+        "pickup_collect_ammo_recovery_exit_pct": counter_share(collect_ammo_routes, "recovery_exit"),
+        "pickup_spawn_weapon_primary_choke_pct": counter_share(spawn_weapon_routes, "primary_choke"),
+        "pickup_spawn_ammo_primary_choke_pct": counter_share(spawn_ammo_routes, "primary_choke"),
+        "pickup_collect_weapon_primary_choke_pct": counter_share(collect_weapon_routes, "primary_choke"),
+        "pickup_collect_ammo_primary_choke_pct": counter_share(collect_ammo_routes, "primary_choke"),
+        "pickup_spawn_weapon_in_poi_pct": excluding_share(spawn_weapon_poi, ["open", "none"]),
+        "pickup_spawn_ammo_in_poi_pct": excluding_share(spawn_ammo_poi, ["open", "none"]),
+        "pickup_collect_weapon_in_poi_pct": excluding_share(collect_weapon_poi, ["open", "none"]),
+        "pickup_collect_ammo_in_poi_pct": excluding_share(collect_ammo_poi, ["open", "none"]),
+        "pickup_collect_heal_recovery_exit_pct": counter_share(collect_heal_routes, "recovery_exit"),
+        "pickup_collect_armor_recovery_exit_pct": counter_share(collect_armor_routes, "recovery_exit"),
+        "pickup_spawn_heal_recovery_exit_pct": counter_share(spawn_heal_routes, "recovery_exit"),
+        "pickup_spawn_armor_recovery_exit_pct": counter_share(spawn_armor_routes, "recovery_exit"),
         "combat_hit_in_poi_pct": non_key_share(hit_poi_roles, "open"),
         "combat_damage_in_poi_pct": non_key_share(damage_poi_roles, "open"),
         "combat_hit_on_route_pct": non_key_share(hit_route_roles, "off_route"),
@@ -403,6 +449,22 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("chase_recover_target_pickup_ammo_pct", "CHASE recover ammo target %"),
         ("chase_recover_target_pickup_heal_pct", "CHASE recover heal target %"),
         ("chase_recover_target_pickup_armor_pct", "CHASE recover armor target %"),
+        ("pickup_spawn_weapon_on_route_pct", "pickup spawn weapon route %"),
+        ("pickup_spawn_ammo_on_route_pct", "pickup spawn ammo route %"),
+        ("pickup_collect_weapon_on_route_pct", "pickup collect weapon route %"),
+        ("pickup_collect_ammo_on_route_pct", "pickup collect ammo route %"),
+        ("pickup_spawn_weapon_recovery_exit_pct", "pickup spawn weapon recovery exit %"),
+        ("pickup_spawn_ammo_recovery_exit_pct", "pickup spawn ammo recovery exit %"),
+        ("pickup_collect_weapon_recovery_exit_pct", "pickup collect weapon recovery exit %"),
+        ("pickup_collect_ammo_recovery_exit_pct", "pickup collect ammo recovery exit %"),
+        ("pickup_spawn_weapon_primary_choke_pct", "pickup spawn weapon primary choke %"),
+        ("pickup_spawn_ammo_primary_choke_pct", "pickup spawn ammo primary choke %"),
+        ("pickup_collect_weapon_primary_choke_pct", "pickup collect weapon primary choke %"),
+        ("pickup_collect_ammo_primary_choke_pct", "pickup collect ammo primary choke %"),
+        ("pickup_spawn_weapon_in_poi_pct", "pickup spawn weapon POI %"),
+        ("pickup_spawn_ammo_in_poi_pct", "pickup spawn ammo POI %"),
+        ("pickup_collect_weapon_in_poi_pct", "pickup collect weapon POI %"),
+        ("pickup_collect_ammo_in_poi_pct", "pickup collect ammo POI %"),
         ("combat_hit_in_poi_pct", "combat hits in POI %"),
         ("combat_damage_in_poi_pct", "combat damage in POI %"),
         ("combat_hit_on_route_pct", "combat hits on route %"),
@@ -425,6 +487,7 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
     print_tempo_decision(summary_a, summary_b)
     print_engagement_density_decision(summary_a, summary_b)
     print_chase_location_decision(summary_a, summary_b)
+    print_pickup_location_decision(summary_a, summary_b)
     print_route_pressure_decision(summary_a, summary_b)
     print_pressure_decision(summary_a, summary_b)
 
@@ -612,6 +675,41 @@ def print_chase_location_decision(summary_a: dict[str, float], summary_b: dict[s
         print("  - Recovery movement is mostly sustain access; inspect heal/shield placement before aggression tuning.")
     if combat_target_poi_delta <= -5.0 or combat_target_route_delta <= -5.0:
         print("  - Combat CHASE target pressure drops at target scale; inspect target acquisition and encounter-route spacing.")
+
+
+def print_pickup_location_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:
+    spawn_weapon_count_b = float(summary_b.get("pickup_spawn_weapon_count", 0.0))
+    spawn_ammo_count_b = float(summary_b.get("pickup_spawn_ammo_count", 0.0))
+    collect_weapon_count_b = float(summary_b.get("pickup_collect_weapon_count", 0.0))
+    collect_ammo_count_b = float(summary_b.get("pickup_collect_ammo_count", 0.0))
+    spawn_weapon_exit_b = float(summary_b.get("pickup_spawn_weapon_recovery_exit_pct", 0.0))
+    spawn_ammo_exit_b = float(summary_b.get("pickup_spawn_ammo_recovery_exit_pct", 0.0))
+    collect_weapon_exit_b = float(summary_b.get("pickup_collect_weapon_recovery_exit_pct", 0.0))
+    collect_ammo_exit_b = float(summary_b.get("pickup_collect_ammo_recovery_exit_pct", 0.0))
+    recover_weapon_target_b = float(summary_b.get("chase_recover_target_pickup_weapon_pct", 0.0))
+    recover_ammo_target_b = float(summary_b.get("chase_recover_target_pickup_ammo_pct", 0.0))
+    recover_exit_b = float(summary_b.get("chase_recover_target_recovery_exit_pct", 0.0))
+    spawn_exit_supply = (spawn_weapon_exit_b + spawn_ammo_exit_b) / 2.0
+    collect_exit_supply = (collect_weapon_exit_b + collect_ammo_exit_b) / 2.0
+
+    print("Pickup location decision:")
+    if spawn_weapon_count_b + spawn_ammo_count_b <= 0.0 and collect_weapon_count_b + collect_ammo_count_b <= 0.0:
+        print("  - No pickup location telemetry was recorded; run a post-v2.0.32 simulation set.")
+        return
+    if recover_weapon_target_b + recover_ammo_target_b < 60.0:
+        print("  - Weapon/ammo pickup targets are not large enough to lead the next slice by themselves.")
+    elif spawn_exit_supply >= 25.0 and collect_exit_supply >= 25.0:
+        print("  - Recovery-exit weapon/ammo pressure appears placement-driven: spawn and collection both concentrate there.")
+    elif collect_exit_supply >= 25.0 and spawn_exit_supply < 20.0:
+        print("  - Recovery-exit weapon/ammo pressure appears selection/path-driven: collection concentrates there more than spawn.")
+    elif recover_exit_b >= 25.0 and collect_exit_supply < 20.0:
+        print("  - CHASE target route pressure exceeds pickup collection pressure; inspect route width/classification overlap.")
+    else:
+        print("  - Weapon/ammo pickup pressure is distributed enough; inspect POI target acquisition before moving loot.")
+    if float(summary_b.get("pickup_collect_weapon_primary_choke_pct", 0.0)) + float(
+        summary_b.get("pickup_collect_ammo_primary_choke_pct", 0.0)
+    ) < 25.0:
+        print("  - Primary chokes are not the main weapon/ammo collection source yet.")
 
 
 def print_route_pressure_decision(summary_a: dict[str, float], summary_b: dict[str, float]) -> None:

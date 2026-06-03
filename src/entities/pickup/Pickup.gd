@@ -298,8 +298,39 @@ func collect(collector: Entity) -> bool:
 					collector.stats.current_ammo = item.weapon_stats.current_ammo
 				print("Picked up weapon: ", item.item_name)
 
+	_log_pickup_location("collect")
 	queue_free()
 	return true
+
+func _log_pickup_location(event_name: String) -> void:
+	if not item or not has_node("/root/Telemetry"):
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("log_pickup_location"):
+		return
+	tel.log_pickup_location(
+		event_name,
+		ItemData.Type.keys()[item.type].to_lower(),
+		_strategic_position_context()
+	)
+
+func log_spawn_location() -> void:
+	_log_pickup_location("spawn")
+
+func _strategic_position_context() -> Dictionary:
+	var context := {
+		"poi_role": "open",
+		"poi_name": "none",
+		"route_role": "off_route",
+		"route_id": "off_route",
+	}
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		return context
+	var definition = main.get("map_definition")
+	if definition and definition.has_method("describe_strategic_position"):
+		return definition.describe_strategic_position(Vector2(global_position.x, global_position.z))
+	return context
 
 func _debug_log(flag: String, message: String) -> void:
 	var main = get_tree().root.get_node_or_null("Main")

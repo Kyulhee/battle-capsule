@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-03 (v2.0.31 CHASE location diagnostics)
+> Last updated: 2026-06-03 (v2.0.32 pickup location diagnostics)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.31: CHASE location / recovery target diagnostics |
-| Next structural slice | v2.0.32: recovery-exit pickup spacing and POI target acquisition follow-up |
+| Latest completed slice | v2.0.32: pickup location / recovery-exit source diagnostics |
+| Next structural slice | v2.0.33: POI target acquisition and route-overlap follow-up |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -480,6 +480,16 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - 99 recover-loot CHASE is anchored on recovery exits and mostly weapon/ammo access: recovery_exit 32.1%, weapon target 34.4%, ammo target 51.4%, heal target 7.1%.
 - Combat CHASE target POI pressure drops at 99 while target route pressure stays high: combat target POI 61.4% -> 55.3%, target route 73.5% -> 77.9%.
 - Next work should inspect candidate-only recovery-exit loot/ammo/weapon spacing, re-entry pressure, and POI target acquisition before AI aggression, raw damage, or generic zone-speed tuning.
+
+**v2.0.32 result**
+
+- Added pickup spawn/collection location diagnostics only; no gameplay, map, loot count, AI, damage, or zone tuning changed.
+- Analyzer and comparison tooling now expose pickup spawn/collect route and POI mixes by item kind plus a `Pickup location decision`.
+- Fresh 5-run candidate 60 and 99 sets both passed scale gates.
+- Recovery-exit weapon/ammo placement is not a 99-specific overstock signal: weapon spawn recovery_exit 24.8% -> 21.2%, ammo spawn recovery_exit 26.3% -> 24.5%.
+- Weapon/ammo collection at recovery_exit also drops at 99: weapon 30.9% -> 27.4%, ammo 32.8% -> 28.9%.
+- The stronger signal is POI leakage: weapon collect POI 65.3% -> 54.6%, ammo collect POI 69.0% -> 55.5%, combat target POI 62.8% -> 53.0%, recover target POI 77.6% -> 59.1%.
+- Next work should inspect POI target acquisition, route/POI overlap width, and open-area pickup collection before AI aggression, raw damage, generic zone-speed tuning, or recovery-exit loot relocation.
 
 ## Deferred Asset Upgrades
 

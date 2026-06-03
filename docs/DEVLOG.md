@@ -6,6 +6,37 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.32 — Pickup Location / Recovery-Exit Source Diagnostics
+
+**Scope**
+
+- Added diagnostic pickup spawn/collection location telemetry without changing gameplay, map data, loot counts, AI behavior, damage, or zone pacing.
+- `Pickup.gd` logs successful collection location by item kind.
+- `LootSpawnDirector.gd` logs spawn location for each pickup after initialization.
+- `Telemetry.gd` persists pickup spawn/collect POI role and route role by item kind.
+- `tools/analyze_results.py` prints pickup spawn/collect route and POI mixes by weapon, ammo, heal, and armor.
+- `tools/compare_scale_profiles.py` compares pickup location rows and adds a `Pickup location decision`.
+
+**Verification**
+
+- Python compile passed for scale analysis/simulation tools.
+- `verify_strategic_flow_map.gd` and `verify_candidate_99_probe.gd` passed.
+- 1-run 99 smoke at `C:\tmp\game_dev_pickup_location_v2032_smoke` confirmed the new pickup location fields are written and passed the 1-run scale gate.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_pickup_location_60_v2032`: avg duration 102.3s, first upgrade 14.3s, stuck 33.4/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_pickup_location_99_v2032`: avg duration 153.3s, first upgrade 25.7s, stuck 45.6/run, fallback 0.0/run.
+
+**Decision**
+
+- Recovery-exit weapon/ammo pressure is not primarily caused by 99-specific pickup placement. Spawn and collection recovery-exit shares both drop at 99:
+  - weapon spawn recovery_exit 24.8% -> 21.2%; ammo spawn recovery_exit 26.3% -> 24.5%.
+  - weapon collect recovery_exit 30.9% -> 27.4%; ammo collect recovery_exit 32.8% -> 28.9%.
+- The stronger signal is POI loss: weapon collect POI 65.3% -> 54.6%, ammo collect POI 69.0% -> 55.5%, combat target POI 62.8% -> 53.0%, recover target POI 77.6% -> 59.1%.
+- Do not move more loot into or out of recovery_exit yet.
+- Next slice should inspect POI target acquisition and route/POI overlap before AI aggression, raw damage, generic zone-speed tuning, or recovery-exit pickup relocation.
+
+---
+
 ## v2.0.31 — CHASE Location / Recovery Target Diagnostics
 
 **Scope**

@@ -109,12 +109,31 @@ def doctrine_context_counter(results: list[dict], key: str, context: str) -> Cou
     return counter
 
 
+def economy_kind_counter(results: list[dict], key: str, kind: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        values = run.get("economy", {}).get(key, {})
+        kind_values = values.get(kind, {}) if isinstance(values, dict) else {}
+        if isinstance(kind_values, dict):
+            counter.update({name: float(value) for name, value in kind_values.items()})
+    return counter
+
+
 def format_context_mix(results: list[dict], key: str, contexts: list[str], limit: int = 4) -> str:
     parts = []
     for context in contexts:
         counter = doctrine_context_counter(results, key, context)
         if counter:
             parts.append(f"{context}=[{format_counter_mix(counter, limit)}]")
+    return "; ".join(parts) if parts else "none"
+
+
+def format_economy_kind_mix(results: list[dict], key: str, kinds: list[str], limit: int = 4) -> str:
+    parts = []
+    for kind in kinds:
+        counter = economy_kind_counter(results, key, kind)
+        if counter:
+            parts.append(f"{kind}=[{format_counter_mix(counter, limit)}]")
     return "; ".join(parts) if parts else "none"
 
 
@@ -334,6 +353,16 @@ if __name__ == "__main__":
             per_spawned_entity_minute(results, lambda r: r.get("economy", {}).get("shields_picked", 0)),
         )
     )
+    pickup_kinds = ["weapon", "ammo", "heal", "armor"]
+    spawn_route_mix = format_economy_kind_mix(results, "pickup_spawn_route_role_by_kind", pickup_kinds)
+    collect_route_mix = format_economy_kind_mix(results, "pickup_collect_route_role_by_kind", pickup_kinds)
+    spawn_poi_mix = format_economy_kind_mix(results, "pickup_spawn_poi_role_by_kind", pickup_kinds)
+    collect_poi_mix = format_economy_kind_mix(results, "pickup_collect_poi_role_by_kind", pickup_kinds)
+    if spawn_route_mix != "none" or collect_route_mix != "none":
+        print(f"Pickup spawn route by kind: {spawn_route_mix}")
+        print(f"Pickup collect route by kind: {collect_route_mix}")
+        print(f"Pickup spawn POI by kind: {spawn_poi_mix}")
+        print(f"Pickup collect POI by kind: {collect_poi_mix}")
     print(f"Zone deaths: {sum(zone_deaths)} ({avg(zone_deaths):.1f}/run), max outside time: {max(max_outside_time):.1f}s")
     if spawn_runs:
         placed = [int(s.get("placed_count", 0)) for s in spawn_runs]

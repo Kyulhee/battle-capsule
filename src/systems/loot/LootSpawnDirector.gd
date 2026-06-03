@@ -129,6 +129,8 @@ static func _spawn_pickup(
 	loot_parent.add_child(pickup)
 	pickup.global_position = world_position
 	pickup.init(template.duplicate(true) if duplicate_template else template)
+	if pickup.has_method("log_spawn_location"):
+		pickup.log_spawn_location()
 	return pickup
 
 static func _random_item(items: Array):

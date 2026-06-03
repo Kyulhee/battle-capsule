@@ -142,6 +142,12 @@ func _reset_metrics():
 			"shields_picked": 0,
 			"rare_pickups": 0,
 			"weapon_pickups": {},
+			"pickup_spawn_by_kind": {},
+			"pickup_collect_by_kind": {},
+			"pickup_spawn_poi_role_by_kind": {},
+			"pickup_spawn_route_role_by_kind": {},
+			"pickup_collect_poi_role_by_kind": {},
+			"pickup_collect_route_role_by_kind": {},
 			"first_upgrade_time": -1.0,
 			"first_upgrade_weapon": "none",
 		},
@@ -405,6 +411,34 @@ func log_pickup(item_name: String, item_type: String, is_rare: bool):
 			metrics.economy.first_upgrade_weapon = w
 	if is_rare:
 		metrics.economy.rare_pickups += 1
+
+func log_pickup_location(event_name: String, item_type: String, context: Dictionary):
+	if not match_in_progress or not _g("economy"): return
+	var event_key = event_name.strip_edges().to_lower()
+	if event_key != "spawn" and event_key != "collect":
+		event_key = "unknown"
+	var kind = item_type.strip_edges().to_lower()
+	if kind == "":
+		kind = "unknown"
+	var count_key = "pickup_%s_by_kind" % event_key
+	var poi_key = "pickup_%s_poi_role_by_kind" % event_key
+	var route_key = "pickup_%s_route_role_by_kind" % event_key
+	if metrics.economy.has(count_key):
+		_add_bucket_value(metrics.economy[count_key], kind, 1.0)
+	if metrics.economy.has(poi_key):
+		_add_nested_bucket_value(
+			metrics.economy[poi_key],
+			kind,
+			String(context.get("poi_role", "open")),
+			1.0
+		)
+	if metrics.economy.has(route_key):
+		_add_nested_bucket_value(
+			metrics.economy[route_key],
+			kind,
+			String(context.get("route_role", "off_route")),
+			1.0
+		)
 
 func log_economy(event: String):
 	if not match_in_progress: return
