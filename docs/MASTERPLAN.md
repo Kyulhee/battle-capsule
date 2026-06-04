@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-04 (v2.0.36 loot objective interruption diagnostics)
+> Last updated: 2026-06-04 (v2.0.37 ammo objective selection diagnostics)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.36: loot objective interruption diagnostics |
-| Next structural slice | v2.0.37: ammo access and objective selection diagnostics |
+| Latest completed slice | v2.0.37: ammo objective selection diagnostics |
+| Next structural slice | v2.0.38: narrow ammo access/objective-selection tuning pass |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -530,6 +530,18 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Loot objectives are mostly weapon/ammo and increase at 99: 81.9% -> 86.8%; combat low-ammo objective starts are stable and material: 32.2% -> 31.7%.
 - Objective outcomes improve at 99 rather than degrade: collect 26.0% -> 31.3%, interrupt 65.1% -> 58.2%, avg duration 0.56s -> 0.57s.
 - The next suspect is ammo access/objective selection and recovery-exit weapon/ammo pressure, not pathing timeout, generic loot movement, aggression, or damage.
+
+**v2.0.37 result**
+
+- Added loot objective selection-context diagnostics only; no gameplay, map, loot count, AI aggression, damage, or zone tuning changed.
+- Analyzer and comparison tooling now expose objective need, ammo band, reserve band, current weapon, target detail, target match, and route-role/kind mixes.
+- Fresh valid 5-run candidate `xlarge_60` and `target_99_probe` sets both passed scale gates.
+- 99 still shows engagement-density loss rather than ATTACK lethality loss: ATTACK+CHASE 41.3% -> 36.7%, damage/ATTACK min 761.2 -> 892.6.
+- Loot objective weapon/ammo share increases at 99: 80.7% -> 87.5%; heal/armor objective share drops 19.3% -> 12.5%.
+- Reserve pressure is nearly universal: reserve-empty 97.6% -> 97.9%, while explicit empty/no-reserve need stays low at 0.1% -> 0.6%.
+- Ammo mismatch is material and rises at 99: 10.7% -> 13.1%.
+- Recovery-exit weapon/ammo objective pressure remains material but is not the sole 99 delta: recovery-exit weapon+ammo 29.8% -> 26.1%.
+- Next work should apply a narrow ammo access/objective-selection tuning pass before changing AI aggression, raw damage, generic zone speed, POI radius, or default/global 99 promotion.
 
 ## Deferred Asset Upgrades
 

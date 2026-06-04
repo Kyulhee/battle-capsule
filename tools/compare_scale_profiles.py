@@ -397,6 +397,36 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "loot_objective_target_poi_band_by_source",
         list(loot_objective_sources),
     )
+    loot_objective_needs = doctrine_sources_counter(
+        runs,
+        "loot_objective_need_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_ammo_bands = doctrine_sources_counter(
+        runs,
+        "loot_objective_ammo_band_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_reserve_bands = doctrine_sources_counter(
+        runs,
+        "loot_objective_reserve_band_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_target_matches = doctrine_sources_counter(
+        runs,
+        "loot_objective_target_match_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_target_route_roles = doctrine_sources_counter(
+        runs,
+        "loot_objective_target_route_role_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_route_kinds = doctrine_sources_counter(
+        runs,
+        "loot_objective_route_kind_by_source",
+        list(loot_objective_sources),
+    )
     loot_objective_duration_by_outcome = doctrine_sample_buckets(runs, "loot_objective_duration_by_outcome")
     loot_objective_duration_by_source = doctrine_sample_buckets(runs, "loot_objective_duration_by_source")
     attack_minutes = float(state_totals.get("ATTACK", 0.0)) / 60.0
@@ -583,6 +613,33 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "loot_objective_combat_low_ammo_pct": counter_share(loot_objective_sources, "combat_low_ammo"),
         "loot_objective_recover_seek_pct": counter_share(loot_objective_sources, "recover_seek_loot"),
         "loot_objective_recover_patrol_pct": counter_share(loot_objective_sources, "recover_patrol_loot"),
+        "loot_objective_need_unarmed_pct": counter_share(loot_objective_needs, "unarmed"),
+        "loot_objective_need_empty_no_reserve_pct": counter_group_share(
+            loot_objective_needs,
+            ["ammo_empty_no_reserve", "wounded_empty_no_reserve"],
+        ),
+        "loot_objective_need_combat_low_ammo_pct": counter_share(loot_objective_needs, "combat_low_ammo"),
+        "loot_objective_ammo_empty_or_low_pct": counter_group_share(
+            loot_objective_ammo_bands,
+            ["empty", "low_0_25"],
+        ),
+        "loot_objective_reserve_empty_pct": counter_share(loot_objective_reserve_bands, "empty"),
+        "loot_objective_ammo_same_weapon_pct": counter_share(loot_objective_target_matches, "ammo_same_weapon"),
+        "loot_objective_ammo_mismatch_pct": counter_share(loot_objective_target_matches, "ammo_mismatch"),
+        "loot_objective_weapon_new_pct": counter_share(loot_objective_target_matches, "weapon_new_type"),
+        "loot_objective_weapon_same_pct": counter_share(loot_objective_target_matches, "weapon_same_type"),
+        "loot_objective_target_recovery_exit_pct": counter_share(
+            loot_objective_target_route_roles,
+            "recovery_exit",
+        ),
+        "loot_objective_recovery_exit_weapon_pct": counter_share(
+            loot_objective_route_kinds,
+            "recovery_exit/pickup_weapon",
+        ),
+        "loot_objective_recovery_exit_ammo_pct": counter_share(
+            loot_objective_route_kinds,
+            "recovery_exit/pickup_ammo",
+        ),
         "loot_objective_collect_pct": counter_share(loot_objective_outcomes, "collect"),
         "loot_objective_giveup_pct": counter_share(loot_objective_outcomes, "giveup"),
         "loot_objective_retarget_pct": counter_share(loot_objective_outcomes, "retarget"),
@@ -762,6 +819,18 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("loot_objective_combat_low_ammo_pct", "loot objective combat ammo source %"),
         ("loot_objective_recover_seek_pct", "loot objective recover seek source %"),
         ("loot_objective_recover_patrol_pct", "loot objective recover patrol source %"),
+        ("loot_objective_need_unarmed_pct", "loot objective need unarmed %"),
+        ("loot_objective_need_empty_no_reserve_pct", "loot objective need empty+no reserve %"),
+        ("loot_objective_need_combat_low_ammo_pct", "loot objective need low ammo %"),
+        ("loot_objective_ammo_empty_or_low_pct", "loot objective ammo empty/low %"),
+        ("loot_objective_reserve_empty_pct", "loot objective reserve empty %"),
+        ("loot_objective_ammo_same_weapon_pct", "loot objective ammo same weapon %"),
+        ("loot_objective_ammo_mismatch_pct", "loot objective ammo mismatch %"),
+        ("loot_objective_weapon_new_pct", "loot objective weapon new type %"),
+        ("loot_objective_weapon_same_pct", "loot objective weapon same type %"),
+        ("loot_objective_target_recovery_exit_pct", "loot objective recovery-exit target %"),
+        ("loot_objective_recovery_exit_weapon_pct", "loot objective recovery-exit weapon %"),
+        ("loot_objective_recovery_exit_ammo_pct", "loot objective recovery-exit ammo %"),
         ("loot_objective_collect_pct", "loot objective collect %"),
         ("loot_objective_giveup_pct", "loot objective giveup %"),
         ("loot_objective_retarget_pct", "loot objective retarget %"),
@@ -1066,6 +1135,14 @@ def print_loot_objective_decision(summary_a: dict[str, float], summary_b: dict[s
     weapon_ammo_b = float(summary_b.get("loot_objective_weapon_ammo_pct", 0.0))
     recover_mode_b = float(summary_b.get("loot_objective_recover_mode_pct", 0.0))
     combat_ammo_source_b = float(summary_b.get("loot_objective_combat_low_ammo_pct", 0.0))
+    need_empty_no_reserve_b = float(summary_b.get("loot_objective_need_empty_no_reserve_pct", 0.0))
+    need_combat_low_ammo_b = float(summary_b.get("loot_objective_need_combat_low_ammo_pct", 0.0))
+    ammo_empty_or_low_b = float(summary_b.get("loot_objective_ammo_empty_or_low_pct", 0.0))
+    reserve_empty_b = float(summary_b.get("loot_objective_reserve_empty_pct", 0.0))
+    ammo_mismatch_b = float(summary_b.get("loot_objective_ammo_mismatch_pct", 0.0))
+    recovery_exit_weapon_ammo_b = float(summary_b.get("loot_objective_recovery_exit_weapon_pct", 0.0)) + float(
+        summary_b.get("loot_objective_recovery_exit_ammo_pct", 0.0)
+    )
     collect_b = float(summary_b.get("loot_objective_collect_pct", 0.0))
     interrupt_b = float(summary_b.get("loot_objective_interrupt_pct", 0.0))
     giveup_b = float(summary_b.get("loot_objective_giveup_pct", 0.0))
@@ -1092,6 +1169,14 @@ def print_loot_objective_decision(summary_a: dict[str, float], summary_b: dict[s
         print("  - Loot objectives are mostly weapon/ammo pulls; inspect ammo access and weapon objective selection.")
     elif recover_mode_b >= 65.0:
         print("  - Loot objectives are mostly recovery-mode pulls; inspect RECOVER search and re-entry timing.")
+    if ammo_mismatch_b >= 10.0:
+        print("  - Ammo objectives often target mismatched ammo; inspect ammo weapon filtering and pickup mix.")
+    if need_empty_no_reserve_b >= 15.0 or (combat_ammo_source_b >= 20.0 and reserve_empty_b >= 50.0):
+        print("  - Empty-ammo/no-reserve objectives are material; inspect ammo access before aggression tuning.")
+    elif need_combat_low_ammo_b >= 15.0 and ammo_empty_or_low_b >= 50.0:
+        print("  - Low-ammo objectives start before reserves collapse; inspect combat loot thresholds and magazine pacing.")
+    if recovery_exit_weapon_ammo_b >= 25.0:
+        print("  - Recovery-exit weapon/ammo pulls are material; inspect recovery exit pickup pressure and route placement.")
     if combat_ammo_source_b >= 20.0:
         print("  - Combat low-ammo breakoffs are material; inspect ammo thresholds before changing aggression.")
     if collect_b >= 70.0 and (weapon_collect_soft_delta <= -5.0 or ammo_collect_soft_delta <= -5.0):

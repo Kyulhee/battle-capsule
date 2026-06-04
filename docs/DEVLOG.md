@@ -6,6 +6,39 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.37 — Ammo Objective Selection Diagnostics
+
+**Scope**
+
+- Added diagnostic loot-objective selection context without changing gameplay, map data, loot counts, AI aggression, damage, or zone pacing.
+- `Bot.gd` now records objective need, current ammo band, reserve ammo band, current weapon type, target detail, and target match when a loot objective starts.
+- `Telemetry.gd` persists source-keyed objective need/ammo/reserve/weapon/target detail/target match plus route-role/kind and route-role/detail buckets.
+- `tools/analyze_results.py` prints the new objective-selection mixes.
+- `tools/compare_scale_profiles.py` compares ammo access, ammo mismatch, weapon replacement, and recovery-exit weapon/ammo pressure rows and extends `Loot objective decision`.
+
+**Verification**
+
+- Python compile passed for scale analysis tools.
+- `git diff --check` passed.
+- `verify_strategic_flow_map.gd` and `verify_candidate_99_probe.gd` passed.
+- 1-run 99 smoke at `C:\tmp\game_dev_ammo_objective_v2037_smoke` completed and confirmed the new fields are written.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_ammo_objective_xlarge60_v2037`: avg duration 107.0s, first upgrade 12.3s, stuck 32.0/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_ammo_objective_99_v2037`: avg duration 162.8s, first upgrade 20.4s, stuck 38.4/run, fallback 0.0/run.
+
+**Decision**
+
+- The 99 scale still preserves ATTACK-state efficiency but loses engagement density: damage/ATTACK min 761.2 -> 892.6, while ATTACK+CHASE share falls 41.3% -> 36.7%.
+- Loot objective weapon/ammo pressure increases at 99: 80.7% -> 87.5%; heal/armor drops 19.3% -> 12.5%.
+- Objective starts are usually not empty-mag emergencies, but reserve pressure is nearly universal: reserve-empty 97.6% -> 97.9%, ammo empty/low 49.4% -> 47.6%.
+- Ammo mismatch is material and rises at 99: 10.7% -> 13.1%.
+- Recovery-exit weapon/ammo objective pressure is material but not the only 99 delta: recovery-exit weapon+ammo 29.8% -> 26.1%.
+- Objective collection improves while interruption drops: collect 27.1% -> 36.3%, interrupt 66.9% -> 56.0%; pathing/giveup still is not the main blocker.
+- Do not tune AI aggression, raw damage, generic zone speed, or POI radius yet.
+- Next slice should test narrow ammo access/selection fixes: same-weapon ammo preference, reserve-aware low-ammo breakoff criteria, and pickup pressure around recovery exits/primary chokes.
+
+---
+
 ## v2.0.36 — Loot Objective Interruption Diagnostics
 
 **Scope**

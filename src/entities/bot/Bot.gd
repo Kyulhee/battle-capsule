@@ -1244,6 +1244,112 @@ func _pickup_kind_for(candidate) -> String:
 		return "node"
 	return "none"
 
+func _loot_selection_context(loot_target: Node3D) -> Dictionary:
+	var weapon_type := stats.weapon_type
+	if weapon_type == "":
+		weapon_type = "none"
+	return {
+		"need": _loot_need_key(),
+		"ammo_band": _ammo_band(),
+		"reserve_band": _reserve_band(),
+		"weapon": weapon_type,
+		"target_detail": _pickup_detail_for(loot_target),
+		"target_match": _pickup_match_for(loot_target),
+	}
+
+func _loot_need_key() -> String:
+	var hp_ratio := current_health / maxf(1.0, stats.max_health)
+	if stats.weapon_type == "" or stats.weapon_type == "knife":
+		return "unarmed"
+	if hp_ratio < 0.4 and stats.current_ammo <= 0 and reserve_ammo <= 0:
+		return "wounded_empty_no_reserve"
+	if stats.current_ammo <= 0 and reserve_ammo <= 0:
+		return "ammo_empty_no_reserve"
+	if stats.current_ammo <= 0:
+		return "ammo_empty_with_reserve"
+	if hp_ratio < 0.4:
+		return "wounded"
+	if stats.max_ammo > 0:
+		var ammo_ratio := float(stats.current_ammo) / maxf(1.0, float(stats.max_ammo))
+		if ammo_ratio <= _combat_loot_threshold and _combat_loot_threshold > 0.0:
+			return "combat_low_ammo"
+		if ammo_ratio <= 0.25:
+			return "ammo_low"
+	return "opportunity"
+
+func _ammo_band() -> String:
+	if stats.max_ammo <= 0:
+		return "no_mag"
+	if stats.current_ammo <= 0:
+		return "empty"
+	var ammo_ratio := float(stats.current_ammo) / maxf(1.0, float(stats.max_ammo))
+	if ammo_ratio <= 0.25:
+		return "low_0_25"
+	if ammo_ratio <= 0.5:
+		return "mid_25_50"
+	return "high_50_plus"
+
+func _reserve_band() -> String:
+	if reserve_ammo <= 0:
+		return "empty"
+	if stats.max_ammo > 0 and reserve_ammo < stats.max_ammo:
+		return "partial"
+	return "full_plus"
+
+func _pickup_detail_for(candidate) -> String:
+	if candidate is Pickup:
+		var pickup := candidate as Pickup
+		if pickup.item == null:
+			return "pickup_unknown"
+		match pickup.item.type:
+			ItemData.Type.WEAPON:
+				if pickup.item.weapon_stats != null:
+					return "weapon_%s" % pickup.item.weapon_stats.weapon_type
+				return "weapon_unknown"
+			ItemData.Type.AMMO:
+				var ammo_type := pickup.item.ammo_weapon_type
+				if ammo_type == "":
+					ammo_type = "unknown"
+				return "ammo_%s" % ammo_type
+			ItemData.Type.HEAL:
+				return "heal"
+			ItemData.Type.ARMOR:
+				return "armor"
+		return "pickup_unknown"
+	return _pickup_kind_for(candidate)
+
+func _pickup_match_for(candidate) -> String:
+	if not candidate is Pickup:
+		return "unknown"
+	var pickup := candidate as Pickup
+	if pickup.item == null:
+		return "unknown"
+	match pickup.item.type:
+		ItemData.Type.AMMO:
+			if pickup.item.ammo_weapon_type == "":
+				return "ammo_unknown"
+			if pickup.item.ammo_weapon_type == stats.weapon_type:
+				return "ammo_same_weapon"
+			return "ammo_mismatch"
+		ItemData.Type.WEAPON:
+			var weapon_type := ""
+			if pickup.item.weapon_stats != null:
+				weapon_type = pickup.item.weapon_stats.weapon_type
+			if weapon_type == "":
+				return "weapon_unknown"
+			if stats.weapon_type == "" or stats.weapon_type == "knife":
+				return "weapon_unarmed"
+			if weapon_type == stats.weapon_type:
+				return "weapon_same_type"
+			return "weapon_new_type"
+		ItemData.Type.HEAL:
+			if current_health / maxf(1.0, stats.max_health) < 0.5:
+				return "heal_wounded"
+			return "heal_healthy"
+		ItemData.Type.ARMOR:
+			return "armor"
+	return "unknown"
+
 func _start_loot_objective(loot_target: Node3D, source_name: String, recovering: bool) -> void:
 	target_actor = loot_target
 	is_targeting_loot = true
@@ -1276,7 +1382,8 @@ func _log_loot_objective_start(loot_target: Node3D) -> void:
 		State.keys()[current_state],
 		_loot_objective_kind,
 		_strategic_position_context(loot_target.global_position),
-		global_position.distance_to(loot_target.global_position)
+		global_position.distance_to(loot_target.global_position),
+		_loot_selection_context(loot_target)
 	)
 
 func _log_loot_objective_outcome(outcome_name: String) -> void:

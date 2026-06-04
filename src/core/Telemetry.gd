@@ -265,6 +265,16 @@ func _reset_metrics():
 			"loot_objective_mode_by_source": {},
 			"loot_objective_origin_state_by_source": {},
 			"loot_objective_kind_by_source": {},
+			"loot_objective_need_by_source": {},
+			"loot_objective_ammo_band_by_source": {},
+			"loot_objective_reserve_band_by_source": {},
+			"loot_objective_weapon_by_source": {},
+			"loot_objective_target_detail_by_source": {},
+			"loot_objective_target_match_by_source": {},
+			"loot_objective_target_poi_role_by_source": {},
+			"loot_objective_target_route_role_by_source": {},
+			"loot_objective_route_kind_by_source": {},
+			"loot_objective_route_detail_by_source": {},
 			"loot_objective_target_poi_band_by_source": {},
 			"loot_objective_target_route_band_by_source": {},
 			"loot_objective_start_distance_by_source": {},
@@ -784,7 +794,8 @@ func log_doctrine_loot_objective_start(
 	origin_state: String,
 	target_kind: String,
 	target_context: Dictionary,
-	distance: float
+	distance: float,
+	selection_context: Dictionary = {}
 ):
 	if not match_in_progress or not _g("doctrine"): return
 	var source_key := _normalized_key(source_name, "unknown")
@@ -793,10 +804,73 @@ func log_doctrine_loot_objective_start(
 	if state_key == "":
 		state_key = "UNKNOWN"
 	var kind_key := _normalized_key(target_kind, "pickup_unknown")
+	var route_band := _route_distance_band(target_context)
+	var route_role := _nearest_route_role_key(target_context, route_band)
+	var target_detail := _normalized_key(String(selection_context.get("target_detail", kind_key)), kind_key)
 	_add_bucket_value(metrics.doctrine.loot_objective_start_by_source, source_key, 1.0)
 	_add_nested_bucket_value(metrics.doctrine.loot_objective_mode_by_source, source_key, mode_key, 1.0)
 	_add_nested_bucket_value(metrics.doctrine.loot_objective_origin_state_by_source, source_key, state_key, 1.0)
 	_add_nested_bucket_value(metrics.doctrine.loot_objective_kind_by_source, source_key, kind_key, 1.0)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_need_by_source,
+		source_key,
+		_normalized_key(String(selection_context.get("need", "unknown")), "unknown"),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_ammo_band_by_source,
+		source_key,
+		_normalized_key(String(selection_context.get("ammo_band", "unknown")), "unknown"),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_reserve_band_by_source,
+		source_key,
+		_normalized_key(String(selection_context.get("reserve_band", "unknown")), "unknown"),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_weapon_by_source,
+		source_key,
+		_normalized_key(String(selection_context.get("weapon", "none")), "none"),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_target_detail_by_source,
+		source_key,
+		target_detail,
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_target_match_by_source,
+		source_key,
+		_normalized_key(String(selection_context.get("target_match", "unknown")), "unknown"),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_target_poi_role_by_source,
+		source_key,
+		String(target_context.get("poi_role", "open")),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_target_route_role_by_source,
+		source_key,
+		route_role,
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_route_kind_by_source,
+		source_key,
+		"%s/%s" % [route_role, kind_key],
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_route_detail_by_source,
+		source_key,
+		"%s/%s" % [route_role, target_detail],
+		1.0
+	)
 	_add_nested_bucket_value(
 		metrics.doctrine.loot_objective_target_poi_band_by_source,
 		source_key,
@@ -806,7 +880,7 @@ func log_doctrine_loot_objective_start(
 	_add_nested_bucket_value(
 		metrics.doctrine.loot_objective_target_route_band_by_source,
 		source_key,
-		_route_distance_band(target_context),
+		route_band,
 		1.0
 	)
 	if distance >= 0.0:

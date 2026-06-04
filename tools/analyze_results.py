@@ -624,8 +624,43 @@ if __name__ == "__main__":
             )
         )
         print(
+            "Loot objective need by source: {}".format(
+                format_source_mix(results, "loot_objective_need_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective ammo band by source: {}".format(
+                format_source_mix(results, "loot_objective_ammo_band_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective reserve band by source: {}".format(
+                format_source_mix(results, "loot_objective_reserve_band_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective target detail by source: {}".format(
+                format_source_mix(results, "loot_objective_target_detail_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective target match by source: {}".format(
+                format_source_mix(results, "loot_objective_target_match_by_source", objective_sources)
+            )
+        )
+        print(
             "Loot objective target POI band by source: {}".format(
                 format_source_mix(results, "loot_objective_target_poi_band_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective target route role by source: {}".format(
+                format_source_mix(results, "loot_objective_target_route_role_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective route/kind by source: {}".format(
+                format_source_mix(results, "loot_objective_route_kind_by_source", objective_sources)
             )
         )
         print(
