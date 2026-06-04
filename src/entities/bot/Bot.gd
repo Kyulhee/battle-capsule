@@ -48,6 +48,7 @@ var _recovering: bool = false
 var _loot_objective_source: String = ""
 var _loot_objective_mode: String = "none"
 var _loot_objective_kind: String = "none"
+var _loot_objective_selection_context: Dictionary = {}
 # True when bot decided to rush with knife instead of retreating to RECOVER
 var _knife_mode: bool = false
 # Cover target used in DISENGAGE state
@@ -1254,6 +1255,7 @@ func _loot_selection_context(loot_target: Node3D) -> Dictionary:
 		"ammo_band": _ammo_band(),
 		"reserve_band": _reserve_band(),
 		"weapon": weapon_type,
+		"target_weapon": _pickup_target_weapon_for(loot_target),
 		"target_detail": _pickup_detail_for(loot_target),
 		"target_match": _pickup_match_for(loot_target),
 	}
@@ -1319,6 +1321,22 @@ func _pickup_detail_for(candidate) -> String:
 		return "pickup_unknown"
 	return _pickup_kind_for(candidate)
 
+func _pickup_target_weapon_for(candidate) -> String:
+	if candidate is Pickup:
+		var pickup := candidate as Pickup
+		if pickup.item == null:
+			return "unknown"
+		match pickup.item.type:
+			ItemData.Type.AMMO:
+				if pickup.item.ammo_weapon_type != "":
+					return pickup.item.ammo_weapon_type
+				return "unknown"
+			ItemData.Type.WEAPON:
+				if pickup.item.weapon_stats != null and pickup.item.weapon_stats.weapon_type != "":
+					return pickup.item.weapon_stats.weapon_type
+				return "unknown"
+	return "none"
+
 func _pickup_match_for(candidate) -> String:
 	if not candidate is Pickup:
 		return "unknown"
@@ -1360,6 +1378,7 @@ func _start_loot_objective(loot_target: Node3D, source_name: String, recovering:
 		_loot_objective_source = "unknown"
 	_loot_objective_mode = "recover_loot" if recovering else "loot"
 	_loot_objective_kind = _pickup_kind_for(loot_target)
+	_loot_objective_selection_context = _loot_selection_context(loot_target)
 	_log_loot_objective_start(loot_target)
 
 func _finish_loot_objective(outcome_name: String) -> void:
@@ -1369,6 +1388,7 @@ func _finish_loot_objective(outcome_name: String) -> void:
 	_loot_objective_source = ""
 	_loot_objective_mode = "none"
 	_loot_objective_kind = "none"
+	_loot_objective_selection_context = {}
 
 func _log_loot_objective_start(loot_target: Node3D) -> void:
 	if not has_node("/root/Telemetry") or not is_instance_valid(loot_target):
@@ -1384,7 +1404,7 @@ func _log_loot_objective_start(loot_target: Node3D) -> void:
 		_loot_objective_kind,
 		_strategic_position_context(loot_target.global_position),
 		global_position.distance_to(loot_target.global_position),
-		_loot_selection_context(loot_target)
+		_loot_objective_selection_context
 	)
 
 func _log_loot_objective_outcome(outcome_name: String) -> void:
@@ -1399,7 +1419,8 @@ func _log_loot_objective_outcome(outcome_name: String) -> void:
 		_loot_objective_mode,
 		_loot_objective_kind,
 		outcome_name,
-		state_timer
+		state_timer,
+		_loot_objective_selection_context
 	)
 
 func _strategic_position_context(world_pos: Vector3) -> Dictionary:

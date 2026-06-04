@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.38 — ammo objective selection tuning`.
-- Next structural slice: `v2.0.39 — remaining mismatch and objective-interruption diagnostics`.
+- Latest completed slice: `v2.0.39 — loot objective context diagnostics`.
+- Next structural slice: `v2.0.40 — pistol upgrade scoring and idle objective interruption tuning`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -47,13 +47,13 @@
 - `fbbfbf7 feat: add target acquisition diagnostics` — added target-acquisition source diagnostics; default map/global 99 promotion was not made.
 - `4827635 feat: add acquisition overlap diagnostics` — added acquisition route/POI overlap diagnostics; default map/global 99 promotion was not made.
 - `feat: add ammo objective diagnostics` — added ammo objective selection diagnostics; default map/global 99 promotion was not made.
-- Current v2.0.38 slice applies narrow ammo objective selection tuning; default map/global 99 promotion was not made.
+- Current v2.0.39 slice adds loot objective context diagnostics; default map/global 99 promotion was not made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.39 — remaining mismatch and objective-interruption diagnostics`
+`v2.0.40 — pistol upgrade scoring and idle objective interruption tuning`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -118,7 +118,13 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
   - `C:\tmp\game_dev_ammo_tuning_99_v2038c`: avg duration 157.4s, first upgrade 21.1s, stuck 38.2/run, fallback 0.0/run.
 - v2.0.38 result at 99 vs v2.0.37: same-weapon ammo objectives 33.5% -> 53.1%, ammo mismatch 13.1% -> 10.2%, combat target soft POI 78.9% -> 83.6%, target-acquisition soft POI 76.6% -> 79.2%.
 - v2.0.38 tradeoff: objective collect 36.3% -> 31.1%, interrupt 56.0% -> 60.9%, avg duration remains short at 0.53s -> 0.50s.
-- Next work should inspect the remaining ammo mismatch source and loot objective interruption/enemy-acquisition timing. Add joint target detail/match/source telemetry if needed before changing more behavior.
+- v2.0.39 added joint loot objective context diagnostics only: target weapon, current weapon / target weapon, current weapon / target match, target detail / match, and match/detail outcome buckets.
+- v2.0.39 fresh 5-run sets passed scale gates:
+  - `C:\tmp\game_dev_loot_context_xlarge60_v2039b`: avg duration 122.5s, first upgrade 16.4s, stuck 33.0/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_loot_context_99_v2039`: avg duration 148.6s, first upgrade 19.9s, stuck 44.8/run, fallback 0.0/run.
+- v2.0.39 result: combat low-ammo mismatch is nearly gone; remaining mismatch is mostly idle pistol holders targeting non-pistol ammo and is usually interrupted.
+- v2.0.39 99 context: same-ammo collect 30.8% / interrupt 61.0%; mismatch collect 20.1% / interrupt 76.7%; new-weapon collect 69.2%; pistol-to-non-pistol target 7.1%.
+- Next work should inspect pistol upgrade scoring and idle/post-kill objective interruption/enemy-acquisition timing before another ammo-only tuning pass.
 - Candidate `mapSpec_large_candidate.json` now has 6 route descriptors:
   - primary chokes: `west_ridge_choke`, `east_pine_choke`.
   - flanks: `north_slope_flank`, `south_creek_flank`.

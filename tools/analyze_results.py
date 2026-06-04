@@ -639,6 +639,16 @@ if __name__ == "__main__":
             )
         )
         print(
+            "Loot objective target weapon by source: {}".format(
+                format_source_mix(results, "loot_objective_target_weapon_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective weapon/target by source: {}".format(
+                format_source_mix(results, "loot_objective_weapon_target_by_source", objective_sources)
+            )
+        )
+        print(
             "Loot objective target detail by source: {}".format(
                 format_source_mix(results, "loot_objective_target_detail_by_source", objective_sources)
             )
@@ -646,6 +656,16 @@ if __name__ == "__main__":
         print(
             "Loot objective target match by source: {}".format(
                 format_source_mix(results, "loot_objective_target_match_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective weapon/match by source: {}".format(
+                format_source_mix(results, "loot_objective_weapon_match_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective detail/match by source: {}".format(
+                format_source_mix(results, "loot_objective_detail_match_by_source", objective_sources)
             )
         )
         print(
@@ -666,6 +686,16 @@ if __name__ == "__main__":
         print(
             "Loot objective outcome by source: {}".format(
                 format_source_mix(results, "loot_objective_outcome_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective match/outcome by source: {}".format(
+                format_source_mix(results, "loot_objective_match_outcome_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective detail/outcome by source: {}".format(
+                format_source_mix(results, "loot_objective_detail_outcome_by_source", objective_sources)
             )
         )
         print(

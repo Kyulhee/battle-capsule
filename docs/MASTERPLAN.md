@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-04 (v2.0.38 ammo objective selection tuning)
+> Last updated: 2026-06-04 (v2.0.39 loot objective context diagnostics)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.38: ammo objective selection tuning |
-| Next structural slice | v2.0.39: remaining mismatch and objective-interruption diagnostics |
+| Latest completed slice | v2.0.39: loot objective context diagnostics |
+| Next structural slice | v2.0.40: pistol upgrade scoring and idle objective interruption tuning |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -553,6 +553,17 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Combat target soft-POI coverage improved 78.9% -> 83.6%; target-acquisition soft POI improved 76.6% -> 79.2%.
 - Tradeoff: objective collection fell 36.3% -> 31.1%, interruption rose 56.0% -> 60.9%, while average objective duration stayed short at 0.53s -> 0.50s.
 - Next work should inspect remaining ammo mismatch source and objective interruption/enemy-acquisition timing before more behavior tuning.
+
+**v2.0.39 result**
+
+- Added diagnostic-only loot objective context: target weapon, current weapon / target weapon, current weapon / target match, target detail / match, and match/detail outcome buckets.
+- `Bot.gd` now carries the original selection context from objective start into outcome telemetry, so interruption and collection are grouped by the actual objective target.
+- Fresh valid 5-run candidate `xlarge_60` and `target_99_probe` sets both passed scale gates.
+- v2.0.39 60 -> 99: weapon/ammo objectives 82.1% -> 87.5%, same-weapon ammo 45.8% -> 51.0%, ammo mismatch 9.6% -> 8.1%.
+- 99 outcome split: same-ammo collect 30.8% / interrupt 61.0%; mismatch collect 20.1% / interrupt 76.7%; new-weapon collect 69.2%.
+- Remaining mismatch is narrow: combat low-ammo mismatch is nearly gone; residual mismatch is mostly idle pistol holders targeting non-pistol ammo.
+- Pistol holders still rarely target non-pistol upgrades at 99: 7.1% of pistol-held objective targets.
+- Next work should inspect pistol upgrade scoring and idle/post-kill objective interruption timing before AI aggression, raw damage, generic zone speed, POI radius, or default/global 99 promotion.
 
 ## Deferred Asset Upgrades
 

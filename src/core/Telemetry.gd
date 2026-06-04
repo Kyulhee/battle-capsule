@@ -269,8 +269,12 @@ func _reset_metrics():
 			"loot_objective_ammo_band_by_source": {},
 			"loot_objective_reserve_band_by_source": {},
 			"loot_objective_weapon_by_source": {},
+			"loot_objective_target_weapon_by_source": {},
 			"loot_objective_target_detail_by_source": {},
 			"loot_objective_target_match_by_source": {},
+			"loot_objective_weapon_target_by_source": {},
+			"loot_objective_weapon_match_by_source": {},
+			"loot_objective_detail_match_by_source": {},
 			"loot_objective_target_poi_role_by_source": {},
 			"loot_objective_target_route_role_by_source": {},
 			"loot_objective_route_kind_by_source": {},
@@ -280,6 +284,10 @@ func _reset_metrics():
 			"loot_objective_start_distance_by_source": {},
 			"loot_objective_outcome_by_source": {},
 			"loot_objective_outcome_by_kind": {},
+			"loot_objective_outcome_by_target_match": {},
+			"loot_objective_outcome_by_target_detail": {},
+			"loot_objective_match_outcome_by_source": {},
+			"loot_objective_detail_outcome_by_source": {},
 			"loot_objective_duration_by_source": {},
 			"loot_objective_duration_by_outcome": {},
 			"engage_range_by_archetype": {},
@@ -807,6 +815,9 @@ func log_doctrine_loot_objective_start(
 	var route_band := _route_distance_band(target_context)
 	var route_role := _nearest_route_role_key(target_context, route_band)
 	var target_detail := _normalized_key(String(selection_context.get("target_detail", kind_key)), kind_key)
+	var target_match := _normalized_key(String(selection_context.get("target_match", "unknown")), "unknown")
+	var weapon_key := _normalized_key(String(selection_context.get("weapon", "none")), "none")
+	var target_weapon := _normalized_key(String(selection_context.get("target_weapon", "none")), "none")
 	_add_bucket_value(metrics.doctrine.loot_objective_start_by_source, source_key, 1.0)
 	_add_nested_bucket_value(metrics.doctrine.loot_objective_mode_by_source, source_key, mode_key, 1.0)
 	_add_nested_bucket_value(metrics.doctrine.loot_objective_origin_state_by_source, source_key, state_key, 1.0)
@@ -832,7 +843,13 @@ func log_doctrine_loot_objective_start(
 	_add_nested_bucket_value(
 		metrics.doctrine.loot_objective_weapon_by_source,
 		source_key,
-		_normalized_key(String(selection_context.get("weapon", "none")), "none"),
+		weapon_key,
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_target_weapon_by_source,
+		source_key,
+		target_weapon,
 		1.0
 	)
 	_add_nested_bucket_value(
@@ -844,7 +861,25 @@ func log_doctrine_loot_objective_start(
 	_add_nested_bucket_value(
 		metrics.doctrine.loot_objective_target_match_by_source,
 		source_key,
-		_normalized_key(String(selection_context.get("target_match", "unknown")), "unknown"),
+		target_match,
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_weapon_target_by_source,
+		source_key,
+		"%s/%s" % [weapon_key, target_weapon],
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_weapon_match_by_source,
+		source_key,
+		"%s/%s" % [weapon_key, target_match],
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_detail_match_by_source,
+		source_key,
+		"%s/%s" % [target_detail, target_match],
 		1.0
 	)
 	_add_nested_bucket_value(
@@ -892,14 +927,31 @@ func log_doctrine_loot_objective_outcome(
 	mode_name: String,
 	target_kind: String,
 	outcome_name: String,
-	duration: float
+	duration: float,
+	selection_context: Dictionary = {}
 ):
 	if not match_in_progress or not _g("doctrine"): return
 	var source_key := _normalized_key(source_name, "unknown")
 	var kind_key := _normalized_key(target_kind, "pickup_unknown")
 	var outcome_key := _normalized_key(outcome_name, "unknown")
+	var target_match := _normalized_key(String(selection_context.get("target_match", "unknown")), "unknown")
+	var target_detail := _normalized_key(String(selection_context.get("target_detail", kind_key)), kind_key)
 	_add_nested_bucket_value(metrics.doctrine.loot_objective_outcome_by_source, source_key, outcome_key, 1.0)
 	_add_nested_bucket_value(metrics.doctrine.loot_objective_outcome_by_kind, kind_key, outcome_key, 1.0)
+	_add_nested_bucket_value(metrics.doctrine.loot_objective_outcome_by_target_match, target_match, outcome_key, 1.0)
+	_add_nested_bucket_value(metrics.doctrine.loot_objective_outcome_by_target_detail, target_detail, outcome_key, 1.0)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_match_outcome_by_source,
+		source_key,
+		"%s/%s" % [target_match, outcome_key],
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_detail_outcome_by_source,
+		source_key,
+		"%s/%s" % [target_detail, outcome_key],
+		1.0
+	)
 	if duration >= 0.0:
 		_add_sample_bucket(metrics.doctrine.loot_objective_duration_by_source, source_key, duration)
 		_add_sample_bucket(metrics.doctrine.loot_objective_duration_by_outcome, outcome_key, duration)

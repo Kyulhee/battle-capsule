@@ -257,6 +257,22 @@ def counter_group_share(counter: Counter, keys: list[str]) -> float:
     return 100.0 * sum(float(counter.get(key, 0.0)) for key in keys) / total
 
 
+def counter_prefix_share(counter: Counter, prefix: str, suffix: str) -> float:
+    prefix_text = f"{prefix}/"
+    total = sum(float(value) for key, value in counter.items() if str(key).startswith(prefix_text))
+    if total <= 0.0:
+        return 0.0
+    return 100.0 * float(counter.get(f"{prefix}/{suffix}", 0.0)) / total
+
+
+def counter_prefix_group_share(counter: Counter, prefix: str, suffixes: list[str]) -> float:
+    prefix_text = f"{prefix}/"
+    total = sum(float(value) for key, value in counter.items() if str(key).startswith(prefix_text))
+    if total <= 0.0:
+        return 0.0
+    return 100.0 * sum(float(counter.get(f"{prefix}/{suffix}", 0.0)) for suffix in suffixes) / total
+
+
 def sample_avg(samples: dict[str, dict[str, float]], key: str) -> float:
     bucket = samples.get(key, {})
     count = float(bucket.get("count", 0.0))
@@ -415,6 +431,21 @@ def summarize(runs: list[dict]) -> dict[str, float]:
     loot_objective_target_matches = doctrine_sources_counter(
         runs,
         "loot_objective_target_match_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_weapon_targets = doctrine_sources_counter(
+        runs,
+        "loot_objective_weapon_target_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_weapon_matches = doctrine_sources_counter(
+        runs,
+        "loot_objective_weapon_match_by_source",
+        list(loot_objective_sources),
+    )
+    loot_objective_match_outcomes = doctrine_sources_counter(
+        runs,
+        "loot_objective_match_outcome_by_source",
         list(loot_objective_sources),
     )
     loot_objective_target_route_roles = doctrine_sources_counter(
@@ -628,6 +659,52 @@ def summarize(runs: list[dict]) -> dict[str, float]:
         "loot_objective_ammo_mismatch_pct": counter_share(loot_objective_target_matches, "ammo_mismatch"),
         "loot_objective_weapon_new_pct": counter_share(loot_objective_target_matches, "weapon_new_type"),
         "loot_objective_weapon_same_pct": counter_share(loot_objective_target_matches, "weapon_same_type"),
+        "loot_objective_ammo_same_collect_rate": counter_prefix_share(
+            loot_objective_match_outcomes,
+            "ammo_same_weapon",
+            "collect",
+        ),
+        "loot_objective_ammo_same_interrupt_rate": counter_prefix_group_share(
+            loot_objective_match_outcomes,
+            "ammo_same_weapon",
+            [
+                "enemy_interrupt",
+                "enemy_acquired",
+                "damage_interrupt",
+                "gunshot_interrupt",
+                "zone_interrupt",
+                "attack_interrupt",
+                "disengage_interrupt",
+            ],
+        ),
+        "loot_objective_ammo_mismatch_collect_rate": counter_prefix_share(
+            loot_objective_match_outcomes,
+            "ammo_mismatch",
+            "collect",
+        ),
+        "loot_objective_ammo_mismatch_interrupt_rate": counter_prefix_group_share(
+            loot_objective_match_outcomes,
+            "ammo_mismatch",
+            [
+                "enemy_interrupt",
+                "enemy_acquired",
+                "damage_interrupt",
+                "gunshot_interrupt",
+                "zone_interrupt",
+                "attack_interrupt",
+                "disengage_interrupt",
+            ],
+        ),
+        "loot_objective_weapon_new_collect_rate": counter_prefix_share(
+            loot_objective_match_outcomes,
+            "weapon_new_type",
+            "collect",
+        ),
+        "loot_objective_pistol_nonpistol_target_pct": counter_group_share(
+            loot_objective_weapon_targets,
+            ["pistol/ar", "pistol/shotgun", "pistol/railgun"],
+        ),
+        "loot_objective_pistol_mismatch_pct": counter_share(loot_objective_weapon_matches, "pistol/ammo_mismatch"),
         "loot_objective_target_recovery_exit_pct": counter_share(
             loot_objective_target_route_roles,
             "recovery_exit",
@@ -828,6 +905,13 @@ def print_comparison(label_a: str, summary_a: dict[str, float], label_b: str, su
         ("loot_objective_ammo_mismatch_pct", "loot objective ammo mismatch %"),
         ("loot_objective_weapon_new_pct", "loot objective weapon new type %"),
         ("loot_objective_weapon_same_pct", "loot objective weapon same type %"),
+        ("loot_objective_ammo_same_collect_rate", "loot same-ammo collect rate %"),
+        ("loot_objective_ammo_same_interrupt_rate", "loot same-ammo interrupt rate %"),
+        ("loot_objective_ammo_mismatch_collect_rate", "loot mismatch collect rate %"),
+        ("loot_objective_ammo_mismatch_interrupt_rate", "loot mismatch interrupt rate %"),
+        ("loot_objective_weapon_new_collect_rate", "loot new-weapon collect rate %"),
+        ("loot_objective_pistol_nonpistol_target_pct", "loot pistol->nonpistol target %"),
+        ("loot_objective_pistol_mismatch_pct", "loot pistol ammo mismatch %"),
         ("loot_objective_target_recovery_exit_pct", "loot objective recovery-exit target %"),
         ("loot_objective_recovery_exit_weapon_pct", "loot objective recovery-exit weapon %"),
         ("loot_objective_recovery_exit_ammo_pct", "loot objective recovery-exit ammo %"),
@@ -1140,6 +1224,10 @@ def print_loot_objective_decision(summary_a: dict[str, float], summary_b: dict[s
     ammo_empty_or_low_b = float(summary_b.get("loot_objective_ammo_empty_or_low_pct", 0.0))
     reserve_empty_b = float(summary_b.get("loot_objective_reserve_empty_pct", 0.0))
     ammo_mismatch_b = float(summary_b.get("loot_objective_ammo_mismatch_pct", 0.0))
+    ammo_mismatch_collect_b = float(summary_b.get("loot_objective_ammo_mismatch_collect_rate", 0.0))
+    ammo_mismatch_interrupt_b = float(summary_b.get("loot_objective_ammo_mismatch_interrupt_rate", 0.0))
+    ammo_same_collect_b = float(summary_b.get("loot_objective_ammo_same_collect_rate", 0.0))
+    pistol_nonpistol_target_b = float(summary_b.get("loot_objective_pistol_nonpistol_target_pct", 0.0))
     recovery_exit_weapon_ammo_b = float(summary_b.get("loot_objective_recovery_exit_weapon_pct", 0.0)) + float(
         summary_b.get("loot_objective_recovery_exit_ammo_pct", 0.0)
     )
@@ -1171,6 +1259,12 @@ def print_loot_objective_decision(summary_a: dict[str, float], summary_b: dict[s
         print("  - Loot objectives are mostly recovery-mode pulls; inspect RECOVER search and re-entry timing.")
     if ammo_mismatch_b >= 10.0:
         print("  - Ammo objectives often target mismatched ammo; inspect ammo weapon filtering and pickup mix.")
+        if ammo_mismatch_interrupt_b >= ammo_mismatch_collect_b + 20.0:
+            print("  - Mismatched-ammo objectives are usually interrupted; inspect enemy acquisition during bad loot pulls.")
+        elif ammo_mismatch_collect_b >= ammo_same_collect_b:
+            print("  - Mismatched-ammo objectives collect as often as same-ammo; inspect objective selection, not pathing.")
+    if pistol_nonpistol_target_b < 8.0:
+        print("  - Pistol holders rarely target non-pistol upgrades; inspect weapon-upgrade scoring before ammo-only tuning.")
     if need_empty_no_reserve_b >= 15.0 or (combat_ammo_source_b >= 20.0 and reserve_empty_b >= 50.0):
         print("  - Empty-ammo/no-reserve objectives are material; inspect ammo access before aggression tuning.")
     elif need_combat_low_ammo_b >= 15.0 and ammo_empty_or_low_b >= 50.0:

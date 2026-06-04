@@ -6,6 +6,38 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.39 — Loot Objective Context Diagnostics
+
+**Scope**
+
+- Added diagnostic-only joint context for loot objective selection and outcomes.
+- `Bot.gd` now caches the original objective selection context at objective start so outcome telemetry is grouped by the target that caused the objective, not by later state.
+- `Telemetry.gd` now records target weapon, current-weapon/target-weapon, current-weapon/match, target-detail/match, match/outcome, and detail/outcome buckets.
+- `tools/analyze_results.py` prints the new context mixes.
+- `tools/compare_scale_profiles.py` now reports same-ammo, mismatched-ammo, and new-weapon objective collect/interrupt rates plus pistol-to-non-pistol targeting signals.
+- No map data, loot counts, AI aggression, damage, zone pacing, or default/global 99 promotion changed.
+
+**Verification**
+
+- `git diff --check` passed.
+- Python compile passed for `tools/analyze_results.py`, `tools/compare_scale_profiles.py`, and `tools/check_scale_telemetry.py`.
+- `verify_strategic_flow_map.gd` and `verify_candidate_99_probe.gd` passed.
+- 1-run 99 smoke at `C:\tmp\game_dev_loot_context_v2039_smoke` wrote the new fields; the single-run scale gate failed only on high stuck variance.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_loot_context_xlarge60_v2039b`: avg duration 122.5s, first upgrade 16.4s, stuck 33.0/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_loot_context_99_v2039`: avg duration 148.6s, first upgrade 19.9s, stuck 44.8/run, fallback 0.0/run.
+
+**Decision**
+
+- The remaining mismatch problem is narrower than before: combat low-ammo mismatch is nearly gone, while residual mismatch is mostly idle pistol holders targeting non-pistol ammo.
+- At 99, same-ammo objectives collect more often than mismatch objectives: 30.8% vs 20.1%.
+- Mismatched-ammo objectives are mostly interrupted: 76.7% interruption at 99.
+- New-weapon objective collection is healthy at 99: 69.2%.
+- Pistol holders still rarely target non-pistol upgrades: 7.1% of pistol-held objective targets.
+- Next slice should inspect pistol upgrade scoring and idle/post-kill objective interruption timing before another ammo-only tuning pass.
+
+---
+
 ## v2.0.38 — Ammo Objective Selection Tuning
 
 **Scope**
