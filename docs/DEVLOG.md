@@ -6,6 +6,37 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.38 — Ammo Objective Selection Tuning
+
+**Scope**
+
+- Applied a narrow Bot loot selection tuning pass.
+- Bot combat low-ammo looting now only breaks to external pickups when reserve ammo is empty.
+- Bot pickup scoring now skips unusable mismatched ammo for the current weapon.
+- Same-weapon ammo is preferred only when the bot has no reserve and the magazine is empty/low.
+- Pistol users now give non-pistol weapon pickups a bounded upgrade preference so ammo preference does not starve weapon upgrades.
+- No map data, loot counts, AI aggression, damage, zone pacing, or default/global 99 promotion changed.
+
+**Verification**
+
+- `git diff --check` passed.
+- `verify_strategic_flow_map.gd` and `verify_candidate_99_probe.gd` passed before final tuning; final 1-run 99 smoke completed after the tuning adjustments.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_ammo_tuning_xlarge60_v2038c`: avg duration 108.4s, first upgrade 11.4s, stuck 27.6/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_ammo_tuning_99_v2038c`: avg duration 157.4s, first upgrade 21.1s, stuck 38.2/run, fallback 0.0/run.
+
+**Decision**
+
+- The tuning is a net diagnostic/tactical improvement, not a full scale fix.
+- At 99 vs v2.0.37, same-weapon ammo objectives rose 33.5% -> 53.1%, and ammo mismatch fell 13.1% -> 10.2%.
+- Combat low-ammo objective starts eased 28.2% -> 25.9%, and explicit empty/no-reserve need fell 0.6% -> 0.1%.
+- Combat target soft-POI coverage improved 78.9% -> 83.6%; target-acquisition soft POI improved 76.6% -> 79.2%.
+- Objective collection regressed 36.3% -> 31.1%, and interruption rose 56.0% -> 60.9%; remaining issue is not raw pathing duration because average objective duration stayed short at 0.53s -> 0.50s.
+- 60 -> 99 still shows engagement-density loss: ATTACK+CHASE 42.3% -> 37.7%, while damage/ATTACK min rises 681.7 -> 857.3.
+- Next slice should inspect the remaining ammo mismatch source and objective interruption/enemy-acquisition timing before more tuning.
+
+---
+
 ## v2.0.37 — Ammo Objective Selection Diagnostics
 
 **Scope**

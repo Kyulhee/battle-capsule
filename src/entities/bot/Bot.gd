@@ -550,6 +550,7 @@ func handle_attack_state(delta):
 
 	# Proactive combat looting: break off when nearly out of ammo AND a pickup is close
 	if _combat_loot_threshold > 0 and stats.max_ammo > 0 and \
+			reserve_ammo <= 0 and \
 			float(stats.current_ammo) / float(stats.max_ammo) <= _combat_loot_threshold:
 		var nearby = _find_best_pickup(_combat_loot_radius)
 		if nearby:
@@ -1608,6 +1609,9 @@ func _find_best_pickup(search_radius: float) -> Node3D:
 	var pickups = get_tree().get_nodes_in_group("pickups")
 	var best: Node3D = null
 	var best_score: float = INF
+	var ammo_ratio := 1.0
+	if stats.max_ammo > 0:
+		ammo_ratio = float(stats.current_ammo) / maxf(1.0, float(stats.max_ammo))
 	for p in pickups:
 		if not is_instance_valid(p): continue
 		var d = global_position.distance_to(p.global_position)
@@ -1621,13 +1625,23 @@ func _find_best_pickup(search_radius: float) -> Node3D:
 					if current_health / stats.max_health < 0.4:
 						score *= 0.3
 				ItemData.Type.AMMO:
+					if item.ammo_weapon_type != "" and item.ammo_weapon_type != stats.weapon_type:
+						continue
 					if stats.current_ammo == 0 and reserve_ammo == 0:
-						score *= 0.25
-					elif item.ammo_weapon_type != "" and item.ammo_weapon_type != stats.weapon_type:
-						score *= 3.0
+						score *= 0.35
+					elif reserve_ammo == 0 and ammo_ratio <= 0.25:
+						score *= 0.45
+					elif reserve_ammo == 0 and ammo_ratio <= 0.5:
+						score *= 0.7
 				ItemData.Type.WEAPON:
 					if stats.weapon_type == "knife" or stats.weapon_type == "":
 						score *= 0.5
+					elif item.weapon_stats != null:
+						if stats.weapon_type == "pistol" and item.weapon_stats.weapon_type != "pistol":
+							score *= 0.65
+						elif item.weapon_stats.weapon_type == stats.weapon_type \
+								and reserve_ammo == 0 and ammo_ratio <= 0.25:
+							score *= 0.75
 		if score < best_score:
 			best_score = score
 			best = p

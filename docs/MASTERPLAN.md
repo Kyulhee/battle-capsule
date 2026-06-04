@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-04 (v2.0.37 ammo objective selection diagnostics)
+> Last updated: 2026-06-04 (v2.0.38 ammo objective selection tuning)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.37: ammo objective selection diagnostics |
-| Next structural slice | v2.0.38: narrow ammo access/objective-selection tuning pass |
+| Latest completed slice | v2.0.38: ammo objective selection tuning |
+| Next structural slice | v2.0.39: remaining mismatch and objective-interruption diagnostics |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -542,6 +542,17 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Ammo mismatch is material and rises at 99: 10.7% -> 13.1%.
 - Recovery-exit weapon/ammo objective pressure remains material but is not the sole 99 delta: recovery-exit weapon+ammo 29.8% -> 26.1%.
 - Next work should apply a narrow ammo access/objective-selection tuning pass before changing AI aggression, raw damage, generic zone speed, POI radius, or default/global 99 promotion.
+
+**v2.0.38 result**
+
+- Applied narrow Bot loot selection tuning only; no map, loot count, AI aggression, damage, zone, or default/global 99 promotion changed.
+- Combat low-ammo looting now requires empty reserve ammo; unusable mismatched ammo is skipped in pickup scoring; same-weapon ammo is preferred only when reserve is empty and magazine ammo is empty/low; pistol users get bounded non-pistol weapon upgrade preference.
+- Fresh valid 5-run candidate `xlarge_60` and `target_99_probe` sets both passed scale gates.
+- 99 same-weapon ammo objectives rose 33.5% -> 53.1%, while ammo mismatch fell 13.1% -> 10.2%.
+- Combat low-ammo objective starts eased 28.2% -> 25.9%, and explicit empty/no-reserve need fell 0.6% -> 0.1%.
+- Combat target soft-POI coverage improved 78.9% -> 83.6%; target-acquisition soft POI improved 76.6% -> 79.2%.
+- Tradeoff: objective collection fell 36.3% -> 31.1%, interruption rose 56.0% -> 60.9%, while average objective duration stayed short at 0.53s -> 0.50s.
+- Next work should inspect remaining ammo mismatch source and objective interruption/enemy-acquisition timing before more behavior tuning.
 
 ## Deferred Asset Upgrades
 

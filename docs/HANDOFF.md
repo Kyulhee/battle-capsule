@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.37 — ammo objective selection diagnostics`.
-- Next structural slice: `v2.0.38 — narrow ammo access/objective-selection tuning pass`.
+- Latest completed slice: `v2.0.38 — ammo objective selection tuning`.
+- Next structural slice: `v2.0.39 — remaining mismatch and objective-interruption diagnostics`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -47,12 +47,13 @@
 - `fbbfbf7 feat: add target acquisition diagnostics` — added target-acquisition source diagnostics; default map/global 99 promotion was not made.
 - `4827635 feat: add acquisition overlap diagnostics` — added acquisition route/POI overlap diagnostics; default map/global 99 promotion was not made.
 - `feat: add ammo objective diagnostics` — added ammo objective selection diagnostics; default map/global 99 promotion was not made.
+- Current v2.0.38 slice applies narrow ammo objective selection tuning; default map/global 99 promotion was not made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.38 — narrow ammo access/objective-selection tuning pass`
+`v2.0.39 — remaining mismatch and objective-interruption diagnostics`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -106,9 +107,18 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - v2.0.37 fresh 5-run sets passed scale gates:
   - `C:\tmp\game_dev_ammo_objective_xlarge60_v2037`: avg duration 107.0s, first upgrade 12.3s, stuck 32.0/run, fallback 0.0/run.
   - `C:\tmp\game_dev_ammo_objective_99_v2037`: avg duration 162.8s, first upgrade 20.4s, stuck 38.4/run, fallback 0.0/run.
-- v2.0.37 result: 99 engagement-density loss remains, but ATTACK lethality is intact. ATTACK+CHASE 41.3% -> 36.7%, damage/ATTACK min 761.2 -> 892.6.
-- Loot objective weapon/ammo share increases at 99: 80.7% -> 87.5%; reserve-empty is nearly universal at 97.6% -> 97.9%; ammo mismatch rises 10.7% -> 13.1%.
-- Next work should apply a narrow ammo access/objective-selection tuning pass: same-weapon ammo preference, reserve-aware low-ammo breakoff criteria, and recovery-exit/primary-choke pickup pressure by type.
+- v2.0.37 result: 99 engagement-density loss remains, but ATTACK lethality is intact. Loot objective weapon/ammo share increases at 99, reserve-empty is nearly universal, and ammo mismatch rises.
+- v2.0.38 applied narrow selection tuning:
+  - combat low-ammo looting requires empty reserve ammo.
+  - unusable mismatched ammo is skipped in pickup scoring.
+  - same-weapon ammo is preferred only when reserve is empty and magazine ammo is empty/low.
+  - pistol users get bounded non-pistol weapon upgrade preference.
+- v2.0.38 fresh 5-run sets passed scale gates:
+  - `C:\tmp\game_dev_ammo_tuning_xlarge60_v2038c`: avg duration 108.4s, first upgrade 11.4s, stuck 27.6/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_ammo_tuning_99_v2038c`: avg duration 157.4s, first upgrade 21.1s, stuck 38.2/run, fallback 0.0/run.
+- v2.0.38 result at 99 vs v2.0.37: same-weapon ammo objectives 33.5% -> 53.1%, ammo mismatch 13.1% -> 10.2%, combat target soft POI 78.9% -> 83.6%, target-acquisition soft POI 76.6% -> 79.2%.
+- v2.0.38 tradeoff: objective collect 36.3% -> 31.1%, interrupt 56.0% -> 60.9%, avg duration remains short at 0.53s -> 0.50s.
+- Next work should inspect the remaining ammo mismatch source and loot objective interruption/enemy-acquisition timing. Add joint target detail/match/source telemetry if needed before changing more behavior.
 - Candidate `mapSpec_large_candidate.json` now has 6 route descriptors:
   - primary chokes: `west_ridge_choke`, `east_pine_choke`.
   - flanks: `north_slope_flank`, `south_creek_flank`.
@@ -120,8 +130,8 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
 - `analyze_results.py` prints combat-location, route-pressure, CHASE location, pickup location, proximity-band, target-acquisition, acquisition-overlap, and loot-objective mixes.
 - `compare_scale_profiles.py` prints route-pressure, CHASE location, pickup location, POI leakage, target-acquisition, acquisition-overlap, and loot-objective decisions.
 - `tools/verify_strategic_flow_map.gd` guards candidate POI role coverage, route role coverage, primary-choke alternate routes, and connected POI references.
-- Current 99-probe normalized output from v2.0.37: damage=18.65, shots=2.30, plans=1.24, disengage=0.42, entries=1.35, stuck=0.14 per spawned entity/min.
-- Current 99-probe state mix from v2.0.37: ZONE_ESCAPE 27.9%, DISENGAGE 21.9%, CHASE 19.2%, ATTACK 17.4%, IDLE 13.5%.
+- Current 99-probe normalized output from v2.0.38: damage=18.57, shots=2.32, plans=1.29, disengage=0.45, entries=1.47, stuck=0.15 per spawned entity/min.
+- Current 99-probe state mix from v2.0.38: ZONE_ESCAPE 27.1%, DISENGAGE 21.8%, CHASE 19.9%, ATTACK 17.8%, IDLE 13.4%.
 - `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
 - `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
 - Keep using `verify_strategic_flow_map.gd`, `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, candidate-path simulation, `analyze_results.py`, `compare_scale_profiles.py`, and `check_scale_telemetry.py` as scale gates.
