@@ -5,8 +5,8 @@
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.39 — loot objective context diagnostics`.
-- Next structural slice: `v2.0.40 — pistol upgrade scoring and idle objective interruption tuning`.
+- Latest completed slice: `v2.0.40 — opportunistic loot scoring and pistol upgrade tuning`.
+- Next structural slice: `v2.0.41 — loot objective enemy-sensing context and pickup availability diagnostics`.
 - Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 - `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
@@ -47,13 +47,13 @@
 - `fbbfbf7 feat: add target acquisition diagnostics` — added target-acquisition source diagnostics; default map/global 99 promotion was not made.
 - `4827635 feat: add acquisition overlap diagnostics` — added acquisition route/POI overlap diagnostics; default map/global 99 promotion was not made.
 - `feat: add ammo objective diagnostics` — added ammo objective selection diagnostics; default map/global 99 promotion was not made.
-- Current v2.0.39 slice adds loot objective context diagnostics; default map/global 99 promotion was not made.
+- Current v2.0.40 slice applies narrow opportunistic loot scoring and pistol upgrade tuning; default map/global 99 promotion was not made.
 
 Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
 
 ## Recommended Next Slice
 
-`v2.0.40 — pistol upgrade scoring and idle objective interruption tuning`
+`v2.0.41 — loot objective enemy-sensing context and pickup availability diagnostics`
 
 - Keep `Main.gd` as match-global orchestrator.
 - Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
@@ -124,7 +124,18 @@ Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player art
   - `C:\tmp\game_dev_loot_context_99_v2039`: avg duration 148.6s, first upgrade 19.9s, stuck 44.8/run, fallback 0.0/run.
 - v2.0.39 result: combat low-ammo mismatch is nearly gone; remaining mismatch is mostly idle pistol holders targeting non-pistol ammo and is usually interrupted.
 - v2.0.39 99 context: same-ammo collect 30.8% / interrupt 61.0%; mismatch collect 20.1% / interrupt 76.7%; new-weapon collect 69.2%; pistol-to-non-pistol target 7.1%.
-- Next work should inspect pistol upgrade scoring and idle/post-kill objective interruption/enemy-acquisition timing before another ammo-only tuning pass.
+- v2.0.40 applied narrow loot-selection tuning:
+  - healthy idle bots now use scored pickup selection.
+  - post-kill opportunistic loot starts only with zero visible enemies.
+  - pistol holders score non-pistol weapon pickups more strongly.
+  - same-pistol weapon pickups are less favored as low-ammo substitutes.
+  - compare tooling now separates real `pistol/weapon_new_type` objectives from non-pistol target metrics that included bad ammo.
+- v2.0.40 fresh 5-run sets passed scale gates:
+  - `C:\tmp\game_dev_pistol_upgrade_xlarge60_v2040`: avg duration 99.9s, first upgrade 11.8s, stuck 24.4/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_pistol_upgrade_99_v2040`: avg duration 152.6s, first upgrade 19.7s, stuck 47.0/run, fallback 0.0/run.
+- v2.0.40 99 vs v2.0.39 99: ammo mismatch 8.1% -> 0.0%, pistol ammo mismatch 6.6% -> 0.0%, weapon-new objectives 2.0% -> 5.2%, pistol new-weapon objectives 0.5% -> 3.4%, collect 31.9% -> 31.7%, interrupt 59.7% -> 58.7%.
+- v2.0.40 60 -> 99 still shows thinner active coverage: ATTACK+CHASE 40.1% -> 36.3%, CHASE combat 50.4% -> 42.5%, CHASE loot+recover 49.6% -> 57.5%.
+- Next work should inspect loot objective enemy-sensing/threat context and non-pistol pickup availability before more scoring or aggression tuning.
 - Candidate `mapSpec_large_candidate.json` now has 6 route descriptors:
   - primary chokes: `west_ridge_choke`, `east_pine_choke`.
   - flanks: `north_slope_flank`, `south_creek_flank`.

@@ -1,6 +1,6 @@
 # Battle Capsule Master Plan
 
-> Last updated: 2026-06-04 (v2.0.39 loot objective context diagnostics)
+> Last updated: 2026-06-04 (v2.0.40 opportunistic loot scoring and pistol upgrade tuning)
 
 This is the active roadmap. Full pre-compression details are preserved in [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md). Older historical plans live under `docs/archive/`.
 
@@ -9,8 +9,8 @@ This is the active roadmap. Full pre-compression details are preserved in [archi
 | Item | Status |
 |---|---|
 | Current line | v2.0-dev: MapDefinition + player scale foundation |
-| Latest completed slice | v2.0.39: loot objective context diagnostics |
-| Next structural slice | v2.0.40: pistol upgrade scoring and idle objective interruption tuning |
+| Latest completed slice | v2.0.40: opportunistic loot scoring and pistol upgrade tuning |
+| Next structural slice | v2.0.41: loot objective enemy-sensing context and pickup availability diagnostics |
 | v1.10 status | Structurally closed for Main-owned data/catalog/presentation cleanup |
 | Release status | Paused; continue version-to-version development unless a release is explicitly requested |
 | External assets | `asset_generator/` and local prompt scratch files stay untracked unless explicitly integrated |
@@ -564,6 +564,19 @@ Full slice history is preserved in [devlog/v1.11_full_2026-05-26.md](devlog/v1.1
 - Remaining mismatch is narrow: combat low-ammo mismatch is nearly gone; residual mismatch is mostly idle pistol holders targeting non-pistol ammo.
 - Pistol holders still rarely target non-pistol upgrades at 99: 7.1% of pistol-held objective targets.
 - Next work should inspect pistol upgrade scoring and idle/post-kill objective interruption timing before AI aggression, raw damage, generic zone speed, POI radius, or default/global 99 promotion.
+
+**v2.0.40 result**
+
+- Applied narrow Bot loot-selection tuning only; no map, loot count, AI aggression, damage, zone, or default/global 99 promotion changed.
+- Healthy idle bots now use scored pickup selection, so mismatched ammo filtering and weapon-upgrade preferences are no longer bypassed by nearest-pickup logic.
+- Post-kill opportunistic loot now starts only with zero visible enemies.
+- Pistol holders now score non-pistol weapon pickups more strongly, while same-pistol weapon pickups are less favored as a low-ammo substitute.
+- `compare_scale_profiles.py` now separates real `pistol/weapon_new_type` objectives from target-weapon metrics that used to include bad ammo targets.
+- Fresh valid 5-run candidate `xlarge_60` and `target_99_probe` sets both passed scale gates.
+- v2.0.40 99 vs v2.0.39 99: ammo mismatch 8.1% -> 0.0%, pistol ammo mismatch 6.6% -> 0.0%, weapon-new objectives 2.0% -> 5.2%, pistol new-weapon objectives 0.5% -> 3.4%.
+- Objective reliability stayed stable: collect 31.9% -> 31.7%, interrupt 59.7% -> 58.7%.
+- 99 scale still has thinner active coverage: v2.0.40 60 -> 99 ATTACK+CHASE 40.1% -> 36.3%, CHASE combat 50.4% -> 42.5%.
+- Next work should inspect objective enemy-sensing/threat context and non-pistol pickup availability before more scoring, AI aggression, raw damage, generic zone speed, POI radius, or default/global 99 promotion.
 
 ## Deferred Asset Upgrades
 

@@ -311,7 +311,7 @@ func handle_idle_state(delta):
 		if not _post_kill_loot_attempted:
 			_post_kill_loot_attempted = true
 			var nearby = _find_best_pickup(8.0)
-			if nearby and _count_visible_enemies() <= 1:
+			if nearby and _count_visible_enemies() == 0:
 				_start_loot_objective(nearby, "post_kill_loot", false)
 				change_state(State.CHASE); return
 		var kill_scan_enemy = _find_nearest_target()
@@ -361,12 +361,13 @@ func handle_idle_state(delta):
 	if _pending_target != null:
 		_pending_target = null
 
-	# Wounded bots use priority-scored pickup (heals first); healthy bots use nearest
+	# Wounded bots search wider, but all opportunistic loot uses priority scoring
+	# so unusable ammo and weapon-upgrade preferences stay consistent.
 	var nearest_loot: Node3D = null
 	if current_health / stats.max_health < 0.5:
 		nearest_loot = _find_best_pickup(55.0)  # wider range, scores heals highest
 	else:
-		nearest_loot = _find_nearest_pickup(35.0)
+		nearest_loot = _find_best_pickup(35.0)
 	if nearest_loot:
 		var loot_dist = global_position.distance_to(nearest_loot.global_position)
 		if loot_dist <= 2.5 and nearest_loot.has_method("collect"):
@@ -1659,10 +1660,10 @@ func _find_best_pickup(search_radius: float) -> Node3D:
 						score *= 0.5
 					elif item.weapon_stats != null:
 						if stats.weapon_type == "pistol" and item.weapon_stats.weapon_type != "pistol":
-							score *= 0.65
+							score *= 0.35
 						elif item.weapon_stats.weapon_type == stats.weapon_type \
 								and reserve_ammo == 0 and ammo_ratio <= 0.25:
-							score *= 0.75
+							score *= 0.9 if stats.weapon_type == "pistol" else 0.75
 		if score < best_score:
 			best_score = score
 			best = p
@@ -1955,16 +1956,6 @@ func _find_nearest_target() -> Entity:
 			var score = d * (distance_weight + hp_ratio * hp_weight)
 			if score < best_score: best_score = score; best = a
 	return best
-
-func _find_nearest_pickup(search_radius: float = 35.0) -> Node3D:
-	var pickups = get_tree().get_nodes_in_group("pickups")
-	var nearest: Node3D = null
-	var min_dist = search_radius
-	for p in pickups:
-		var d = global_position.distance_to(p.global_position)
-		if not can_sense_item(p.global_position): continue
-		if d < min_dist: min_dist = d; nearest = p
-	return nearest
 
 func _is_target_valid(t: Variant) -> bool:
 	return is_instance_valid(t) and (not t is Entity or not t.is_dead)

@@ -6,6 +6,37 @@ Do not load full snapshots by default. Use `docs/devlog/INDEX.md` and per-versio
 
 ---
 
+## v2.0.40 — Opportunistic Loot Scoring And Pistol Upgrade Tuning
+
+**Scope**
+
+- Applied a narrow Bot loot-selection behavior pass.
+- Healthy idle bots now use the same scored pickup selector as wounded idle bots, so unusable ammo filtering and weapon-upgrade preferences are not bypassed.
+- Post-kill opportunistic loot now starts only when no enemy is visibly tracked, reducing immediately interrupted loot starts.
+- Pistol holders now prefer non-pistol weapon pickups more strongly, while same-pistol weapon pickups are less favored as a low-ammo substitute.
+- `tools/compare_scale_profiles.py` now separates real pistol new-weapon objectives from the older pistol-to-non-pistol target metric that was inflated by bad ammo targets.
+- No map data, loot counts, AI aggression, damage, zone pacing, or default/global 99 promotion changed.
+
+**Verification**
+
+- `git diff --check` passed.
+- Python compile passed for `tools/compare_scale_profiles.py` and the simulation/analysis toolchain.
+- `verify_candidate_99_probe.gd` passed.
+- 1-run 99 smoke at `C:\tmp\game_dev_pistol_upgrade_v2040_smoke` completed; its normal single-run gate failed only on stuck variance.
+- Fresh 5-run sets passed `check_scale_telemetry.py --min-runs 5`:
+  - `C:\tmp\game_dev_pistol_upgrade_xlarge60_v2040`: avg duration 99.9s, first upgrade 11.8s, stuck 24.4/run, fallback 0.0/run.
+  - `C:\tmp\game_dev_pistol_upgrade_99_v2040`: avg duration 152.6s, first upgrade 19.7s, stuck 47.0/run, fallback 0.0/run.
+
+**Decision**
+
+- Keep the tuning. At 99 vs v2.0.39, ammo mismatch fell 8.1% -> 0.0%, and pistol ammo mismatch fell 6.6% -> 0.0%.
+- Actual weapon-upgrade targeting improved: weapon-new objectives 2.0% -> 5.2%, and pistol new-weapon objectives 0.5% -> 3.4%.
+- Non-pistol pickup access improved at 99: non-pistol pickups/entity/min 0.06 -> 0.10, rare pickups/entity/min 0.11 -> 0.14.
+- Objective reliability did not regress: collect stayed 31.9% -> 31.7%, while interrupt eased 59.7% -> 58.7%.
+- The remaining 99 issue is not ammo mismatch or raw pistol upgrade scoring. Next slice should inspect enemy sensing during loot objectives and pickup availability/new-weapon scarcity before more scoring or aggression tuning.
+
+---
+
 ## v2.0.39 — Loot Objective Context Diagnostics
 
 **Scope**
