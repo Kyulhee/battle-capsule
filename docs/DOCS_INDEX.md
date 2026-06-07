@@ -1,6 +1,6 @@
 # Documentation Index
 
-> Last updated: 2026-05-30. This file defines the default reading path so agents and humans do not need to load every long document.
+> Last updated: 2026-06-08. This file defines the default reading path so agents and humans do not need to load every long document.
 
 ## Read First
 
@@ -15,6 +15,7 @@
 | [TESTING.md](TESTING.md) | Verification commands and interpretation | Verification only |
 | [ASSET_STATUS.md](ASSET_STATUS.md) | Integrated/generated/deferred asset state | Asset work only |
 | [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md) | 99-player map placement-group planning brief | Map/scale planning only |
+| [NIGHT_BR_PACING_PLAN.md](NIGHT_BR_PACING_PLAN.md) | 10-15 minute night BR pacing and test strategy | Night/99 pacing planning only |
 
 ## Active Document Budgets
 
@@ -41,6 +42,12 @@ The generated workspace [../asset_generator/expected_output](../asset_generator/
 
 `docs/ASSET_GENERATION_PROMPTS.md` may exist locally as a copy-ready prompt scratch file, but it is intentionally untracked unless the user asks to publish it.
 
+## Planning References
+
+| Path | Role |
+|---|---|
+| [../plan_report](../plan_report) | Local external planning reference for Night Artificial Forest; keep untracked unless explicitly requested |
+
 ## Conditional Docs
 
 | Document | Use Only When |
@@ -56,9 +63,11 @@ These files are preserved for history but excluded from default context:
 |---|---|
 | [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md) | Previous long-form master plan |
 | [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md) | Full active roadmap before v1.11.35 compression |
+| [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md) | Full active roadmap before Night Artificial Forest planning compression |
 | [archive/IDEA_PLAN_legacy.md](archive/IDEA_PLAN_legacy.md) | Old idea pool and roadmap draft |
 | [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md) | Previous full devlog |
 | [devlog/DEVLOG_full_2026-05-26.md](devlog/DEVLOG_full_2026-05-26.md) | Full active devlog before v1.11.35 compression |
+| [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md) | Full active devlog before Night Artificial Forest compression |
 | [devlog/v1.11_full_2026-05-26.md](devlog/v1.11_full_2026-05-26.md) | Full v1.11 slice summary before v1.11.35 compression |
 | [devlog/INDEX.md](devlog/INDEX.md) | Compact version history index |
 

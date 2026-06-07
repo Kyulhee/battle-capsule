@@ -1,6 +1,6 @@
 # 99-Player Map Tile Group Brief
 
-> Last updated: 2026-06-07. Planning document for external map ideation and future map-spec authoring.
+> Last updated: 2026-06-08. Planning document for external map ideation and future map-spec authoring.
 
 This document defines reusable placement groups for 99-player map planning. It is not a runtime tile compiler yet. Current maps are still authored as explicit `mapSpec` data with POIs, routes, obstacles, scale presets, and zone settings.
 
@@ -249,7 +249,7 @@ Avoid:
 
 ### Balanced 99 Forest
 
-Use as the default target shape.
+Use as the neutral reference shape. It is no longer the only current implementation target; the first concrete 99-player candidate should be compared against the Night Artificial Forest direction below.
 
 - 1 `loot_hub_cross` in the inner third.
 - 2 mirrored `primary_choke_gate` groups east/west.
@@ -295,6 +295,52 @@ Risk:
 
 - can dilute combat throughput at 99;
 - needs stricter checks for CHASE combat share and target acquisition soft POI.
+
+## Current Candidate: Night Artificial Forest
+
+The current preferred 99-player concept is a night artificial forest coliseum, using the local `plan_report/` directory as reference material. That directory is a planning source, not a committed runtime asset source.
+
+Main shift from Balanced 99 Forest:
+
+- do not rely on a universal center loot hub as the primary collision engine;
+- use a diagonal river or sluice line to force crossing decisions;
+- make `Sluice Crossing` the main rotation conflict, with real alternate routes;
+- keep `Black Ridge` as a strong but contestable power position;
+- use `False Clinic` as a recovery/story pocket that must feed actors back into risk;
+- treat flashlight, darkness, and visibility as future pacing systems, not as assumptions for the first structural `mapSpec`.
+
+### POI Role Mapping
+
+| Concept POI | Primary role | Secondary role | First-pass caution |
+|---|---|---|---|
+| Supply Flats | `loot_hub` | edge-to-mid loot flow | Open loot should be valuable but exposed. Do not over-cover it into a safe armory. |
+| Ammunition Pockets | loot support | `edge_spawn_band` breadcrumb | Keep pockets small and distributed so they do not become safe loops outside pressure. |
+| Cabin Row | `concealment_field` | close-quarters transit | Avoid dense interiors in the first pass; use readable cover and soft concealment. |
+| False Clinic | `recovery_pocket` | `recovery_exit` anchor | Recovery must lead back toward a contested route, not away from the match. |
+| Wire Maze | `transit_choke` | objective compound | Highest stuck/LOS risk. Start with sparse fence segments and wide gates. |
+| Broadcast Fence | `transit_choke` | future light/surveillance objective | Good for later flashlight/searchlight logic; first pass should stay structural. |
+| Black Ridge | `power_position_overlook` | `transit_choke` pressure | Strong sight advantage needs one exposed approach and one slower covered approach. |
+| Sluice Crossing | `primary_choke` | river crossing / map identity | Must have alternate routes with real time cost; avoid one mandatory kill bridge. |
+
+### Route Shape
+
+Recommended route groups:
+
+- `sluice_direct_crossing`: `primary_choke`, multi-point, width about 12.5m, connects opposite river banks.
+- `north_service_flank`: `flank`, slower bypass through Cabin Row or outer forest.
+- `south_drainage_flank`: `flank`, lower loot but safer rotation along water/ditch edge.
+- `clinic_reentry`: `recovery_exit`, from False Clinic back toward Sluice Crossing or Broadcast Fence.
+- `ridge_pressure_route`: `primary_choke` or `transit_choke`, passes near Black Ridge without putting all traffic on top of it.
+- `supply_to_broadcast_flow`: `loot_flow`, pulls early looters toward a mid-game compound.
+
+### First Candidate Constraints
+
+- Keep world size at 180m and spawn radius around 78m unless the envelope is explicitly revised.
+- Keep spawn fallback at 0 in repeated gates.
+- Keep Wire Maze and Black Ridge obstacle density conservative in the first `mapSpec`.
+- Use bushes as gameplay `Bush.tscn` authority; any night/forest visuals stay cosmetic.
+- Do not tune for final 10-15 minute match length until the structural candidate passes.
+- Do not give every bot full flashlight/battery/fear behavior in the first candidate.
 
 ## External Planning Deliverable
 

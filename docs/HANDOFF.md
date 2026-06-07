@@ -1,172 +1,78 @@
 # Next Chat Handoff
 
-> Last updated: 2026-06-04. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
+> Last updated: 2026-06-08. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
 
 ## Current State
 
 - Branch: `master`.
-- Latest completed slice: `v2.0.40 — opportunistic loot scoring and pistol upgrade tuning`.
-- Next structural slice: `v2.0.41 — loot objective enemy-sensing context and pickup availability diagnostics`.
-- Release remains paused. Continue version-to-version development unless the user explicitly asks for a release.
+- Latest pushed code slice: `v2.0.40 — opportunistic loot scoring and pistol upgrade tuning`.
+- Current planning pivot: v2 scale telemetry is now treated as a **structural safety gate**, not final 99-player balance.
+- Current map direction: build one 99-player **Night Artificial Forest** candidate before more behavior tuning.
+- Target match length for the intended main game: 10-15 minutes.
+- Default map and default scale preset are still not promoted to 99 players.
+- `target_99_probe` remains candidate-only.
+- Release remains paused unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
-- `asset_generator/` is an external source pool and must stay untracked unless selected files are promoted into runtime assets.
-- `docs/ASSET_GENERATION_PROMPTS.md` is local prompt scratch and should stay untracked unless the user asks to publish it.
-- `docs/ASSET_STATUS.md` is now the concise asset-state handoff document.
 
-## Recent Completed Commits
+## Local/Untracked Notes
 
-- `a7c23bf feat: promote remaining artifact icons` — Escape Capsule and Ghost Grass PNGs were normalized, cataloged, and verified as real artifact icon paths.
-- `d445692 docs: sync asset and v2 handoff` — compacted handoff/devlog docs and added `ASSET_STATUS.md`.
-- `14a1a33 feat: add map definition compatibility layer` — added `MapDefinition.gd` and validation tooling.
-- `2e69bb7 feat: merge map definition scale presets` — added baseline/medium scale preset data and runtime merge support.
-- `ada6ad4 feat: add read-only full map overlay` — added the read-only Full Map overlay and smoke verification.
-- `7790567 test: expand map definition validation` — expanded MapDefinition validation for POI, obstacle, spawn/loot, and zone sanity checks.
-- `8a24fbf refactor: extract settings manager` — moved settings persistence/audio/display mutation into `SettingsManager.gd`.
-- `2cf1365 test: add large scale preset smoke` — added and smoked the conservative `large_40` scale preset.
-- `5c0d21a feat: add map definition position queries` — added MapDefinition world-position query helpers and connected Minimap/FullMapOverlay to them.
-- `1862a45 test: add 60 bot scale preset smoke` — added and smoked the conservative `xlarge_60` scale preset.
-- `7fe0db9 docs: record 60 bot telemetry decision` — repeated 5 `xlarge_60` simulations and kept 99-player tuning blocked until distribution/telemetry gates are tightened.
-- `cfb56ba test: add 60 bot telemetry gate` — retuned `xlarge_60` distribution and added the repeated scale telemetry gate.
-- `6a45c8b feat: add ai update budget telemetry` — added sampled AI update-budget telemetry and analyzer/gate reporting without adding AI LOD behavior.
-- `78667a5 tune 60 bot zone pacing` — added explicit progressive `xlarge_60` zone stage timings.
-- `21e988a feat: add spawn distribution telemetry` — added spawn distribution telemetry and scale-gate reporting.
-- `21e9eea feat: add target scale envelope` — added `scale_envelopes.target_99` as planning data, not a runtime preset.
-- `27d9969 feat: add large map candidate` — added the non-default 180m candidate map and envelope validation.
-- `2b0a07b feat: add candidate map runtime loading` — added `map_spec_path` CLI/test loading for non-default candidate smokes.
-- `31a7bcc feat: add candidate 99 probe` — added candidate-only `target_99_probe` and verified 5-run telemetry.
-- `051cb3a feat: add normalized scale analysis` — added per spawned entity/minute analyzer output and aggregate doctrine state mix.
-- `d5ffb1a feat: add scale profile comparison` — added `out_dir=` support plus normalized 60-vs-99 comparison tooling.
-- `6583693 feat: add scale pressure decision` — added pressure-decision output; no gameplay tuning or default/global 99 promotion was made.
-- `ee8519b feat: add disengage reason telemetry` — persists DISENGAGE entries and reasons while preserving `disengage_triggered` as the existing outnumbered/legacy scale-gate metric.
-- `bd2a805 docs: record reason-aware scale comparison` — recorded the fresh reason-aware 60-vs-99 candidate comparison.
-- `9e11a5d feat: add scale tempo diagnostics` — adds economy tempo rows and tempo decision output.
-- Current v2.0.24 slice adds candidate-only `target_99_probe` economy tuning; no default/global 99 promotion was made.
-- `b44d9dd feat: add engagement density diagnostics` — adds engagement-density diagnostics; no gameplay tuning or default/global 99 promotion was made.
-- `5fa689c feat: add route pressure telemetry` — adds combat-location / route-pressure telemetry; no gameplay tuning or default/global 99 promotion was made.
-- `1d3da69 feat: add poi proximity diagnostics` — added POI/route proximity bands; default map/global 99 promotion was not made.
-- `fbbfbf7 feat: add target acquisition diagnostics` — added target-acquisition source diagnostics; default map/global 99 promotion was not made.
-- `4827635 feat: add acquisition overlap diagnostics` — added acquisition route/POI overlap diagnostics; default map/global 99 promotion was not made.
-- `feat: add ammo objective diagnostics` — added ammo objective selection diagnostics; default map/global 99 promotion was not made.
-- Current v2.0.40 slice applies narrow opportunistic loot scoring and pistol upgrade tuning; default map/global 99 promotion was not made.
+- `plan_report/` is local reference material for the Night Artificial Forest concept. Do not commit it unless explicitly requested.
+- `asset_generator/` is an external source pool. Keep it untracked unless selected files are promoted into runtime assets.
+- `docs/ASSET_GENERATION_PROMPTS.md` is local prompt scratch. Keep it untracked unless the user asks to publish it.
+- `.gitignore` may have pre-existing local edits; do not revert or stage them unless the user asks.
 
-Earlier v1.12 work added Emergency Shell/Escape Capsule, Ghost Grass, player artifact runtime state, artifact visuals, compact artifact selection UI, raw PNG icon loading, bush GLB visuals, restored bush interaction semantics, and bush visual feedback. Full recent detail is in `DEVLOG.md` and `devlog/v1.12.md`.
+## Read First
 
-## Recommended Next Slice
+- [MASTERPLAN.md](MASTERPLAN.md): active Korean-first roadmap and current decisions.
+- [NIGHT_BR_PACING_PLAN.md](NIGHT_BR_PACING_PLAN.md): 10-15 minute night BR pacing and test layers.
+- [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md): placement group brief plus Night Artificial Forest POI mapping.
+- [ASSET_STATUS.md](ASSET_STATUS.md): current artifact/bush/generated-asset state.
+- [IMPACT_MAP.md](IMPACT_MAP.md): ownership and change-impact checks before code edits.
 
-`v2.0.41 — loot objective enemy-sensing context and pickup availability diagnostics`
+## Recent Relevant Commits
 
+- `5c2d7b3 docs: add 99 map tile group brief` — added `MAP_TILE_GROUPS.md` and linked it from active docs.
+- `8333bd3 tune bot opportunistic loot selection` — latest pushed gameplay tuning slice, v2.0.40.
+- `178f505 feat: add loot objective context diagnostics` — diagnostic context before the v2.0.40 tuning pass.
+
+Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md), and `docs/devlog/`.
+
+## Next Work
+
+1. Create a first Night Artificial Forest 99-player candidate `mapSpec`.
+   - Use `Sluice Crossing` as the primary rotation conflict.
+   - Keep `Black Ridge` strong but contestable.
+   - Keep `False Clinic` as recovery with risky re-entry.
+   - Start `Wire Maze` with sparse obstacles and wide gates to control stuck risk.
+2. Run current scale tooling as structural checks only.
+   - Do not tune combat/CHASE percentages as final design targets yet.
+   - Keep fallback 0, clearance, route/POI coverage, stuck, disengage, zone escape, and AI cost visible.
+3. Add POI-level mini probes before trying to judge the whole 99-player experience.
+   - Priority probes: `Sluice Crossing`, `Wire Maze`, `Black Ridge`, `Supply Flats`, `False Clinic`.
+4. Prototype night vision carefully.
+   - Start with player-facing flashlight and reveal/readability.
+   - Bots should first use abstract night awareness, not full flashlight/battery/fear state.
+5. Build a separate 10-15 minute pacing gate after the map and first night-vision pass exist.
+
+## Verification Reminders
+
+Docs-only work:
+
+- `git diff --check`
+
+Candidate map work:
+
+- `tools/verify_strategic_flow_map.gd`
+- `tools/verify_candidate_99_probe.gd`
+- fresh 5-run `xlarge_60`
+- fresh 5-run `target_99_probe`
+- `tools/compare_scale_profiles.py`
+- `tools/check_scale_telemetry.py`
+
+## Guardrails
+
+- Do not promote the 99-player candidate to default/global runtime without an explicit decision.
+- Do not add full bot flashlight, battery, fear, blackout, fire spread, interior cabin, or watchtower climb systems in the first map candidate.
 - Keep `Main.gd` as match-global orchestrator.
-- Keep the default map unchanged; use `map_spec_path=res://data/mapSpec_large_candidate.json` for candidate-only testing.
-- v2.0.27 corrected the design target: do not tune bots to hit a CHASE combat percentage. Battle royale scale should verify strategic movement, contested routes, and power-position pressure first.
-- v2.0.30 changed the candidate map to strategic gates:
-  - Central Meadow radius/density reduced.
-  - `West Ridge Overlook` and `East Pine Gate` added as transit-choke POIs.
-  - West/East primary-choke route points now pass through those gates.
-  - Only one offset high rock cover per gate remains; the first heavier-cover smoke failed on stuck triggers, so do not add more hard clutter without rerunning scale gates.
-- v2.0.31 added CHASE location diagnostics only: CHASE self/target POI context, target route context, and target kind by `combat`, `loot`, and `recover_loot`.
-- v2.0.31 fresh 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_chase_location_60_v2031`: avg duration 113.3s, first upgrade 13.3s, stuck 29.8/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_chase_location_99_v2031`: avg duration 140.9s, first upgrade 11.0s, stuck 48.6/run, fallback 0.0/run.
-- v2.0.31 result: route pressure remains analyzable, but 99 active coverage is thinner while per-ATTACK efficiency is intact. `ATTACK+CHASE` is 40.5% -> 35.9%, damage/ATTACK min is 790.6 -> 904.2.
-- CHASE recover-loot at 99 is anchored on recovery exits and mostly weapon/ammo access: recovery_exit 32.1%, weapon target 34.4%, ammo target 51.4%, heal target 7.1%, armor target 3.5%.
-- Combat CHASE target POI pressure drops while target route pressure stays high: combat target POI 61.4% -> 55.3%, combat target route 73.5% -> 77.9%.
-- v2.0.32 added pickup spawn/collection location diagnostics only: pickup spawn/collect POI role and route role by `weapon`, `ammo`, `heal`, and `armor`.
-- v2.0.32 fresh 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_pickup_location_60_v2032`: avg duration 102.3s, first upgrade 14.3s, stuck 33.4/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_pickup_location_99_v2032`: avg duration 153.3s, first upgrade 25.7s, stuck 45.6/run, fallback 0.0/run.
-- v2.0.32 result: recovery-exit weapon/ammo placement is not a 99-specific overstock signal. Weapon spawn recovery_exit is 24.8% -> 21.2%; ammo spawn recovery_exit is 26.3% -> 24.5%.
-- Weapon/ammo collection at recovery_exit also drops at 99: weapon 30.9% -> 27.4%, ammo 32.8% -> 28.9%.
-- Stronger signal is POI leakage: weapon collect POI 65.3% -> 54.6%, ammo collect POI 69.0% -> 55.5%, combat target POI 62.8% -> 53.0%, recover target POI 77.6% -> 59.1%.
-- v2.0.33 added POI/route proximity bands only: inside, near 0-4m, near 4-8m, and far beyond 8m for POIs; on-route/near/far for routes.
-- v2.0.33 fresh 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_poi_band_60_v2033`: avg duration 128.0s, first upgrade 14.0s, stuck 44.8/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_poi_band_99_v2033`: avg duration 152.0s, first upgrade 25.4s, stuck 45.2/run, fallback 0.0/run.
-- v2.0.33 result: combat CHASE target soft-POI coverage still drops at 99, 83.9% -> 78.4%, so POI loss is not only a strict-radius artifact.
-- Combat target soft-route coverage remains high, 93.7% -> 90.4%, so entities are still on/near strategic routes while leaking from POI influence.
-- Pickup collection soft-POI loss is smaller than combat target loss: weapon 87.0% -> 82.8%, ammo 87.6% -> 83.2%.
-- v2.0.34 added target-acquisition source diagnostics only: source counts, source->state, source->target POI/route bands, and acquisition distance samples.
-- v2.0.34 fresh valid 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_target_acq_xlarge60_v2034`: avg duration 104.8s, first upgrade 16.7s, stuck 40.8/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_target_acq_99_v2034`: avg duration 148.7s, first upgrade 19.2s, stuck 48.6/run, fallback 0.0/run.
-- v2.0.34 result: acquisition-time soft-POI coverage drops moderately, 78.3% -> 73.5%; acquisition soft-route stays high, 92.6% -> 88.7%.
-- Combat CHASE target soft-POI is comparatively stable in the valid pair, 81.3% -> 78.2%; combat target soft-route stays high, 91.8% -> 89.8%.
-- Source mix shifts toward reengage at 99: reengage 38.2% -> 43.1%; scan is the weakest active group with 71.9% soft POI and 19.6% of acquisitions.
-- v2.0.35 added acquisition route/POI overlap diagnostics only: source->POI/route overlap, source->route-role/POI-band, nearest POI role, and nearest route role.
-- v2.0.35 fresh valid 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_acq_overlap_xlarge60_v2035`: avg duration 106.0s, first upgrade 15.0s, stuck 27.0/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_acq_overlap_99_v2035`: avg duration 174.5s, first upgrade 18.5s, stuck 40.6/run, fallback 0.0/run.
-- v2.0.35 result: far-POI but route-bound acquisition is stable, 10.1% -> 10.6%; far-POI and on-route acquisition is only 3.1% -> 3.6%.
-- Acquisition remains mostly inside both soft POI and soft route influence, 82.2% -> 79.7%.
-- The stronger remaining signal is post-acquisition flow: CHASE combat 48.0% -> 39.9%, CHASE loot 29.7% -> 36.3%, weapon collect soft POI 86.4% -> 81.4%, ammo collect soft POI 88.4% -> 81.6%.
-- v2.0.36 added loot objective start/outcome diagnostics only: objective source, mode, target kind, target POI band, outcome, duration, and source/outcome decisions.
-- v2.0.36 fresh valid 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_loot_objective_xlarge60_v2036`: avg duration 96.6s, first upgrade 13.8s, stuck 33.0/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_loot_objective_99_v2036`: avg duration 156.4s, first upgrade 12.0s, stuck 58.8/run, fallback 0.0/run.
-- v2.0.36 result: loot/recover CHASE is high but not the largest 99 delta in that pair. Loot objectives were mostly weapon/ammo and increased at 99, while objective outcomes improved rather than degraded.
-- v2.0.37 added objective selection-context diagnostics: objective need, ammo band, reserve band, current weapon, target detail, target match, and route-role/kind mixes.
-- v2.0.37 fresh 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_ammo_objective_xlarge60_v2037`: avg duration 107.0s, first upgrade 12.3s, stuck 32.0/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_ammo_objective_99_v2037`: avg duration 162.8s, first upgrade 20.4s, stuck 38.4/run, fallback 0.0/run.
-- v2.0.37 result: 99 engagement-density loss remains, but ATTACK lethality is intact. Loot objective weapon/ammo share increases at 99, reserve-empty is nearly universal, and ammo mismatch rises.
-- v2.0.38 applied narrow selection tuning:
-  - combat low-ammo looting requires empty reserve ammo.
-  - unusable mismatched ammo is skipped in pickup scoring.
-  - same-weapon ammo is preferred only when reserve is empty and magazine ammo is empty/low.
-  - pistol users get bounded non-pistol weapon upgrade preference.
-- v2.0.38 fresh 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_ammo_tuning_xlarge60_v2038c`: avg duration 108.4s, first upgrade 11.4s, stuck 27.6/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_ammo_tuning_99_v2038c`: avg duration 157.4s, first upgrade 21.1s, stuck 38.2/run, fallback 0.0/run.
-- v2.0.38 result at 99 vs v2.0.37: same-weapon ammo objectives 33.5% -> 53.1%, ammo mismatch 13.1% -> 10.2%, combat target soft POI 78.9% -> 83.6%, target-acquisition soft POI 76.6% -> 79.2%.
-- v2.0.38 tradeoff: objective collect 36.3% -> 31.1%, interrupt 56.0% -> 60.9%, avg duration remains short at 0.53s -> 0.50s.
-- v2.0.39 added joint loot objective context diagnostics only: target weapon, current weapon / target weapon, current weapon / target match, target detail / match, and match/detail outcome buckets.
-- v2.0.39 fresh 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_loot_context_xlarge60_v2039b`: avg duration 122.5s, first upgrade 16.4s, stuck 33.0/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_loot_context_99_v2039`: avg duration 148.6s, first upgrade 19.9s, stuck 44.8/run, fallback 0.0/run.
-- v2.0.39 result: combat low-ammo mismatch is nearly gone; remaining mismatch is mostly idle pistol holders targeting non-pistol ammo and is usually interrupted.
-- v2.0.39 99 context: same-ammo collect 30.8% / interrupt 61.0%; mismatch collect 20.1% / interrupt 76.7%; new-weapon collect 69.2%; pistol-to-non-pistol target 7.1%.
-- v2.0.40 applied narrow loot-selection tuning:
-  - healthy idle bots now use scored pickup selection.
-  - post-kill opportunistic loot starts only with zero visible enemies.
-  - pistol holders score non-pistol weapon pickups more strongly.
-  - same-pistol weapon pickups are less favored as low-ammo substitutes.
-  - compare tooling now separates real `pistol/weapon_new_type` objectives from non-pistol target metrics that included bad ammo.
-- v2.0.40 fresh 5-run sets passed scale gates:
-  - `C:\tmp\game_dev_pistol_upgrade_xlarge60_v2040`: avg duration 99.9s, first upgrade 11.8s, stuck 24.4/run, fallback 0.0/run.
-  - `C:\tmp\game_dev_pistol_upgrade_99_v2040`: avg duration 152.6s, first upgrade 19.7s, stuck 47.0/run, fallback 0.0/run.
-- v2.0.40 99 vs v2.0.39 99: ammo mismatch 8.1% -> 0.0%, pistol ammo mismatch 6.6% -> 0.0%, weapon-new objectives 2.0% -> 5.2%, pistol new-weapon objectives 0.5% -> 3.4%, collect 31.9% -> 31.7%, interrupt 59.7% -> 58.7%.
-- v2.0.40 60 -> 99 still shows thinner active coverage: ATTACK+CHASE 40.1% -> 36.3%, CHASE combat 50.4% -> 42.5%, CHASE loot+recover 49.6% -> 57.5%.
-- Next work should inspect loot objective enemy-sensing/threat context and non-pistol pickup availability before more scoring or aggression tuning.
-- Candidate `mapSpec_large_candidate.json` now has 6 route descriptors:
-  - primary chokes: `west_ridge_choke`, `east_pine_choke`.
-  - flanks: `north_slope_flank`, `south_creek_flank`.
-  - loot/recovery flow: `central_meadow_cross`, `inner_brush_recovery_exit`.
-- `MapDefinition.get_route_descriptors()` exposes route points as `points_2d`, and route validation now checks id, role, width, point count, point validity, and bounds.
-- `MapDefinition.describe_strategic_position()` now classifies a world position into current POI role/name and route role/id.
-- `Entity.gd` logs strategic context for combat damage and combat kills.
-- `Telemetry.gd` aggregates hits/damage/kills by POI role, route role, and route id.
-- `analyze_results.py` prints combat-location, route-pressure, CHASE location, pickup location, proximity-band, target-acquisition, acquisition-overlap, and loot-objective mixes.
-- `compare_scale_profiles.py` prints route-pressure, CHASE location, pickup location, POI leakage, target-acquisition, acquisition-overlap, and loot-objective decisions.
-- `tools/verify_strategic_flow_map.gd` guards candidate POI role coverage, route role coverage, primary-choke alternate routes, and connected POI references.
-- Current 99-probe normalized output from v2.0.38: damage=18.57, shots=2.32, plans=1.29, disengage=0.45, entries=1.47, stuck=0.15 per spawned entity/min.
-- Current 99-probe state mix from v2.0.38: ZONE_ESCAPE 27.1%, DISENGAGE 21.8%, CHASE 19.9%, ATTACK 17.8%, IDLE 13.4%.
-- `target_99` envelope is pinned at minimum 160m world / 72m spawn radius and preferred 180m world / 78m spawn radius.
-- `data/mapSpec_large_candidate.json` now satisfies the preferred target envelope as data: 180m world, 78m spawn radius, 8.5m boundary margin, target_99 saturation=0.20.
-- Keep using `verify_strategic_flow_map.gd`, `verify_candidate_99_probe.gd`, `verify_large_map_candidate.gd`, candidate-path simulation, `analyze_results.py`, `compare_scale_profiles.py`, and `check_scale_telemetry.py` as scale gates.
-
-## Asset Notes
-
-- All six starting artifact icons are integrated.
-- Bush GLBs are integrated and visual-only; `Bush.tscn` Area3D remains gameplay authority.
-- Generated tree/rock/log/landmark GLBs remain deferred. Promote them only as selected runtime assets and preserve explicit collision/cover authority.
-- Deferred asset decisions are tracked in `ASSET_STATUS.md`.
-
-## Tooling Note
-
-The Windows shell sandbox may fail with `CreateProcessAsUserW failed: 1312`. If so, retry simple commands with `sandbox_permissions: "require_escalated"`.
-
-## User Preferences
-
-- Use Korean.
-- Work in small verified slices: plan -> edit -> verify -> commit/push.
-- Keep active docs compact; archive raw/full history.
-- Prefer data/tuning/catalog boundaries over broad gameplay rewrites.
+- Keep bush gameplay authority in `Bush.tscn`; visual GLB bush replacement is cosmetic.
+- For asset generation, keep stable style/format rules in [ASSET_BRIEF.md](ASSET_BRIEF.md) and local prompt scratch out of commits.
