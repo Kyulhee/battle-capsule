@@ -43,6 +43,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | [TESTING.md](TESTING.md) | Verification criteria |
 | [ASSET_BRIEF.md](ASSET_BRIEF.md) | Stable external asset style and format brief |
 | [ASSET_STATUS.md](ASSET_STATUS.md) | Current asset integration state and deferred asset decisions |
+| [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md) | 99-player map placement-group planning brief |
 
 ## Boundary Role Rules
 

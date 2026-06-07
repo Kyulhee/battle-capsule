@@ -14,6 +14,7 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Module boundaries and dependency structure | Structural changes only |
 | [TESTING.md](TESTING.md) | Verification commands and interpretation | Verification only |
 | [ASSET_STATUS.md](ASSET_STATUS.md) | Integrated/generated/deferred asset state | Asset work only |
+| [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md) | 99-player map placement-group planning brief | Map/scale planning only |
 
 ## Active Document Budgets
 
