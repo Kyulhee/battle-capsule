@@ -1,0 +1,289 @@
+{
+  "metadata": {
+    "id": "night_artificial_forest_candidate",
+    "name": "Night Artificial Forest Candidate",
+    "theme": "night_artificial_forest",
+    "version": "0.1-structural-candidate",
+    "world_size": 180,
+    "layout": "diagonal_sluice_crossing_black_ridge_wire_maze_false_clinic"
+  },
+  "match": {
+    "bot_count": 11,
+    "loot_count": 56,
+    "spawn_radius": 60.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 90,
+      "inner_radius": 8.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "wait_time": 38.0,
+    "shrink_time": 28.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 24.0,
+    "stages": {
+      "2": {
+        "wait_time": 32.0,
+        "shrink_time": 24.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 24.0,
+        "shrink_time": 18.0,
+        "damage_per_second": 8.0
+      },
+      "4": {
+        "wait_time": 16.0,
+        "shrink_time": 13.0,
+        "damage_per_second": 12.0
+      },
+      "5": {
+        "wait_time": 10.0,
+        "shrink_time": 10.0,
+        "damage_per_second": 16.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 11,
+        "loot_count": 56,
+        "spawn_radius": 60.0
+      }
+    },
+    "xlarge_60": {
+      "match": {
+        "bot_count": 60,
+        "loot_count": 150,
+        "spawn_radius": 78.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 120,
+          "inner_radius": 8.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.08,
+          "stage_wave_prob_per_stage": 0.08,
+          "stage_wave_count_mult": 7,
+          "hotspot_density_mult": 1.08
+        }
+      },
+      "zone": {
+        "initial_timer": 40.0,
+        "wait_time": 40.0,
+        "shrink_time": 30.0,
+        "stages": {
+          "2": {
+            "wait_time": 34.0,
+            "shrink_time": 26.0,
+            "damage_per_second": 4.0
+          },
+          "3": {
+            "wait_time": 24.0,
+            "shrink_time": 20.0,
+            "damage_per_second": 8.0
+          },
+          "4": {
+            "wait_time": 16.0,
+            "shrink_time": 14.0,
+            "damage_per_second": 12.0
+          },
+          "5": {
+            "wait_time": 10.0,
+            "shrink_time": 10.0,
+            "damage_per_second": 16.0
+          }
+        }
+      }
+    },
+    "target_99_probe": {
+      "match": {
+        "bot_count": 99,
+        "loot_count": 240,
+        "spawn_radius": 78.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 180,
+          "inner_radius": 8.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.08,
+          "stage_wave_prob_per_stage": 0.08,
+          "stage_wave_count_mult": 9,
+          "hotspot_density_mult": 1.16,
+          "rare_bias_mult": 1.45
+        }
+      },
+      "zone": {
+        "initial_timer": 52.0,
+        "wait_time": 48.0,
+        "shrink_time": 34.0,
+        "stages": {
+          "2": {
+            "wait_time": 40.0,
+            "shrink_time": 28.0,
+            "damage_per_second": 4.0
+          },
+          "3": {
+            "wait_time": 28.0,
+            "shrink_time": 22.0,
+            "damage_per_second": 8.0
+          },
+          "4": {
+            "wait_time": 18.0,
+            "shrink_time": 16.0,
+            "damage_per_second": 12.0
+          },
+          "5": {
+            "wait_time": 12.0,
+            "shrink_time": 10.0,
+            "damage_per_second": 16.0
+          }
+        }
+      }
+    }
+  },
+  "scale_envelopes": {
+    "target_99": {
+      "status": "planned",
+      "source_preset": "xlarge_60",
+      "bot_count": 99,
+      "total_entities": 100,
+      "world_size_min": 160.0,
+      "world_size_preferred": 180.0,
+      "spawn_radius_min": 72.0,
+      "spawn_radius_preferred": 78.0,
+      "inner_radius": 8.0,
+      "entity_clearance": 3.5,
+      "boundary_margin_min": 4.0,
+      "max_annulus_saturation": 0.24,
+      "preferred_annulus_saturation": 0.21,
+      "requires": [
+        "night_artificial_forest_candidate_map_spec",
+        "poi_level_minimap_probes",
+        "night_visibility_prototype",
+        "loot_density_rescale",
+        "zone_profile_rescale",
+        "pathing_and_ai_lod_validation"
+      ]
+    }
+  },
+  "pois": [
+    { "name": "Supply Flats", "pos": [-58, -46], "radius": 16, "role": "loot_hub", "item_density": 0.82, "rare_bias": 0.22 },
+    { "name": "Ammo Pockets", "pos": [-62, 46], "radius": 14, "role": "loot_hub", "item_density": 0.68, "rare_bias": 0.16 },
+    { "name": "Service Depot", "pos": [16, 70], "radius": 15, "role": "loot_hub", "item_density": 0.70, "rare_bias": 0.18 },
+    { "name": "Sluice Crossing", "pos": [4, -4], "radius": 15, "role": "transit_choke", "item_density": 0.58, "rare_bias": 0.18 },
+    { "name": "Wire Maze", "pos": [48, 22], "radius": 15, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.20 },
+    { "name": "Broadcast Fence", "pos": [34, 50], "radius": 14, "role": "transit_choke", "item_density": 0.66, "rare_bias": 0.22 },
+    { "name": "Black Ridge", "pos": [-20, 20], "radius": 14, "role": "transit_choke", "item_density": 0.60, "rare_bias": 0.24 },
+    { "name": "South Drain Gate", "pos": [28, -58], "radius": 13, "role": "transit_choke", "item_density": 0.50, "rare_bias": 0.14 },
+    { "name": "False Clinic", "pos": [58, -42], "radius": 15, "role": "recovery_pocket", "item_density": 0.48, "rare_bias": 0.10 },
+    { "name": "Pump Shelter", "pos": [-4, -66], "radius": 14, "role": "recovery_pocket", "item_density": 0.44, "rare_bias": 0.10 },
+    { "name": "Cabin Row", "pos": [-42, 28], "radius": 16, "role": "concealment_field", "item_density": 0.42, "rare_bias": 0.10 },
+    { "name": "North Dark Pines", "pos": [-24, 64], "radius": 14, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.08 },
+    { "name": "South Reeds", "pos": [34, -26], "radius": 15, "role": "concealment_field", "item_density": 0.36, "rare_bias": 0.08 },
+    { "name": "East Dark Pines", "pos": [66, 2], "radius": 14, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.08 }
+  ],
+  "obstacles": [
+    { "type": "canyon_wall", "pos": [-68, 70], "scale": [12.0, 4.0, 2.0], "rot": -45 },
+    { "type": "canyon_wall", "pos": [68, -70], "scale": [12.0, 4.0, 2.0], "rot": -45 },
+    { "type": "canyon_wall", "pos": [-38, 42], "scale": [9.0, 3.5, 1.7], "rot": -45 },
+    { "type": "canyon_wall", "pos": [38, -42], "scale": [9.0, 3.5, 1.7], "rot": -45 },
+    { "type": "canyon_wall", "pos": [-20, 30], "scale": [7.0, 3.2, 1.5], "rot": -45 },
+    { "type": "canyon_wall", "pos": [22, -30], "scale": [7.0, 3.2, 1.5], "rot": -45 },
+    { "type": "rock_cluster", "pos": [-22, 24], "scale": [3.2, 3.2, 3.2], "rot": 16, "jitter": [0.5, 0.5], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [-10, 34], "scale": [2.4, 2.4, 2.4], "rot": -12, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [-28, 12], "scale": [2.4, 2.2, 2.4], "rot": 26, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "log_pile", "pos": [-62, -42], "scale": [4.8, 1.2, 1.2], "rot": 8 },
+    { "type": "log_pile", "pos": [-52, -54], "scale": [4.2, 1.2, 1.2], "rot": -28 },
+    { "type": "rock_cluster", "pos": [-44, -38], "scale": [2.4, 2.2, 2.4], "rot": 20, "jitter": [0.5, 0.5], "rot_jitter": 10 },
+    { "type": "log_pile", "pos": [44, 18], "scale": [5.5, 1.2, 0.8], "rot": 2 },
+    { "type": "log_pile", "pos": [52, 26], "scale": [5.0, 1.2, 0.8], "rot": 88 },
+    { "type": "log_pile", "pos": [42, 30], "scale": [4.6, 1.2, 0.8], "rot": 32 },
+    { "type": "log_pile", "pos": [56, 16], "scale": [4.6, 1.2, 0.8], "rot": -34 },
+    { "type": "log_pile", "pos": [48, 8], "scale": [4.0, 1.2, 0.8], "rot": 84 },
+    { "type": "tree_cluster", "pos": [-66, 30], "scale": [4.8, 5.0, 4.4], "rot": 12, "jitter": [1.2, 1.2], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-28, 58], "scale": [4.8, 5.0, 4.4], "rot": -18, "jitter": [1.2, 1.2], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [60, 4], "scale": [4.6, 5.0, 4.2], "rot": 18, "jitter": [1.2, 1.2], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [12, -72], "scale": [4.8, 5.0, 4.4], "rot": -10, "jitter": [1.2, 1.2], "rot_jitter": 12 },
+    { "type": "bush_patch", "pos": [-44, 26], "scale": [4.2, 1.0, 4.0], "rot": 12 },
+    { "type": "bush_patch", "pos": [-24, 62], "scale": [4.0, 1.0, 3.8], "rot": -18 },
+    { "type": "bush_patch", "pos": [34, -28], "scale": [4.4, 1.0, 4.2], "rot": 18 },
+    { "type": "bush_patch", "pos": [66, 2], "scale": [4.0, 1.0, 3.8], "rot": -24 },
+    { "type": "log_pile", "pos": [58, -38], "scale": [3.8, 1.2, 1.2], "rot": 42 },
+    { "type": "log_pile", "pos": [22, 66], "scale": [4.2, 1.2, 1.2], "rot": -18 },
+    { "type": "rock_cluster", "pos": [30, -56], "scale": [2.5, 2.2, 2.5], "rot": -18, "jitter": [0.5, 0.5], "rot_jitter": 10 }
+  ],
+  "routes": [
+    {
+      "id": "sluice_direct_crossing",
+      "name": "Sluice Direct Crossing",
+      "role": "primary_choke",
+      "points": [[-58, -46], [-34, -26], [-14, -12], [4, -4], [24, 8], [48, 22], [34, 50]],
+      "width": 12.5,
+      "connects": ["Supply Flats", "Sluice Crossing", "Wire Maze", "Broadcast Fence"],
+      "alternate_route_id": "north_service_flank",
+      "strategic_value": "diagonal_river_crossing"
+    },
+    {
+      "id": "ridge_to_clinic_choke",
+      "name": "Ridge To Clinic Choke",
+      "role": "primary_choke",
+      "points": [[-62, 46], [-42, 28], [-20, 20], [4, -4], [28, -22], [58, -42]],
+      "width": 12.5,
+      "connects": ["Ammo Pockets", "Cabin Row", "Black Ridge", "Sluice Crossing", "False Clinic"],
+      "alternate_route_id": "south_drainage_flank",
+      "strategic_value": "power_position_to_recovery_pressure"
+    },
+    {
+      "id": "north_service_flank",
+      "name": "North Service Flank",
+      "role": "flank",
+      "points": [[-62, 46], [-24, 64], [16, 70], [34, 50], [48, 22]],
+      "width": 12.5,
+      "connects": ["Ammo Pockets", "North Dark Pines", "Service Depot", "Broadcast Fence", "Wire Maze"],
+      "alternate_route_id": "sluice_direct_crossing",
+      "strategic_value": "safer_but_slower_north_bypass"
+    },
+    {
+      "id": "south_drainage_flank",
+      "name": "South Drainage Flank",
+      "role": "flank",
+      "points": [[-58, -46], [-4, -66], [28, -58], [58, -42], [66, 2]],
+      "width": 12.5,
+      "connects": ["Supply Flats", "Pump Shelter", "South Drain Gate", "False Clinic", "East Dark Pines"],
+      "alternate_route_id": "ridge_to_clinic_choke",
+      "strategic_value": "low_loot_recovery_bypass"
+    },
+    {
+      "id": "supply_to_broadcast_flow",
+      "name": "Supply To Broadcast Flow",
+      "role": "loot_flow",
+      "points": [[-58, -46], [-34, -20], [4, -4], [20, 30], [16, 70]],
+      "width": 13.0,
+      "connects": ["Supply Flats", "Sluice Crossing", "Service Depot", "Broadcast Fence"],
+      "alternate_route_id": "north_service_flank",
+      "strategic_value": "early_loot_to_mid_compound"
+    },
+    {
+      "id": "clinic_reentry",
+      "name": "Clinic Reentry",
+      "role": "recovery_exit",
+      "points": [[58, -42], [48, -20], [34, -26], [4, -4], [-20, 20]],
+      "width": 9.5,
+      "connects": ["False Clinic", "South Reeds", "Sluice Crossing", "Black Ridge"],
+      "alternate_route_id": "south_drainage_flank",
+      "strategic_value": "recover_then_cross_back_into_pressure"
+    }
+  ]
+}

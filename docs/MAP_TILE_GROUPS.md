@@ -300,6 +300,12 @@ Risk:
 
 The current preferred 99-player concept is a night artificial forest coliseum, using the local `plan_report/` directory as reference material. That directory is a planning source, not a committed runtime asset source.
 
+First structural runtime candidate:
+
+- `data/mapSpec_night_forest_candidate.json`
+- `tools/verify_night_forest_candidate.gd`
+- non-default only; do not promote it to the default map or default scale preset yet.
+
 Main shift from Balanced 99 Forest:
 
 - do not rely on a universal center loot hub as the primary collision engine;

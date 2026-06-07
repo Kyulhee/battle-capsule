@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-03 (v2.0-dev 기준)
+> 마지막 업데이트: 2026-06-08 (야간 인공 숲 후보 mapSpec 기준)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -88,6 +88,10 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 
 # v2.0 candidate-only 99-target probe smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_candidate_99_probe.gd
+
+# v2.0 Night Artificial Forest candidate smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_night_forest_candidate.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60
 
 # v2.0 40-bot scale preset smoke
 python tools/simulate_matches.py 1 normal scale_preset=large_40

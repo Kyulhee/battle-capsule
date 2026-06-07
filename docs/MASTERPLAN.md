@@ -11,7 +11,7 @@
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
 | 최신 완료 코드 슬라이스 | v2.0.40: 봇 기회 루팅/권총 업그레이드 튜닝 |
 | 현재 문서 슬라이스 | 마스터플랜 압축, 야간 99인 페이싱 계획, 맵 타일 브리프 보강 |
-| 다음 구현 후보 | 야간 인공 숲 99인 후보 `mapSpec` 초안과 POI 단위 테스트 맵 |
+| 다음 구현 후보 | 야간 인공 숲 후보 POI 단위 테스트 맵과 구조 프로브 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
@@ -30,7 +30,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - v2.0.40까지의 긴 telemetry 작업은 "99인 완성 밸런스"가 아니라 "맵/스폰/루트/AI 비용이 무너지지 않는지 보는 구조 안전성 백본"으로 격하한다.
 - 다음 본편 후보는 기존 Balanced 99 Forest 개념을 그대로 구현하는 대신, `plan_report/`의 **야간 인공 숲 콜로세움** 방향을 우선 검토한다.
 - 중앙 만능 허브보다 대각선 강/수문/횡단로가 회전 압력을 만드는 구조가 더 적합하다. `Sluice Crossing`은 중심 충돌축, `Black Ridge`는 제한된 파워 포지션, `False Clinic`은 회복/스토리 루프 역할을 맡긴다.
-- 99인 맵은 먼저 하나를 실제 후보로 만들어 본다. 완성 체감을 매번 전체 맵으로 검증하지 않고, POI 미니맵과 주요 기능 프록시 시뮬레이션을 병행한다.
+- 99인 맵은 `data/mapSpec_night_forest_candidate.json`으로 첫 구조 후보를 만들었다. 완성 체감을 매번 전체 맵으로 검증하지 않고, POI 미니맵과 주요 기능 프록시 시뮬레이션을 병행한다.
 - 손전등, 배터리, 공포, 정전은 본편 체감의 핵심 후보지만 첫 단계부터 모든 봇에게 풀 시스템으로 적용하지 않는다. 처음에는 플레이어-facing 시스템과 봇의 추상 야간 인지만 검증한다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
@@ -100,6 +100,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - Scale path는 baseline -> medium_24 -> large_40 -> xlarge_60 -> candidate-only `target_99_probe` 순서로 열렸다.
 - `target_99` envelope는 preferred 180m world / 78m spawn radius / 3.5m clearance / fallback 0을 기준으로 한다.
 - `data/mapSpec_large_candidate.json`는 180m 후보 맵과 route/POI telemetry를 검증하기 위한 비기본 후보로 남긴다.
+- `data/mapSpec_night_forest_candidate.json`는 야간 인공 숲 방향의 첫 비기본 구조 후보로 남긴다.
 - v2.0.30 이후 primary choke와 transit choke 압력은 telemetry상 읽히기 시작했다. 다만 v2.0.40 기준 60 -> 99에서 `ATTACK+CHASE`와 `CHASE combat` 비중이 여전히 얇다.
 - 이제 이 얇은 combat coverage를 최종 목표로 직접 맞추지 않는다. 야간 시야/손전등/맵 구조가 들어오면 수치가 크게 흔들릴 수 있으므로 현재 계층은 구조 안전성 확인에 사용한다.
 
@@ -127,9 +128,9 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
    - [NIGHT_BR_PACING_PLAN.md](NIGHT_BR_PACING_PLAN.md)에 10-15분 pacing, 야간 시스템 단계, 테스트 계층을 기록한다.
    - [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md)에 야간 인공 숲 후보와 8개 POI mapping을 반영한다.
 2. **99인 후보 mapSpec 초안**
-   - `plan_report/`의 리포트와 그림을 참고하되 커밋하지 않는다.
-   - `Sluice Crossing`, `Black Ridge`, `False Clinic`, `Wire Maze`를 우선 축으로 삼아 후보 `mapSpec`을 만든다.
-   - 기존 `verify_strategic_flow_map.gd`, `verify_candidate_99_probe.gd`, `compare_scale_profiles.py`는 구조 안전성 게이트로만 사용한다.
+   - 상태: `data/mapSpec_night_forest_candidate.json` 생성됨.
+   - `Sluice Crossing`, `Black Ridge`, `False Clinic`, `Wire Maze`를 우선 축으로 삼은 180m 후보다.
+   - `tools/verify_night_forest_candidate.gd`와 runtime path smoke는 통과했다.
 3. **POI 미니맵/기능 프록시**
    - 전체 99인 맵만 반복 실행하지 않는다.
    - `Sluice Crossing` 횡단, `Wire Maze` 장애물, `Black Ridge` 파워 포지션, `Supply Flats` 초반 루팅, `False Clinic` 회복 재진입을 개별 테스트한다.

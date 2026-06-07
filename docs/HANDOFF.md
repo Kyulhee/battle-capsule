@@ -6,11 +6,13 @@
 
 - Branch: `master`.
 - Latest pushed code slice: `v2.0.40 — opportunistic loot scoring and pistol upgrade tuning`.
+- Latest local slice: Night Artificial Forest candidate `mapSpec` and smoke verifier.
 - Current planning pivot: v2 scale telemetry is now treated as a **structural safety gate**, not final 99-player balance.
-- Current map direction: build one 99-player **Night Artificial Forest** candidate before more behavior tuning.
+- Current map direction: iterate the non-default 99-player **Night Artificial Forest** candidate before more behavior tuning.
 - Target match length for the intended main game: 10-15 minutes.
 - Default map and default scale preset are still not promoted to 99 players.
 - `target_99_probe` remains candidate-only.
+- New candidate path: `res://data/mapSpec_night_forest_candidate.json`.
 - Release remains paused unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 
@@ -39,20 +41,16 @@ Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_fu
 
 ## Next Work
 
-1. Create a first Night Artificial Forest 99-player candidate `mapSpec`.
-   - Use `Sluice Crossing` as the primary rotation conflict.
-   - Keep `Black Ridge` strong but contestable.
-   - Keep `False Clinic` as recovery with risky re-entry.
-   - Start `Wire Maze` with sparse obstacles and wide gates to control stuck risk.
-2. Run current scale tooling as structural checks only.
+1. Add POI-level mini probes before trying to judge the whole 99-player experience.
+   - Priority probes: `Sluice Crossing`, `Wire Maze`, `Black Ridge`, `Supply Flats`, `False Clinic`.
+   - Start with structure/readability/collision checks before simulation tuning.
+2. Run current scale tooling as structural checks only on the night candidate.
    - Do not tune combat/CHASE percentages as final design targets yet.
    - Keep fallback 0, clearance, route/POI coverage, stuck, disengage, zone escape, and AI cost visible.
-3. Add POI-level mini probes before trying to judge the whole 99-player experience.
-   - Priority probes: `Sluice Crossing`, `Wire Maze`, `Black Ridge`, `Supply Flats`, `False Clinic`.
-4. Prototype night vision carefully.
+3. Prototype night vision carefully.
    - Start with player-facing flashlight and reveal/readability.
    - Bots should first use abstract night awareness, not full flashlight/battery/fear state.
-5. Build a separate 10-15 minute pacing gate after the map and first night-vision pass exist.
+4. Build a separate 10-15 minute pacing gate after the map and first night-vision pass exist.
 
 ## Verification Reminders
 
@@ -64,6 +62,8 @@ Candidate map work:
 
 - `tools/verify_strategic_flow_map.gd`
 - `tools/verify_candidate_99_probe.gd`
+- `tools/verify_night_forest_candidate.gd`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60`
 - fresh 5-run `xlarge_60`
 - fresh 5-run `target_99_probe`
 - `tools/compare_scale_profiles.py`

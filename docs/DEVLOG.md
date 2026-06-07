@@ -6,6 +6,29 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Night Forest Candidate MapSpec
+
+**Scope**
+
+- Added `data/mapSpec_night_forest_candidate.json` as a non-default 180m structural candidate.
+- The candidate uses `Sluice Crossing` as the diagonal crossing pressure point, `Black Ridge` as a contestable power position, `Wire Maze` as a sparse first-pass transit choke, and `False Clinic` as recovery with re-entry pressure.
+- Added `tools/verify_night_forest_candidate.gd` to validate POI role counts, route role counts, primary choke alternates, key position classification, default-map absence, and `target_99_probe` envelope floors.
+- Updated [TESTING.md](TESTING.md) with the new smoke commands.
+
+**Verification**
+
+- `python -m json.tool data/mapSpec_night_forest_candidate.json` passed.
+- `git diff --check` passed.
+- `verify_night_forest_candidate.gd` passed: 14 POIs, 6 routes, 3 loot hubs, 5 transit chokes, 2 recovery pockets, 4 concealment fields.
+- Runtime path load passed with `map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60`; only the expected AssetCatalog fallback warning remained.
+
+**Decision**
+
+- Keep this as a candidate-only structural map, not a default map promotion.
+- Next work should add POI-level probes before judging full 99-player pacing.
+
+---
+
 ## v2 Planning Reset - Night Artificial Forest 99 Candidate
 
 **Scope**
