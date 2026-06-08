@@ -6,6 +6,32 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 POI Probe - Sluice Crossing
+
+**Scope**
+
+- Added `data/mapSpec_poi_sluice_crossing_probe.json` as the first POI-level structural probe.
+- The probe is a compact 72m map with direct crossing, north flank, south/recovery flank, pump re-entry, and early loot-to-recovery flow.
+- Added `tools/verify_poi_sluice_crossing_probe.gd` to validate role counts, direct crossing width/alternate route, connected POIs, key position classification, and compact probe scale.
+- Updated [TESTING.md](TESTING.md) with the new smoke commands.
+
+**Verification**
+
+- `python -m json.tool data/mapSpec_poi_sluice_crossing_probe.json` passed.
+- `git diff --check` passed.
+- `verify_poi_sluice_crossing_probe.gd` passed: 6 POIs, 5 routes, direct crossing as `primary_choke`, 2 flanks, 1 recovery exit, 1 loot flow.
+- Runtime path load passed with `map_spec_path=res://data/mapSpec_poi_sluice_crossing_probe.json scale_preset=poi_probe`; only the expected AssetCatalog fallback warning remained.
+- 3-run simulation at `C:\tmp\game_dev_sluice_probe_v1` completed: avg duration 69.1s, fallback 0.0/run, zone deaths 0, no zero-damage/shot/combat-plan sentinels.
+- `check_scale_telemetry.py --min-runs 1` was run as a reference only and failed the non-POI thresholds: avg duration 69.1s < 70.0s, first upgrade 8.2s < 10.0s.
+
+**Decision**
+
+- Keep this as a local POI probe for structure/readability/collision checks.
+- Do not tune duration or first-upgrade timing from this probe. Existing scale gates are not POI-probe hard gates.
+- Next work should add the `Wire Maze` or `Black Ridge` POI probe.
+
+---
+
 ## v2 Night Forest Candidate MapSpec
 
 **Scope**

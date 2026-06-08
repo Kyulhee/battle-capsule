@@ -6,13 +6,14 @@
 
 - Branch: `master`.
 - Latest pushed code slice: `v2.0.40 — opportunistic loot scoring and pistol upgrade tuning`.
-- Latest local slice: Night Artificial Forest candidate `mapSpec` and smoke verifier.
+- Latest local slice: `Sluice Crossing` POI probe mapSpec, smoke verifier, and 3-run reference simulation.
 - Current planning pivot: v2 scale telemetry is now treated as a **structural safety gate**, not final 99-player balance.
 - Current map direction: iterate the non-default 99-player **Night Artificial Forest** candidate before more behavior tuning.
 - Target match length for the intended main game: 10-15 minutes.
 - Default map and default scale preset are still not promoted to 99 players.
 - `target_99_probe` remains candidate-only.
 - New candidate path: `res://data/mapSpec_night_forest_candidate.json`.
+- First POI probe path: `res://data/mapSpec_poi_sluice_crossing_probe.json`.
 - Release remains paused unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 
@@ -41,8 +42,10 @@ Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_fu
 
 ## Next Work
 
-1. Add POI-level mini probes before trying to judge the whole 99-player experience.
-   - Priority probes: `Sluice Crossing`, `Wire Maze`, `Black Ridge`, `Supply Flats`, `False Clinic`.
+1. Decide the next POI-probe step.
+   - Preferred: add the next probe for `Wire Maze` or `Black Ridge`.
+   - Sluice 3-run reference at `C:\tmp\game_dev_sluice_probe_v1`: avg duration 69.1s, fallback 0.0/run, zone deaths 0, no zero-damage/shot/combat-plan sentinels.
+   - Existing `check_scale_telemetry.py` failed reference-only thresholds on duration and first upgrade; do not tune POI probe pacing from that.
    - Start with structure/readability/collision checks before simulation tuning.
 2. Run current scale tooling as structural checks only on the night candidate.
    - Do not tune combat/CHASE percentages as final design targets yet.
@@ -63,7 +66,9 @@ Candidate map work:
 - `tools/verify_strategic_flow_map.gd`
 - `tools/verify_candidate_99_probe.gd`
 - `tools/verify_night_forest_candidate.gd`
+- `tools/verify_poi_sluice_crossing_probe.gd`
 - `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_sluice_crossing_probe.json scale_preset=poi_probe`
 - fresh 5-run `xlarge_60`
 - fresh 5-run `target_99_probe`
 - `tools/compare_scale_profiles.py`

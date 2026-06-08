@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "id": "poi_sluice_crossing_probe",
+    "name": "POI Probe - Sluice Crossing",
+    "theme": "night_artificial_forest_poi_probe",
+    "version": "0.1-structural-probe",
+    "world_size": 72,
+    "layout": "single_poi_direct_crossing_flanks_reentry"
+  },
+  "match": {
+    "bot_count": 8,
+    "loot_count": 24,
+    "spawn_radius": 24.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 80,
+      "inner_radius": 5.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "initial_radius": 32.0,
+    "next_radius": 18.0,
+    "wait_time": 30.0,
+    "shrink_time": 24.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 18.0,
+    "stages": {
+      "2": {
+        "wait_time": 24.0,
+        "shrink_time": 20.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 18.0,
+        "shrink_time": 16.0,
+        "damage_per_second": 8.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 8,
+        "loot_count": 24,
+        "spawn_radius": 24.0
+      }
+    },
+    "poi_probe": {
+      "match": {
+        "bot_count": 12,
+        "loot_count": 36,
+        "spawn_radius": 28.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 100,
+          "inner_radius": 5.0
+        },
+        "loot": {
+          "hotspot_density_mult": 1.08,
+          "rare_bias_mult": 1.15
+        }
+      },
+      "zone": {
+        "initial_timer": 22.0,
+        "wait_time": 34.0,
+        "shrink_time": 26.0
+      }
+    }
+  },
+  "pois": [
+    { "name": "West Supply Approach", "pos": [-24, -18], "radius": 10, "role": "loot_hub", "item_density": 0.78, "rare_bias": 0.18 },
+    { "name": "Sluice Crossing", "pos": [0, 0], "radius": 10, "role": "transit_choke", "item_density": 0.52, "rare_bias": 0.14 },
+    { "name": "East Maze Approach", "pos": [24, 12], "radius": 9, "role": "transit_choke", "item_density": 0.56, "rare_bias": 0.16 },
+    { "name": "Pump Shelter", "pos": [8, -24], "radius": 9, "role": "recovery_pocket", "item_density": 0.44, "rare_bias": 0.08 },
+    { "name": "North Pines", "pos": [-12, 24], "radius": 9, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.08 },
+    { "name": "South Reeds", "pos": [20, -10], "radius": 8, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.06 }
+  ],
+  "obstacles": [
+    { "type": "canyon_wall", "pos": [-26, 18], "scale": [7.0, 3.4, 1.2], "rot": -45 },
+    { "type": "canyon_wall", "pos": [-12, 10], "scale": [5.4, 3.0, 1.1], "rot": -45 },
+    { "type": "canyon_wall", "pos": [14, -8], "scale": [5.2, 3.0, 1.1], "rot": -45 },
+    { "type": "canyon_wall", "pos": [26, -17], "scale": [7.0, 3.4, 1.2], "rot": -45 },
+    { "type": "log_pile", "pos": [-6, -4], "scale": [4.2, 1.1, 1.1], "rot": 18 },
+    { "type": "log_pile", "pos": [8, 4], "scale": [4.0, 1.1, 1.1], "rot": -16 },
+    { "type": "rock_cluster", "pos": [-18, -10], "scale": [2.2, 2.0, 2.2], "rot": 18, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [18, 12], "scale": [2.2, 2.0, 2.2], "rot": -18, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "log_pile", "pos": [8, -23], "scale": [3.6, 1.1, 1.1], "rot": 42 },
+    { "type": "bush_patch", "pos": [-12, 24], "scale": [3.4, 1.0, 3.2], "rot": -18 },
+    { "type": "bush_patch", "pos": [20, -10], "scale": [3.6, 1.0, 3.2], "rot": 16 },
+    { "type": "tree_cluster", "pos": [-28, 2], "scale": [3.8, 4.4, 3.6], "rot": 8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [29, 24], "scale": [3.6, 4.4, 3.4], "rot": -14, "jitter": [0.9, 0.9], "rot_jitter": 10 }
+  ],
+  "routes": [
+    {
+      "id": "sluice_direct_crossing",
+      "name": "Sluice Direct Crossing",
+      "role": "primary_choke",
+      "points": [[-26, -18], [-14, -10], [0, 0], [14, 6], [26, 12]],
+      "width": 9.5,
+      "connects": ["West Supply Approach", "Sluice Crossing", "East Maze Approach"],
+      "alternate_route_id": "north_bank_flank",
+      "strategic_value": "fast_exposed_crossing"
+    },
+    {
+      "id": "north_bank_flank",
+      "name": "North Bank Flank",
+      "role": "flank",
+      "points": [[-24, -18], [-22, 10], [-12, 24], [8, 24], [24, 12]],
+      "width": 8.5,
+      "connects": ["West Supply Approach", "North Pines", "East Maze Approach"],
+      "alternate_route_id": "sluice_direct_crossing",
+      "strategic_value": "slower_concealed_bypass"
+    },
+    {
+      "id": "south_reeds_flank",
+      "name": "South Reeds Flank",
+      "role": "flank",
+      "points": [[-24, -18], [-8, -28], [8, -24], [20, -10], [24, 12]],
+      "width": 8.5,
+      "connects": ["West Supply Approach", "Pump Shelter", "South Reeds", "East Maze Approach"],
+      "alternate_route_id": "sluice_direct_crossing",
+      "strategic_value": "low_loot_recovery_bypass"
+    },
+    {
+      "id": "pump_reentry",
+      "name": "Pump Reentry",
+      "role": "recovery_exit",
+      "points": [[8, -24], [12, -14], [0, 0]],
+      "width": 7.5,
+      "connects": ["Pump Shelter", "Sluice Crossing"],
+      "alternate_route_id": "south_reeds_flank",
+      "strategic_value": "recover_then_reenter_crossing"
+    },
+    {
+      "id": "supply_to_pump_flow",
+      "name": "Supply To Pump Flow",
+      "role": "loot_flow",
+      "points": [[-24, -18], [-8, -22], [8, -24]],
+      "width": 8.0,
+      "connects": ["West Supply Approach", "Pump Shelter"],
+      "alternate_route_id": "sluice_direct_crossing",
+      "strategic_value": "early_loot_to_recovery_pocket"
+    }
+  ]
+}

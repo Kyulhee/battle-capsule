@@ -306,6 +306,12 @@ First structural runtime candidate:
 - `tools/verify_night_forest_candidate.gd`
 - non-default only; do not promote it to the default map or default scale preset yet.
 
+First POI-level probe:
+
+- `data/mapSpec_poi_sluice_crossing_probe.json`
+- `tools/verify_poi_sluice_crossing_probe.gd`
+- compact 72m direct-crossing test with north/south flanks and pump re-entry.
+
 Main shift from Balanced 99 Forest:
 
 - do not rely on a universal center loot hub as the primary collision engine;
