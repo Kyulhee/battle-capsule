@@ -1,0 +1,149 @@
+{
+  "metadata": {
+    "id": "poi_supply_flats_probe",
+    "name": "POI Probe - Supply Flats",
+    "theme": "night_artificial_forest_poi_probe",
+    "version": "0.1-structural-probe",
+    "world_size": 76,
+    "layout": "open_loot_hub_exposed_lane_flanks_reentry"
+  },
+  "match": {
+    "bot_count": 8,
+    "loot_count": 26,
+    "spawn_radius": 25.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 80,
+      "inner_radius": 5.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "initial_radius": 34.0,
+    "next_radius": 19.0,
+    "wait_time": 30.0,
+    "shrink_time": 24.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 18.0,
+    "stages": {
+      "2": {
+        "wait_time": 24.0,
+        "shrink_time": 20.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 18.0,
+        "shrink_time": 16.0,
+        "damage_per_second": 8.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 8,
+        "loot_count": 26,
+        "spawn_radius": 25.0
+      }
+    },
+    "poi_probe": {
+      "match": {
+        "bot_count": 12,
+        "loot_count": 38,
+        "spawn_radius": 29.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 100,
+          "inner_radius": 5.0
+        },
+        "loot": {
+          "hotspot_density_mult": 1.08,
+          "rare_bias_mult": 1.10
+        }
+      },
+      "zone": {
+        "initial_timer": 22.0,
+        "wait_time": 34.0,
+        "shrink_time": 26.0
+      }
+    }
+  },
+  "pois": [
+    { "name": "Supply Flats", "pos": [0, 0], "radius": 13, "role": "loot_hub", "item_density": 0.82, "rare_bias": 0.22 },
+    { "name": "West Drop Road", "pos": [-26, -8], "radius": 10, "role": "transit_choke", "item_density": 0.56, "rare_bias": 0.14 },
+    { "name": "East Crate Gate", "pos": [25, 10], "radius": 10, "role": "transit_choke", "item_density": 0.58, "rare_bias": 0.16 },
+    { "name": "Drain Ditch", "pos": [8, -24], "radius": 9, "role": "recovery_pocket", "item_density": 0.42, "rare_bias": 0.08 },
+    { "name": "North Tree Screen", "pos": [-12, 24], "radius": 9, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.08 },
+    { "name": "South Tarp Brush", "pos": [22, -12], "radius": 8, "role": "concealment_field", "item_density": 0.30, "rare_bias": 0.06 }
+  ],
+  "obstacles": [
+    { "type": "log_pile", "pos": [-16, -12], "scale": [4.0, 1.1, 0.9], "rot": 10 },
+    { "type": "log_pile", "pos": [18, 12], "scale": [4.0, 1.1, 0.9], "rot": -18 },
+    { "type": "rock_cluster", "pos": [-22, 8], "scale": [1.8, 1.8, 1.8], "rot": 18, "jitter": [0.3, 0.3], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [23, -6], "scale": [1.8, 1.8, 1.8], "rot": -14, "jitter": [0.3, 0.3], "rot_jitter": 8 },
+    { "type": "log_pile", "pos": [8, -24], "scale": [3.4, 1.1, 1.0], "rot": 28 },
+    { "type": "bush_patch", "pos": [-12, 24], "scale": [3.4, 1.0, 3.2], "rot": -16 },
+    { "type": "bush_patch", "pos": [22, -12], "scale": [3.4, 1.0, 3.0], "rot": 16 },
+    { "type": "tree_cluster", "pos": [-30, 20], "scale": [3.6, 4.4, 3.4], "rot": 8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [30, -20], "scale": [3.6, 4.4, 3.4], "rot": -8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [-28, -24], "scale": [3.2, 4.2, 3.2], "rot": -10, "jitter": [0.8, 0.8], "rot_jitter": 10 }
+  ],
+  "routes": [
+    {
+      "id": "supply_exposed_lane",
+      "name": "Supply Exposed Lane",
+      "role": "primary_choke",
+      "points": [[-26, -8], [-12, -4], [0, 0], [12, 4], [25, 10]],
+      "width": 9.0,
+      "connects": ["West Drop Road", "Supply Flats", "East Crate Gate"],
+      "alternate_route_id": "north_tree_flank",
+      "strategic_value": "valuable_open_loot_crossing"
+    },
+    {
+      "id": "north_tree_flank",
+      "name": "North Tree Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-20, 14], [-12, 24], [8, 24], [25, 10]],
+      "width": 8.5,
+      "connects": ["West Drop Road", "North Tree Screen", "East Crate Gate"],
+      "alternate_route_id": "supply_exposed_lane",
+      "strategic_value": "slower_cover_line_bypass"
+    },
+    {
+      "id": "south_ditch_flank",
+      "name": "South Ditch Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-8, -22], [8, -24], [22, -12], [25, 10]],
+      "width": 8.5,
+      "connects": ["West Drop Road", "Drain Ditch", "South Tarp Brush", "East Crate Gate"],
+      "alternate_route_id": "supply_exposed_lane",
+      "strategic_value": "low_ground_recovery_bypass"
+    },
+    {
+      "id": "ditch_reentry",
+      "name": "Ditch Reentry",
+      "role": "recovery_exit",
+      "points": [[8, -24], [10, -12], [0, 0]],
+      "width": 7.5,
+      "connects": ["Drain Ditch", "Supply Flats"],
+      "alternate_route_id": "south_ditch_flank",
+      "strategic_value": "recover_then_reenter_open_loot"
+    },
+    {
+      "id": "supply_to_ditch_flow",
+      "name": "Supply To Ditch Flow",
+      "role": "loot_flow",
+      "points": [[0, 0], [-4, -14], [8, -24]],
+      "width": 8.0,
+      "connects": ["Supply Flats", "Drain Ditch"],
+      "alternate_route_id": "supply_exposed_lane",
+      "strategic_value": "open_loot_to_low_ground_recovery"
+    }
+  ]
+}

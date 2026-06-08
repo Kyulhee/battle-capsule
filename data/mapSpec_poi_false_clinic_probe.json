@@ -1,0 +1,153 @@
+{
+  "metadata": {
+    "id": "poi_false_clinic_probe",
+    "name": "POI Probe - False Clinic",
+    "theme": "night_artificial_forest_poi_probe",
+    "version": "0.1-structural-probe",
+    "world_size": 76,
+    "layout": "recovery_pocket_front_lane_flanks_reentry"
+  },
+  "match": {
+    "bot_count": 8,
+    "loot_count": 24,
+    "spawn_radius": 25.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 80,
+      "inner_radius": 5.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "initial_radius": 34.0,
+    "next_radius": 19.0,
+    "wait_time": 30.0,
+    "shrink_time": 24.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 18.0,
+    "stages": {
+      "2": {
+        "wait_time": 24.0,
+        "shrink_time": 20.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 18.0,
+        "shrink_time": 16.0,
+        "damage_per_second": 8.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 8,
+        "loot_count": 24,
+        "spawn_radius": 25.0
+      }
+    },
+    "poi_probe": {
+      "match": {
+        "bot_count": 12,
+        "loot_count": 36,
+        "spawn_radius": 29.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 100,
+          "inner_radius": 5.0
+        },
+        "loot": {
+          "hotspot_density_mult": 1.08,
+          "rare_bias_mult": 1.15
+        }
+      },
+      "zone": {
+        "initial_timer": 22.0,
+        "wait_time": 34.0,
+        "shrink_time": 26.0
+      }
+    }
+  },
+  "pois": [
+    { "name": "West Ambulance Lot", "pos": [-26, -8], "radius": 10, "role": "loot_hub", "item_density": 0.72, "rare_bias": 0.18 },
+    { "name": "Clinic Doorway", "pos": [0, 0], "radius": 11, "role": "transit_choke", "item_density": 0.56, "rare_bias": 0.16 },
+    { "name": "Triage Gate", "pos": [24, 10], "radius": 10, "role": "transit_choke", "item_density": 0.60, "rare_bias": 0.18 },
+    { "name": "False Clinic", "pos": [8, -24], "radius": 9, "role": "recovery_pocket", "item_density": 0.44, "rare_bias": 0.08 },
+    { "name": "North Privacy Hedge", "pos": [-10, 24], "radius": 9, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.08 },
+    { "name": "South Curtain Brush", "pos": [22, -12], "radius": 8, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.06 }
+  ],
+  "obstacles": [
+    { "type": "canyon_wall", "pos": [-4, -7], "scale": [5.2, 3.0, 1.0], "rot": 4 },
+    { "type": "canyon_wall", "pos": [11, -20], "scale": [5.4, 3.0, 1.0], "rot": 24 },
+    { "type": "canyon_wall", "pos": [1, -31], "scale": [4.8, 3.0, 1.0], "rot": -18 },
+    { "type": "log_pile", "pos": [-24, -10], "scale": [4.2, 1.1, 0.9], "rot": 12 },
+    { "type": "log_pile", "pos": [-2, 10], "scale": [3.8, 1.1, 0.9], "rot": 82 },
+    { "type": "log_pile", "pos": [8, -24], "scale": [3.4, 1.1, 1.0], "rot": 30 },
+    { "type": "log_pile", "pos": [26, 8], "scale": [4.0, 1.1, 0.9], "rot": -24 },
+    { "type": "rock_cluster", "pos": [-20, -18], "scale": [2.0, 1.9, 2.0], "rot": 18, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [20, 14], "scale": [2.0, 1.9, 2.0], "rot": -18, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "bush_patch", "pos": [-10, 24], "scale": [3.4, 1.0, 3.2], "rot": -16 },
+    { "type": "bush_patch", "pos": [22, -12], "scale": [3.4, 1.0, 3.0], "rot": 16 },
+    { "type": "tree_cluster", "pos": [-30, 20], "scale": [3.6, 4.4, 3.4], "rot": 8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [30, -20], "scale": [3.6, 4.4, 3.4], "rot": -8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [-28, -24], "scale": [3.2, 4.2, 3.2], "rot": -10, "jitter": [0.8, 0.8], "rot_jitter": 10 }
+  ],
+  "routes": [
+    {
+      "id": "clinic_front_lane",
+      "name": "Clinic Front Lane",
+      "role": "primary_choke",
+      "points": [[-26, -8], [-14, -4], [0, 0], [14, 4], [24, 10]],
+      "width": 8.5,
+      "connects": ["West Ambulance Lot", "Clinic Doorway", "Triage Gate"],
+      "alternate_route_id": "north_privacy_flank",
+      "strategic_value": "front_door_reentry_pressure"
+    },
+    {
+      "id": "north_privacy_flank",
+      "name": "North Privacy Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-20, 14], [-10, 24], [8, 24], [24, 10]],
+      "width": 8.5,
+      "connects": ["West Ambulance Lot", "North Privacy Hedge", "Triage Gate"],
+      "alternate_route_id": "clinic_front_lane",
+      "strategic_value": "slower_concealed_clinic_bypass"
+    },
+    {
+      "id": "south_service_flank",
+      "name": "South Service Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-8, -22], [8, -24], [22, -12], [24, 10]],
+      "width": 8.5,
+      "connects": ["West Ambulance Lot", "False Clinic", "South Curtain Brush", "Triage Gate"],
+      "alternate_route_id": "clinic_front_lane",
+      "strategic_value": "recovery_side_bypass"
+    },
+    {
+      "id": "clinic_reentry",
+      "name": "Clinic Reentry",
+      "role": "recovery_exit",
+      "points": [[8, -24], [10, -12], [0, 0]],
+      "width": 7.5,
+      "connects": ["False Clinic", "Clinic Doorway"],
+      "alternate_route_id": "south_service_flank",
+      "strategic_value": "recover_then_return_to_front_lane"
+    },
+    {
+      "id": "ambulance_to_clinic_flow",
+      "name": "Ambulance To Clinic Flow",
+      "role": "loot_flow",
+      "points": [[-26, -8], [-10, -18], [8, -24]],
+      "width": 8.0,
+      "connects": ["West Ambulance Lot", "False Clinic"],
+      "alternate_route_id": "clinic_front_lane",
+      "strategic_value": "early_loot_to_recovery_pocket"
+    }
+  ]
+}

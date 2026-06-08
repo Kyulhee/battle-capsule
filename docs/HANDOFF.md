@@ -1,12 +1,12 @@
 # Next Chat Handoff
 
-> Last updated: 2026-06-08. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
+> Last updated: 2026-06-09. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
 
 ## Current State
 
 - Branch: `master`.
-- Latest pushed code slice: `v2.0.40 — opportunistic loot scoring and pistol upgrade tuning`.
-- Latest local slice: `Wire Maze` POI probe mapSpec and smoke verifier.
+- Latest pushed code slice: `Wire Maze` POI probe mapSpec and smoke verifier.
+- Latest local slice: core Night Artificial Forest POI structural probes plus 3-run reference simulations.
 - Current planning pivot: v2 scale telemetry is now treated as a **structural safety gate**, not final 99-player balance.
 - Current map direction: iterate the non-default 99-player **Night Artificial Forest** candidate before more behavior tuning.
 - Target match length for the intended main game: 10-15 minutes.
@@ -15,6 +15,12 @@
 - New candidate path: `res://data/mapSpec_night_forest_candidate.json`.
 - First POI probe path: `res://data/mapSpec_poi_sluice_crossing_probe.json`.
 - Second POI probe path: `res://data/mapSpec_poi_wire_maze_probe.json`.
+- Third POI probe path: `res://data/mapSpec_poi_black_ridge_probe.json`.
+- Fourth POI probe path: `res://data/mapSpec_poi_false_clinic_probe.json`.
+- Fifth POI probe path: `res://data/mapSpec_poi_supply_flats_probe.json`.
+- Sixth POI probe path: `res://data/mapSpec_poi_ammunition_pockets_probe.json`.
+- Seventh POI probe path: `res://data/mapSpec_poi_cabin_row_probe.json`.
+- Eighth POI probe path: `res://data/mapSpec_poi_broadcast_fence_probe.json`.
 - Release remains paused unless the user explicitly asks for a release.
 - Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
 
@@ -36,18 +42,27 @@
 ## Recent Relevant Commits
 
 - `5c2d7b3 docs: add 99 map tile group brief` — added `MAP_TILE_GROUPS.md` and linked it from active docs.
+- `c029db8 feat: add wire maze poi probe` — latest pushed POI probe slice.
+- `4e3ad65 feat: add sluice crossing poi probe` — first POI-level structural probe.
+- `127c8c4 feat: add night forest map candidate` — non-default 180m night forest candidate.
 - `8333bd3 tune bot opportunistic loot selection` — latest pushed gameplay tuning slice, v2.0.40.
-- `178f505 feat: add loot objective context diagnostics` — diagnostic context before the v2.0.40 tuning pass.
 
 Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md), and `docs/devlog/`.
 
 ## Next Work
 
-1. Decide the next POI-probe step.
-   - Preferred: run a 1-3 run reference simulation on `Wire Maze`, or add the next probe for `Black Ridge`.
+1. Fold POI-probe lessons back into the night candidate map.
+   - Preferred: update `data/mapSpec_night_forest_candidate.json` conservatively using the 8-probe structure and reference signals, then rerun `verify_night_forest_candidate.gd` and runtime load.
    - Sluice 3-run reference at `C:\tmp\game_dev_sluice_probe_v1`: avg duration 69.1s, fallback 0.0/run, zone deaths 0, no zero-damage/shot/combat-plan sentinels.
-   - Existing `check_scale_telemetry.py` failed reference-only thresholds on duration and first upgrade; do not tune POI probe pacing from that.
-   - Start with structure/readability/collision checks before simulation tuning.
+   - Wire Maze 3-run reference at `C:\tmp\game_dev_wire_maze_probe_v1`: avg duration 66.6s, fallback 0.0/run, zone deaths 0, no zero-damage/shot/combat-plan sentinels. Route damage pressure: primary_choke 46.0%, flank 27.1%, recovery_exit 17.0%, off_route 9.6%.
+   - Black Ridge 3-run reference at `C:\tmp\game_dev_black_ridge_probe_v1`: avg duration 74.0s, fallback 0.0/run, zone deaths 0, stuck 6.7/run, sentinels clear.
+   - False Clinic 3-run reference at `C:\tmp\game_dev_false_clinic_probe_v1`: avg duration 71.5s, fallback 0.0/run, zone deaths 0, stuck 6.0/run, sentinels clear.
+   - Supply Flats 3-run reference at `C:\tmp\game_dev_supply_flats_probe_v1`: avg duration 74.5s, fallback 0.0/run, zone deaths 0, stuck 2.0/run, sentinels clear.
+   - Ammunition Pockets 3-run reference at `C:\tmp\game_dev_ammunition_pockets_probe_v1`: avg duration 84.2s, fallback 0.0/run, zone deaths 0, stuck 6.7/run, sentinels clear.
+   - Cabin Row 3-run reference at `C:\tmp\game_dev_cabin_row_probe_v1`: avg duration 85.1s, fallback 0.0/run, zone deaths 0, stuck 13.3/run, sentinels clear.
+   - Broadcast Fence 3-run reference at `C:\tmp\game_dev_broadcast_fence_probe_v1`: avg duration 73.5s, fallback 0.0/run, zone deaths 1, stuck 11.3/run, sentinels clear.
+   - Cabin Row and Broadcast Fence are the main observation points before adding more cover or future visibility systems.
+   - Existing scale gates are reference-only for POI probes; do not tune duration or first-upgrade timing from these minimaps.
 2. Run current scale tooling as structural checks only on the night candidate.
    - Do not tune combat/CHASE percentages as final design targets yet.
    - Keep fallback 0, clearance, route/POI coverage, stuck, disengage, zone escape, and AI cost visible.
@@ -69,9 +84,21 @@ Candidate map work:
 - `tools/verify_night_forest_candidate.gd`
 - `tools/verify_poi_sluice_crossing_probe.gd`
 - `tools/verify_poi_wire_maze_probe.gd`
+- `tools/verify_poi_black_ridge_probe.gd`
+- `tools/verify_poi_false_clinic_probe.gd`
+- `tools/verify_poi_supply_flats_probe.gd`
+- `tools/verify_poi_ammunition_pockets_probe.gd`
+- `tools/verify_poi_cabin_row_probe.gd`
+- `tools/verify_poi_broadcast_fence_probe.gd`
 - `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60`
 - `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_sluice_crossing_probe.json scale_preset=poi_probe`
 - `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_wire_maze_probe.json scale_preset=poi_probe`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_black_ridge_probe.json scale_preset=poi_probe`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_false_clinic_probe.json scale_preset=poi_probe`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_supply_flats_probe.json scale_preset=poi_probe`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_ammunition_pockets_probe.json scale_preset=poi_probe`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_cabin_row_probe.json scale_preset=poi_probe`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_broadcast_fence_probe.json scale_preset=poi_probe`
 - fresh 5-run `xlarge_60`
 - fresh 5-run `target_99_probe`
 - `tools/compare_scale_profiles.py`

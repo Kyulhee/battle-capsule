@@ -1,0 +1,154 @@
+{
+  "metadata": {
+    "id": "poi_black_ridge_probe",
+    "name": "POI Probe - Black Ridge",
+    "theme": "night_artificial_forest_poi_probe",
+    "version": "0.1-structural-probe",
+    "world_size": 78,
+    "layout": "contestable_ridge_direct_ascent_flanks_reentry"
+  },
+  "match": {
+    "bot_count": 8,
+    "loot_count": 24,
+    "spawn_radius": 25.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 80,
+      "inner_radius": 5.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "initial_radius": 35.0,
+    "next_radius": 20.0,
+    "wait_time": 30.0,
+    "shrink_time": 24.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 18.0,
+    "stages": {
+      "2": {
+        "wait_time": 24.0,
+        "shrink_time": 20.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 18.0,
+        "shrink_time": 16.0,
+        "damage_per_second": 8.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 8,
+        "loot_count": 24,
+        "spawn_radius": 25.0
+      }
+    },
+    "poi_probe": {
+      "match": {
+        "bot_count": 12,
+        "loot_count": 36,
+        "spawn_radius": 29.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 100,
+          "inner_radius": 5.0
+        },
+        "loot": {
+          "hotspot_density_mult": 1.08,
+          "rare_bias_mult": 1.15
+        }
+      },
+      "zone": {
+        "initial_timer": 22.0,
+        "wait_time": 34.0,
+        "shrink_time": 26.0
+      }
+    }
+  },
+  "pois": [
+    { "name": "West Trail Cache", "pos": [-28, -8], "radius": 10, "role": "loot_hub", "item_density": 0.74, "rare_bias": 0.18 },
+    { "name": "Black Ridge", "pos": [0, 6], "radius": 12, "role": "transit_choke", "item_density": 0.58, "rare_bias": 0.24 },
+    { "name": "East Overlook Gate", "pos": [25, 12], "radius": 10, "role": "transit_choke", "item_density": 0.60, "rare_bias": 0.20 },
+    { "name": "Field Aid Hollow", "pos": [8, -26], "radius": 9, "role": "recovery_pocket", "item_density": 0.44, "rare_bias": 0.08 },
+    { "name": "North Pine Cover", "pos": [-10, 26], "radius": 9, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.08 },
+    { "name": "South Gully Brush", "pos": [22, -12], "radius": 8, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.06 }
+  ],
+  "obstacles": [
+    { "type": "canyon_wall", "pos": [-8, 15], "scale": [6.0, 3.4, 1.1], "rot": -15 },
+    { "type": "canyon_wall", "pos": [12, 18], "scale": [5.4, 3.2, 1.1], "rot": 20 },
+    { "type": "canyon_wall", "pos": [-16, -2], "scale": [5.0, 3.1, 1.0], "rot": 35 },
+    { "type": "rock_cluster", "pos": [-5, 8], "scale": [2.3, 2.4, 2.3], "rot": 12, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [10, 4], "scale": [2.1, 2.2, 2.1], "rot": -18, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [24, 14], "scale": [2.0, 2.0, 2.0], "rot": 20, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "log_pile", "pos": [-26, -10], "scale": [4.2, 1.1, 0.9], "rot": 12 },
+    { "type": "log_pile", "pos": [8, -24], "scale": [3.6, 1.1, 1.0], "rot": 28 },
+    { "type": "log_pile", "pos": [26, 8], "scale": [4.0, 1.1, 0.9], "rot": -24 },
+    { "type": "bush_patch", "pos": [-10, 26], "scale": [3.4, 1.0, 3.2], "rot": -16 },
+    { "type": "bush_patch", "pos": [22, -12], "scale": [3.4, 1.0, 3.0], "rot": 16 },
+    { "type": "tree_cluster", "pos": [-30, 20], "scale": [3.6, 4.4, 3.4], "rot": 8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [30, -20], "scale": [3.6, 4.4, 3.4], "rot": -8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [-24, -24], "scale": [3.2, 4.2, 3.2], "rot": -10, "jitter": [0.8, 0.8], "rot_jitter": 10 },
+    { "type": "rock_cluster", "pos": [-18, -18], "scale": [1.8, 1.8, 1.8], "rot": 18, "jitter": [0.3, 0.3], "rot_jitter": 8 }
+  ],
+  "routes": [
+    {
+      "id": "ridge_direct_ascent",
+      "name": "Ridge Direct Ascent",
+      "role": "primary_choke",
+      "points": [[-28, -8], [-14, -2], [0, 6], [12, 10], [25, 12]],
+      "width": 8.5,
+      "connects": ["West Trail Cache", "Black Ridge", "East Overlook Gate"],
+      "alternate_route_id": "north_switchback_flank",
+      "strategic_value": "fast_exposed_power_position_ascent"
+    },
+    {
+      "id": "north_switchback_flank",
+      "name": "North Switchback Flank",
+      "role": "flank",
+      "points": [[-28, -8], [-22, 12], [-10, 26], [8, 26], [25, 12]],
+      "width": 8.5,
+      "connects": ["West Trail Cache", "North Pine Cover", "East Overlook Gate"],
+      "alternate_route_id": "ridge_direct_ascent",
+      "strategic_value": "slower_covered_ridge_bypass"
+    },
+    {
+      "id": "south_gully_flank",
+      "name": "South Gully Flank",
+      "role": "flank",
+      "points": [[-28, -8], [-10, -22], [8, -26], [22, -12], [25, 12]],
+      "width": 8.5,
+      "connects": ["West Trail Cache", "Field Aid Hollow", "South Gully Brush", "East Overlook Gate"],
+      "alternate_route_id": "ridge_direct_ascent",
+      "strategic_value": "low_ground_recovery_bypass"
+    },
+    {
+      "id": "hollow_reentry",
+      "name": "Hollow Reentry",
+      "role": "recovery_exit",
+      "points": [[8, -26], [10, -14], [0, 6]],
+      "width": 7.5,
+      "connects": ["Field Aid Hollow", "Black Ridge"],
+      "alternate_route_id": "south_gully_flank",
+      "strategic_value": "recover_then_recontest_ridge"
+    },
+    {
+      "id": "cache_to_hollow_flow",
+      "name": "Cache To Hollow Flow",
+      "role": "loot_flow",
+      "points": [[-28, -8], [-10, -18], [8, -26]],
+      "width": 8.0,
+      "connects": ["West Trail Cache", "Field Aid Hollow"],
+      "alternate_route_id": "ridge_direct_ascent",
+      "strategic_value": "early_loot_to_low_ground_recovery"
+    }
+  ]
+}

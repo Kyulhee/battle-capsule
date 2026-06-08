@@ -1,6 +1,6 @@
 # 99-Player Map Tile Group Brief
 
-> Last updated: 2026-06-08. Planning document for external map ideation and future map-spec authoring.
+> Last updated: 2026-06-09. Planning document for external map ideation and future map-spec authoring.
 
 This document defines reusable placement groups for 99-player map planning. It is not a runtime tile compiler yet. Current maps are still authored as explicit `mapSpec` data with POIs, routes, obstacles, scale presets, and zone settings.
 
@@ -317,6 +317,42 @@ Second POI-level probe:
 - `data/mapSpec_poi_wire_maze_probe.json`
 - `tools/verify_poi_wire_maze_probe.gd`
 - compact 76m sparse-maze test with direct lane, north/south flanks, and shed re-entry.
+
+Third POI-level probe:
+
+- `data/mapSpec_poi_black_ridge_probe.json`
+- `tools/verify_poi_black_ridge_probe.gd`
+- compact 78m contestable-ridge test with direct ascent, slower covered flank, low-ground recovery flank, and hollow re-entry.
+
+Fourth POI-level probe:
+
+- `data/mapSpec_poi_false_clinic_probe.json`
+- `tools/verify_poi_false_clinic_probe.gd`
+- compact 76m recovery-pocket test with front-lane pressure, north/south flanks, limited clinic loot, and forced re-entry to the doorway choke.
+
+Fifth POI-level probe:
+
+- `data/mapSpec_poi_supply_flats_probe.json`
+- `tools/verify_poi_supply_flats_probe.gd`
+- compact 76m open-loot test with valuable center loot, sparse hard cover, side flanks, and low-ground re-entry.
+
+Sixth POI-level probe:
+
+- `data/mapSpec_poi_ammunition_pockets_probe.json`
+- `tools/verify_poi_ammunition_pockets_probe.gd`
+- compact 76m ammo-breadcrumb test with low rare pressure and no hard-wall safe loop.
+
+Seventh POI-level probe:
+
+- `data/mapSpec_poi_cabin_row_probe.json`
+- `tools/verify_poi_cabin_row_probe.gd`
+- compact 76m concealment/close-quarters test with facade-only cabin shapes, readable lanes, and no interior system.
+
+Eighth POI-level probe:
+
+- `data/mapSpec_poi_broadcast_fence_probe.json`
+- `tools/verify_poi_broadcast_fence_probe.gd`
+- compact 78m transit-compound test with sparse fence segments, gate pressure, flanks, and fuse-shelter re-entry.
 
 Main shift from Balanced 99 Forest:
 

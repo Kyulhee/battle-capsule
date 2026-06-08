@@ -1,0 +1,149 @@
+{
+  "metadata": {
+    "id": "poi_ammunition_pockets_probe",
+    "name": "POI Probe - Ammunition Pockets",
+    "theme": "night_artificial_forest_poi_probe",
+    "version": "0.1-structural-probe",
+    "world_size": 76,
+    "layout": "distributed_ammo_breadcrumb_edge_flow"
+  },
+  "match": {
+    "bot_count": 8,
+    "loot_count": 24,
+    "spawn_radius": 25.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 80,
+      "inner_radius": 5.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "initial_radius": 34.0,
+    "next_radius": 19.0,
+    "wait_time": 30.0,
+    "shrink_time": 24.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 18.0,
+    "stages": {
+      "2": {
+        "wait_time": 24.0,
+        "shrink_time": 20.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 18.0,
+        "shrink_time": 16.0,
+        "damage_per_second": 8.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 8,
+        "loot_count": 24,
+        "spawn_radius": 25.0
+      }
+    },
+    "poi_probe": {
+      "match": {
+        "bot_count": 12,
+        "loot_count": 34,
+        "spawn_radius": 29.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 100,
+          "inner_radius": 5.0
+        },
+        "loot": {
+          "hotspot_density_mult": 1.05,
+          "rare_bias_mult": 1.05
+        }
+      },
+      "zone": {
+        "initial_timer": 22.0,
+        "wait_time": 34.0,
+        "shrink_time": 26.0
+      }
+    }
+  },
+  "pois": [
+    { "name": "Ammunition Pockets", "pos": [-10, 0], "radius": 12, "role": "loot_hub", "item_density": 0.68, "rare_bias": 0.16 },
+    { "name": "West Shell Cut", "pos": [-28, -8], "radius": 10, "role": "transit_choke", "item_density": 0.52, "rare_bias": 0.12 },
+    { "name": "Forward Pocket Bend", "pos": [24, 10], "radius": 10, "role": "transit_choke", "item_density": 0.54, "rare_bias": 0.14 },
+    { "name": "Reserve Hollow", "pos": [8, -24], "radius": 9, "role": "recovery_pocket", "item_density": 0.40, "rare_bias": 0.06 },
+    { "name": "North Needle Cover", "pos": [-10, 24], "radius": 9, "role": "concealment_field", "item_density": 0.30, "rare_bias": 0.06 },
+    { "name": "South Shell Brush", "pos": [22, -12], "radius": 8, "role": "concealment_field", "item_density": 0.30, "rare_bias": 0.06 }
+  ],
+  "obstacles": [
+    { "type": "log_pile", "pos": [-18, -10], "scale": [3.8, 1.1, 0.9], "rot": 12 },
+    { "type": "log_pile", "pos": [-4, 8], "scale": [3.2, 1.1, 0.9], "rot": 72 },
+    { "type": "log_pile", "pos": [12, -4], "scale": [3.2, 1.1, 0.9], "rot": -20 },
+    { "type": "rock_cluster", "pos": [-24, 6], "scale": [1.8, 1.8, 1.8], "rot": 18, "jitter": [0.3, 0.3], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [20, 12], "scale": [1.8, 1.8, 1.8], "rot": -18, "jitter": [0.3, 0.3], "rot_jitter": 8 },
+    { "type": "log_pile", "pos": [8, -24], "scale": [3.2, 1.1, 1.0], "rot": 28 },
+    { "type": "bush_patch", "pos": [-10, 24], "scale": [3.4, 1.0, 3.2], "rot": -16 },
+    { "type": "bush_patch", "pos": [22, -12], "scale": [3.4, 1.0, 3.0], "rot": 16 },
+    { "type": "tree_cluster", "pos": [-30, 20], "scale": [3.6, 4.4, 3.4], "rot": 8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [30, -20], "scale": [3.6, 4.4, 3.4], "rot": -8, "jitter": [0.9, 0.9], "rot_jitter": 10 }
+  ],
+  "routes": [
+    {
+      "id": "ammo_breadcrumb_lane",
+      "name": "Ammo Breadcrumb Lane",
+      "role": "primary_choke",
+      "points": [[-28, -8], [-18, -4], [-10, 0], [8, 4], [24, 10]],
+      "width": 8.5,
+      "connects": ["West Shell Cut", "Ammunition Pockets", "Forward Pocket Bend"],
+      "alternate_route_id": "north_needle_flank",
+      "strategic_value": "low_rare_ammo_edge_flow"
+    },
+    {
+      "id": "north_needle_flank",
+      "name": "North Needle Flank",
+      "role": "flank",
+      "points": [[-28, -8], [-20, 14], [-10, 24], [8, 24], [24, 10]],
+      "width": 8.5,
+      "connects": ["West Shell Cut", "North Needle Cover", "Forward Pocket Bend"],
+      "alternate_route_id": "ammo_breadcrumb_lane",
+      "strategic_value": "safer_low_reward_bypass"
+    },
+    {
+      "id": "south_shell_flank",
+      "name": "South Shell Flank",
+      "role": "flank",
+      "points": [[-28, -8], [-8, -22], [8, -24], [22, -12], [24, 10]],
+      "width": 8.5,
+      "connects": ["West Shell Cut", "Reserve Hollow", "South Shell Brush", "Forward Pocket Bend"],
+      "alternate_route_id": "ammo_breadcrumb_lane",
+      "strategic_value": "recovery_breadcrumb_bypass"
+    },
+    {
+      "id": "reserve_reentry",
+      "name": "Reserve Reentry",
+      "role": "recovery_exit",
+      "points": [[8, -24], [8, -12], [-10, 0]],
+      "width": 7.5,
+      "connects": ["Reserve Hollow", "Ammunition Pockets"],
+      "alternate_route_id": "south_shell_flank",
+      "strategic_value": "recover_then_rejoin_ammo_flow"
+    },
+    {
+      "id": "pockets_to_reserve_flow",
+      "name": "Pockets To Reserve Flow",
+      "role": "loot_flow",
+      "points": [[-10, 0], [-6, -14], [8, -24]],
+      "width": 8.0,
+      "connects": ["Ammunition Pockets", "Reserve Hollow"],
+      "alternate_route_id": "ammo_breadcrumb_lane",
+      "strategic_value": "ammo_to_low_recovery_flow"
+    }
+  ]
+}

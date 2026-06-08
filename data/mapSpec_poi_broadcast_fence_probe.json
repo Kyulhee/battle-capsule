@@ -1,0 +1,152 @@
+{
+  "metadata": {
+    "id": "poi_broadcast_fence_probe",
+    "name": "POI Probe - Broadcast Fence",
+    "theme": "night_artificial_forest_poi_probe",
+    "version": "0.1-structural-probe",
+    "world_size": 78,
+    "layout": "fence_transit_compound_gate_flanks_reentry"
+  },
+  "match": {
+    "bot_count": 8,
+    "loot_count": 24,
+    "spawn_radius": 25.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 80,
+      "inner_radius": 5.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "initial_radius": 35.0,
+    "next_radius": 20.0,
+    "wait_time": 30.0,
+    "shrink_time": 24.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 18.0,
+    "stages": {
+      "2": {
+        "wait_time": 24.0,
+        "shrink_time": 20.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 18.0,
+        "shrink_time": 16.0,
+        "damage_per_second": 8.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 8,
+        "loot_count": 24,
+        "spawn_radius": 25.0
+      }
+    },
+    "poi_probe": {
+      "match": {
+        "bot_count": 12,
+        "loot_count": 36,
+        "spawn_radius": 29.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 100,
+          "inner_radius": 5.0
+        },
+        "loot": {
+          "hotspot_density_mult": 1.08,
+          "rare_bias_mult": 1.15
+        }
+      },
+      "zone": {
+        "initial_timer": 22.0,
+        "wait_time": 34.0,
+        "shrink_time": 26.0
+      }
+    }
+  },
+  "pois": [
+    { "name": "Relay Crates", "pos": [-26, -8], "radius": 10, "role": "loot_hub", "item_density": 0.70, "rare_bias": 0.18 },
+    { "name": "Broadcast Fence", "pos": [0, 4], "radius": 12, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.22 },
+    { "name": "East Relay Gate", "pos": [25, 12], "radius": 10, "role": "transit_choke", "item_density": 0.58, "rare_bias": 0.18 },
+    { "name": "Fuse Shelter", "pos": [8, -26], "radius": 9, "role": "recovery_pocket", "item_density": 0.42, "rare_bias": 0.08 },
+    { "name": "North Screen Pines", "pos": [-10, 26], "radius": 9, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.08 },
+    { "name": "South Static Brush", "pos": [22, -12], "radius": 8, "role": "concealment_field", "item_density": 0.30, "rare_bias": 0.06 }
+  ],
+  "obstacles": [
+    { "type": "log_pile", "pos": [-8, 12], "scale": [4.6, 1.1, 0.8], "rot": 90 },
+    { "type": "log_pile", "pos": [0, 14], "scale": [4.6, 1.1, 0.8], "rot": 90 },
+    { "type": "log_pile", "pos": [8, 12], "scale": [4.6, 1.1, 0.8], "rot": 90 },
+    { "type": "log_pile", "pos": [-8, -6], "scale": [4.2, 1.1, 0.8], "rot": 90 },
+    { "type": "log_pile", "pos": [8, -6], "scale": [4.2, 1.1, 0.8], "rot": 90 },
+    { "type": "canyon_wall", "pos": [20, 16], "scale": [4.8, 3.0, 1.0], "rot": 18 },
+    { "type": "rock_cluster", "pos": [-24, -10], "scale": [2.0, 1.9, 2.0], "rot": 18, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [24, 14], "scale": [2.0, 1.9, 2.0], "rot": -18, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "log_pile", "pos": [8, -24], "scale": [3.4, 1.1, 1.0], "rot": 28 },
+    { "type": "bush_patch", "pos": [-10, 26], "scale": [3.4, 1.0, 3.2], "rot": -16 },
+    { "type": "bush_patch", "pos": [22, -12], "scale": [3.4, 1.0, 3.0], "rot": 16 },
+    { "type": "tree_cluster", "pos": [-30, 20], "scale": [3.6, 4.4, 3.4], "rot": 8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [30, -20], "scale": [3.6, 4.4, 3.4], "rot": -8, "jitter": [0.9, 0.9], "rot_jitter": 10 }
+  ],
+  "routes": [
+    {
+      "id": "broadcast_gate_lane",
+      "name": "Broadcast Gate Lane",
+      "role": "primary_choke",
+      "points": [[-26, -8], [-14, -2], [0, 4], [12, 8], [25, 12]],
+      "width": 8.5,
+      "connects": ["Relay Crates", "Broadcast Fence", "East Relay Gate"],
+      "alternate_route_id": "north_screen_flank",
+      "strategic_value": "fence_gate_transit_pressure"
+    },
+    {
+      "id": "north_screen_flank",
+      "name": "North Screen Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-20, 14], [-10, 26], [8, 26], [25, 12]],
+      "width": 8.5,
+      "connects": ["Relay Crates", "North Screen Pines", "East Relay Gate"],
+      "alternate_route_id": "broadcast_gate_lane",
+      "strategic_value": "slower_screened_bypass"
+    },
+    {
+      "id": "south_static_flank",
+      "name": "South Static Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-8, -22], [8, -26], [22, -12], [25, 12]],
+      "width": 8.5,
+      "connects": ["Relay Crates", "Fuse Shelter", "South Static Brush", "East Relay Gate"],
+      "alternate_route_id": "broadcast_gate_lane",
+      "strategic_value": "low_ground_fuse_bypass"
+    },
+    {
+      "id": "fuse_reentry",
+      "name": "Fuse Reentry",
+      "role": "recovery_exit",
+      "points": [[8, -26], [10, -14], [0, 4]],
+      "width": 7.5,
+      "connects": ["Fuse Shelter", "Broadcast Fence"],
+      "alternate_route_id": "south_static_flank",
+      "strategic_value": "recover_then_reenter_gate"
+    },
+    {
+      "id": "crates_to_fuse_flow",
+      "name": "Crates To Fuse Flow",
+      "role": "loot_flow",
+      "points": [[-26, -8], [-10, -18], [8, -26]],
+      "width": 8.0,
+      "connects": ["Relay Crates", "Fuse Shelter"],
+      "alternate_route_id": "broadcast_gate_lane",
+      "strategic_value": "early_loot_to_fuse_shelter"
+    }
+  ]
+}

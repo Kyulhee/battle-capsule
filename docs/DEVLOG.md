@@ -1,8 +1,148 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-08. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-09. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 POI Probe Reference Simulation Batch
+
+**Scope**
+
+- Ran 3-run reference simulations for the six POI probes that did not yet have simulation baselines:
+  - Black Ridge: `C:\tmp\game_dev_black_ridge_probe_v1`
+  - False Clinic: `C:\tmp\game_dev_false_clinic_probe_v1`
+  - Supply Flats: `C:\tmp\game_dev_supply_flats_probe_v1`
+  - Ammunition Pockets: `C:\tmp\game_dev_ammunition_pockets_probe_v1`
+  - Cabin Row: `C:\tmp\game_dev_cabin_row_probe_v1`
+  - Broadcast Fence: `C:\tmp\game_dev_broadcast_fence_probe_v1`
+- Interpreted these as structure/readability/collision references only. They are not 10-15 minute pacing gates.
+
+**Verification**
+
+| Probe | Avg duration | Fallback | Zone deaths | Stuck/run | Sentinel | Main route damage |
+|---|---:|---:|---:|---:|---|---|
+| Black Ridge | 74.0s | 0.0/run | 0 | 6.7 | clear | flank 47.7%, primary 30.1%, off-route 13.8% |
+| False Clinic | 71.5s | 0.0/run | 0 | 6.0 | clear | flank 34.4%, recovery 24.3%, primary 16.0% |
+| Supply Flats | 74.5s | 0.0/run | 0 | 2.0 | clear | flank 42.8%, off-route 24.4%, recovery 14.0% |
+| Ammunition Pockets | 84.2s | 0.0/run | 0 | 6.7 | clear | flank 46.4%, recovery 18.9%, off-route 16.0% |
+| Cabin Row | 85.1s | 0.0/run | 0 | 13.3 | clear | flank 43.5%, off-route 34.1%, primary 15.0% |
+| Broadcast Fence | 73.5s | 0.0/run | 1 | 11.3 | clear | flank 48.1%, off-route 23.3%, primary 20.2% |
+
+Sentinel means zero total damage, zero shots, and zero combat-plan runs were all absent.
+
+**Decision**
+
+- All eight core POI probes now have smoke/runtime validation and 3-run reference simulation baselines.
+- Cabin Row and Broadcast Fence should be visually/manual reviewed before densifying because they show higher stuck/run.
+- Broadcast Fence has one zone death in this small sample; keep it as an observation, not an immediate tuning target.
+- Next autonomous unit should fold the POI lessons back into `data/mapSpec_night_forest_candidate.json` rather than continuing to tune isolated POI duration or first-upgrade timing.
+
+---
+
+## v2 POI Probe Batch - Supply, Ammo, Cabin, Broadcast
+
+**Scope**
+
+- Added the remaining core Night Artificial Forest POI structural probes:
+  - `data/mapSpec_poi_supply_flats_probe.json`
+  - `data/mapSpec_poi_ammunition_pockets_probe.json`
+  - `data/mapSpec_poi_cabin_row_probe.json`
+  - `data/mapSpec_poi_broadcast_fence_probe.json`
+- Added `tools/PoiProbeVerifier.gd` as a shared verifier helper for the new probes only.
+- Added per-probe smoke entry scripts:
+  - `tools/verify_poi_supply_flats_probe.gd`
+  - `tools/verify_poi_ammunition_pockets_probe.gd`
+  - `tools/verify_poi_cabin_row_probe.gd`
+  - `tools/verify_poi_broadcast_fence_probe.gd`
+- Updated [TESTING.md](TESTING.md), [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md), [MASTERPLAN.md](MASTERPLAN.md), and [HANDOFF.md](HANDOFF.md).
+
+**Verification**
+
+- JSON parse passed for all four new `mapSpec` files.
+- Godot smoke passed for all four new verifiers:
+  - Supply Flats: 6 POIs, 5 routes, 10 obstacles.
+  - Ammunition Pockets: 6 POIs, 5 routes, 10 obstacles.
+  - Cabin Row: 6 POIs, 5 routes, 12 obstacles.
+  - Broadcast Fence: 6 POIs, 5 routes, 13 obstacles.
+- Runtime path load passed for all four probes with `scale_preset=poi_probe`; only the expected AssetCatalog fallback warning remained.
+
+**Decision**
+
+- The core 8 POI structural probe set is now present: Sluice Crossing, Wire Maze, Black Ridge, False Clinic, Supply Flats, Ammunition Pockets, Cabin Row, Broadcast Fence.
+- Do not infer 10-15 minute balance from these smoke checks.
+- Next autonomous unit should either run short reference simulations for the four new probes or fold probe lessons back into `data/mapSpec_night_forest_candidate.json`.
+
+---
+
+## v2 POI Probe - False Clinic
+
+**Scope**
+
+- Added `data/mapSpec_poi_false_clinic_probe.json` as the fourth POI-level structural probe.
+- The probe is a compact 76m recovery-pocket map with front-lane pressure, north/south flanks, limited recovery loot, and forced re-entry from `False Clinic` back to `Clinic Doorway`.
+- Added `tools/verify_poi_false_clinic_probe.gd` to validate role counts, recovery-pocket loot limits, front-lane/re-entry route contracts, facade/soft-cover limits, connected POIs, key position classification, and compact probe scale.
+- Updated [TESTING.md](TESTING.md) and [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md) with the new probe.
+
+**Verification**
+
+- `python -m json.tool data/mapSpec_poi_false_clinic_probe.json` passed.
+- `verify_poi_false_clinic_probe.gd` passed: 6 POIs, 5 routes, 14 obstacles, front lane as `primary_choke`, 2 flanks, 1 recovery exit, 1 loot flow.
+- Runtime path load passed with `map_spec_path=res://data/mapSpec_poi_false_clinic_probe.json scale_preset=poi_probe`; only the expected AssetCatalog fallback warning remained.
+
+**Decision**
+
+- Keep this as a recovery re-entry structure probe.
+- Do not raise the clinic recovery pocket's loot density or rare bias before a short reference simulation, because the current purpose is to prevent a safe heal-and-arm loop.
+- Next autonomous unit should move to `Supply Flats` early-loot probing.
+
+---
+
+## v2 POI Probe - Black Ridge
+
+**Scope**
+
+- Added `data/mapSpec_poi_black_ridge_probe.json` as the third POI-level structural probe.
+- The probe is a compact 78m contestable ridge with a fast exposed direct ascent, slower covered north flank, low-ground south/recovery flank, hollow re-entry, and loot-to-recovery flow.
+- Added `tools/verify_poi_black_ridge_probe.gd` to validate role counts, direct ascent width/alternate route, ridge wall/rock-cover limits, connected POIs, key position classification, and compact probe scale.
+- Updated [TESTING.md](TESTING.md) and [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md) with the new probe.
+
+**Verification**
+
+- `python -m json.tool data/mapSpec_poi_black_ridge_probe.json` passed.
+- `verify_poi_black_ridge_probe.gd` passed: 6 POIs, 5 routes, 15 obstacles, direct ascent as `primary_choke`, 2 flanks, 1 recovery exit, 1 loot flow.
+- Runtime path load passed with `map_spec_path=res://data/mapSpec_poi_black_ridge_probe.json scale_preset=poi_probe`; only the expected AssetCatalog fallback warning remained.
+
+**Decision**
+
+- Keep this as a structure/readability/collision probe for a power position, not as a climb/interior/elevation-system implementation.
+- Do not add more hard cover to the ridge before a manual review or short reference simulation.
+- Next autonomous unit should move to `False Clinic` recovery re-entry probing.
+
+---
+
+## v2 POI Probe - Wire Maze Reference Simulation
+
+**Scope**
+
+- Ran the `Wire Maze` POI probe as a short 3-run reference simulation.
+- Interpreted the result as a structure/readability/collision check only, not as a 10-15 minute pacing gate.
+
+**Verification**
+
+- Command: `python tools\simulate_matches.py 3 normal out_dir=C:\tmp\game_dev_wire_maze_probe_v1 map_spec_path=res://data/mapSpec_poi_wire_maze_probe.json scale_preset=poi_probe`
+- 3-run result at `C:\tmp\game_dev_wire_maze_probe_v1`: avg duration 66.6s, min/max 58.8s / 73.8s, avg zone stage 2.00.
+- Spawn fallback stayed 0.0/run, zone deaths stayed 0, and zero damage / zero weapon damage / zero shot / zero combat-plan sentinels were all clear.
+- Combat route pressure was readable: damage primary_choke 46.0%, flank 27.1%, recovery_exit 17.0%, off_route 9.6%.
+- `verify_poi_wire_maze_probe.gd` passed again.
+- `check_scale_telemetry.py --min-runs 1` failed as a reference-only non-POI gate: avg duration 66.6s < 70.0s, one run under 60s, avg first upgrade 6.9s < 10.0s.
+
+**Decision**
+
+- Keep `Wire Maze` as a valid lightweight POI probe.
+- Track stuck triggers at 8.7/run during later visual/manual review, but do not densify or retune the maze from this short probe.
+- Next autonomous unit should move to `Black Ridge` structural probing.
 
 ---
 

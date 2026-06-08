@@ -1,0 +1,151 @@
+{
+  "metadata": {
+    "id": "poi_cabin_row_probe",
+    "name": "POI Probe - Cabin Row",
+    "theme": "night_artificial_forest_poi_probe",
+    "version": "0.1-structural-probe",
+    "world_size": 76,
+    "layout": "concealment_close_quarters_lane_flanks_reentry"
+  },
+  "match": {
+    "bot_count": 8,
+    "loot_count": 24,
+    "spawn_radius": 25.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 80,
+      "inner_radius": 5.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "initial_radius": 34.0,
+    "next_radius": 19.0,
+    "wait_time": 30.0,
+    "shrink_time": 24.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 18.0,
+    "stages": {
+      "2": {
+        "wait_time": 24.0,
+        "shrink_time": 20.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 18.0,
+        "shrink_time": 16.0,
+        "damage_per_second": 8.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 8,
+        "loot_count": 24,
+        "spawn_radius": 25.0
+      }
+    },
+    "poi_probe": {
+      "match": {
+        "bot_count": 12,
+        "loot_count": 34,
+        "spawn_radius": 29.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 100,
+          "inner_radius": 5.0
+        },
+        "loot": {
+          "hotspot_density_mult": 1.08,
+          "rare_bias_mult": 1.10
+        }
+      },
+      "zone": {
+        "initial_timer": 22.0,
+        "wait_time": 34.0,
+        "shrink_time": 26.0
+      }
+    }
+  },
+  "pois": [
+    { "name": "Porch Cache", "pos": [-26, -8], "radius": 10, "role": "loot_hub", "item_density": 0.66, "rare_bias": 0.14 },
+    { "name": "Cabin Door Bend", "pos": [0, 0], "radius": 11, "role": "transit_choke", "item_density": 0.48, "rare_bias": 0.12 },
+    { "name": "Back Porch Gate", "pos": [24, 10], "radius": 10, "role": "transit_choke", "item_density": 0.50, "rare_bias": 0.12 },
+    { "name": "Tool Shed Hollow", "pos": [8, -24], "radius": 9, "role": "recovery_pocket", "item_density": 0.40, "rare_bias": 0.06 },
+    { "name": "Cabin Row", "pos": [-10, 24], "radius": 11, "role": "concealment_field", "item_density": 0.42, "rare_bias": 0.10 },
+    { "name": "South Porch Brush", "pos": [22, -12], "radius": 8, "role": "concealment_field", "item_density": 0.30, "rare_bias": 0.06 }
+  ],
+  "obstacles": [
+    { "type": "canyon_wall", "pos": [-6, 10], "scale": [4.8, 3.0, 1.0], "rot": 6 },
+    { "type": "canyon_wall", "pos": [8, 18], "scale": [4.8, 3.0, 1.0], "rot": -18 },
+    { "type": "canyon_wall", "pos": [-16, 24], "scale": [4.6, 3.0, 1.0], "rot": 20 },
+    { "type": "log_pile", "pos": [-24, -10], "scale": [3.8, 1.1, 0.9], "rot": 12 },
+    { "type": "log_pile", "pos": [-2, -8], "scale": [3.4, 1.1, 0.9], "rot": 78 },
+    { "type": "log_pile", "pos": [8, -24], "scale": [3.4, 1.1, 1.0], "rot": 30 },
+    { "type": "log_pile", "pos": [24, 8], "scale": [3.8, 1.1, 0.9], "rot": -24 },
+    { "type": "bush_patch", "pos": [-10, 24], "scale": [3.6, 1.0, 3.4], "rot": -16 },
+    { "type": "bush_patch", "pos": [22, -12], "scale": [3.4, 1.0, 3.0], "rot": 16 },
+    { "type": "tree_cluster", "pos": [-30, 20], "scale": [3.8, 4.4, 3.6], "rot": 8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [30, -20], "scale": [3.6, 4.4, 3.4], "rot": -8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "rock_cluster", "pos": [-20, -18], "scale": [1.8, 1.8, 1.8], "rot": 18, "jitter": [0.3, 0.3], "rot_jitter": 8 }
+  ],
+  "routes": [
+    {
+      "id": "cabin_door_lane",
+      "name": "Cabin Door Lane",
+      "role": "primary_choke",
+      "points": [[-26, -8], [-12, -4], [0, 0], [12, 4], [24, 10]],
+      "width": 8.0,
+      "connects": ["Porch Cache", "Cabin Door Bend", "Back Porch Gate"],
+      "alternate_route_id": "north_cabin_flank",
+      "strategic_value": "close_quarters_readable_lane"
+    },
+    {
+      "id": "north_cabin_flank",
+      "name": "North Cabin Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-20, 14], [-10, 24], [8, 24], [24, 10]],
+      "width": 8.0,
+      "connects": ["Porch Cache", "Cabin Row", "Back Porch Gate"],
+      "alternate_route_id": "cabin_door_lane",
+      "strategic_value": "soft_concealment_bypass"
+    },
+    {
+      "id": "south_porch_flank",
+      "name": "South Porch Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-8, -22], [8, -24], [22, -12], [24, 10]],
+      "width": 8.0,
+      "connects": ["Porch Cache", "Tool Shed Hollow", "South Porch Brush", "Back Porch Gate"],
+      "alternate_route_id": "cabin_door_lane",
+      "strategic_value": "low_cover_recovery_bypass"
+    },
+    {
+      "id": "shed_reentry",
+      "name": "Shed Reentry",
+      "role": "recovery_exit",
+      "points": [[8, -24], [10, -12], [0, 0]],
+      "width": 7.5,
+      "connects": ["Tool Shed Hollow", "Cabin Door Bend"],
+      "alternate_route_id": "south_porch_flank",
+      "strategic_value": "recover_then_reenter_close_lane"
+    },
+    {
+      "id": "porch_to_shed_flow",
+      "name": "Porch To Shed Flow",
+      "role": "loot_flow",
+      "points": [[-26, -8], [-10, -18], [8, -24]],
+      "width": 8.0,
+      "connects": ["Porch Cache", "Tool Shed Hollow"],
+      "alternate_route_id": "cabin_door_lane",
+      "strategic_value": "porch_loot_to_recovery"
+    }
+  ]
+}

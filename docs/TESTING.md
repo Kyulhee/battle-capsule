@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-08 (야간 인공 숲 후보 mapSpec 기준)
+> 마지막 업데이트: 2026-06-09 (Night POI 프로브 세트 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -101,6 +101,30 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v2.0 Wire Maze POI probe smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_wire_maze_probe.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_wire_maze_probe.json scale_preset=poi_probe
+
+# v2.0 Black Ridge POI probe smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_black_ridge_probe.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_black_ridge_probe.json scale_preset=poi_probe
+
+# v2.0 False Clinic POI probe smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_false_clinic_probe.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_false_clinic_probe.json scale_preset=poi_probe
+
+# v2.0 Supply Flats POI probe smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_supply_flats_probe.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_supply_flats_probe.json scale_preset=poi_probe
+
+# v2.0 Ammunition Pockets POI probe smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_ammunition_pockets_probe.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_ammunition_pockets_probe.json scale_preset=poi_probe
+
+# v2.0 Cabin Row POI probe smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_cabin_row_probe.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_cabin_row_probe.json scale_preset=poi_probe
+
+# v2.0 Broadcast Fence POI probe smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_broadcast_fence_probe.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_broadcast_fence_probe.json scale_preset=poi_probe
 
 # v2.0 40-bot scale preset smoke
 python tools/simulate_matches.py 1 normal scale_preset=large_40
