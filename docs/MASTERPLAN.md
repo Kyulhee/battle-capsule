@@ -11,7 +11,7 @@
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
 | 최신 완료 코드 슬라이스 | v2.0.40: 봇 기회 루팅/권총 업그레이드 튜닝 |
 | 현재 문서 슬라이스 | 마스터플랜 압축, 야간 99인 페이싱 계획, 맵 타일 브리프 보강 |
-| 다음 구현 후보 | Sluice Crossing 프로브 시뮬레이션 또는 Wire Maze/Black Ridge 추가 POI 프로브 |
+| 다음 구현 후보 | Wire Maze 짧은 시뮬레이션 또는 Black Ridge 추가 POI 프로브 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
@@ -151,8 +151,9 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-POI-01 | Sluice Crossing 구조 프로브 | `data/mapSpec_poi_sluice_crossing_probe.json`, 전용 verifier | JSON parse, `verify_poi_sluice_crossing_probe.gd`, runtime load | smoke 실패 원인이 route/POI 구조면 즉시 수정. 시뮬레이션 밸런스 튜닝은 다음 단위로 분리 |
 | N2-POI-02 | Sluice Crossing 짧은 시뮬레이션 | 1-3 run 결과와 문서 기록 | `simulate_matches.py` + `analyze_results.py`; 기존 scale gate는 참고용만 | stuck/fallback/nav 문제가 나오면 맵 구조 수정. duration/upgrade threshold 튜닝은 금지 |
 | N2-POI-03 | Wire Maze 구조 프로브 | 소형 Wire Maze `mapSpec`, verifier | JSON parse, Godot verifier, runtime load | 장애물/시야가 복잡해지면 fence 밀도 축소. full maze 구현 금지 |
-| N2-POI-04 | Black Ridge 구조 프로브 | 파워 포지션 소형 `mapSpec`, verifier | key position classification, runtime load | ridge가 fortress가 되면 hard cover 축소. climb/interior 구현 금지 |
-| N2-POI-05 | False Clinic 회복 재진입 프로브 | recovery pocket + re-entry `mapSpec`, verifier | recovery_exit classification, runtime load | 안전 루프가 되면 회복/loot 밀도 축소 |
+| N2-POI-04 | Wire Maze 짧은 시뮬레이션 | 1-3 run 결과와 문서 기록 | `simulate_matches.py` + `analyze_results.py`; 기존 scale gate는 참고용만 | stuck/fallback/nav 문제가 나오면 maze 밀도 축소. combat 비율 튜닝은 금지 |
+| N2-POI-05 | Black Ridge 구조 프로브 | 파워 포지션 소형 `mapSpec`, verifier | key position classification, runtime load | ridge가 fortress가 되면 hard cover 축소. climb/interior 구현 금지 |
+| N2-POI-06 | False Clinic 회복 재진입 프로브 | recovery pocket + re-entry `mapSpec`, verifier | recovery_exit classification, runtime load | 안전 루프가 되면 회복/loot 밀도 축소 |
 | N2-MAP-01 | 야간 후보 맵 구조 반복 | `mapSpec_night_forest_candidate.json` 소폭 수정 | `verify_night_forest_candidate.gd`, runtime load | POI 프로브 결과 없이 전체 맵 수치 튜닝 금지 |
 | N2-VIS-01 | 플레이어-facing 손전등 1차 | 플레이어 조명/readability prototype | Godot headless, 필요 시 수동 screenshot | 모든 봇 full flashlight/fear/battery 금지 |
 | N2-AI-01 | 봇 추상 야간 인지 | 거리/확신도 보정만 있는 작은 AI patch | 1-3 run smoke, AI cost 확인 | cone-vs-cone 고비용 시뮬레이션으로 확장 금지 |
@@ -170,7 +171,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 
 - N2-POI-01 완료: Sluice Crossing 프로브 smoke와 runtime load 통과.
 - N2-POI-02 완료: 3-run smoke에서 avg duration 69.1s, fallback 0.0/run, zone deaths 0, regression sentinel 없음. 기존 scale gate는 avg duration 69.1s < 70.0s, first upgrade 8.2s < 10.0s로 참고용 FAIL이지만 POI 프로브 hard gate로 보지 않는다.
-- 다음 우선순위: N2-POI-03 Wire Maze 구조 프로브. 단, Sluice 프로브를 수동으로 보고 싶다면 `map_spec_path=res://data/mapSpec_poi_sluice_crossing_probe.json scale_preset=poi_probe`로 실행한다.
+- N2-POI-03 완료: Wire Maze 프로브 smoke와 runtime load 통과. 장애물은 sparse wall 4개와 low fence/log 위주로 유지했다.
+- 다음 우선순위: N2-POI-04 Wire Maze 1-3 run reference simulation 또는 N2-POI-05 Black Ridge 구조 프로브. Sluice/Wire 프로브를 수동으로 보고 싶다면 `scale_preset=poi_probe`와 각 `map_spec_path`로 실행한다.
 
 ## 비목표
 

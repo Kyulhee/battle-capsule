@@ -1,0 +1,154 @@
+{
+  "metadata": {
+    "id": "poi_wire_maze_probe",
+    "name": "POI Probe - Wire Maze",
+    "theme": "night_artificial_forest_poi_probe",
+    "version": "0.1-structural-probe",
+    "world_size": 76,
+    "layout": "sparse_wire_maze_direct_lane_flanks_reentry"
+  },
+  "match": {
+    "bot_count": 8,
+    "loot_count": 24,
+    "spawn_radius": 25.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 80,
+      "inner_radius": 5.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "initial_radius": 34.0,
+    "next_radius": 19.0,
+    "wait_time": 30.0,
+    "shrink_time": 24.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 18.0,
+    "stages": {
+      "2": {
+        "wait_time": 24.0,
+        "shrink_time": 20.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 18.0,
+        "shrink_time": 16.0,
+        "damage_per_second": 8.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 8,
+        "loot_count": 24,
+        "spawn_radius": 25.0
+      }
+    },
+    "poi_probe": {
+      "match": {
+        "bot_count": 12,
+        "loot_count": 36,
+        "spawn_radius": 29.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 100,
+          "inner_radius": 5.0
+        },
+        "loot": {
+          "hotspot_density_mult": 1.08,
+          "rare_bias_mult": 1.15
+        }
+      },
+      "zone": {
+        "initial_timer": 22.0,
+        "wait_time": 34.0,
+        "shrink_time": 26.0
+      }
+    }
+  },
+  "pois": [
+    { "name": "West Spool Yard", "pos": [-26, -8], "radius": 10, "role": "loot_hub", "item_density": 0.76, "rare_bias": 0.18 },
+    { "name": "Wire Maze", "pos": [0, 0], "radius": 12, "role": "transit_choke", "item_density": 0.58, "rare_bias": 0.18 },
+    { "name": "Broadcast Corner", "pos": [24, 10], "radius": 10, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.20 },
+    { "name": "Maintenance Shed", "pos": [8, -25], "radius": 9, "role": "recovery_pocket", "item_density": 0.44, "rare_bias": 0.08 },
+    { "name": "North Cable Brush", "pos": [-10, 25], "radius": 9, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.08 },
+    { "name": "South Drain Brush", "pos": [22, -12], "radius": 8, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.06 }
+  ],
+  "obstacles": [
+    { "type": "canyon_wall", "pos": [-14, 8], "scale": [5.8, 3.2, 1.0], "rot": 0 },
+    { "type": "canyon_wall", "pos": [14, 8], "scale": [5.8, 3.2, 1.0], "rot": 0 },
+    { "type": "canyon_wall", "pos": [-14, -8], "scale": [5.8, 3.2, 1.0], "rot": 0 },
+    { "type": "canyon_wall", "pos": [14, -8], "scale": [5.8, 3.2, 1.0], "rot": 0 },
+    { "type": "log_pile", "pos": [-2, 13], "scale": [4.8, 1.1, 0.8], "rot": 90 },
+    { "type": "log_pile", "pos": [2, -13], "scale": [4.8, 1.1, 0.8], "rot": 90 },
+    { "type": "log_pile", "pos": [-24, 4], "scale": [4.2, 1.1, 0.8], "rot": 90 },
+    { "type": "log_pile", "pos": [24, -4], "scale": [4.2, 1.1, 0.8], "rot": 90 },
+    { "type": "rock_cluster", "pos": [-24, -10], "scale": [2.1, 2.0, 2.1], "rot": 12, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "rock_cluster", "pos": [24, 12], "scale": [2.1, 2.0, 2.1], "rot": -12, "jitter": [0.4, 0.4], "rot_jitter": 8 },
+    { "type": "log_pile", "pos": [8, -24], "scale": [3.6, 1.1, 1.0], "rot": 28 },
+    { "type": "bush_patch", "pos": [-10, 25], "scale": [3.4, 1.0, 3.2], "rot": -16 },
+    { "type": "bush_patch", "pos": [22, -12], "scale": [3.4, 1.0, 3.0], "rot": 16 },
+    { "type": "tree_cluster", "pos": [-30, 20], "scale": [3.6, 4.4, 3.4], "rot": 8, "jitter": [0.9, 0.9], "rot_jitter": 10 },
+    { "type": "tree_cluster", "pos": [30, -20], "scale": [3.6, 4.4, 3.4], "rot": -8, "jitter": [0.9, 0.9], "rot_jitter": 10 }
+  ],
+  "routes": [
+    {
+      "id": "wire_direct_lane",
+      "name": "Wire Direct Lane",
+      "role": "primary_choke",
+      "points": [[-28, -8], [-14, -4], [0, 0], [14, 4], [26, 10]],
+      "width": 8.5,
+      "connects": ["West Spool Yard", "Wire Maze", "Broadcast Corner"],
+      "alternate_route_id": "north_cable_flank",
+      "strategic_value": "fast_sparse_maze_lane"
+    },
+    {
+      "id": "north_cable_flank",
+      "name": "North Cable Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-20, 14], [-10, 25], [8, 24], [24, 10]],
+      "width": 8.5,
+      "connects": ["West Spool Yard", "North Cable Brush", "Broadcast Corner"],
+      "alternate_route_id": "wire_direct_lane",
+      "strategic_value": "concealed_bypass"
+    },
+    {
+      "id": "south_drain_flank",
+      "name": "South Drain Flank",
+      "role": "flank",
+      "points": [[-26, -8], [-8, -24], [8, -25], [22, -12], [24, 10]],
+      "width": 8.5,
+      "connects": ["West Spool Yard", "Maintenance Shed", "South Drain Brush", "Broadcast Corner"],
+      "alternate_route_id": "wire_direct_lane",
+      "strategic_value": "recovery_bypass"
+    },
+    {
+      "id": "shed_reentry",
+      "name": "Shed Reentry",
+      "role": "recovery_exit",
+      "points": [[8, -25], [10, -14], [0, 0]],
+      "width": 7.5,
+      "connects": ["Maintenance Shed", "Wire Maze"],
+      "alternate_route_id": "south_drain_flank",
+      "strategic_value": "recover_then_reenter_maze"
+    },
+    {
+      "id": "spool_to_shed_flow",
+      "name": "Spool To Shed Flow",
+      "role": "loot_flow",
+      "points": [[-26, -8], [-10, -18], [8, -25]],
+      "width": 8.0,
+      "connects": ["West Spool Yard", "Maintenance Shed"],
+      "alternate_route_id": "wire_direct_lane",
+      "strategic_value": "early_loot_to_recovery_pocket"
+    }
+  ]
+}

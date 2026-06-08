@@ -98,6 +98,10 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_sluice_crossing_probe.json scale_preset=poi_probe
 # POI probe simulations are structural/readability checks. Existing scale telemetry thresholds are reference-only here.
 
+# v2.0 Wire Maze POI probe smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_wire_maze_probe.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_wire_maze_probe.json scale_preset=poi_probe
+
 # v2.0 40-bot scale preset smoke
 python tools/simulate_matches.py 1 normal scale_preset=large_40
 

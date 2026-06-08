@@ -6,6 +6,29 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 POI Probe - Wire Maze
+
+**Scope**
+
+- Added `data/mapSpec_poi_wire_maze_probe.json` as the second POI-level structural probe.
+- The probe is a compact 76m sparse maze with a direct lane, north concealed flank, south recovery flank, shed re-entry, and loot-to-recovery flow.
+- Added `tools/verify_poi_wire_maze_probe.gd` to validate role counts, direct lane width/alternate route, sparse wall count, connected POIs, key position classification, and compact probe scale.
+- Updated [TESTING.md](TESTING.md) with the new smoke commands.
+
+**Verification**
+
+- `python -m json.tool data/mapSpec_poi_wire_maze_probe.json` passed.
+- `git diff --check` passed.
+- `verify_poi_wire_maze_probe.gd` passed: 6 POIs, 5 routes, 15 obstacles, direct lane as `primary_choke`, 2 flanks, 1 recovery exit, 1 loot flow.
+- Runtime path load passed with `map_spec_path=res://data/mapSpec_poi_wire_maze_probe.json scale_preset=poi_probe`; only the expected AssetCatalog fallback warning remained.
+
+**Decision**
+
+- Keep this as a structure/readability/collision probe.
+- Do not densify the maze before a short simulation or manual visual review. Next autonomous unit should be either Wire Maze 1-3 run reference simulation or Black Ridge structural probe.
+
+---
+
 ## v2 POI Probe - Sluice Crossing
 
 **Scope**

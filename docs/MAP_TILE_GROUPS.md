@@ -312,6 +312,12 @@ First POI-level probe:
 - `tools/verify_poi_sluice_crossing_probe.gd`
 - compact 72m direct-crossing test with north/south flanks and pump re-entry.
 
+Second POI-level probe:
+
+- `data/mapSpec_poi_wire_maze_probe.json`
+- `tools/verify_poi_wire_maze_probe.gd`
+- compact 76m sparse-maze test with direct lane, north/south flanks, and shed re-entry.
+
 Main shift from Balanced 99 Forest:
 
 - do not rely on a universal center loot hub as the primary collision engine;
