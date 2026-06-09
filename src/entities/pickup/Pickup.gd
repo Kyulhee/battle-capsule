@@ -13,6 +13,9 @@ var _focus_marker: MeshInstance3D = null
 var _icon_resolver = PickupIconResolverScript.new()
 var _los_timer: float = 0.0
 var _focused: bool = false
+var _light: OmniLight3D = null
+var _light_base_energy: float = 0.0
+var _light_base_range: float = 0.0
 
 func _ready():
 	add_to_group("pickups")
@@ -31,6 +34,7 @@ func _update_visibility_for_player():
 	visible = sensed
 	_refresh_label_for_player(player, sensed)
 	_update_focus_marker_visibility(sensed)
+	_update_light_lod(player, sensed)
 
 func set_focused(value: bool) -> void:
 	if _focused == value:
@@ -38,6 +42,7 @@ func set_focused(value: bool) -> void:
 	_focused = value
 	_refresh_label_for_player()
 	_update_focus_marker_visibility(visible)
+	_update_light_lod(get_tree().get_first_node_in_group("players"), visible)
 
 func init(data: ItemData):
 	item = data
@@ -83,14 +88,36 @@ func _update_visuals():
 				mesh_inst.mesh = armor_plate
 				mesh_inst.position = Vector3(0, 0.105, 0)
 		if has_node("OmniLight3D"):
-			var light = $OmniLight3D
-			light.light_color = base_color
-			light.light_energy = visual_params.get("light_energy", 0.8)
-			light.omni_range = visual_params.get("light_range", 2.2)
+			_light = $OmniLight3D
+			_light.light_color = base_color
+			_light_base_energy = visual_params.get("light_energy", 0.8)
+			_light_base_range = visual_params.get("light_range", 2.2)
+			_light.light_energy = _light_base_energy
+			_light.omni_range = _light_base_range
 		_update_focus_marker(base_color)
 	_update_icon_decal()
 
 	_update_label_node()
+
+func _update_light_lod(player: Node = null, sensed: bool = false) -> void:
+	if not is_instance_valid(_light):
+		return
+	if not sensed or not (player is Node3D):
+		_light.visible = false
+		return
+
+	var player_3d := player as Node3D
+	var dist := player_3d.global_position.distance_to(global_position)
+	if _focused or dist <= PickupPresentationScript.LIGHT_LOD_FULL_DISTANCE:
+		_light.visible = true
+		_light.light_energy = _light_base_energy
+		_light.omni_range = _light_base_range
+	elif dist <= PickupPresentationScript.LIGHT_LOD_DIM_DISTANCE:
+		_light.visible = true
+		_light.light_energy = _light_base_energy * PickupPresentationScript.LIGHT_LOD_DIM_ENERGY_MULT
+		_light.omni_range = _light_base_range * PickupPresentationScript.LIGHT_LOD_DIM_RANGE_MULT
+	else:
+		_light.visible = false
 
 func _update_label_node() -> void:
 	if is_instance_valid(_label):

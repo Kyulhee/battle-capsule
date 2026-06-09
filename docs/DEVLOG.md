@@ -1,8 +1,36 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-09. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-10. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 Performance LOD - Pickup Lights
+
+**Scope**
+
+- Added distance-based LOD for pickup `OmniLight3D` nodes.
+- Sensed pickups still keep their body/icon visibility, but their light is now:
+  - full strength near the player;
+  - dimmed at mid distance;
+  - culled at far distance;
+  - restored when the pickup is focused for readability.
+- Kept bot AI update cadence untouched in this slice. Bot AI LOD affects the state machine and should be handled as a separate unit.
+
+**Verification**
+
+- `verify_pickup_light_lod.gd` passed.
+- `verify_player_night_readability.gd` still passed.
+- Night candidate `visual_review` runtime load passed:
+  - command: `map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review`
+  - only the expected AssetCatalog fallback warning remained.
+
+**Decision**
+
+- 99-player AI remains a target, but manual visual inspection and structural load probes must stay separated.
+- `visual_review` should be the default renderer check. If it still lags, use `bot_count=0 loot_count=24`.
+- Next performance work should inspect bot AI update cadence/LOD separately, with behavior regression checks.
 
 ---
 

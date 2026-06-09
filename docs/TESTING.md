@@ -97,7 +97,8 @@ python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest
 python tools/analyze_results.py C:\tmp\game_dev_night_candidate_99_probe_v1
 # The 1-run Night candidate simulation is a structural reference only. Do not treat its duration as the 10-15 minute pacing gate.
 
-# v2.0 player-facing night readability smoke
+# v2.0 player-facing night readability / pickup light LOD smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pickup_light_lod.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_player_night_readability.gd
 ./Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_player_night_readability.gd
 # Capture output: C:\tmp\player_night_readability.png

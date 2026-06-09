@@ -1,14 +1,14 @@
 # Next Chat Handoff
 
-> Last updated: 2026-06-09. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
+> Last updated: 2026-06-10. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
 
 ## Current State
 
 - Branch: `master`.
-- Latest pushed code slice: Night Artificial Forest candidate `0.2-poi-probe-integrated` structure iteration (`167dd29 tune night forest candidate structure`).
-- Latest local slice: player-facing Night readability first pass.
+- Latest pushed code slice: pickup light LOD first pass.
+- Latest local slice: none expected after this push, except preserved local/untracked notes below.
 - Current planning pivot: v2 scale telemetry is now treated as a **structural safety gate**, not final 99-player balance.
-- Current map direction: validate player-facing flashlight/readability before adding bot night-awareness complexity.
+- Current map direction: keep 99 AI as a target, but separate manual visual inspection from structural load probes before adding bot night-awareness complexity.
 - Target match length for the intended main game: 10-15 minutes.
 - Default map and default scale preset are still not promoted to 99 players.
 - `target_99_probe` remains candidate-only.
@@ -65,13 +65,20 @@ Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_fu
    - Next preferred check is a visual/manual pass on flashlight framing, item readability, bush readability, and combat readability.
    - Do not give every bot full flashlight/battery/fear behavior yet.
    - Later bot work should start with abstract night awareness, not cone-vs-cone inventory simulation.
-2. Night candidate map baseline now exists.
+2. `N2-PERF-01` pickup light LOD is now the current local slice.
+   - Pickup bodies/icons still follow existing player sensing.
+   - Pickup `OmniLight3D` now uses distance LOD: full near the player, dim at mid distance, off at far distance.
+   - Focused pickups restore full light for readability.
+   - `verify_pickup_light_lod.gd` passed.
+   - Night candidate `visual_review` runtime load passed; only expected AssetCatalog fallback warnings remained.
+   - This does not solve 99 AI cost by itself. Bot AI update cadence/LOD is the next separate performance unit.
+3. Night candidate map baseline now exists.
    - `data/mapSpec_night_forest_candidate.json` is at `0.2-poi-probe-integrated`.
    - Cabin Row and Broadcast Fence/Wire side were de-cluttered based on high stuck observations.
    - JSON parse, `verify_night_forest_candidate.gd`, `xlarge_60` runtime load, and `target_99_probe` runtime load passed.
    - 99-player 1-run reference at `C:\tmp\game_dev_night_candidate_99_probe_v1`: duration 165.4s, stage 2, spawn placed 100/100, fallback 0.0/run, saturation 0.20, zero damage/shot/combat-plan sentinels clear.
    - Observation, not hard fail: stuck 101.0/run and zone deaths 4.0/run remain visible before adding more density or treating pace as final.
-3. Existing POI probe references remain useful context.
+4. Existing POI probe references remain useful context.
    - Sluice 3-run reference at `C:\tmp\game_dev_sluice_probe_v1`: avg duration 69.1s, fallback 0.0/run, zone deaths 0, no zero-damage/shot/combat-plan sentinels.
    - Wire Maze 3-run reference at `C:\tmp\game_dev_wire_maze_probe_v1`: avg duration 66.6s, fallback 0.0/run, zone deaths 0, no zero-damage/shot/combat-plan sentinels. Route damage pressure: primary_choke 46.0%, flank 27.1%, recovery_exit 17.0%, off_route 9.6%.
    - Black Ridge 3-run reference at `C:\tmp\game_dev_black_ridge_probe_v1`: avg duration 74.0s, fallback 0.0/run, zone deaths 0, stuck 6.7/run, sentinels clear.
@@ -82,13 +89,13 @@ Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_fu
    - Broadcast Fence 3-run reference at `C:\tmp\game_dev_broadcast_fence_probe_v1`: avg duration 73.5s, fallback 0.0/run, zone deaths 1, stuck 11.3/run, sentinels clear.
    - Cabin Row and Broadcast Fence are the main observation points before adding more cover or future visibility systems.
    - Existing scale gates are reference-only for POI probes; do not tune duration or first-upgrade timing from these minimaps.
-4. Run current scale tooling as structural checks only on the night candidate.
+5. Run current scale tooling as structural checks only on the night candidate.
    - Do not tune combat/CHASE percentages as final design targets yet.
    - Keep fallback 0, clearance, route/POI coverage, stuck, disengage, zone escape, and AI cost visible.
-5. Prototype night vision carefully.
+6. Prototype night vision carefully.
    - Start with player-facing flashlight and reveal/readability.
    - Bots should first use abstract night awareness, not full flashlight/battery/fear state.
-6. Build a separate 10-15 minute pacing gate after the map and first night-vision pass exist.
+7. Build a separate 10-15 minute pacing gate after the map and first night-vision pass exist.
 
 ## Verification Reminders
 
@@ -98,6 +105,7 @@ Docs-only work:
 
 Candidate map work:
 
+- `tools/verify_pickup_light_lod.gd`
 - `tools/verify_player_night_readability.gd`
 - `.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_player_night_readability.gd`
 - `.\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review`
