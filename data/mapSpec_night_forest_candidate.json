@@ -3,7 +3,7 @@
     "id": "night_artificial_forest_candidate",
     "name": "Night Artificial Forest Candidate",
     "theme": "night_artificial_forest",
-    "version": "0.2-poi-probe-integrated",
+    "version": "0.3-visual-review-preset",
     "world_size": 180,
     "layout": "diagonal_sluice_black_ridge_wire_broadcast_false_clinic_probe_integrated"
   },
@@ -57,6 +57,44 @@
         "bot_count": 11,
         "loot_count": 56,
         "spawn_radius": 60.0
+      }
+    },
+    "visual_review": {
+      "match": {
+        "bot_count": 8,
+        "loot_count": 45,
+        "spawn_radius": 54.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 80,
+          "inner_radius": 8.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.0,
+          "stage_wave_prob_per_stage": 0.0,
+          "stage_wave_count_mult": 0,
+          "hotspot_density_mult": 0.86,
+          "rare_bias_mult": 1.10
+        }
+      },
+      "zone": {
+        "initial_timer": 180.0,
+        "wait_time": 180.0,
+        "shrink_time": 60.0,
+        "damage_per_second": 1.0,
+        "stages": {
+          "2": {
+            "wait_time": 120.0,
+            "shrink_time": 48.0,
+            "damage_per_second": 2.0
+          },
+          "3": {
+            "wait_time": 90.0,
+            "shrink_time": 40.0,
+            "damage_per_second": 4.0
+          }
+        }
       }
     },
     "xlarge_60": {

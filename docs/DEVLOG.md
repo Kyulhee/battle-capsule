@@ -12,6 +12,7 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 - Added `PlayerNightReadability.gd` as a small player-only controller for existing `VisionSpot` and `ProximityLight`.
 - Added `capture_player_night_readability.gd` to produce a direct review PNG at `C:\tmp\player_night_readability.png`.
+- Added a `visual_review` scale preset to the Night candidate because `xlarge_60` is too heavy for manual visual inspection.
 - Night profile activates from map metadata for the Night Artificial Forest candidate.
 - Default/non-night maps restore the scene's existing light values.
 - Did not add bot flashlight inventory, battery, fear, blackout, or cone-vs-cone perception.
@@ -26,11 +27,19 @@ Do not load full snapshots by default. Use this file for the current state and o
   - duration 122.2s, stage 2, spawn fallback 0.0/run
   - regression sentinels clear: zero damage, zero weapon damage, zero shots, zero combat-plan runs all absent
   - observation: stuck 59.0/run and zone deaths 4.0/run remain structural/readability follow-up signals, not flashlight balance targets.
+- `visual_review` is the intended manual renderer preset: 8 bots, 45 loot, no stage loot waves, slow zone.
+- `visual_review` 1-run smoke passed:
+  - output: `C:\tmp\game_dev_night_visual_review_smoke_v1`
+  - duration 287.2s, stage 2, spawn fallback 0.0/run, zone deaths 0
+  - regression sentinels clear
+  - AI update budget avg 184.4us, much lower than the 60/99 structural probes
 
 **Decision**
 
 - This is a player-facing readability prototype only.
 - Before expanding to bot night awareness, do a visual/manual pass on flashlight framing, item readability, bush readability, and combat readability.
+- Do not use `xlarge_60` or `target_99_probe` for manual visual checks unless specifically testing performance.
+- The earlier manual visual command used `xlarge_60`; that was a load-test preset and can lag heavily because it runs 60 bots, 150 pickups, many pickup lights, and full AI/navigation in the normal renderer.
 
 ---
 

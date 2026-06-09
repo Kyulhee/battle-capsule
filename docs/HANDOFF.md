@@ -57,6 +57,9 @@ Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_fu
    - `PlayerNightReadability.gd` now switches the existing player `VisionSpot`/`ProximityLight` into a night profile for Night Artificial Forest metadata.
    - `verify_player_night_readability.gd` passed.
    - `capture_player_night_readability.gd` writes `C:\tmp\player_night_readability.png` for direct review.
+   - Manual visual inspection should use `scale_preset=visual_review`, not `xlarge_60`.
+   - `visual_review` is 8 bots / 45 loot / no stage loot waves / slow zone. If it still lags, add `bot_count=0 loot_count=24`.
+   - `visual_review` 1-run smoke at `C:\tmp\game_dev_night_visual_review_smoke_v1`: duration 287.2s, fallback 0.0/run, zone deaths 0, regression sentinels clear, AI update avg 184.4us.
    - Night candidate `xlarge_60` runtime load passed.
    - Night candidate `xlarge_60` 1-run smoke at `C:\tmp\game_dev_night_readability_smoke_v1`: duration 122.2s, fallback 0.0/run, regression sentinels clear, stuck 59.0/run, zone deaths 4.0/run.
    - Next preferred check is a visual/manual pass on flashlight framing, item readability, bush readability, and combat readability.
@@ -97,6 +100,8 @@ Candidate map work:
 
 - `tools/verify_player_night_readability.gd`
 - `.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_player_night_readability.gd`
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review`
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review bot_count=0 loot_count=24`
 - `tools/verify_strategic_flow_map.gd`
 - `tools/verify_candidate_99_probe.gd`
 - `tools/verify_night_forest_candidate.gd`

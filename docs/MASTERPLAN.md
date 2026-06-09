@@ -15,6 +15,7 @@
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
+| 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -138,6 +139,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 4. **야간 시야 1차 prototype**
    - 상태: 플레이어 전용 `VisionSpot`/`ProximityLight` night profile smoke 완료.
    - 봇은 처음부터 배터리/공포/손전등 inventory를 갖지 않는다. 추상 night awareness와 player reveal 반응부터 시작한다.
+   - 수동 화면 확인은 `scale_preset=visual_review`로 한다. 8봇/45픽업/느린 자기장 프리셋이며, 더 가볍게 보려면 `bot_count=0 loot_count=24`를 추가한다.
    - 다음 확인: 수동 화면에서 손전등 프레이밍, 아이템 판독성, 부쉬 판독성, 교전 판독성을 확인한다.
 5. **10-15분 pacing gate**
    - 첫 교전 시간, 첫 non-pistol upgrade, 첫 횡단, 중반 재진입, 최종 교전, 평균 매치 시간, AI cost를 새 기준으로 수집한다.
@@ -188,6 +190,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-SIM-01 완료: Black Ridge, False Clinic, Supply Flats, Ammunition Pockets, Cabin Row, Broadcast Fence 3-run reference simulation 완료. 6개 모두 fallback 0.0/run, zero damage/shot/combat-plan sentinel 0. Cabin Row와 Broadcast Fence는 stuck 관찰 대상이고, Broadcast Fence는 zone death 1회가 있었다.
 - N2-MAP-01 완료: `data/mapSpec_night_forest_candidate.json`를 `0.2-poi-probe-integrated`로 갱신했다. Cabin Row와 Broadcast Fence 주변 장애물 밀도를 낮추고 route/POI 분류 좌표는 유지했다. JSON parse, `verify_night_forest_candidate.gd`, `xlarge_60` runtime load, `target_99_probe` runtime load, 99인 1-run reference simulation을 통과했다. 1-run 결과는 duration 165.4s, fallback 0.0/run, sentinel clear, stuck 101.0/run, zone deaths 4.0/run이다.
 - N2-VIS-01 1차 완료: `PlayerNightReadability.gd`가 야간 후보 map metadata에서 기존 `VisionSpot`/`ProximityLight`를 손전등 프로필로 전환한다. 기본 맵에서는 기존 조명값을 복원한다. `verify_player_night_readability.gd`, Night 후보 `xlarge_60` runtime load, Night 후보 `xlarge_60` 1-run smoke를 통과했다.
+- N2-VIS-01 수동 검토 프리셋 추가: `visual_review`는 8봇, 45픽업, stage loot wave 0, 느린 자기장으로 구성했다. 1-run smoke는 duration 287.2s, fallback 0.0/run, zone deaths 0, sentinel clear, AI update avg 184.4us였다. `xlarge_60`은 60봇/150픽업/다수 pickup light 때문에 수동 검토용으로 쓰지 않는다.
 - 다음 우선순위: 손전등 수동 화면 검토 후 N2-AI-01 봇 추상 야간 인지. 기존 POI 프로브를 수동으로 보고 싶다면 `scale_preset=poi_probe`와 각 `map_spec_path`로 실행한다.
 
 ## 비목표

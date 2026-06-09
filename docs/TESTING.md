@@ -104,8 +104,14 @@ python tools/analyze_results.py C:\tmp\game_dev_night_candidate_99_probe_v1
 python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60 out_dir=C:\tmp\game_dev_night_readability_smoke_v1
 python tools/analyze_results.py C:\tmp\game_dev_night_readability_smoke_v1
 
-# Manual visual pass: normal renderer, menu start, no autostart time scaling
-./Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60
+# Manual visual pass: normal renderer, menu start, no autostart time scaling.
+# Use visual_review, not xlarge_60/target_99_probe. Those presets are structural load tests and can lag heavily.
+./Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review
+# If this still lags, use a static low-actor pass:
+./Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review bot_count=0 loot_count=24
+# Optional visual_review match smoke:
+python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review out_dir=C:\tmp\game_dev_night_visual_review_smoke_v1
+python tools/analyze_results.py C:\tmp\game_dev_night_visual_review_smoke_v1
 
 # v2.0 Sluice Crossing POI probe smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_sluice_crossing_probe.gd
