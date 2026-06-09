@@ -6,6 +6,41 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Night Candidate Map Iteration
+
+**Scope**
+
+- Folded the 8 POI probe lessons back into `data/mapSpec_night_forest_candidate.json`.
+- Updated candidate metadata to `0.2-poi-probe-integrated`.
+- Kept route topology and verifier key classification points unchanged.
+- Reduced obstruction pressure around the two highest-stuck observation POIs:
+  - Cabin Row: moved/shrank nearby canyon wall, tree cluster, and bush patch away from the readable lane.
+  - Broadcast Fence/Wire Maze side: shrank and offset log piles to keep the gate structural but less cluttered.
+
+**Verification**
+
+- `python -m json.tool data\mapSpec_night_forest_candidate.json` passed.
+- `verify_night_forest_candidate.gd` passed: 14 POIs, 6 routes, `target_99_probe` bots=99, loot=240.
+- Runtime path load passed for both:
+  - `scale_preset=xlarge_60`
+  - `scale_preset=target_99_probe`
+- Both runtime loads only showed the expected AssetCatalog fallback warning.
+- One 99-player candidate reference simulation passed:
+  - output: `C:\tmp\game_dev_night_candidate_99_probe_v1`
+  - duration 165.4s, stage 2, spawn placed 100/100, fallback 0.0/run, saturation 0.20
+  - regression sentinels clear: zero damage, zero weapon damage, zero shots, zero combat-plan runs all absent
+  - combat route damage: primary_choke 48.9%, off_route 32.6%, loot_flow 12.0%, recovery_exit 3.5%, flank 3.0%
+  - POI damage: open 56.5%, transit_choke 24.4%, concealment_field 18.7%, recovery_pocket 0.4%
+  - observation: stuck 101.0/run and zone deaths 4.0/run remain visible structural risks before densifying or adding night visibility.
+
+**Decision**
+
+- Treat this as a structural candidate baseline, not a 10-15 minute pacing pass.
+- The 99-player spawn/route/telemetry path is alive on the Night candidate, but stuck and zone pressure need continued observation.
+- Next autonomous unit should start `N2-VIS-01`: player-facing flashlight/readability prototype, with bots limited to abstract night awareness in later work.
+
+---
+
 ## v2 POI Probe Reference Simulation Batch
 
 **Scope**

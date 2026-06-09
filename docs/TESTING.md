@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-09 (Night POI 프로브 세트 추가)
+> 마지막 업데이트: 2026-06-09 (Night 후보 맵 0.2 구조 반복 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -92,6 +92,10 @@ python tools/simulate_matches.py 1 normal bot_count=20 loot_count=80 zone_wait=2
 # v2.0 Night Artificial Forest candidate smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_night_forest_candidate.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe
+python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_night_candidate_99_probe_v1
+python tools/analyze_results.py C:\tmp\game_dev_night_candidate_99_probe_v1
+# The 1-run Night candidate simulation is a structural reference only. Do not treat its duration as the 10-15 minute pacing gate.
 
 # v2.0 Sluice Crossing POI probe smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_sluice_crossing_probe.gd

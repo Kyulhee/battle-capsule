@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-09 (Night POI reference simulation 세트 완료)
+> 마지막 업데이트: 2026-06-09 (Night 후보 맵 0.2 구조 반복 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,9 +9,9 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 코드 슬라이스 | Night Artificial Forest 핵심 POI 구조/시뮬레이션 세트 |
-| 현재 문서 슬라이스 | 8개 핵심 POI 프로브 smoke/runtime + 3-run reference 기록 |
-| 다음 구현 후보 | 야간 후보 맵 구조 반복 |
+| 최신 완료 코드 슬라이스 | Night Artificial Forest 후보 맵 0.2 구조 반복 |
+| 현재 문서 슬라이스 | POI 프로브 결과를 후보 맵에 반영하고 99인 1-run 기준선 기록 |
+| 다음 구현 후보 | 플레이어-facing 손전등/readability 1차 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
@@ -30,7 +30,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - v2.0.40까지의 긴 telemetry 작업은 "99인 완성 밸런스"가 아니라 "맵/스폰/루트/AI 비용이 무너지지 않는지 보는 구조 안전성 백본"으로 격하한다.
 - 다음 본편 후보는 기존 Balanced 99 Forest 개념을 그대로 구현하는 대신, `plan_report/`의 **야간 인공 숲 콜로세움** 방향을 우선 검토한다.
 - 중앙 만능 허브보다 대각선 강/수문/횡단로가 회전 압력을 만드는 구조가 더 적합하다. `Sluice Crossing`은 중심 충돌축, `Black Ridge`는 제한된 파워 포지션, `False Clinic`은 회복/스토리 루프 역할을 맡긴다.
-- 99인 맵은 `data/mapSpec_night_forest_candidate.json`으로 첫 구조 후보를 만들었다. POI 미니맵은 `Sluice Crossing`, `Wire Maze`, `Black Ridge`, `False Clinic`, `Supply Flats`, `Ammunition Pockets`, `Cabin Row`, `Broadcast Fence`까지 분리했고 모두 smoke/runtime과 3-run reference simulation 기준선을 확보했다. 완성 체감을 매번 전체 맵으로 검증하지 않고, POI 미니맵과 주요 기능 프록시 시뮬레이션을 병행한다.
+- 99인 맵은 `data/mapSpec_night_forest_candidate.json`으로 첫 구조 후보를 만들었다. POI 미니맵은 `Sluice Crossing`, `Wire Maze`, `Black Ridge`, `False Clinic`, `Supply Flats`, `Ammunition Pockets`, `Cabin Row`, `Broadcast Fence`까지 분리했고 모두 smoke/runtime과 3-run reference simulation 기준선을 확보했다. 이 결과를 바탕으로 후보 맵은 `0.2-poi-probe-integrated`까지 소폭 반복했다. 완성 체감을 매번 전체 맵으로 검증하지 않고, POI 미니맵과 주요 기능 프록시 시뮬레이션을 병행한다.
 - 손전등, 배터리, 공포, 정전은 본편 체감의 핵심 후보지만 첫 단계부터 모든 봇에게 풀 시스템으로 적용하지 않는다. 처음에는 플레이어-facing 시스템과 봇의 추상 야간 인지만 검증한다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
@@ -128,13 +128,13 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
    - [NIGHT_BR_PACING_PLAN.md](NIGHT_BR_PACING_PLAN.md)에 10-15분 pacing, 야간 시스템 단계, 테스트 계층을 기록한다.
    - [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md)에 야간 인공 숲 후보와 8개 POI mapping을 반영한다.
 2. **99인 후보 mapSpec 초안**
-   - 상태: `data/mapSpec_night_forest_candidate.json` 생성됨.
+   - 상태: `data/mapSpec_night_forest_candidate.json` 생성 및 0.2 구조 반복 완료.
    - `Sluice Crossing`, `Black Ridge`, `False Clinic`, `Wire Maze`를 우선 축으로 삼은 180m 후보다.
-   - `tools/verify_night_forest_candidate.gd`와 runtime path smoke는 통과했다.
+   - `tools/verify_night_forest_candidate.gd`, `xlarge_60` runtime load, `target_99_probe` runtime load는 통과했다.
 3. **POI 미니맵/기능 프록시**
    - 상태: 핵심 8개 POI 프로브 생성, smoke/runtime, 3-run reference simulation 통과.
    - 전체 99인 맵만 반복 실행하지 않는다.
-   - 다음 후보: 8개 프로브의 관찰 신호를 바탕으로 전체 Night 후보 맵을 소폭 반복.
+   - 후보 맵 1-run 구조 기준선: duration 165.4s, fallback 0.0/run, sentinel clear, primary_choke damage 48.9%, stuck 101.0/run, zone deaths 4.0/run.
 4. **야간 시야 1차 prototype**
    - 플레이어 손전등/조명/어둠 체감을 먼저 만든다.
    - 봇은 처음부터 배터리/공포/손전등 inventory를 갖지 않는다. 추상 night awareness와 player reveal 반응부터 시작한다.
@@ -159,7 +159,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-POI-09 | Cabin Row 은폐/근접전 프로브 | concealment field + readable lane `mapSpec`, verifier | concealment classification, runtime load | interior/climb 구현 금지. 시야가 과밀하면 wall/bush 축소 |
 | N2-POI-10 | Broadcast Fence 통과/목표지 프로브 | fence gate + flanks `mapSpec`, verifier | transit_choke classification, runtime load | searchlight/전력 시스템 구현 금지. 구조만 검증 |
 | N2-SIM-01 | Black/False/Supply/Ammo/Cabin/Broadcast 짧은 시뮬레이션 | 6개 POI 3-run reference 결과와 문서 기록 | `simulate_matches.py`, JSON summary | duration/first upgrade 튜닝 금지. fallback, zone death, stuck, zero sentinel만 hard signal로 본다 |
-| N2-MAP-01 | 야간 후보 맵 구조 반복 | `mapSpec_night_forest_candidate.json` 소폭 수정 | `verify_night_forest_candidate.gd`, runtime load | POI 프로브 결과 없이 전체 맵 수치 튜닝 금지 |
+| N2-MAP-01 | 야간 후보 맵 구조 반복 | `mapSpec_night_forest_candidate.json` 소폭 수정 | `verify_night_forest_candidate.gd`, runtime load, 99인 1-run reference | POI 프로브 결과 없이 전체 맵 수치 튜닝 금지 |
 | N2-VIS-01 | 플레이어-facing 손전등 1차 | 플레이어 조명/readability prototype | Godot headless, 필요 시 수동 screenshot | 모든 봇 full flashlight/fear/battery 금지 |
 | N2-AI-01 | 봇 추상 야간 인지 | 거리/확신도 보정만 있는 작은 AI patch | 1-3 run smoke, AI cost 확인 | cone-vs-cone 고비용 시뮬레이션으로 확장 금지 |
 | N2-PACE-01 | 10-15분 pacing telemetry | match duration, first contact, crossing usage 등 row | smoke + analyzer 출력 확인 | 기존 100-170초 smoke 기준을 최종 목표로 오해하지 않기 |
@@ -185,7 +185,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-POI-09 완료: Cabin Row 프로브 smoke와 runtime load 통과. cabin interior는 만들지 않고 facade wall, bush, readable lane만 검증했다.
 - N2-POI-10 완료: Broadcast Fence 프로브 smoke와 runtime load 통과. fence/log gate와 flanks, Fuse Shelter reentry만 검증하고 searchlight/전력 시스템은 보류했다.
 - N2-SIM-01 완료: Black Ridge, False Clinic, Supply Flats, Ammunition Pockets, Cabin Row, Broadcast Fence 3-run reference simulation 완료. 6개 모두 fallback 0.0/run, zero damage/shot/combat-plan sentinel 0. Cabin Row와 Broadcast Fence는 stuck 관찰 대상이고, Broadcast Fence는 zone death 1회가 있었다.
-- 다음 우선순위: 8개 POI 프로브 결과를 바탕으로 `data/mapSpec_night_forest_candidate.json`를 소폭 반복한다. 기존 POI 프로브를 수동으로 보고 싶다면 `scale_preset=poi_probe`와 각 `map_spec_path`로 실행한다.
+- N2-MAP-01 완료: `data/mapSpec_night_forest_candidate.json`를 `0.2-poi-probe-integrated`로 갱신했다. Cabin Row와 Broadcast Fence 주변 장애물 밀도를 낮추고 route/POI 분류 좌표는 유지했다. JSON parse, `verify_night_forest_candidate.gd`, `xlarge_60` runtime load, `target_99_probe` runtime load, 99인 1-run reference simulation을 통과했다. 1-run 결과는 duration 165.4s, fallback 0.0/run, sentinel clear, stuck 101.0/run, zone deaths 4.0/run이다.
+- 다음 우선순위: N2-VIS-01 플레이어-facing 손전등/readability prototype. 기존 POI 프로브를 수동으로 보고 싶다면 `scale_preset=poi_probe`와 각 `map_spec_path`로 실행한다.
 
 ## 비목표
 
@@ -201,7 +202,15 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 
 - `git diff --check`
 
-후보 맵을 바꿀 때:
+후보 맵 구조를 소폭 반복할 때:
+
+- `tools/verify_night_forest_candidate.gd`
+- runtime load: `map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60`
+- runtime load: `map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe`
+- 1-run `target_99_probe` reference simulation
+- `git diff --check`
+
+후보 맵을 승격/비교 게이트로 올릴 때:
 
 - `tools/verify_strategic_flow_map.gd`
 - `tools/verify_candidate_99_probe.gd`

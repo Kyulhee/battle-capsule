@@ -396,6 +396,16 @@ Recommended route groups:
 - Do not tune for final 10-15 minute match length until the structural candidate passes.
 - Do not give every bot full flashlight/battery/fear behavior in the first candidate.
 
+### Candidate 0.2 Integration Notes
+
+`data/mapSpec_night_forest_candidate.json` is now at `0.2-poi-probe-integrated`.
+
+- Route topology and key classification points stayed unchanged.
+- Cabin Row was de-cluttered because its POI probe showed the highest stuck observation.
+- Broadcast Fence/Wire side log piles were shrunk and offset because the Broadcast probe also showed elevated stuck and one zone death.
+- The first 99-player candidate reference run passed spawn fallback and regression sentinels, but stuck and zone deaths remain observation points.
+- Treat this as a structural map baseline before flashlight/readability work, not as a pacing-balanced 10-15 minute match.
+
 ## External Planning Deliverable
 
 When returning an external map idea, provide one of these:
