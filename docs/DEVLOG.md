@@ -11,6 +11,7 @@ Do not load full snapshots by default. Use this file for the current state and o
 **Scope**
 
 - Added `PlayerNightReadability.gd` as a small player-only controller for existing `VisionSpot` and `ProximityLight`.
+- Added `capture_player_night_readability.gd` to produce a direct review PNG at `C:\tmp\player_night_readability.png`.
 - Night profile activates from map metadata for the Night Artificial Forest candidate.
 - Default/non-night maps restore the scene's existing light values.
 - Did not add bot flashlight inventory, battery, fear, blackout, or cone-vs-cone perception.
@@ -18,6 +19,7 @@ Do not load full snapshots by default. Use this file for the current state and o
 **Verification**
 
 - `verify_player_night_readability.gd` passed.
+- `capture_player_night_readability.gd` saved `C:\tmp\player_night_readability.png`.
 - Night candidate runtime load passed with `scale_preset=xlarge_60`; only the expected AssetCatalog fallback warning remained.
 - One Night candidate `xlarge_60` match smoke passed:
   - output: `C:\tmp\game_dev_night_readability_smoke_v1`

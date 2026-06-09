@@ -56,6 +56,7 @@ Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_fu
 1. Review or continue `N2-VIS-01`.
    - `PlayerNightReadability.gd` now switches the existing player `VisionSpot`/`ProximityLight` into a night profile for Night Artificial Forest metadata.
    - `verify_player_night_readability.gd` passed.
+   - `capture_player_night_readability.gd` writes `C:\tmp\player_night_readability.png` for direct review.
    - Night candidate `xlarge_60` runtime load passed.
    - Night candidate `xlarge_60` 1-run smoke at `C:\tmp\game_dev_night_readability_smoke_v1`: duration 122.2s, fallback 0.0/run, regression sentinels clear, stuck 59.0/run, zone deaths 4.0/run.
    - Next preferred check is a visual/manual pass on flashlight framing, item readability, bush readability, and combat readability.
@@ -95,6 +96,7 @@ Docs-only work:
 Candidate map work:
 
 - `tools/verify_player_night_readability.gd`
+- `.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_player_night_readability.gd`
 - `tools/verify_strategic_flow_map.gd`
 - `tools/verify_candidate_99_probe.gd`
 - `tools/verify_night_forest_candidate.gd`
