@@ -9,6 +9,8 @@ signal died
 
 const DEATH_EFFECT = preload("res://src/fx/DeathEffect.tscn")
 const ITEM_LOS_MASK: int = 1 | 8
+const PERCEPTION_UPDATE_INTERVAL_DEFAULT := 0.08
+const PERCEPTION_UPDATE_INTERVAL_PLAYER := 0.05
 
 var display_name: String = ""
 var kill_streak: int = 0
@@ -30,6 +32,8 @@ var _bush_areas: Array = []
 
 # Perception
 var perception_meters: Dictionary = {}
+var _perception_timer: float = 0.0
+var _perception_accumulated_delta: float = 0.0
 
 # Assist tracking: attacker node -> last hit timestamp
 var damage_history: Dictionary = {}
@@ -57,7 +61,22 @@ func _physics_process(delta):
 	if not is_on_floor():
 		velocity.y -= gravity * delta
 	move_and_slide()
-	_update_perception(delta)
+	_update_perception_lod(delta)
+
+func _update_perception_lod(delta: float) -> void:
+	_perception_accumulated_delta += delta
+	_perception_timer -= delta
+	if _perception_timer > 0.0:
+		return
+	var perception_delta := _perception_accumulated_delta
+	_perception_accumulated_delta = 0.0
+	_perception_timer = maxf(0.0, _perception_update_interval())
+	_update_perception(perception_delta)
+
+func _perception_update_interval() -> float:
+	if is_in_group("players"):
+		return PERCEPTION_UPDATE_INTERVAL_PLAYER
+	return PERCEPTION_UPDATE_INTERVAL_DEFAULT
 
 func _update_perception(delta):
 	var actors = get_tree().get_nodes_in_group("actors")

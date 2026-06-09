@@ -11,6 +11,12 @@ const BOT_DEBUG_LABEL_BUILDER = preload("res://src/entities/bot/BotDebugLabelBui
 const BOT_MARKER_FORMATTER = preload("res://src/entities/bot/BotMarkerFormatter.gd")
 const BOT_VISUAL_SKIN_CONTROLLER = preload("res://src/entities/bot/BotVisualSkinController.gd")
 const AI_UPDATE_TELEMETRY_SAMPLE_INTERVAL := 4
+const PERCEPTION_LOD_ATTACK_INTERVAL := 0.05
+const PERCEPTION_LOD_MOVING_INTERVAL := 0.08
+const PERCEPTION_LOD_IDLE_INTERVAL := 0.12
+const SENSORY_CLOSE_RANGE_INTERVAL := 0.05
+const SENSORY_GUNSHOT_INTERVAL := 0.10
+const SENSORY_FOOTSTEP_INTERVAL := 0.15
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -61,6 +67,9 @@ var _scan_phase: int = 0             # cycles: right flank → left flank → ra
 var _scan_alert: bool = false        # true when sound/event set scan_target; use full rotation speed
 var _objective_scan_timer: float = 0.0
 var _objective_scan_offset: float = 0.0
+var _close_range_check_timer: float = 0.0
+var _gunshot_check_timer: float = 0.0
+var _footstep_check_timer: float = 0.0
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -185,9 +194,9 @@ func _physics_process(delta):
 	_check_state_overrides(delta)
 	_check_survival_overrides()
 	_update_stuck(delta)
-	_check_footstep_sounds()
-	_check_close_range()
-	_check_gunshot_sounds()
+	_check_footstep_sounds(delta)
+	_check_close_range(delta)
+	_check_gunshot_sounds(delta)
 	_check_ambient_awareness(delta)
 	_update_state_label_visibility()
 	_update_archetype_marker_visibility()
@@ -230,6 +239,15 @@ func use_heal():
 func receive_ammo(weapon_type: String, amount: int):
 	if weapon_type == "" or weapon_type == stats.weapon_type:
 		reserve_ammo = min(stats.max_ammo, reserve_ammo + amount)
+
+func _perception_update_interval() -> float:
+	match current_state:
+		State.ATTACK:
+			return PERCEPTION_LOD_ATTACK_INTERVAL
+		State.CHASE, State.ZONE_ESCAPE, State.RECOVER, State.DISENGAGE:
+			return PERCEPTION_LOD_MOVING_INTERVAL
+		_:
+			return PERCEPTION_LOD_IDLE_INTERVAL
 
 func _try_reload():
 	if reserve_ammo <= 0: return
@@ -1517,7 +1535,11 @@ func _check_late_game():
 # Nearby idle/recovering bots boost their perception toward the source,
 # making running stealthy risky near bots.
 
-func _check_footstep_sounds():
+func _check_footstep_sounds(delta: float):
+	_footstep_check_timer -= delta
+	if _footstep_check_timer > 0.0:
+		return
+	_footstep_check_timer = SENSORY_FOOTSTEP_INTERVAL
 	var can_react_to_footsteps = current_state in [State.IDLE, State.RECOVER] \
 		or (current_state == State.CHASE and is_targeting_loot)
 	if not can_react_to_footsteps: return
@@ -1546,7 +1568,11 @@ func _check_footstep_sounds():
 # Nearby bots orient toward the shooter and gain partial perception.
 # Normal: 15m. Hard/Hell: 25m. Does NOT respect Silent Core (gunshots are loud).
 
-func _check_gunshot_sounds():
+func _check_gunshot_sounds(delta: float):
+	_gunshot_check_timer -= delta
+	if _gunshot_check_timer > 0.0:
+		return
+	_gunshot_check_timer = SENSORY_GUNSHOT_INTERVAL
 	var actors = get_tree().get_nodes_in_group("actors")
 	for actor in actors:
 		if actor == self or not actor is Entity or actor.is_dead: continue
@@ -1576,7 +1602,11 @@ func _check_gunshot_sounds():
 # Any actor within 2m is immediately fully detected — like bumping into someone.
 # Runs every physics frame in all states, regardless of awareness level.
 
-func _check_close_range():
+func _check_close_range(delta: float):
+	_close_range_check_timer -= delta
+	if _close_range_check_timer > 0.0:
+		return
+	_close_range_check_timer = SENSORY_CLOSE_RANGE_INTERVAL
 	var actors = get_tree().get_nodes_in_group("actors")
 	for actor in actors:
 		if actor == self or not actor is Entity or actor.is_dead: continue

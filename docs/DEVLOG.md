@@ -6,6 +6,54 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Performance LOD - AI Perception Tick
+
+**Scope**
+
+- Added accumulated-delta perception ticks in `Entity.gd` instead of running full perception every physics frame.
+- Kept player perception responsive at 0.05s.
+- Added bot state-based perception LOD:
+  - ATTACK: 0.05s
+  - CHASE / ZONE_ESCAPE / RECOVER / DISENGAGE: 0.08s
+  - IDLE: 0.12s
+- Throttled bot all-actor sensory loops:
+  - close range: 0.05s
+  - gunshot: 0.10s
+  - footstep: 0.15s
+- Did not skip movement, combat state handlers, shooting, damage reactions, zone escape, or stuck handling.
+
+**Verification**
+
+- `verify_ai_lod_perception.gd` passed.
+- `verify_pickup_light_lod.gd` passed.
+- `verify_player_night_readability.gd` passed.
+- Night candidate runtime load passed with both `visual_review` and `xlarge_60`; only expected AssetCatalog fallback warnings remained.
+- `visual_review` 1-run smoke passed:
+  - output: `C:\tmp\game_dev_ai_lod_visual_review_v1`
+  - duration 391.9s, fallback 0.0/run, zone deaths 0, stuck 4.0/run
+  - regression sentinels clear
+  - AI update budget avg 173.6us
+- `xlarge_60` 1-run smoke passed:
+  - output: `C:\tmp\game_dev_ai_lod_xlarge60_v1`
+  - duration 106.6s, fallback 0.0/run, zone deaths 0, stuck 31.0/run
+  - regression sentinels clear
+  - AI update budget avg 412.3us
+  - `check_scale_telemetry.py --min-runs 1` passed.
+- `target_99_probe` 1-run smoke passed:
+  - output: `C:\tmp\game_dev_ai_lod_target99_v1`
+  - duration 178.2s, fallback 0.0/run, zone deaths 1, stuck 51.0/run
+  - regression sentinels clear
+  - AI update budget avg 463.0us
+  - `check_scale_telemetry.py --min-runs 1` passed.
+
+**Decision**
+
+- This keeps the 99-player AI target alive while reducing the cost of repeated all-actor scans.
+- It is still a structural safety pass, not final 10-15 minute pacing or final night AI behavior.
+- Next AI work should be behavior-facing: abstract night awareness/reveal response, with repeated 99 probes only after the behavior shape is stable.
+
+---
+
 ## v2 Performance LOD - Pickup Lights
 
 **Scope**

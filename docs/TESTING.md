@@ -97,7 +97,8 @@ python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest
 python tools/analyze_results.py C:\tmp\game_dev_night_candidate_99_probe_v1
 # The 1-run Night candidate simulation is a structural reference only. Do not treat its duration as the 10-15 minute pacing gate.
 
-# v2.0 player-facing night readability / pickup light LOD smoke
+# v2.0 player-facing night readability / pickup light LOD / AI LOD smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pickup_light_lod.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_player_night_readability.gd
 ./Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_player_night_readability.gd
@@ -113,6 +114,14 @@ python tools/analyze_results.py C:\tmp\game_dev_night_readability_smoke_v1
 # Optional visual_review match smoke:
 python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review out_dir=C:\tmp\game_dev_night_visual_review_smoke_v1
 python tools/analyze_results.py C:\tmp\game_dev_night_visual_review_smoke_v1
+
+# Optional AI LOD structural smoke:
+python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60 out_dir=C:\tmp\game_dev_ai_lod_xlarge60_v1
+python tools/analyze_results.py C:\tmp\game_dev_ai_lod_xlarge60_v1
+python tools/check_scale_telemetry.py C:\tmp\game_dev_ai_lod_xlarge60_v1 --min-runs 1
+python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_ai_lod_target99_v1
+python tools/analyze_results.py C:\tmp\game_dev_ai_lod_target99_v1
+python tools/check_scale_telemetry.py C:\tmp\game_dev_ai_lod_target99_v1 --min-runs 1
 
 # v2.0 Sluice Crossing POI probe smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_sluice_crossing_probe.gd

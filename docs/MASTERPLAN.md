@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-10 (픽업 광원 LOD 1차 완료)
+> 마지막 업데이트: 2026-06-10 (AI perception LOD 1차 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,14 +9,14 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 코드 슬라이스 | 픽업 광원 LOD 1차 |
-| 현재 문서 슬라이스 | 야간 수동 화면 검토 렉 원인 분리와 LOD 기준선 기록 |
-| 다음 구현 후보 | 봇 AI 업데이트 LOD 설계 또는 봇 추상 야간 인지 1차 |
+| 최신 완료 코드 슬라이스 | AI perception/sensory LOD 1차 |
+| 현재 문서 슬라이스 | 99인 후보 구조 부하용 AI LOD 기준선 기록 |
+| 다음 구현 후보 | 봇 추상 야간 인지 또는 10-15분 pacing telemetry 초안 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
-| 성능 LOD 상태 | 픽업 광원은 거리 기반 full/dim/off LOD 적용. 봇 AI LOD는 다음 별도 단위 |
+| 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -35,6 +35,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - 99인 맵은 `data/mapSpec_night_forest_candidate.json`으로 첫 구조 후보를 만들었다. POI 미니맵은 `Sluice Crossing`, `Wire Maze`, `Black Ridge`, `False Clinic`, `Supply Flats`, `Ammunition Pockets`, `Cabin Row`, `Broadcast Fence`까지 분리했고 모두 smoke/runtime과 3-run reference simulation 기준선을 확보했다. 이 결과를 바탕으로 후보 맵은 `0.2-poi-probe-integrated`까지 소폭 반복했다. 완성 체감을 매번 전체 맵으로 검증하지 않고, POI 미니맵과 주요 기능 프록시 시뮬레이션을 병행한다.
 - 손전등, 배터리, 공포, 정전은 본편 체감의 핵심 후보지만 첫 단계부터 모든 봇에게 풀 시스템으로 적용하지 않는다. 처음에는 플레이어-facing 시스템과 봇의 추상 야간 인지만 검증한다.
 - 수동 화면 확인 렉은 99 AI 포기 신호가 아니라 테스트 계층 혼선과 렌더링/AI 부하가 섞인 신호로 본다. `visual_review`는 화면 검토용, `xlarge_60`/`target_99_probe`는 구조 부하 검증용으로 분리하고, 픽업 광원 LOD부터 적용했다.
+- AI LOD 1차는 봇 의사결정/전투/이동을 건너뛰지 않고 perception tick과 footstep/gunshot/close-range all-actor scan 주기만 낮춘다. 99 후보 1-run은 fallback 0과 regression sentinel clear를 유지했다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서
@@ -146,8 +147,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
    - 다음 확인: 수동 화면에서 손전등 프레이밍, 아이템 판독성, 부쉬 판독성, 교전 판독성을 확인한다.
 5. **봇 AI LOD/야간 인지 설계**
    - 99 AI 목표는 유지하지만 수동 화면 검토용 프리셋에서 full 99 AI를 돌리지 않는다.
-   - 봇 AI 업데이트 cadence/LOD는 state timer, stuck/zone/recover/attack transition을 건드릴 수 있으므로 픽업 광원 LOD와 별도 단위로 처리한다.
-   - 첫 봇 야간 작업은 cone-vs-cone 손전등 시뮬레이션이 아니라 거리/확신도 기반 추상 인지로 제한한다.
+   - AI perception/sensory LOD 1차는 완료했다. 전투/이동/피격/존 탈출은 매 frame 유지하고, perception/sound/proximity scan만 tick rate로 제한했다.
+   - 다음 봇 야간 작업은 cone-vs-cone 손전등 시뮬레이션이 아니라 거리/확신도 기반 추상 인지로 제한한다.
 6. **10-15분 pacing gate**
    - 첫 교전 시간, 첫 non-pistol upgrade, 첫 횡단, 중반 재진입, 최종 교전, 평균 매치 시간, AI cost를 새 기준으로 수집한다.
    - 현재 100-170초 scale smoke 수치는 구조 확인용으로만 해석한다.
@@ -172,6 +173,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-MAP-01 | 야간 후보 맵 구조 반복 | `mapSpec_night_forest_candidate.json` 소폭 수정 | `verify_night_forest_candidate.gd`, runtime load, 99인 1-run reference | POI 프로브 결과 없이 전체 맵 수치 튜닝 금지 |
 | N2-VIS-01 | 플레이어-facing 손전등 1차 | 플레이어 조명/readability prototype | Godot headless, 필요 시 수동 screenshot | 모든 봇 full flashlight/fear/battery 금지 |
 | N2-PERF-01 | 픽업 광원 LOD 1차 | 거리 기반 pickup light full/dim/off | `verify_pickup_light_lod.gd`, `visual_review` runtime load | 봇 AI update cadence와 같은 단위에서 처리 금지 |
+| N2-AI-LOD-01 | AI perception/sensory LOD 1차 | 상태별 perception tick, 보조 감지 loop throttle | `verify_ai_lod_perception.gd`, 60/99 1-run smoke | combat/movement/state handler skip 금지 |
 | N2-AI-01 | 봇 추상 야간 인지 | 거리/확신도 보정만 있는 작은 AI patch | 1-3 run smoke, AI cost 확인 | cone-vs-cone 고비용 시뮬레이션으로 확장 금지 |
 | N2-PACE-01 | 10-15분 pacing telemetry | match duration, first contact, crossing usage 등 row | smoke + analyzer 출력 확인 | 기존 100-170초 smoke 기준을 최종 목표로 오해하지 않기 |
 
@@ -200,7 +202,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-VIS-01 1차 완료: `PlayerNightReadability.gd`가 야간 후보 map metadata에서 기존 `VisionSpot`/`ProximityLight`를 손전등 프로필로 전환한다. 기본 맵에서는 기존 조명값을 복원한다. `verify_player_night_readability.gd`, Night 후보 `xlarge_60` runtime load, Night 후보 `xlarge_60` 1-run smoke를 통과했다.
 - N2-VIS-01 수동 검토 프리셋 추가: `visual_review`는 8봇, 45픽업, stage loot wave 0, 느린 자기장으로 구성했다. 1-run smoke는 duration 287.2s, fallback 0.0/run, zone deaths 0, sentinel clear, AI update avg 184.4us였다. `xlarge_60`은 60봇/150픽업/다수 pickup light 때문에 수동 검토용으로 쓰지 않는다.
 - N2-PERF-01 완료: pickup `OmniLight3D`에 거리 기반 LOD를 적용했다. 감지된 픽업 body/icon은 유지하되, 광원은 가까우면 full, 중거리면 dim, 멀면 off로 처리하고 focus 상태에서는 full로 복원한다. `verify_pickup_light_lod.gd`, `verify_player_night_readability.gd`, Night 후보 `visual_review` runtime load를 통과했다.
-- 다음 우선순위: N2-AI-01을 시작하기 전 봇 AI update cadence/LOD의 안전한 적용 범위를 먼저 확인한다. 기존 POI 프로브를 수동으로 보고 싶다면 `scale_preset=poi_probe`와 각 `map_spec_path`로 실행한다.
+- N2-AI-LOD-01 완료: `Entity` perception은 누적 delta tick으로 바꾸고, 봇은 ATTACK 0.05s / 이동계 상태 0.08s / IDLE 0.12s로 perception LOD를 적용했다. footstep/gunshot/close-range 스캔은 0.15s/0.10s/0.05s로 제한했다. `visual_review`, `xlarge_60`, `target_99_probe` 1-run smoke와 60/99 `check_scale_telemetry.py --min-runs 1`을 통과했다. 99 결과는 duration 178.2s, fallback 0.0/run, zone deaths 1, stuck 51.0/run, AI update avg 463.0us, sentinel clear다.
+- 다음 우선순위: N2-AI-01 봇 추상 야간 인지 또는 N2-PACE-01 10-15분 pacing telemetry 초안. 기존 POI 프로브를 수동으로 보고 싶다면 `scale_preset=poi_probe`와 각 `map_spec_path`로 실행한다.
 
 ## 비목표
 
@@ -235,6 +238,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 
 야간/페이싱을 바꿀 때:
 
+- `tools/verify_ai_lod_perception.gd`
 - `tools/verify_pickup_light_lod.gd`
 - `tools/verify_player_night_readability.gd`
 - 10-15분 목표에 맞춘 별도 telemetry row 추가
