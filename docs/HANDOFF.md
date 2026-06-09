@@ -5,10 +5,10 @@
 ## Current State
 
 - Branch: `master`.
-- Latest pushed code slice: core Night Artificial Forest POI probe set and 3-run references (`60f7012 feat: add night poi probe set`).
-- Latest local slice: Night Artificial Forest candidate `0.2-poi-probe-integrated` structure iteration plus one 99-player reference simulation.
+- Latest pushed code slice: Night Artificial Forest candidate `0.2-poi-probe-integrated` structure iteration (`167dd29 tune night forest candidate structure`).
+- Latest local slice: player-facing Night readability first pass.
 - Current planning pivot: v2 scale telemetry is now treated as a **structural safety gate**, not final 99-player balance.
-- Current map direction: move from the non-default 99-player **Night Artificial Forest** structure baseline into player-facing night readability.
+- Current map direction: validate player-facing flashlight/readability before adding bot night-awareness complexity.
 - Target match length for the intended main game: 10-15 minutes.
 - Default map and default scale preset are still not promoted to 99 players.
 - `target_99_probe` remains candidate-only.
@@ -41,6 +41,7 @@
 
 ## Recent Relevant Commits
 
+- `167dd29 tune night forest candidate structure` — pushed candidate `0.2-poi-probe-integrated` and structural reference notes.
 - `60f7012 feat: add night poi probe set` — pushed core 8 POI probe set, shared verifier, docs, and 3-run reference notes.
 - `5c2d7b3 docs: add 99 map tile group brief` — added `MAP_TILE_GROUPS.md` and linked it from active docs.
 - `c029db8 feat: add wire maze poi probe` — earlier Wire Maze POI probe slice.
@@ -52,8 +53,12 @@ Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_fu
 
 ## Next Work
 
-1. Start `N2-VIS-01`: player-facing flashlight/readability prototype.
-   - Begin with the player light cone, darkness readability, and manual/smoke validation.
+1. Review or continue `N2-VIS-01`.
+   - `PlayerNightReadability.gd` now switches the existing player `VisionSpot`/`ProximityLight` into a night profile for Night Artificial Forest metadata.
+   - `verify_player_night_readability.gd` passed.
+   - Night candidate `xlarge_60` runtime load passed.
+   - Night candidate `xlarge_60` 1-run smoke at `C:\tmp\game_dev_night_readability_smoke_v1`: duration 122.2s, fallback 0.0/run, regression sentinels clear, stuck 59.0/run, zone deaths 4.0/run.
+   - Next preferred check is a visual/manual pass on flashlight framing, item readability, bush readability, and combat readability.
    - Do not give every bot full flashlight/battery/fear behavior yet.
    - Later bot work should start with abstract night awareness, not cone-vs-cone inventory simulation.
 2. Night candidate map baseline now exists.
@@ -89,6 +94,7 @@ Docs-only work:
 
 Candidate map work:
 
+- `tools/verify_player_night_readability.gd`
 - `tools/verify_strategic_flow_map.gd`
 - `tools/verify_candidate_99_probe.gd`
 - `tools/verify_night_forest_candidate.gd`

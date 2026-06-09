@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-09 (Night 후보 맵 0.2 구조 반복 완료)
+> 마지막 업데이트: 2026-06-09 (플레이어 손전등/readability 1차 smoke 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,9 +9,9 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 코드 슬라이스 | Night Artificial Forest 후보 맵 0.2 구조 반복 |
-| 현재 문서 슬라이스 | POI 프로브 결과를 후보 맵에 반영하고 99인 1-run 기준선 기록 |
-| 다음 구현 후보 | 플레이어-facing 손전등/readability 1차 |
+| 최신 완료 코드 슬라이스 | 플레이어-facing 손전등/readability 1차 |
+| 현재 문서 슬라이스 | 야간 후보 맵 0.2와 플레이어 조명 smoke 기준선 기록 |
+| 다음 구현 후보 | 손전등 수동 화면 검토 후 봇 추상 야간 인지 1차 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
@@ -136,8 +136,9 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
    - 전체 99인 맵만 반복 실행하지 않는다.
    - 후보 맵 1-run 구조 기준선: duration 165.4s, fallback 0.0/run, sentinel clear, primary_choke damage 48.9%, stuck 101.0/run, zone deaths 4.0/run.
 4. **야간 시야 1차 prototype**
-   - 플레이어 손전등/조명/어둠 체감을 먼저 만든다.
+   - 상태: 플레이어 전용 `VisionSpot`/`ProximityLight` night profile smoke 완료.
    - 봇은 처음부터 배터리/공포/손전등 inventory를 갖지 않는다. 추상 night awareness와 player reveal 반응부터 시작한다.
+   - 다음 확인: 수동 화면에서 손전등 프레이밍, 아이템 판독성, 부쉬 판독성, 교전 판독성을 확인한다.
 5. **10-15분 pacing gate**
    - 첫 교전 시간, 첫 non-pistol upgrade, 첫 횡단, 중반 재진입, 최종 교전, 평균 매치 시간, AI cost를 새 기준으로 수집한다.
    - 현재 100-170초 scale smoke 수치는 구조 확인용으로만 해석한다.
@@ -186,7 +187,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-POI-10 완료: Broadcast Fence 프로브 smoke와 runtime load 통과. fence/log gate와 flanks, Fuse Shelter reentry만 검증하고 searchlight/전력 시스템은 보류했다.
 - N2-SIM-01 완료: Black Ridge, False Clinic, Supply Flats, Ammunition Pockets, Cabin Row, Broadcast Fence 3-run reference simulation 완료. 6개 모두 fallback 0.0/run, zero damage/shot/combat-plan sentinel 0. Cabin Row와 Broadcast Fence는 stuck 관찰 대상이고, Broadcast Fence는 zone death 1회가 있었다.
 - N2-MAP-01 완료: `data/mapSpec_night_forest_candidate.json`를 `0.2-poi-probe-integrated`로 갱신했다. Cabin Row와 Broadcast Fence 주변 장애물 밀도를 낮추고 route/POI 분류 좌표는 유지했다. JSON parse, `verify_night_forest_candidate.gd`, `xlarge_60` runtime load, `target_99_probe` runtime load, 99인 1-run reference simulation을 통과했다. 1-run 결과는 duration 165.4s, fallback 0.0/run, sentinel clear, stuck 101.0/run, zone deaths 4.0/run이다.
-- 다음 우선순위: N2-VIS-01 플레이어-facing 손전등/readability prototype. 기존 POI 프로브를 수동으로 보고 싶다면 `scale_preset=poi_probe`와 각 `map_spec_path`로 실행한다.
+- N2-VIS-01 1차 완료: `PlayerNightReadability.gd`가 야간 후보 map metadata에서 기존 `VisionSpot`/`ProximityLight`를 손전등 프로필로 전환한다. 기본 맵에서는 기존 조명값을 복원한다. `verify_player_night_readability.gd`, Night 후보 `xlarge_60` runtime load, Night 후보 `xlarge_60` 1-run smoke를 통과했다.
+- 다음 우선순위: 손전등 수동 화면 검토 후 N2-AI-01 봇 추상 야간 인지. 기존 POI 프로브를 수동으로 보고 싶다면 `scale_preset=poi_probe`와 각 `map_spec_path`로 실행한다.
 
 ## 비목표
 
@@ -221,6 +223,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 
 야간/페이싱을 바꿀 때:
 
+- `tools/verify_player_night_readability.gd`
 - 10-15분 목표에 맞춘 별도 telemetry row 추가
 - flashlight on ratio, battery depletion, darkness hit/kill, crossing usage, POI dwell, first-contact, first-upgrade, final-zone timing 확인
 - 봇 full night system 적용 전 AI cost와 behavior complexity review

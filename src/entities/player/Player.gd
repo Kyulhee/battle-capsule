@@ -63,6 +63,7 @@ const PlayerTuningScript = preload("res://src/entities/player/PlayerTuning.gd")
 const PlayerOccluderFaderScript = preload("res://src/entities/player/PlayerOccluderFader.gd")
 const PlayerArtifactRuntimeScript = preload("res://src/entities/player/PlayerArtifactRuntime.gd")
 const PlayerArtifactVisualsScript = preload("res://src/entities/player/PlayerArtifactVisuals.gd")
+const PlayerNightReadabilityScript = preload("res://src/entities/player/PlayerNightReadability.gd")
 const WeaponSlotManagerScript = preload("res://src/core/WeaponSlotManager.gd")
 
 # ── Weapon Slot Inventory ────────────────────────────────────────────────
@@ -89,6 +90,7 @@ var _weapon_icon_resolver = PlayerWeaponIconResolverScript.new()
 var _occluder_fader = PlayerOccluderFaderScript.new()
 var _artifact_runtime = PlayerArtifactRuntimeScript.new()
 var _artifact_visuals = PlayerArtifactVisualsScript.new()
+var _night_readability = PlayerNightReadabilityScript.new()
 var _focused_pickup: Pickup = null
 
 func _ready():
@@ -129,6 +131,12 @@ func _ready():
 	if has_node("MeshInstance3D"):
 		_mesh_origin_y = $MeshInstance3D.position.y
 	_artifact_visuals.attach(self)
+	_night_readability.attach(
+		self,
+		get_node_or_null("VisionSpot") as SpotLight3D,
+		get_node_or_null("ProximityLight") as OmniLight3D
+	)
+	_configure_night_readability()
 
 	health_changed.connect(_on_health_changed)
 	shield_changed.connect(_on_shield_changed)
@@ -309,6 +317,22 @@ func _apply_cosmetic_tint() -> void:
 	mat.albedo_color = body_tint
 	mat.roughness = 0.5
 	$MeshInstance3D.set_surface_override_material(0, mat)
+
+func _configure_night_readability() -> void:
+	var metadata := {}
+	var main = get_tree().root.get_node_or_null("Main")
+	if main:
+		var current_map_spec = main.get("map_spec")
+		if current_map_spec != null:
+			var raw_metadata = current_map_spec.get("metadata")
+			if typeof(raw_metadata) == TYPE_DICTIONARY:
+				metadata = raw_metadata
+		if metadata.is_empty():
+			metadata["id"] = String(main.get("map_spec_path"))
+	_night_readability.configure_for_metadata(metadata)
+
+func debug_night_readability_state() -> Dictionary:
+	return _night_readability.debug_state()
 
 func _process(delta):
 	_handle_wall_transparency(delta)

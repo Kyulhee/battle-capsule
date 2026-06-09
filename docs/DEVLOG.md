@@ -6,6 +6,32 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Night Readability - Player Flashlight First Pass
+
+**Scope**
+
+- Added `PlayerNightReadability.gd` as a small player-only controller for existing `VisionSpot` and `ProximityLight`.
+- Night profile activates from map metadata for the Night Artificial Forest candidate.
+- Default/non-night maps restore the scene's existing light values.
+- Did not add bot flashlight inventory, battery, fear, blackout, or cone-vs-cone perception.
+
+**Verification**
+
+- `verify_player_night_readability.gd` passed.
+- Night candidate runtime load passed with `scale_preset=xlarge_60`; only the expected AssetCatalog fallback warning remained.
+- One Night candidate `xlarge_60` match smoke passed:
+  - output: `C:\tmp\game_dev_night_readability_smoke_v1`
+  - duration 122.2s, stage 2, spawn fallback 0.0/run
+  - regression sentinels clear: zero damage, zero weapon damage, zero shots, zero combat-plan runs all absent
+  - observation: stuck 59.0/run and zone deaths 4.0/run remain structural/readability follow-up signals, not flashlight balance targets.
+
+**Decision**
+
+- This is a player-facing readability prototype only.
+- Before expanding to bot night awareness, do a visual/manual pass on flashlight framing, item readability, bush readability, and combat readability.
+
+---
+
 ## v2 Night Candidate Map Iteration
 
 **Scope**
