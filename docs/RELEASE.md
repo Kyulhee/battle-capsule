@@ -1,7 +1,7 @@
 # 릴리즈 가이드
 
 > 배틀캡슐 빌드 & GitHub 릴리즈 전체 절차
-> 현재 릴리즈: `v1.7.3.1`
+> 현재 릴리즈: `v2.0.0-pre-expansion`
 
 ---
 
@@ -13,10 +13,11 @@
 | v0.2.0~v0.2.1 | `v0.2.x` | `_vX.Y.Z_win64.zip` | — | zip 전환 |
 | v0.3.1 | `v0.3.1` | `_vX.Y.Z_win64.zip` | — | — |
 | v0.3.2~ | `v0.3.2` | `_vX.Y.Z_win64.zip` | `_mac.zip` | 한국어 릴리즈노트, 배지 방식 README |
+| v2.0.0-pre-expansion | `v2.0.0-pre-expansion` | `_v2.0.0-pre-expansion_win64.zip` | `_v2.0.0-pre-expansion_macos.zip` | 확장 전 안정 스냅샷 |
 
 **파일명 규칙**
-- Windows: `BattleRoyalePrototype_vX.Y.Z_win64.zip`
-- macOS: `BattleRoyalePrototype_mac.zip` ← 버전 미포함 (태그 경로로 구분됨)
+- Windows: `BattleRoyalePrototype_${VER}_win64.zip`
+- macOS: `BattleRoyalePrototype_${VER}_macos.zip`
 
 ---
 
@@ -59,7 +60,7 @@ VER="v0.4.0"
 # macOS (Universal)
 ./Godot_v4.6.2-stable_win64.exe --headless \
   --export-release "macOS" \
-  "builds/BattleRoyalePrototype_mac.zip"
+  "builds/BattleRoyalePrototype_${VER}_macos.zip"
 ```
 
 > macOS 빌드 주의:
@@ -83,7 +84,7 @@ git push origin $VER
 ```bash
 VER="v0.4.0"
 WIN_ZIP="builds/BattleRoyalePrototype_${VER}_win64.zip"
-MAC_ZIP="builds/BattleRoyalePrototype_mac.zip"
+MAC_ZIP="builds/BattleRoyalePrototype_${VER}_macos.zip"
 
 gh release create $VER \
   --title "배틀캡슐 $VER — 봇 AI 개선" \
@@ -113,7 +114,7 @@ EOF
 ## 다운로드 (v0.4.0)
 
 [![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.4.0/BattleRoyalePrototype_v0.4.0_win64.zip)
-[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.4.0/BattleRoyalePrototype_mac.zip)
+[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.4.0/BattleRoyalePrototype_v0.4.0_macos.zip)
 ```
 
 수정 후 커밋·푸시:
@@ -160,7 +161,7 @@ git push origin master
 title: 배틀캡슐 v0.3.2 — 탄약 시스템 개편
 tag:   v0.3.2
 assets: BattleRoyalePrototype_v0.3.2_win64.zip
-        BattleRoyalePrototype_mac.zip
+        BattleRoyalePrototype_v0.3.2_macos.zip
 ```
 
 릴리즈 본문은 DEVLOG.md의 active entry 또는 docs/devlog 버전 요약을 기반으로 작성한다.

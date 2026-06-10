@@ -1,157 +1,142 @@
-# 배틀캡슐 (Battle Capsule)
+# Battle Capsule
 
-쿼터뷰 배틀로얄. 플레이어 1명이 봇 11명과 싸워 최후의 1인이 되는 게임입니다.  
-맵은 숲 테마 1개, 자기장이 점점 좁아지며 마지막까지 살아남아야 합니다.
+<p align="center">
+  <img src="assets/icons/artifacts/red_trigger.png" width="72" alt="Red Trigger">
+  <img src="assets/icons/artifacts/ghost_grass.png" width="72" alt="Ghost Grass">
+  <img src="assets/icons/artifacts/zone_battery.png" width="72" alt="Zone Battery">
+</p>
 
-> Godot 4.6.2 · 개발: Kyulhee
+<p align="center">
+  <strong>쿼터뷰 배틀로얄 프로토타입</strong><br>
+  루팅, 은신, 자기장 압박, 아티팩트 선택이 짧은 생존전 안에서 충돌하는 Godot 게임입니다.
+</p>
 
-## 다운로드 (v1.7.3.1)
-
-[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.7.3.1/BattleRoyalePrototype_v1.7.3.1_win64.zip)
-[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v1.7.3.1/BattleRoyalePrototype_mac.zip)
-
-> macOS: 처음 실행 시 `시스템 설정 > 개인정보 보호 및 보안`에서 허용 필요 (공증 미적용 빌드)
-
----
-
-## 시작하기
-
-게임을 실행하면 메인 메뉴가 표시됩니다. **Start**를 누르면 바로 매치가 시작됩니다.
-
-- 피스톨(5발 장전, 예비 없음)을 들고 스폰됩니다
-- 맵 곳곳에 아이템이 흩어져 있습니다 — 먼저 움직여서 챙기세요
-- 오른쪽 상단 파란 원 테두리가 자기장입니다. 원 안에 머물러야 합니다
+<p align="center">
+  <a href="https://godotengine.org/"><img alt="Godot 4.6.2" src="https://img.shields.io/badge/Godot-4.6.2-478CBF?style=for-the-badge&logo=godot-engine&logoColor=white"></a>
+  <a href="https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion"><img alt="Stable build" src="https://img.shields.io/badge/stable-v2.0.0_pre--expansion-2EA043?style=for-the-badge"></a>
+  <a href="https://github.com/Kyulhee/battle-capsule/releases"><img alt="Downloads" src="https://img.shields.io/badge/downloads-Windows%20%7C%20macOS-111111?style=for-the-badge"></a>
+</p>
 
 ---
 
-## 조작법
+## Download
 
-| 키 | 동작 |
-|---|---|
-| `WASD` | 이동 |
-| `마우스` | 조준 — 캐릭터가 커서 방향을 바라봄 |
-| `좌클릭` | 사격 (무기 슬롯 0 선택 시 근접 공격) |
-| `F` | 근처 아이템 줍기 |
-| `Q` | 붕대/구급상자 사용 (HP 회복) |
-| `C` | 웅크리기 토글 |
-| `R` | 재장전 (예비 탄약 → 탄창) |
-| `` ` `` | 근접 무기 (칼) 슬롯으로 전환 |
-| `1` ~ `4` | 총기 슬롯 1~4 전환 |
-| `Space` | 점프 |
-| `Esc` | 일시정지 / 메뉴 |
+Current stable build: **v2.0.0-pre-expansion**
 
----
-
-## 화면 구성 (HUD)
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  HP: 100/100 | SHIELD: 0/50 | Heals: 1 | Alive: 8      │  ← 좌상단 상태바
-│                                                          │
-│                    ZONE  42s              ← 존 타이머    │
-│                                                          │
-│                                    ELIMINATED  ← 킬 피드│
-│                                                          │
-│         [ ` ][ 1 ][ 2 ][ 3 ][ 4 ]        ← 무기 슬롯   │
-└─────────────────────────────────────────────────────────┘
-```
-
-**상태바**: HP / 방어막 / 붕대·구급상자 보유 수 / 생존자 수
-
-**무기 슬롯 (화면 하단 중앙)**
-- `` ` `` — 근접 무기 (칼), 항상 사용 가능
-- `1`~`4` — 총기 슬롯, 주운 순서대로 채워짐
-- 슬롯 안 숫자: `현재탄/최대탄+예비탄` — 예) `10/30+15`
-- 탄약이 없으면 슬롯이 빨간색, 탄창이 25% 이하면 노란색
-
----
-
-## 무기와 탄약
-
-### 습득 방식
-
-무기를 주우면 **탄창의 약 1/3만 장전된 채**로 획득됩니다.  
-탄약 아이템을 주워도 탄창에 바로 채워지지 않고 **예비(+N)** 로 쌓입니다.  
-**R키를 눌러야** 예비 탄약이 탄창으로 이동합니다.
-
-장전 중에는 슬롯 숫자가 실시간으로 올라가는 것을 볼 수 있습니다.
-
-### 무기 종류
-
-| 슬롯 | 무기 | 탄창 | 최대 예비 | 장전 시간 |
-|---|---|---|---|---|
-| ` | 칼 | — | — | — |
-| 1~4 | 피스톨 *(기본 지급)* | 15 | 30 | 1.3초 |
-| 1~4 | 돌격소총 (AR) | 30 | 60 | 2.0초 |
-| 1~4 | 샷건 | 6 | 12 | 2.8초 |
-| 1~4 | 레일건 | 2 | 4 | 4.5초 |
-
-**칼**: 사거리는 짧지만 탄약이 필요 없고 즉시 공격됩니다. 탄약이 다 떨어졌을 때 유용합니다.  
-**돌격소총**: 탄창이 크고 연사가 빠릅니다. 범용으로 쓰기 좋습니다.  
-**샷건**: 한 발에 여러 탄환이 퍼집니다. 근거리에서 강력하지만 장전이 느립니다.  
-**레일건**: 단일 피해가 가장 높습니다. 탄창이 2발뿐이므로 조준해서 쏘세요.
-
-### 중복 무기 제한
-
-같은 종류의 무기는 두 번 주울 수 없습니다. 이미 AR을 가지고 있으면 바닥의 AR은 F키를 눌러도 반응하지 않습니다.
-
----
-
-## 아이템
-
-| 아이템 | 획득 효과 | 사용 방법 |
+| Platform | Download | Notes |
 |---|---|---|
-| 붕대 (♥) | 인벤토리에 추가 (+1개) | Q키 — HP +30 점진 회복 |
-| 구급상자 (◆) | 인벤토리에 추가 (+1개) | Q키 — HP +60 즉시 회복 |
-| 방어구 | 방어막 즉시 부여 | 자동 적용 |
-| 탄약 (종류별) | 해당 무기 예비 탄약 +N | R키로 탄창에 보충 |
-| 보급 캡슐 | 희귀 무기 포함 (자기장 2단계에 낙하) | F키로 수집 |
+| Windows | [BattleRoyalePrototype_v2.0.0-pre-expansion_win64.zip](https://github.com/Kyulhee/battle-capsule/releases/download/v2.0.0-pre-expansion/BattleRoyalePrototype_v2.0.0-pre-expansion_win64.zip) | Smoke tested locally |
+| macOS | [BattleRoyalePrototype_v2.0.0-pre-expansion_macos.zip](https://github.com/Kyulhee/battle-capsule/releases/download/v2.0.0-pre-expansion/BattleRoyalePrototype_v2.0.0-pre-expansion_macos.zip) | Cross-exported; first launch may require Privacy & Security approval |
 
----
+> This is a stable pre-expansion snapshot. The 99-player/night-map work remains in development probes and is not promoted as the default game mode yet.
 
-## 아티팩트와 압박 미션
+## Game Snapshot
 
-매치 시작 전 아티팩트 1개를 선택할 수 있습니다. 각 아티팩트는 강한 장점과 패널티를 함께 가집니다.
+Battle Capsule currently plays as a compact solo battle-royale match: one player drops into a forest arena with bots, finds weapons and supplies, chooses one artifact, and survives while the zone closes in.
 
-압박 미션은 Hell 난이도에서 자동 활성화되고, Hard 난이도에서는 메인 메뉴의 `압박 미션 활성화` 토글로 켤 수 있습니다.
+| Pillar | In Game |
+|---|---|
+| Survival pressure | A shrinking blue zone forces movement and late-game conflict |
+| Loot route choices | Weapons, ammo, heals, armor, and supply capsules create risk/reward paths |
+| Readable stealth | Bushes, crouching, visibility, and night readability are active design axes |
+| Artifact identity | Each artifact adds a strong advantage with a matching drawback |
+| AI scaling work | Perception and sensory LOD are being prepared for larger match experiments |
 
----
+## Artifacts
 
-## 자기장과 생존
+| Artifact | Role |
+|---|---|
+| <img src="assets/icons/artifacts/red_trigger.png" width="32" alt=""> **Red Trigger** | Strong shotgun pressure, higher reveal risk |
+| <img src="assets/icons/artifacts/armor_sponge.png" width="32" alt=""> **Armor Sponge** | Converts recovery into shield, slows as shield grows |
+| <img src="assets/icons/artifacts/silent_core.png" width="32" alt=""> **Silent Core** | Stealth movement identity with first-shot constraints |
+| <img src="assets/icons/artifacts/zone_battery.png" width="32" alt=""> **Zone Battery** | Stronger near-zone play and blue plasma feedback |
+| <img src="assets/icons/artifacts/emergency_shell.png" width="32" alt=""> **Escape Capsule** | Emergency recovery with a real follow-up cost |
+| <img src="assets/icons/artifacts/ghost_grass.png" width="32" alt=""> **Ghost Grass** | Bush-based invisibility with vulnerability windows |
 
-자기장(파란 링)은 두 단계에 걸쳐 좁아집니다.
+## Current Development Direction
 
-- **1단계**: 게임 시작 후 약 30초 뒤부터 수축 시작
-- **2단계**: 수축 완료 후 **보급 캡슐** 이 맵 중앙에 낙하합니다
-- 자기장 **밖**에 있으면 지속적으로 피해를 받습니다
+The project is moving from a compact prototype toward a longer **10-15 minute night battle-royale** structure. The current plan is deliberately staged:
 
-상단 중앙의 **ZONE Ns** 타이머가 다음 수축까지 남은 시간입니다.  
-타이머가 노란색이면 10초 이내, 빨간색으로 바뀌기 전에 원 안으로 이동하세요.
+1. Keep the released build stable before large expansion work.
+2. Use POI-scale probes and structural telemetry before promoting any 99-player map.
+3. Add night readability, flashlight, battery, and bot awareness systems incrementally.
+4. Treat scale telemetry as a safety gate, not as final balance.
 
----
+See [docs/MASTERPLAN.md](docs/MASTERPLAN.md) and [docs/NIGHT_BR_PACING_PLAN.md](docs/NIGHT_BR_PACING_PLAN.md) for the active roadmap.
 
-## 전투 팁
+## Controls
 
-**초반 (생존자 8명 이상)**
-- 이동하면서 아이템을 최대한 챙기세요. 탄약과 붕대·구급상자가 우선입니다
-- 봇이 먼저 발견하면 사거리 밖에서 교전하기 어렵습니다. 풀숲에서 웅크리면 봇의 시야에 잘 잡히지 않습니다
+<details>
+<summary>Show controls</summary>
 
-**중반 (생존자 4~7명)**
-- 보급 캡슐 위치를 확인하고, 이동 경로를 자기장 방향과 함께 계획하세요
-- 재장전 타이밍을 놓치지 마세요. 탄창이 절반 이하일 때 교전이 끝나면 바로 R을 누르세요
+| Key | Action |
+|---|---|
+| `WASD` | Move |
+| Mouse | Aim |
+| Left Click | Fire or melee |
+| `F` | Pick up nearby item |
+| `Q` | Use heal |
+| `C` | Toggle crouch |
+| `R` | Reload from reserve ammo |
+| `` ` `` | Knife slot |
+| `1`-`4` | Weapon slots |
+| `Space` | Jump |
+| `Esc` | Pause/menu |
 
-**후반 (생존자 3명 이하)**
-- 칼로 마무리하거나, 레일건이 있다면 한 발 한 발 신중하게 씁니다
-- 자기장이 매우 좁아지므로 원 중심에 가깝게 위치해 이동 거리를 최소화하세요
+</details>
 
-**웅크리기 활용**
-- `C`키로 웅크리면 이동 속도가 줄지만 봇 탐지 확률이 크게 낮아집니다
-- 풀숲(Bush)에서 웅크리면 스텔스 효과가 극대화됩니다
+## Weapons And Items
 
----
+<details>
+<summary>Show equipment table</summary>
 
-## 알려진 이슈
+| Weapon | Magazine | Reserve | Role |
+|---|---:|---:|---|
+| Knife | - | - | Always available fallback |
+| Pistol | 15 | 30 | Default weapon |
+| AR | 30 | 60 | Reliable sustained fire |
+| Shotgun | 6 | 12 | Close-range burst |
+| Railgun | 2 | 4 | Slow, high-damage precision |
 
-- 봇 AI 전술은 Doctrine 계층 구조로 분리됐고, 아키타입별 행동/마커 가독성은 계속 튜닝 중입니다
-- 지형 일부에서 드물게 끼임 현상이 발생할 수 있습니다
-- 스크린샷·맵 이미지는 추후 추가 예정입니다
+| Item | Effect |
+|---|---|
+| Heal | Restores HP |
+| Advanced heal | Larger recovery |
+| Armor | Adds shield |
+| Ammo | Adds reserve ammo for matching weapon |
+| Supply capsule | Drops rare combat options after zone progress |
+
+</details>
+
+## Project Docs
+
+| Document | Purpose |
+|---|---|
+| [docs/DOCS_INDEX.md](docs/DOCS_INDEX.md) | Where to start reading |
+| [docs/MASTERPLAN.md](docs/MASTERPLAN.md) | Current roadmap and scope boundaries |
+| [docs/DEVLOG.md](docs/DEVLOG.md) | Recent verified work |
+| [docs/TESTING.md](docs/TESTING.md) | Verification commands and telemetry interpretation |
+| [docs/ASSET_STATUS.md](docs/ASSET_STATUS.md) | Integrated and deferred assets |
+| [docs/RELEASE.md](docs/RELEASE.md) | Build and release process |
+
+## Development
+
+Requirements:
+
+- Godot **4.6.2**
+- Windows export is the primary smoke-tested target
+- macOS export is produced from Godot and should be verified on actual Mac hardware before broad public distribution
+
+Useful local checks:
+
+```powershell
+.\Godot_v4.6.2-stable_win64_console.exe --headless --script res://tools/verify_ai_lod_perception.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --script res://tools/verify_pickup_light_lod.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --script res://tools/verify_player_night_readability.gd
+```
+
+## Known Notes
+
+- Some configured generated asset paths may be missing in local builds; fallbacks remain active.
+- Current WIP branches may contain unpromoted 99-player/night-map probes.
+- The latest public stable baseline is pinned by the GitHub tag `v2.0.0-pre-expansion`.
