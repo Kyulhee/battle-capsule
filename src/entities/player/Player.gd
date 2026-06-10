@@ -334,6 +334,19 @@ func _configure_night_readability() -> void:
 func debug_night_readability_state() -> Dictionary:
 	return _night_readability.debug_state()
 
+func is_night_readability_active() -> bool:
+	return _night_readability.is_active()
+
+func get_night_awareness_signature() -> float:
+	var signature := super.get_night_awareness_signature()
+	if not _night_readability.is_active():
+		return signature
+	signature = maxf(signature, 0.45)
+	var speed := Vector2(velocity.x, velocity.z).length()
+	if stats and speed >= stats.move_speed * 0.5:
+		signature = maxf(signature, 0.65)
+	return signature
+
 func _process(delta):
 	_handle_wall_transparency(delta)
 	if camera_shake_amount > 0:

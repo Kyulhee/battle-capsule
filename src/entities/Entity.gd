@@ -11,6 +11,13 @@ const DEATH_EFFECT = preload("res://src/fx/DeathEffect.tscn")
 const ITEM_LOS_MASK: int = 1 | 8
 const PERCEPTION_UPDATE_INTERVAL_DEFAULT := 0.08
 const PERCEPTION_UPDATE_INTERVAL_PLAYER := 0.05
+const NIGHT_AWARENESS_THEME_PREFIX := "night_artificial_forest"
+const NIGHT_AWARENESS_DARK_RANGE_MULT := 0.86
+const NIGHT_AWARENESS_SIGNATURE_RANGE_BONUS := 0.18
+const NIGHT_AWARENESS_REVEAL_RANGE_MULT := 1.12
+const NIGHT_AWARENESS_DARK_DWELL_MULT := 1.15
+const NIGHT_AWARENESS_SIGNATURE_DWELL_RELIEF := 0.10
+const NIGHT_AWARENESS_REVEAL_DWELL_MULT := 0.75
 
 var display_name: String = ""
 var kill_streak: int = 0
@@ -34,6 +41,8 @@ var _bush_areas: Array = []
 var perception_meters: Dictionary = {}
 var _perception_timer: float = 0.0
 var _perception_accumulated_delta: float = 0.0
+var _night_awareness_checked: bool = false
+var _night_awareness_active: bool = false
 
 # Assist tracking: attacker node -> last hit timestamp
 var damage_history: Dictionary = {}
@@ -108,14 +117,82 @@ func _can_i_see(target: Entity) -> bool:
 	if target.is_in_bush and not same_bush and target.reveal_timer <= 0.0 and dist > stats.fov_near_range:
 		return false
 	var target_stealth := 1.0 if same_bush or target.reveal_timer > 0.0 else target.stealth_modifier
-	var effective_range = stats.vision_range * target_stealth
+	var effective_range = stats.vision_range * target_stealth * _night_awareness_range_mult(target)
 	if dist > effective_range and dist > stats.fov_near_range: return false
 	return has_los_to(target)
 
 func _perception_dwell_for(target: Entity) -> float:
+	var dwell := target.stats.dwell_time_open
 	if target.is_in_bush and not is_in_same_bush_as(target):
-		return target.stats.dwell_time_bush
-	return target.stats.dwell_time_open
+		dwell = target.stats.dwell_time_bush
+	return dwell * _night_awareness_dwell_mult(target)
+
+func _night_awareness_range_mult(target: Entity) -> float:
+	if not _uses_abstract_night_awareness() or target == null:
+		return 1.0
+	if target.reveal_timer > 0.0:
+		return NIGHT_AWARENESS_REVEAL_RANGE_MULT
+	var signature := clampf(target.get_night_awareness_signature(), 0.0, 1.0)
+	return clampf(
+		NIGHT_AWARENESS_DARK_RANGE_MULT + signature * NIGHT_AWARENESS_SIGNATURE_RANGE_BONUS,
+		NIGHT_AWARENESS_DARK_RANGE_MULT,
+		1.02
+	)
+
+func _night_awareness_dwell_mult(target: Entity) -> float:
+	if not _uses_abstract_night_awareness() or target == null:
+		return 1.0
+	if target.reveal_timer > 0.0:
+		return NIGHT_AWARENESS_REVEAL_DWELL_MULT
+	var signature := clampf(target.get_night_awareness_signature(), 0.0, 1.0)
+	return clampf(
+		NIGHT_AWARENESS_DARK_DWELL_MULT - signature * NIGHT_AWARENESS_SIGNATURE_DWELL_RELIEF,
+		1.05,
+		NIGHT_AWARENESS_DARK_DWELL_MULT
+	)
+
+func get_night_awareness_signature() -> float:
+	if not stats:
+		return 0.0
+	if reveal_timer > 0.0:
+		return 1.0
+	var speed := Vector2(velocity.x, velocity.z).length()
+	return 0.35 if speed >= stats.move_speed * 0.5 else 0.0
+
+func _uses_abstract_night_awareness() -> bool:
+	return is_in_group("bots") and _is_night_awareness_map()
+
+func _is_night_awareness_map() -> bool:
+	if _night_awareness_checked:
+		return _night_awareness_active
+	_night_awareness_checked = true
+	_night_awareness_active = false
+	var main = get_tree().root.get_node_or_null("Main") if is_inside_tree() else null
+	if not main:
+		return false
+	var metadata: Dictionary = {}
+	var current_map_spec = main.get("map_spec")
+	if current_map_spec != null:
+		var raw_metadata = current_map_spec.get("metadata")
+		if typeof(raw_metadata) == TYPE_DICTIONARY:
+			metadata = raw_metadata
+	if metadata.is_empty():
+		metadata["id"] = String(main.get("map_spec_path"))
+	var theme := String(metadata.get("theme", "")).strip_edges().to_lower()
+	var id := String(metadata.get("id", "")).to_lower()
+	var layout := String(metadata.get("layout", "")).to_lower()
+	_night_awareness_active = theme.begins_with(NIGHT_AWARENESS_THEME_PREFIX) \
+		or id.contains("night") \
+		or layout.contains("night")
+	return _night_awareness_active
+
+func debug_night_awareness_for(target: Entity) -> Dictionary:
+	return {
+		"active": _uses_abstract_night_awareness(),
+		"range_mult": _night_awareness_range_mult(target),
+		"dwell_mult": _night_awareness_dwell_mult(target),
+		"target_signature": target.get_night_awareness_signature() if target != null else 0.0,
+	}
 
 # Legacy compatibility: kept so old code calling can_be_seen_by still works
 func can_be_seen_by(viewer: Entity) -> bool:

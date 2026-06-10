@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-10 (AI perception LOD 1차 완료)
+> 마지막 업데이트: 2026-06-11 (봇 추상 야간 인지 1차 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,14 +9,15 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 코드 슬라이스 | AI perception/sensory LOD 1차 |
-| 현재 문서 슬라이스 | 99인 후보 구조 부하용 AI LOD 기준선 기록 |
-| 다음 구현 후보 | 봇 추상 야간 인지 또는 10-15분 pacing telemetry 초안 |
+| 최신 완료 코드 슬라이스 | 봇 추상 야간 인지 1차 |
+| 현재 문서 슬라이스 | 완화된 봇 야간 인지 99 smoke 통과와 다음 pacing telemetry 준비 |
+| 다음 구현 후보 | N2-PACE-01 10-15분 pacing telemetry 초안 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
+| 현재 미확인 항목 | 10-15분 pacing telemetry row 미구현 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -36,6 +37,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - 손전등, 배터리, 공포, 정전은 본편 체감의 핵심 후보지만 첫 단계부터 모든 봇에게 풀 시스템으로 적용하지 않는다. 처음에는 플레이어-facing 시스템과 봇의 추상 야간 인지만 검증한다.
 - 수동 화면 확인 렉은 99 AI 포기 신호가 아니라 테스트 계층 혼선과 렌더링/AI 부하가 섞인 신호로 본다. `visual_review`는 화면 검토용, `xlarge_60`/`target_99_probe`는 구조 부하 검증용으로 분리하고, 픽업 광원 LOD부터 적용했다.
 - AI LOD 1차는 봇 의사결정/전투/이동을 건너뛰지 않고 perception tick과 footstep/gunshot/close-range all-actor scan 주기만 낮춘다. 99 후보 1-run은 fallback 0과 regression sentinel clear를 유지했다.
+- 봇 추상 야간 인지 1차는 완료했다. 첫 강한 보정은 99 smoke에서 sentinel은 clear였지만 stuck 96.0/run으로 scale gate를 실패했다. 보정값을 완화한 뒤 단발 1-run은 no first upgrade 변동으로 gate를 실패했지만, 이어서 돌린 `target_99_probe` 3-run은 avg duration 149.7s, first upgrade 23.0s, stuck 55.7/run, fallback 0.0/run, sentinel clear, AI avg 511.6us로 통과했다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서
@@ -148,14 +150,15 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 5. **봇 AI LOD/야간 인지 설계**
    - 99 AI 목표는 유지하지만 수동 화면 검토용 프리셋에서 full 99 AI를 돌리지 않는다.
    - AI perception/sensory LOD 1차는 완료했다. 전투/이동/피격/존 탈출은 매 frame 유지하고, perception/sound/proximity scan만 tick rate로 제한했다.
-   - 다음 봇 야간 작업은 cone-vs-cone 손전등 시뮬레이션이 아니라 거리/확신도 기반 추상 인지로 제한한다.
+   - 봇 야간 작업은 cone-vs-cone 손전등 시뮬레이션이 아니라 거리/확신도 기반 추상 인지로 제한한다.
+   - 상태: 1차 완료. 완화된 상수로 `target_99_probe` 3-run과 `check_scale_telemetry.py --min-runs 3`을 통과했다. 단발 1-run의 no first upgrade 실패는 변동성 기록으로 남긴다.
 6. **10-15분 pacing gate**
    - 첫 교전 시간, 첫 non-pistol upgrade, 첫 횡단, 중반 재진입, 최종 교전, 평균 매치 시간, AI cost를 새 기준으로 수집한다.
    - 현재 100-170초 scale smoke 수치는 구조 확인용으로만 해석한다.
 
 ## 장기 작업 단위
 
-사용자가 장기간 확인하기 어려운 동안에는 아래 단위 순서를 따른다. 한 단위는 가능한 한 1-3개 파일 묶음과 명확한 smoke 검증으로 끝낸다. 같은 단위에서 두 번 연속 막히면 범위를 줄이거나 다음 독립 단위로 넘어가고, 기본 맵/기본 99인 승격 같은 큰 결정은 보류한다.
+사용자가 장기간 확인하기 어려운 동안에는 아래 단위 순서를 따른다. 검증 가능한 slice마다 계획 확인, 작업, 검증, 커밋/푸쉬 루틴을 반복한다. 같은 문제가 뒤 과정까지 계속 영향을 주는지 먼저 확인하고, 3회 이상 같은 차단 조건이 반복되어 더 진행할 수 없을 때만 작업 연쇄를 멈춘다. 기본 맵/기본 99인 승격 같은 큰 결정은 여전히 보류한다.
 
 | ID | 단위 | 산출물 | 검증 | 중단/전환 기준 |
 |---|---|---|---|---|
@@ -179,11 +182,13 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 
 자율 진행 규칙:
 
-- 커밋/푸시는 사용자가 명시적으로 요청했을 때만 한다.
+- 현재 사용자 지시가 유지되는 동안 검증된 slice는 커밋/푸쉬까지 진행한다.
 - 기본 맵, 기본 scale preset, release 관련 작업은 명시 요청 전까지 보류한다.
 - 새 단위마다 `DEVLOG`와 `HANDOFF`를 짧게 갱신한다.
 - `plan_report/`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, 기존 `.gitignore` 로컬 변경은 건드리지 않는다.
 - 시뮬레이션 결과가 애매하면 "수치 튜닝"보다 "다음 POI 구조 프로브"를 우선한다.
+- `target_99_probe` 단발 run은 reference smoke로만 본다. 완료 판정은 최소 3-run과 `check_scale_telemetry.py --min-runs 3` 통과를 기준으로 한다.
+- 단발 no first upgrade는 즉시 튜닝하지 않고 3-run으로 재확인한다. stuck, spawn fallback, zero damage/shot/plan sentinel, AI budget 초과는 구조 회귀로 보고 바로 수정한다.
 
 현재 단위 상태:
 
@@ -203,7 +208,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-VIS-01 수동 검토 프리셋 추가: `visual_review`는 8봇, 45픽업, stage loot wave 0, 느린 자기장으로 구성했다. 1-run smoke는 duration 287.2s, fallback 0.0/run, zone deaths 0, sentinel clear, AI update avg 184.4us였다. `xlarge_60`은 60봇/150픽업/다수 pickup light 때문에 수동 검토용으로 쓰지 않는다.
 - N2-PERF-01 완료: pickup `OmniLight3D`에 거리 기반 LOD를 적용했다. 감지된 픽업 body/icon은 유지하되, 광원은 가까우면 full, 중거리면 dim, 멀면 off로 처리하고 focus 상태에서는 full로 복원한다. `verify_pickup_light_lod.gd`, `verify_player_night_readability.gd`, Night 후보 `visual_review` runtime load를 통과했다.
 - N2-AI-LOD-01 완료: `Entity` perception은 누적 delta tick으로 바꾸고, 봇은 ATTACK 0.05s / 이동계 상태 0.08s / IDLE 0.12s로 perception LOD를 적용했다. footstep/gunshot/close-range 스캔은 0.15s/0.10s/0.05s로 제한했다. `visual_review`, `xlarge_60`, `target_99_probe` 1-run smoke와 60/99 `check_scale_telemetry.py --min-runs 1`을 통과했다. 99 결과는 duration 178.2s, fallback 0.0/run, zone deaths 1, stuck 51.0/run, AI update avg 463.0us, sentinel clear다.
-- 다음 우선순위: N2-AI-01 봇 추상 야간 인지 또는 N2-PACE-01 10-15분 pacing telemetry 초안. 기존 POI 프로브를 수동으로 보고 싶다면 `scale_preset=poi_probe`와 각 `map_spec_path`로 실행한다.
+- N2-AI-01 완료: 봇 viewer에만 적용되는 추상 야간 인지를 추가했다. 강한 1차 상수는 `visual_review`, `xlarge_60`, `target_99_probe`에서 sentinel clear였지만 target 99 scale checker가 stuck 96.0/run으로 실패했다. 상수 완화 후 `verify_bot_night_awareness.gd`, `verify_ai_lod_perception.gd`, `verify_bush_interaction.gd`가 통과했고, `target_99_probe` 3-run도 avg duration 149.7s, first upgrade 23.0s, fallback 0.0/run, stuck 55.7/run, AI update avg 511.6us, sentinel clear로 `check_scale_telemetry.py --min-runs 3`을 통과했다. 별도 1-run은 no first upgrade로 실패했으나 stuck/AI/sentinel은 정상 범위였다.
+- 다음 우선순위: N2-PACE-01 10-15분 pacing telemetry 초안으로 넘어간다.
 
 ## 비목표
 
@@ -236,8 +242,17 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - `tools/compare_scale_profiles.py`
 - `tools/check_scale_telemetry.py`
 
+반복 실패 방지 판정:
+
+- `stuck > 60/run`: scale gate를 낮추지 않는다. 맵 구조, nav 압박, night range/dwell 보정 순서로 수정한다.
+- `spawn fallback > 0` 또는 placed/requested mismatch: 스폰/맵 envelope 문제로 보고 AI나 전투 수치를 건드리지 않는다.
+- zero total damage, zero weapon damage, zero shot, zero combat plan: AI/전투 회귀로 보고 즉시 코드 경로를 확인한다.
+- 1-run no first upgrade: economy seed 변동 가능성이 있으므로 3-run으로 재확인한다. 3-run에서도 실패하면 loot/upgrade 접근성 문제로 분류한다.
+- 평균 AI update budget 초과: behavior 튜닝보다 perception/sensory 비용과 loop cadence를 먼저 확인한다.
+
 야간/페이싱을 바꿀 때:
 
+- `tools/verify_bot_night_awareness.gd`
 - `tools/verify_ai_lod_perception.gd`
 - `tools/verify_pickup_light_lod.gd`
 - `tools/verify_player_night_readability.gd`

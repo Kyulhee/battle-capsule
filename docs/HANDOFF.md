@@ -1,167 +1,99 @@
-# Next Chat Handoff
+# 다음 세션 핸드오프
 
-> Last updated: 2026-06-10. Short context only; read `CLAUDE.md`, `DOCS_INDEX.md`, `MASTERPLAN.md`, and `IMPACT_MAP.md` before code changes.
+> 마지막 업데이트: 2026-06-11. 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
-## Current State
+## 먼저 확인할 것
 
-- Branch: `master`.
-- Latest pushed code slice: AI perception/sensory LOD first pass.
-- Latest local slice: none expected after this push, except preserved local/untracked notes below.
-- Current planning pivot: v2 scale telemetry is now treated as a **structural safety gate**, not final 99-player balance.
-- Current map direction: keep 99 AI as a target, separate manual visual inspection from structural load probes, and add bot night-awareness only after cheap perception/sensory LOD remains stable.
-- Target match length for the intended main game: 10-15 minutes.
-- Default map and default scale preset are still not promoted to 99 players.
-- `target_99_probe` remains candidate-only.
-- New candidate path: `res://data/mapSpec_night_forest_candidate.json`.
-- First POI probe path: `res://data/mapSpec_poi_sluice_crossing_probe.json`.
-- Second POI probe path: `res://data/mapSpec_poi_wire_maze_probe.json`.
-- Third POI probe path: `res://data/mapSpec_poi_black_ridge_probe.json`.
-- Fourth POI probe path: `res://data/mapSpec_poi_false_clinic_probe.json`.
-- Fifth POI probe path: `res://data/mapSpec_poi_supply_flats_probe.json`.
-- Sixth POI probe path: `res://data/mapSpec_poi_ammunition_pockets_probe.json`.
-- Seventh POI probe path: `res://data/mapSpec_poi_cabin_row_probe.json`.
-- Eighth POI probe path: `res://data/mapSpec_poi_broadcast_fence_probe.json`.
-- Release remains paused unless the user explicitly asks for a release.
-- Expected Godot startup warning remains: `AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.`
+1. VS Code를 **관리자 권한**으로 열고 `C:\test\game_dev`에서 Codex 새 세션을 시작한다.
+2. 새 세션 첫 shell 테스트:
 
-## Local/Untracked Notes
+```powershell
+Get-Location
+```
 
-- `plan_report/` is local reference material for the Night Artificial Forest concept. Do not commit it unless explicitly requested.
-- `asset_generator/` is an external source pool. Keep it untracked unless selected files are promoted into runtime assets.
-- `docs/ASSET_GENERATION_PROMPTS.md` is local prompt scratch. Keep it untracked unless the user asks to publish it.
-- `.gitignore` may have pre-existing local edits; do not revert or stage them unless the user asks.
+권한 상승 없이 성공하면 Windows sandbox 문제가 해결된 것이다. 실패하면서 `windows sandbox: spawn setup refresh`가 나오면 아직 VS Code/Codex 호스트가 비관리자 권한으로 떠 있는 상태다.
 
-## Read First
+## 현재 Git 상태
 
-- [MASTERPLAN.md](MASTERPLAN.md): active Korean-first roadmap and current decisions.
-- [NIGHT_BR_PACING_PLAN.md](NIGHT_BR_PACING_PLAN.md): 10-15 minute night BR pacing and test layers.
-- [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md): placement group brief plus Night Artificial Forest POI mapping.
-- [ASSET_STATUS.md](ASSET_STATUS.md): current artifact/bush/generated-asset state.
-- [IMPACT_MAP.md](IMPACT_MAP.md): ownership and change-impact checks before code edits.
+- 브랜치: `master`
+- 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
+- 이번 세션 기준 푸쉬 대상 slice: `N2-AI-01` 봇 추상 야간 인지 1차.
+- GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
+- 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
+- 안정 태그: `v2.0.0-pre-expansion`
+- 안정 빌드 기준 커밋: `41339a9`
+- Windows/macOS 빌드는 GitHub Release에 업로드 완료.
+- README와 RELEASE 문서는 한글 중심으로 갱신 후 push 완료.
 
-## Recent Relevant Commits
+## 자율 작업 루틴
 
-- `167dd29 tune night forest candidate structure` — pushed candidate `0.2-poi-probe-integrated` and structural reference notes.
-- `60f7012 feat: add night poi probe set` — pushed core 8 POI probe set, shared verifier, docs, and 3-run reference notes.
-- `5c2d7b3 docs: add 99 map tile group brief` — added `MAP_TILE_GROUPS.md` and linked it from active docs.
-- `c029db8 feat: add wire maze poi probe` — earlier Wire Maze POI probe slice.
-- `4e3ad65 feat: add sluice crossing poi probe` — first POI-level structural probe.
-- `127c8c4 feat: add night forest map candidate` — non-default 180m night forest candidate.
-- `8333bd3 tune bot opportunistic loot selection` — latest pushed gameplay tuning slice, v2.0.40.
+사용자가 당분간 직접 확인하기 어렵다고 명시했다. 새 세션도 아래 루틴을 따른다.
 
-Older v2.0 telemetry detail is in [DEVLOG.md](DEVLOG.md), [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md), and `docs/devlog/`.
+1. 계획 확인: `HANDOFF`, `MASTERPLAN`, `TESTING`에서 현재 slice와 gate를 확인한다.
+2. 작업: 기본 맵/기본 99인 승격, release, bot full flashlight/fear/battery 같은 큰 결정은 보류한다.
+3. 검증: 단발 smoke와 완료 gate를 분리한다. `target_99_probe` 완료 판정은 최소 3-run + `check_scale_telemetry.py --min-runs 3`이다.
+4. 푸쉬: 검증된 slice는 커밋하고 push한다. 로컬 전용 자료는 staging하지 않는다.
+5. 중단 조건: 같은 blocker가 3회 이상 반복되고, 이후 작업에도 계속 문제가 될 때만 사용자 확인을 기다린다.
 
-## Next Work
+실패 판정:
 
-1. Review or continue `N2-VIS-01`.
-   - `PlayerNightReadability.gd` now switches the existing player `VisionSpot`/`ProximityLight` into a night profile for Night Artificial Forest metadata.
-   - `verify_player_night_readability.gd` passed.
-   - `capture_player_night_readability.gd` writes `C:\tmp\player_night_readability.png` for direct review.
-   - Manual visual inspection should use `scale_preset=visual_review`, not `xlarge_60`.
-   - `visual_review` is 8 bots / 45 loot / no stage loot waves / slow zone. If it still lags, add `bot_count=0 loot_count=24`.
-   - `visual_review` 1-run smoke at `C:\tmp\game_dev_night_visual_review_smoke_v1`: duration 287.2s, fallback 0.0/run, zone deaths 0, regression sentinels clear, AI update avg 184.4us.
-   - Night candidate `xlarge_60` runtime load passed.
-   - Night candidate `xlarge_60` 1-run smoke at `C:\tmp\game_dev_night_readability_smoke_v1`: duration 122.2s, fallback 0.0/run, regression sentinels clear, stuck 59.0/run, zone deaths 4.0/run.
-   - Next preferred check is a visual/manual pass on flashlight framing, item readability, bush readability, and combat readability.
-   - Do not give every bot full flashlight/battery/fear behavior yet.
-   - Later bot work should start with abstract night awareness, not cone-vs-cone inventory simulation.
-2. `N2-PERF-01` pickup light LOD is complete.
-   - Pickup bodies/icons still follow existing player sensing.
-   - Pickup `OmniLight3D` now uses distance LOD: full near the player, dim at mid distance, off at far distance.
-   - Focused pickups restore full light for readability.
-   - `verify_pickup_light_lod.gd` passed.
-   - Night candidate `visual_review` runtime load passed; only expected AssetCatalog fallback warnings remained.
-   - This does not solve 99 AI cost by itself. Bot AI update cadence/LOD is the next separate performance unit.
-3. `N2-AI-LOD-01` AI perception/sensory LOD is now the current local slice.
-   - `Entity` perception now uses accumulated-delta ticks instead of full perception every physics frame.
-   - Player/default/bot intervals:
-     - player: 0.05s
-     - default entity: 0.08s
-     - bot ATTACK: 0.05s
-     - bot CHASE / ZONE_ESCAPE / RECOVER / DISENGAGE: 0.08s
-     - bot IDLE: 0.12s
-   - Bot all-actor sensory loops are throttled:
-     - close range: 0.05s
-     - gunshot: 0.10s
-     - footstep: 0.15s
-   - Combat state handlers, movement, shooting, damage reactions, zone escape, and stuck handling still run every physics frame.
-   - `verify_ai_lod_perception.gd`, `verify_pickup_light_lod.gd`, `verify_player_night_readability.gd` passed.
-   - Night candidate runtime load passed with `visual_review` and `xlarge_60`.
-   - `visual_review` 1-run at `C:\tmp\game_dev_ai_lod_visual_review_v1`: duration 391.9s, fallback 0.0/run, zone deaths 0, stuck 4.0/run, sentinel clear, AI update avg 173.6us.
-   - `xlarge_60` 1-run at `C:\tmp\game_dev_ai_lod_xlarge60_v1`: duration 106.6s, fallback 0.0/run, zone deaths 0, stuck 31.0/run, sentinel clear, AI update avg 412.3us, `check_scale_telemetry.py --min-runs 1` PASS.
-   - `target_99_probe` 1-run at `C:\tmp\game_dev_ai_lod_target99_v1`: duration 178.2s, fallback 0.0/run, zone deaths 1, stuck 51.0/run, sentinel clear, AI update avg 463.0us, `check_scale_telemetry.py --min-runs 1` PASS.
-   - This is still structure/performance validation, not final 10-15 minute pacing or final night AI behavior.
-4. Night candidate map baseline now exists.
-   - `data/mapSpec_night_forest_candidate.json` is at `0.2-poi-probe-integrated`.
-   - Cabin Row and Broadcast Fence/Wire side were de-cluttered based on high stuck observations.
-   - JSON parse, `verify_night_forest_candidate.gd`, `xlarge_60` runtime load, and `target_99_probe` runtime load passed.
-   - 99-player 1-run reference at `C:\tmp\game_dev_night_candidate_99_probe_v1`: duration 165.4s, stage 2, spawn placed 100/100, fallback 0.0/run, saturation 0.20, zero damage/shot/combat-plan sentinels clear.
-   - Observation, not hard fail: stuck 101.0/run and zone deaths 4.0/run remain visible before adding more density or treating pace as final.
-5. Existing POI probe references remain useful context.
-   - Sluice 3-run reference at `C:\tmp\game_dev_sluice_probe_v1`: avg duration 69.1s, fallback 0.0/run, zone deaths 0, no zero-damage/shot/combat-plan sentinels.
-   - Wire Maze 3-run reference at `C:\tmp\game_dev_wire_maze_probe_v1`: avg duration 66.6s, fallback 0.0/run, zone deaths 0, no zero-damage/shot/combat-plan sentinels. Route damage pressure: primary_choke 46.0%, flank 27.1%, recovery_exit 17.0%, off_route 9.6%.
-   - Black Ridge 3-run reference at `C:\tmp\game_dev_black_ridge_probe_v1`: avg duration 74.0s, fallback 0.0/run, zone deaths 0, stuck 6.7/run, sentinels clear.
-   - False Clinic 3-run reference at `C:\tmp\game_dev_false_clinic_probe_v1`: avg duration 71.5s, fallback 0.0/run, zone deaths 0, stuck 6.0/run, sentinels clear.
-   - Supply Flats 3-run reference at `C:\tmp\game_dev_supply_flats_probe_v1`: avg duration 74.5s, fallback 0.0/run, zone deaths 0, stuck 2.0/run, sentinels clear.
-   - Ammunition Pockets 3-run reference at `C:\tmp\game_dev_ammunition_pockets_probe_v1`: avg duration 84.2s, fallback 0.0/run, zone deaths 0, stuck 6.7/run, sentinels clear.
-   - Cabin Row 3-run reference at `C:\tmp\game_dev_cabin_row_probe_v1`: avg duration 85.1s, fallback 0.0/run, zone deaths 0, stuck 13.3/run, sentinels clear.
-   - Broadcast Fence 3-run reference at `C:\tmp\game_dev_broadcast_fence_probe_v1`: avg duration 73.5s, fallback 0.0/run, zone deaths 1, stuck 11.3/run, sentinels clear.
-   - Cabin Row and Broadcast Fence are the main observation points before adding more cover or future visibility systems.
-   - Existing scale gates are reference-only for POI probes; do not tune duration or first-upgrade timing from these minimaps.
-6. Run current scale tooling as structural checks only on the night candidate.
-   - Do not tune combat/CHASE percentages as final design targets yet.
-   - Keep fallback 0, clearance, route/POI coverage, stuck, disengage, zone escape, and AI cost visible.
-7. Prototype night vision carefully.
-   - Start with player-facing flashlight and reveal/readability.
-   - Bots should first use abstract night awareness, not full flashlight/battery/fear state.
-8. Build a separate 10-15 minute pacing gate after the map and first night-vision pass exist.
+- 단발 `no first upgrade`: 바로 튜닝하지 말고 3-run으로 재확인한다.
+- `stuck > 60/run`: gate를 낮추지 말고 맵/nav/night range-dwell 보정을 수정한다.
+- spawn fallback, zero damage/shot/plan sentinel, AI budget 초과: 구조 회귀로 보고 다음 작업으로 넘기지 않는다.
 
-## Verification Reminders
+## 남아 있는 로컬 자료
 
-Docs-only work:
+아래 항목은 로컬에 남겨도 된다. 새 세션에서 자동 revert하지 않는다.
 
-- `git diff --check`
+```text
+ M .gitignore
+?? asset_generator/
+?? docs/ASSET_GENERATION_PROMPTS.md
+?? plan_report/
+```
 
-Candidate map work:
+주의:
 
-- `tools/verify_ai_lod_perception.gd`
-- `tools/verify_pickup_light_lod.gd`
-- `tools/verify_player_night_readability.gd`
-- `.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_player_night_readability.gd`
-- `.\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review`
-- `.\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=visual_review bot_count=0 loot_count=24`
-- `tools/verify_strategic_flow_map.gd`
-- `tools/verify_candidate_99_probe.gd`
-- `tools/verify_night_forest_candidate.gd`
-- `tools/verify_poi_sluice_crossing_probe.gd`
-- `tools/verify_poi_wire_maze_probe.gd`
-- `tools/verify_poi_black_ridge_probe.gd`
-- `tools/verify_poi_false_clinic_probe.gd`
-- `tools/verify_poi_supply_flats_probe.gd`
-- `tools/verify_poi_ammunition_pockets_probe.gd`
-- `tools/verify_poi_cabin_row_probe.gd`
-- `tools/verify_poi_broadcast_fence_probe.gd`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=xlarge_60`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe`
-- `python tools\simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_night_candidate_99_probe_v1`
-- `python tools\analyze_results.py C:\tmp\game_dev_night_candidate_99_probe_v1`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_sluice_crossing_probe.json scale_preset=poi_probe`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_wire_maze_probe.json scale_preset=poi_probe`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_black_ridge_probe.json scale_preset=poi_probe`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_false_clinic_probe.json scale_preset=poi_probe`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_supply_flats_probe.json scale_preset=poi_probe`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_ammunition_pockets_probe.json scale_preset=poi_probe`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_cabin_row_probe.json scale_preset=poi_probe`
-- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_poi_broadcast_fence_probe.json scale_preset=poi_probe`
-- fresh 5-run `xlarge_60`
-- fresh 5-run `target_99_probe`
-- `tools/compare_scale_profiles.py`
-- `tools/check_scale_telemetry.py`
+- `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
+- `N2-AI-01` 코드와 관련 문서는 검증 완료 slice이며 커밋/푸쉬 대상이다.
+- 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
-## Guardrails
+## 다음 작업
 
-- Do not promote the 99-player candidate to default/global runtime without an explicit decision.
-- Do not add full bot flashlight, battery, fear, blackout, fire spread, interior cabin, or watchtower climb systems in the first map candidate.
-- Keep `Main.gd` as match-global orchestrator.
-- Keep bush gameplay authority in `Bush.tscn`; visual GLB bush replacement is cosmetic.
-- For asset generation, keep stable style/format rules in [ASSET_BRIEF.md](ASSET_BRIEF.md) and local prompt scratch out of commits.
+현재 완료한 본 작업은 `N2-AI-01` 봇 추상 야간 인지 재검증이다. 다음 구현 후보는 `N2-PACE-01` 10-15분 pacing telemetry 초안이다.
+
+통과한 단위 검증:
+
+```powershell
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_night_awareness.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_interaction.gd
+```
+
+완화 후 99 검증:
+
+```powershell
+python tools\simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_bot_night_awareness_target99_v2
+python tools\analyze_results.py C:\tmp\game_dev_bot_night_awareness_target99_v2
+python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target99_v2 --min-runs 1
+
+python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_bot_night_awareness_target99_v2_3run
+python tools\analyze_results.py C:\tmp\game_dev_bot_night_awareness_target99_v2_3run
+python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target99_v2_3run --min-runs 3
+```
+
+판정:
+
+- `C:\tmp\game_dev_bot_night_awareness_target99_v2` 1-run: duration 107.8s, fallback 0.0/run, zone deaths 1, stuck 45.0/run, AI avg 539.5us, sentinel clear. Scale checker는 no first upgrade 때문에 실패했다.
+- `C:\tmp\game_dev_bot_night_awareness_target99_v2_3run` 3-run: avg duration 149.7s, first upgrade 23.0s, fallback 0.0/run, zone deaths 1.3/run, stuck 55.7/run, disengage 111.7/run, AI avg 511.6us, sentinel clear. `check_scale_telemetry.py --min-runs 3` 통과.
+- 이 결과로 `N2-AI-01`은 구조 gate 완료로 본다. 단발 no first upgrade는 변동성 기록으로만 남기고 gate 기준은 낮추지 않는다.
+- 다음은 `N2-PACE-01`: match duration, first contact, first non-pistol upgrade, crossing usage, POI dwell, final-zone timing 같은 10-15분 pacing telemetry row를 추가한다.
+
+## 설계 가드레일
+
+- 99인 후보를 기본 맵/기본 프리셋으로 승격하지 않는다.
+- 봇에게 손전등, 배터리, 공포, 정전, cone-vs-cone 시뮬레이션을 아직 넣지 않는다.
+- 현재 단계의 night awareness는 봇 viewer에만 적용되는 거리/확신도 기반 추상 인지 보정이어야 한다.
+- `target_99_probe` telemetry는 최종 밸런스가 아니라 구조 안전성 게이트다.
+- 수동 화면 검토는 `visual_review` 프리셋을 사용한다. `xlarge_60`/`target_99_probe`는 구조 부하 검증용이다.
+- `plan_report/`는 참고용 로컬 디렉토리다. 사용자가 명시하기 전까지 커밋하지 않는다.

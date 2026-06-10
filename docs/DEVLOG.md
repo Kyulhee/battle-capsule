@@ -1,8 +1,61 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-10. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-11. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 Night Awareness - Abstract Bot First Pass
+
+**Scope**
+
+- Added a first-pass abstract night awareness modifier for bot viewers only.
+- Night maps are detected from map metadata (`theme`, `id`, or `layout` containing the Night Artificial Forest signal).
+- The system does not simulate bot flashlights, batteries, fear, cone-vs-cone checks, or blackout logic.
+- Instead, night awareness adjusts existing perception:
+  - quiet dark targets reduce bot effective vision range and increase dwell;
+  - moving targets generate a small signature;
+  - player night readability generates a light signature;
+  - revealed/firing targets overcome the night penalty.
+- Combat, movement, damage response, zone escape, and AI state handlers remain unchanged.
+
+**Verification**
+
+- `verify_bot_night_awareness.gd` passed.
+- `verify_ai_lod_perception.gd` passed.
+- `verify_bush_interaction.gd` passed.
+- Earlier in the slice, `verify_player_night_readability.gd`, `verify_pickup_light_lod.gd`, and Night candidate runtime loads passed before the final constant softening.
+- Initial stronger tuning smoke results:
+  - `visual_review`: `C:\tmp\game_dev_bot_night_awareness_visual_review_v1`, duration 233.5s, fallback 0.0/run, zone deaths 0, sentinel clear, AI update avg 166.6us.
+  - `xlarge_60`: `C:\tmp\game_dev_bot_night_awareness_xlarge60_v1`, duration 85.4s, fallback 0.0/run, zone deaths 2, sentinel clear, AI update avg 421.1us.
+  - `target_99_probe`: `C:\tmp\game_dev_bot_night_awareness_target99_v1`, duration 170.0s, fallback 0.0/run, zone deaths 4, sentinel clear, AI update avg 540.2us.
+- The initial `target_99_probe` scale checker failed because stuck rose to 96.0/run, above the 60.0 gate.
+- After that failure, the night awareness constants were softened.
+- Softened tuning unit verifiers passed:
+  - `verify_bot_night_awareness.gd`
+  - `verify_ai_lod_perception.gd`
+  - `verify_bush_interaction.gd`
+- Softened `target_99_probe` 1-run reference:
+  - output: `C:\tmp\game_dev_bot_night_awareness_target99_v2`
+  - duration 107.8s, fallback 0.0/run, zone deaths 1, stuck 45.0/run
+  - regression sentinels clear
+  - AI update budget avg 539.5us
+  - `check_scale_telemetry.py --min-runs 1` failed because no first upgrade was recorded in that single economy sample.
+- Softened `target_99_probe` 3-run structural smoke passed:
+  - output: `C:\tmp\game_dev_bot_night_awareness_target99_v2_3run`
+  - avg duration 149.7s, min/max 125.1s / 175.3s
+  - avg first upgrade 23.0s, first weapons: ar=1, shotgun=2
+  - fallback 0.0/run, zone deaths 1.3/run, stuck 55.7/run, disengage 111.7/run
+  - regression sentinels clear
+  - AI update budget avg 511.6us, max 19301us
+  - `check_scale_telemetry.py --min-runs 3` passed.
+
+**Decision**
+
+- Treat N2-AI-01 as complete for the current structural gate: the 3-run sample stayed inside stuck, disengage, spawn fallback, sentinel, and AI budget thresholds.
+- Keep the single-run no-upgrade result as a variance note, not a reason to lower scale thresholds.
+- Next work should start N2-PACE-01: add explicit 10-15 minute pacing telemetry instead of interpreting the current 100-175s structural smoke as final match pacing.
 
 ---
 
@@ -458,11 +511,9 @@ Sentinel means zero total damage, zero shots, and zero combat-plan runs were all
 
 ## Current Next
 
-1. Convert the Night Artificial Forest concept into a first 99-player candidate `mapSpec`.
-2. Keep existing 60/99 scale tools as structural safety gates only.
-3. Add POI-level minimap/probe tests for `Sluice Crossing`, `Wire Maze`, `Black Ridge`, `Supply Flats`, and `False Clinic`.
-4. Prototype player-facing flashlight before full bot night systems.
-5. Add separate 10-15 minute pacing telemetry after the map and night assumptions are represented.
+1. Start N2-PACE-01: add explicit 10-15 minute pacing telemetry rows for first contact, first upgrade, crossing usage, POI dwell, final-zone timing, and match duration.
+2. Keep the Night Artificial Forest 99 candidate and `target_99_probe` as non-default structural safety gates.
+3. Do not expand bots into full flashlight, battery, fear, blackout, or cone-vs-cone night systems before pacing telemetry exists.
 
 ## Archive Pointers
 

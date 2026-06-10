@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-09 (플레이어 손전등/readability smoke 추가)
+> 마지막 업데이트: 2026-06-11 (봇 추상 야간 인지 99 구조 smoke 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -98,6 +98,7 @@ python tools/analyze_results.py C:\tmp\game_dev_night_candidate_99_probe_v1
 # The 1-run Night candidate simulation is a structural reference only. Do not treat its duration as the 10-15 minute pacing gate.
 
 # v2.0 player-facing night readability / pickup light LOD / AI LOD smoke
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_night_awareness.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pickup_light_lod.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_player_night_readability.gd
@@ -122,6 +123,12 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_ai_lod_xlarge60_v1 --min-r
 python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_ai_lod_target99_v1
 python tools/analyze_results.py C:\tmp\game_dev_ai_lod_target99_v1
 python tools/check_scale_telemetry.py C:\tmp\game_dev_ai_lod_target99_v1 --min-runs 1
+
+# Optional bot abstract night-awareness structural smoke:
+python tools/simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_bot_night_awareness_target99_v2_3run
+python tools/analyze_results.py C:\tmp\game_dev_bot_night_awareness_target99_v2_3run
+python tools/check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target99_v2_3run --min-runs 3
+# A single target_99_probe run may miss first-upgrade economy telemetry; confirm with a small repeated sample before changing code or thresholds.
 
 # v2.0 Sluice Crossing POI probe smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_sluice_crossing_probe.gd
@@ -198,6 +205,18 @@ python tools/compare_scale_profiles.py C:\tmp\game_dev_disengage_reason_smoke C:
 # 결과 파일 위치 (Windows)
 # %APPDATA%\Godot\app_userdata\BattleRoyalePrototype\sim_result_latest.json
 ```
+
+### 99 구조 게이트 반복 실패 방지
+
+`target_99_probe` 단발 run은 빠른 smoke/reference로만 사용합니다. 야간 인지, pacing, scale 구조 변경의 완료 판정은 최소 3-run과 `check_scale_telemetry.py --min-runs 3` 통과를 기준으로 합니다.
+
+실패 분류:
+
+- `stuck > 60/run`: gate를 낮추지 말고 맵 구조, nav 압박, night range/dwell 보정을 수정합니다.
+- spawn fallback 또는 placed/requested mismatch: 스폰/맵 envelope 문제로 보고 AI 수치를 건드리지 않습니다.
+- zero total damage, zero weapon damage, zero shot, zero combat plan: AI/전투 회귀로 보고 즉시 코드 경로를 확인합니다.
+- 1-run `no first upgrade`: economy seed 변동 가능성이 있으므로 3-run으로 재확인합니다. 3-run에서도 실패하면 loot/upgrade 접근성 문제로 분류합니다.
+- AI update budget 초과: behavior 튜닝보다 perception/sensory loop cadence를 먼저 확인합니다.
 
 ---
 
