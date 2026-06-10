@@ -9,7 +9,7 @@
 
 | 버전 | 태그 | Windows | macOS | 비고 |
 |---|---|---|---|---|
-| v0.1.0 | `v0.1.0` | `.exe` + `.pck` (별도) | — | Pre-release |
+| v0.1.0 | `v0.1.0` | `.exe` + `.pck` (별도) | — | 사전 릴리즈 |
 | v0.2.0~v0.2.1 | `v0.2.x` | `_vX.Y.Z_win64.zip` | — | zip 전환 |
 | v0.3.1 | `v0.3.1` | `_vX.Y.Z_win64.zip` | — | — |
 | v0.3.2~ | `v0.3.2` | `_vX.Y.Z_win64.zip` | `_mac.zip` | 한국어 릴리즈노트, 배지 방식 README |
@@ -134,7 +134,7 @@ git push origin master
 - 현재 상태와 다음 개발 라인 갱신
 
 **CLAUDE.md**
-- Current State 표의 release baseline, current development line, release policy 갱신
+- 현재 상태 표의 릴리즈 기준점, 현재 개발 라인, 릴리즈 정책 갱신
 
 ---
 
@@ -148,7 +148,7 @@ git push origin master
 [ ] git tag + push
 [ ] gh release create (Windows + macOS 첨부)
 [ ] README 배지 URL 업데이트 + push
-[ ] gh release view vX.Y.Z 로 asset 업로드 확인
+[ ] gh release view vX.Y.Z 로 에셋 업로드 확인
 [ ] MASTERPLAN.md Compact History + 현재 상태 갱신
 [ ] CLAUDE.md Current State 표 갱신
 ```
