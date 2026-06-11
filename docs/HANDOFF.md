@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 푸쉬 대상 slice: `N2-AI-01` 봇 추상 야간 인지 1차.
+- 이번 세션 기준 완료 slice: `N2-PACE-01` 10-15분 pacing telemetry 1차.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,16 +55,17 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01` 코드와 관련 문서는 검증 완료 slice이며 커밋/푸쉬 대상이다.
+- `N2-AI-01`과 `N2-PACE-01`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-AI-01` 봇 추상 야간 인지 재검증이다. 다음 구현 후보는 `N2-PACE-01` 10-15분 pacing telemetry 초안이다.
+현재 완료한 본 작업은 `N2-PACE-01` 10-15분 pacing telemetry 1차다. gameplay tuning 없이 milestone telemetry row와 analyzer 출력만 추가했고, 반복 stuck 실패는 stuck state/route/cell 진단으로 원인을 좁혀 Night 후보 맵의 pathing clearance만 소폭 수정했다.
 
 통과한 단위 검증:
 
 ```powershell
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_night_awareness.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_interaction.gd
@@ -87,7 +88,13 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
 - `C:\tmp\game_dev_bot_night_awareness_target99_v2` 1-run: duration 107.8s, fallback 0.0/run, zone deaths 1, stuck 45.0/run, AI avg 539.5us, sentinel clear. Scale checker는 no first upgrade 때문에 실패했다.
 - `C:\tmp\game_dev_bot_night_awareness_target99_v2_3run` 3-run: avg duration 149.7s, first upgrade 23.0s, fallback 0.0/run, zone deaths 1.3/run, stuck 55.7/run, disengage 111.7/run, AI avg 511.6us, sentinel clear. `check_scale_telemetry.py --min-runs 3` 통과.
 - 이 결과로 `N2-AI-01`은 구조 gate 완료로 본다. 단발 no first upgrade는 변동성 기록으로만 남기고 gate 기준은 낮추지 않는다.
-- 다음은 `N2-PACE-01`: match duration, first contact, first non-pistol upgrade, crossing usage, POI dwell, final-zone timing 같은 10-15분 pacing telemetry row를 추가한다.
+- `N2-PACE-01` 1차는 `Telemetry.gd`의 `pacing` milestone 그룹, `tools/analyze_results.py` pacing 출력, `tools/verify_pacing_telemetry.gd`로 구성한다. route/POI dwell은 기존 doctrine telemetry를 analyzer에서 재사용한다.
+- `N2-PACE-01` 최종 구조 gate:
+  - output: `C:\tmp\game_dev_pacing_map_clearance_v2_3run`
+  - avg duration 143.6s, first upgrade 27.3s, fallback 0.0/run, zone deaths 0.3/run, stuck 20.3/run
+  - AI update avg 661.2us, max 28729us, regression sentinel clear
+  - `check_scale_telemetry.py --min-runs 3` 통과.
+- 다음 우선순위는 새 pacing telemetry를 해석해 10-15분 본편 pacing 설계안을 세우는 것이다. 바로 zone/loot/combat 수치를 튜닝하지 않는다.
 
 ## 설계 가드레일
 

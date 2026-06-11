@@ -282,6 +282,14 @@ func _update_stuck(delta):
 			if has_node("/root/Telemetry"):
 				var tel = get_node("/root/Telemetry")
 				tel.log_tactics("stuck_triggered")
+				if tel.has_method("log_stuck_context"):
+					var stuck_context = _strategic_position_context(global_position)
+					stuck_context["cell"] = _position_cell_key(global_position)
+					tel.log_stuck_context(
+						State.keys()[current_state],
+						stuck_context,
+						threat != null
+					)
 				if threat:
 					tel.log_tactics("stuck_while_threatened")
 	else:
@@ -748,7 +756,7 @@ func handle_zone_escape_state(delta):
 	var zone_center_3d = Vector3(zone_c.x, global_position.y, zone_c.y)
 	var threat = _find_retreat_threat(BOT_TUNING.RETREAT_THREAT_SCAN_RANGE)
 	var countering = threat != null
-	# When stuck, use wall-slide escape direction rather than random stuck override
+	# When stuck, use wall-slide escape direction rather than random stuck override.
 	if _stuck_override_timer > 0:
 		handle_movement(_sample_zone_escape_dir(zone_c, threat), delta, not countering)
 	else:
@@ -1456,6 +1464,11 @@ func _strategic_position_context(world_pos: Vector3) -> Dictionary:
 	if definition and definition.has_method("describe_strategic_position"):
 		return definition.describe_strategic_position(Vector2(world_pos.x, world_pos.z))
 	return context
+
+func _position_cell_key(world_pos: Vector3) -> String:
+	var cell_x := int(floor(world_pos.x / 10.0)) * 10
+	var cell_z := int(floor(world_pos.z / 10.0)) * 10
+	return "%d,%d" % [cell_x, cell_z]
 
 func _log_ai_update_budget(start_usec: int):
 	if not has_node("/root/Telemetry"):

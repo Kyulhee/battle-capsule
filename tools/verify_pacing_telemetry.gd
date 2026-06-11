@@ -1,0 +1,107 @@
+extends SceneTree
+
+
+func _init():
+	call_deferred("_run")
+
+
+func _run() -> void:
+	if not _verify_pacing_schema_and_hooks():
+		quit(1)
+		return
+
+	print("Pacing telemetry smoke passed.")
+	quit(0)
+
+
+func _verify_pacing_schema_and_hooks() -> bool:
+	var telemetry_script = load("res://src/core/Telemetry.gd")
+	var tel = telemetry_script.new()
+	root.add_child(tel)
+	tel.start_match()
+
+	if not tel.metrics.has("pacing"):
+		tel.free()
+		return _fail("Telemetry did not create pacing metrics.")
+	if not tel.enabled_groups.get("pacing", false):
+		tel.free()
+		return _fail("Pacing group should be enabled by default.")
+	if not tel.metrics.pacing.stage_times.has("1"):
+		tel.free()
+		return _fail("Pacing should record stage 1 at match start.")
+
+	tel.log_shot()
+	tel.log_combat_location("damage", 12.0, {
+		"poi_role": "transit_choke",
+		"route_role": "primary_choke",
+		"route_id": "sluice_direct_crossing",
+	})
+	tel.log_combat_location("kill", 0.0, {
+		"poi_role": "transit_choke",
+		"route_role": "primary_choke",
+		"route_id": "sluice_direct_crossing",
+	})
+	tel.log_pickup("shotgun", "weapon", false)
+	tel.set_stage(2)
+	tel.log_doctrine_chase_location(
+		"AGGRESSIVE",
+		"combat",
+		{
+			"poi_role": "open",
+			"route_role": "primary_choke",
+			"route_id": "sluice_direct_crossing",
+		},
+		{
+			"poi_role": "transit_choke",
+			"route_role": "primary_choke",
+			"route_id": "ridge_to_clinic_choke",
+		},
+		"entity",
+		1.5
+	)
+	tel.log_stuck_context("CHASE", {
+		"poi_role": "transit_choke",
+		"route_role": "primary_choke",
+		"route_id": "ridge_to_clinic_choke",
+		"cell": "-20,20",
+	}, true)
+
+	var pacing: Dictionary = tel.metrics.pacing
+	if float(pacing.first_shot_time) < 0.0:
+		tel.free()
+		return _fail("Pacing did not record first shot time.")
+	if float(pacing.first_contact_time) < 0.0 or float(pacing.first_damage_time) < 0.0:
+		tel.free()
+		return _fail("Pacing did not record first contact/damage time.")
+	if float(pacing.first_kill_time) < 0.0:
+		tel.free()
+		return _fail("Pacing did not record first kill time.")
+	if String(pacing.first_non_pistol_upgrade_weapon) != "shotgun":
+		tel.free()
+		return _fail("Pacing did not mirror first non-pistol upgrade.")
+	if not pacing.stage_times.has("2"):
+		tel.free()
+		return _fail("Pacing did not record stage 2 timing.")
+	if not tel.metrics.doctrine.chase_target_route_role_by_context.has("combat"):
+		tel.free()
+		return _fail("Doctrine route dwell should remain available for pacing analyzer output.")
+	if int(tel.metrics.tactics.stuck_by_state.get("CHASE", 0)) != 1:
+		tel.free()
+		return _fail("Stuck context did not record the bot state.")
+	if int(tel.metrics.tactics.stuck_by_route_id.get("ridge_to_clinic_choke", 0)) != 1:
+		tel.free()
+		return _fail("Stuck context did not record the route id.")
+	if int(tel.metrics.tactics.stuck_threat_by_route_id.get("ridge_to_clinic_choke", 0)) != 1:
+		tel.free()
+		return _fail("Stuck context did not record threatened route ids.")
+	if int(tel.metrics.tactics.stuck_by_cell.get("-20,20", 0)) != 1:
+		tel.free()
+		return _fail("Stuck context did not record coarse position cells.")
+
+	tel.free()
+	return true
+
+
+func _fail(message: String) -> bool:
+	push_error(message)
+	return false

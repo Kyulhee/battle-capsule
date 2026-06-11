@@ -6,6 +6,37 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Pacing Telemetry - First Pass
+
+**Scope**
+
+- Added a `pacing` telemetry group without changing gameplay tuning.
+- Captures first shot, first contact, first damage, first kill, first non-pistol upgrade, and zone stage timings.
+- Extended `analyze_results.py` to print pacing milestones and reuse existing doctrine CHASE context/route dwell summaries when the group is present.
+- Added stuck state/route/cell context to make repeated 99-probe failures diagnosable instead of adjusting thresholds.
+- Moved the Night candidate Black Ridge and south/clinic fixed obstacles out of high-traffic path cells after the diagnostic runs showed structural stuck concentration there.
+- Added `verify_pacing_telemetry.gd` as a schema/hook smoke test.
+
+**Verification**
+
+- `verify_pacing_telemetry.gd` passed.
+- `python -m py_compile tools\analyze_results.py tools\check_scale_telemetry.py tools\simulate_matches.py` passed.
+- `git diff --check` passed.
+- Final `target_99_probe` 3-run structural gate passed:
+  - output: `C:\tmp\game_dev_pacing_map_clearance_v2_3run`
+  - avg duration 143.6s, min/max 120.0s / 161.2s, no runs under 60s
+  - avg first upgrade 27.3s, fallback 0.0/run, zone deaths 0.3/run, stuck 20.3/run
+  - AI update budget avg 661.2us, max 28729us
+  - regression sentinels clear
+  - `check_scale_telemetry.py --min-runs 3` passed.
+
+**Decision**
+
+- Treat these values as measurement only. Do not tune zone, loot, AI aggression, damage, or map density from this first telemetry row until a small repeated sample exists.
+- The map movement in this slice is a pathing clearance fix from stuck diagnostics, not a 10-15 minute pacing balance change.
+
+---
+
 ## v2 Night Awareness - Abstract Bot First Pass
 
 **Scope**
@@ -511,9 +542,9 @@ Sentinel means zero total damage, zero shots, and zero combat-plan runs were all
 
 ## Current Next
 
-1. Start N2-PACE-01: add explicit 10-15 minute pacing telemetry rows for first contact, first upgrade, crossing usage, POI dwell, final-zone timing, and match duration.
+1. Use the new pacing/stuck telemetry for the next baseline review before changing 10-15 minute pacing knobs.
 2. Keep the Night Artificial Forest 99 candidate and `target_99_probe` as non-default structural safety gates.
-3. Do not expand bots into full flashlight, battery, fear, blackout, or cone-vs-cone night systems before pacing telemetry exists.
+3. Do not expand bots into full flashlight, battery, fear, blackout, or cone-vs-cone night systems before the pacing baseline is interpreted.
 
 ## Archive Pointers
 

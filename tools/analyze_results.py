@@ -99,6 +99,15 @@ def combat_location_counter(results: list[dict], key: str) -> Counter:
     return counter
 
 
+def tactics_counter(results: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        values = run.get("tactics", {}).get(key, {})
+        if isinstance(values, dict):
+            counter.update({name: float(value) for name, value in values.items()})
+    return counter
+
+
 def doctrine_context_counter(results: list[dict], key: str, context: str) -> Counter:
     counter = Counter()
     for run in results:
@@ -216,6 +225,55 @@ def format_counter_mix(counter: Counter, limit: int = 5) -> str:
     return ", ".join(parts)
 
 
+def positive_pacing_times(results: list[dict], key: str) -> list[float]:
+    return [
+        float(r.get("pacing", {}).get(key, -1.0))
+        for r in results
+        if float(r.get("pacing", {}).get(key, -1.0)) >= 0.0
+    ]
+
+
+def pacing_stage_times(results: list[dict], stage_key: str) -> list[float]:
+    values: list[float] = []
+    for run in results:
+        stage_times = run.get("pacing", {}).get("stage_times", {})
+        if isinstance(stage_times, dict) and stage_key in stage_times:
+            values.append(float(stage_times.get(stage_key, 0.0)))
+    return values
+
+
+def pacing_counter(results: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        values = run.get("pacing", {}).get(key, {})
+        if isinstance(values, dict):
+            counter.update({name: float(value) for name, value in values.items()})
+    return counter
+
+
+def doctrine_nested_counter(results: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        values = run.get("doctrine", {}).get(key, {})
+        if not isinstance(values, dict):
+            continue
+        for nested in values.values():
+            if isinstance(nested, dict):
+                counter.update({name: float(value) for name, value in nested.items()})
+    return counter
+
+
+def format_optional_avg(values: list[float]) -> str:
+    return f"{avg(values):.1f}s" if values else "none"
+
+
+def first_nonempty_counter(*counters: Counter) -> Counter:
+    for counter in counters:
+        if counter:
+            return counter
+    return Counter()
+
+
 if __name__ == "__main__":
     results = load_runs(RUN_DIR)
     if not results:
@@ -231,6 +289,12 @@ if __name__ == "__main__":
     disengage = [r.get("tactics", {}).get("disengage_triggered", 0) for r in results]
     disengage_entries = [disengage_entry_count(r) for r in results]
     stuck = [r.get("tactics", {}).get("stuck_triggered", 0) for r in results]
+    stuck_states = tactics_counter(results, "stuck_by_state")
+    stuck_poi_roles = tactics_counter(results, "stuck_by_poi_role")
+    stuck_route_roles = tactics_counter(results, "stuck_by_route_role")
+    stuck_route_ids = tactics_counter(results, "stuck_by_route_id")
+    stuck_cells = tactics_counter(results, "stuck_by_cell")
+    stuck_threat_route_ids = tactics_counter(results, "stuck_threat_by_route_id")
     cover_peek = [r.get("tactics", {}).get("cover_peek", 0) for r in results]
     reposition = [r.get("tactics", {}).get("combat_reposition", 0) for r in results]
     kite = [r.get("tactics", {}).get("combat_kite", 0) for r in results]
@@ -252,6 +316,13 @@ if __name__ == "__main__":
         for r in results
         if r.get("economy", {}).get("first_upgrade_time", -1.0) >= 0
     ]
+    pacing_first_shot = positive_pacing_times(results, "first_shot_time")
+    pacing_first_contact = positive_pacing_times(results, "first_contact_time")
+    pacing_first_damage = positive_pacing_times(results, "first_damage_time")
+    pacing_first_kill = positive_pacing_times(results, "first_kill_time")
+    pacing_first_upgrade = positive_pacing_times(results, "first_non_pistol_upgrade_time")
+    pacing_stage2 = pacing_stage_times(results, "2")
+    pacing_stage3 = pacing_stage_times(results, "3")
 
     total_recover = sum(recover)
     total_recover_success = sum(recover_success)
@@ -353,6 +424,18 @@ if __name__ == "__main__":
             parts = [f"{reason}={count}" for reason, count in sorted(reasons.items(), key=lambda item: item[1], reverse=True)]
             print(f"  {archetype}: {', '.join(parts) if parts else 'none'}")
     print(f"Avg stuck triggers: {avg(stuck):.1f}")
+    if stuck_states or stuck_poi_roles or stuck_route_roles or stuck_route_ids:
+        print(
+            "Stuck context: states=[{}], poi_roles=[{}], route_roles=[{}], route_ids=[{}], cells=[{}]".format(
+                format_counter_mix(stuck_states),
+                format_counter_mix(stuck_poi_roles),
+                format_counter_mix(stuck_route_roles),
+                format_counter_mix(stuck_route_ids),
+                format_counter_mix(stuck_cells),
+            )
+        )
+    if stuck_threat_route_ids:
+        print(f"Stuck threatened route ids: {format_counter_mix(stuck_threat_route_ids)}")
     print(
         "Avg combat plans: cover={:.1f}, reposition={:.1f}, kite={:.1f}, survival={:.1f}".format(
             avg(cover_peek),
@@ -471,6 +554,48 @@ if __name__ == "__main__":
     if weapon_pickups:
         pickup_parts = [f"{weapon}={count}" for weapon, count in sorted(weapon_pickups.items())]
         print(f"Weapon pickups: {', '.join(pickup_parts)}")
+    if any("pacing" in r for r in results):
+        print(
+            "Pacing milestones: first_shot={}, first_contact={}, first_damage={}, first_kill={}, first_upgrade={}, stage2={}, stage3={}".format(
+                format_optional_avg(pacing_first_shot),
+                format_optional_avg(pacing_first_contact),
+                format_optional_avg(pacing_first_damage),
+                format_optional_avg(pacing_first_kill),
+                format_optional_avg(pacing_first_upgrade),
+                format_optional_avg(pacing_stage2),
+                format_optional_avg(pacing_stage3),
+            )
+        )
+        print(
+            "Pacing CHASE context dwell: {}".format(
+                format_counter_mix(
+                    first_nonempty_counter(
+                        pacing_counter(results, "chase_context_time"),
+                        doctrine_nested_counter(results, "chase_context_time_by_archetype"),
+                    )
+                )
+            )
+        )
+        print(
+            "Pacing self route dwell: roles=[{}]".format(
+                format_counter_mix(
+                    first_nonempty_counter(
+                        pacing_counter(results, "chase_self_route_dwell_by_role"),
+                        doctrine_nested_counter(results, "chase_self_route_role_by_context"),
+                    )
+                )
+            )
+        )
+        print(
+            "Pacing target route dwell: roles=[{}]".format(
+                format_counter_mix(
+                    first_nonempty_counter(
+                        pacing_counter(results, "chase_target_route_dwell_by_role"),
+                        doctrine_nested_counter(results, "chase_target_route_role_by_context"),
+                    )
+                )
+            )
+        )
     if doctrine_profiles:
         profile_parts = [f"{name}={count}" for name, count in sorted(doctrine_profiles.items())]
         print(f"Doctrine profiles: {', '.join(profile_parts)}")

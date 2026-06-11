@@ -18,6 +18,7 @@ extends Node
 #   "artifact" — selected artifact id and bounded artifact trigger events
 #   "ai"       — sampled bot update budget by state and archetype
 #   "doctrine" — merged bot AI profiles and selected combat plans
+#   "pacing"   — first contact/upgrade/stage timings and route/POI dwell
 
 # ── Group toggles ─────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ var enabled_groups: Dictionary = {
 	"archetype": true,
 	"ai":        true,
 	"doctrine":  true,
+	"pacing":    true,
 }
 
 func set_groups(overrides: Dictionary):
@@ -135,6 +137,12 @@ func _reset_metrics():
 			"retreat_melee_counter": 0,
 			"stuck_while_threatened": 0,
 			"zone_assisted_death": 0,
+			"stuck_by_state": {},
+			"stuck_by_poi_role": {},
+			"stuck_by_route_role": {},
+			"stuck_by_route_id": {},
+			"stuck_by_cell": {},
+			"stuck_threat_by_route_id": {},
 		},
 		# economy
 		"economy": {
@@ -168,6 +176,16 @@ func _reset_metrics():
 			"zone_deaths_by_state": {},
 			"max_outside_time": 0.0,
 			"final_duel_deaths": [],  # deaths when exactly 2 actors remained
+		},
+		# pacing
+		"pacing": {
+			"first_shot_time": -1.0,
+			"first_contact_time": -1.0,
+			"first_damage_time": -1.0,
+			"first_kill_time": -1.0,
+			"first_non_pistol_upgrade_time": -1.0,
+			"first_non_pistol_upgrade_weapon": "none",
+			"stage_times": {},
 		},
 		# spawn
 		"spawn": {
@@ -302,11 +320,17 @@ func start_match():
 	_start_tick = Time.get_ticks_msec()
 	_current_stage = 1
 	match_in_progress = true
+	if _g("pacing"):
+		metrics.pacing.stage_times["1"] = 0.0
 
 func set_stage(stage: int):
 	_current_stage = stage
 	if _g("core"):
 		metrics.core.zone_stage_reached = max(metrics.core.zone_stage_reached, stage)
+	if _g("pacing"):
+		var key := str(stage)
+		if not metrics.pacing.stage_times.has(key):
+			metrics.pacing.stage_times[key] = _elapsed_seconds()
 
 func end_match(rank: int, _winner_name: String, zone_stage: int):
 	if not match_in_progress: return
@@ -371,6 +395,9 @@ func log_combat_location(event: String, amount: float, context: Dictionary):
 	var route_id := String(context.get("route_id", "off_route"))
 	match event_key:
 		"damage", "hit":
+			_record_first_pacing_time("first_contact_time")
+			if amount > 0.0:
+				_record_first_pacing_time("first_damage_time")
 			metrics.combat.location_samples += 1
 			_add_bucket_count(metrics.combat.hit_location_by_poi_role, poi_role)
 			_add_bucket_count(metrics.combat.hit_location_by_route_role, route_role)
@@ -380,12 +407,14 @@ func log_combat_location(event: String, amount: float, context: Dictionary):
 				_add_bucket_value(metrics.combat.damage_location_by_route_role, route_role, amount)
 				_add_bucket_value(metrics.combat.damage_location_by_route_id, route_id, amount)
 		"kill":
+			_record_first_pacing_time("first_kill_time")
 			_add_bucket_count(metrics.combat.kill_location_by_poi_role, poi_role)
 			_add_bucket_count(metrics.combat.kill_location_by_route_role, route_role)
 			_add_bucket_count(metrics.combat.kill_location_by_route_id, route_id)
 
 func log_shot():
 	if not match_in_progress or not _g("combat"): return
+	_record_first_pacing_time("first_shot_time")
 	metrics.combat.shots_fired += 1
 
 # ── Log functions — tactics ───────────────────────────────────────────────────
@@ -415,6 +444,23 @@ func log_tactics(event: String, _value: float = 0.0):
 		"retreat_melee_counter": metrics.tactics.retreat_melee_counter += 1
 		"stuck_while_threatened": metrics.tactics.stuck_while_threatened += 1
 		"zone_assisted_death": metrics.tactics.zone_assisted_death += 1
+
+func log_stuck_context(state_name: String, context: Dictionary, threatened: bool = false):
+	if not match_in_progress or not _g("tactics"): return
+	var state_key = state_name.strip_edges()
+	if state_key == "":
+		state_key = "unknown"
+	var poi_role := String(context.get("poi_role", "open"))
+	var route_role := String(context.get("route_role", "off_route"))
+	var route_id := String(context.get("route_id", "off_route"))
+	var cell_key := String(context.get("cell", "unknown"))
+	_add_bucket_count(metrics.tactics.stuck_by_state, state_key)
+	_add_bucket_count(metrics.tactics.stuck_by_poi_role, poi_role)
+	_add_bucket_count(metrics.tactics.stuck_by_route_role, route_role)
+	_add_bucket_count(metrics.tactics.stuck_by_route_id, route_id)
+	_add_bucket_count(metrics.tactics.stuck_by_cell, cell_key)
+	if threatened:
+		_add_bucket_count(metrics.tactics.stuck_threat_by_route_id, route_id)
 
 func log_disengage_reason(reason: String, archetype_name: String = ""):
 	if not match_in_progress or not _g("tactics"): return
@@ -456,6 +502,9 @@ func log_pickup(item_name: String, item_type: String, is_rare: bool):
 		if metrics.economy.first_upgrade_time < 0 and w != "pistol":
 			metrics.economy.first_upgrade_time = elapsed
 			metrics.economy.first_upgrade_weapon = w
+			if _g("pacing") and metrics.pacing.first_non_pistol_upgrade_time < 0.0:
+				metrics.pacing.first_non_pistol_upgrade_time = elapsed
+				metrics.pacing.first_non_pistol_upgrade_weapon = w
 	if is_rare:
 		metrics.economy.rare_pickups += 1
 
@@ -650,58 +699,59 @@ func log_doctrine_chase_location(
 	target_kind: String,
 	seconds: float
 ):
-	if not match_in_progress or not _g("doctrine") or seconds <= 0.0: return
+	if not match_in_progress or seconds <= 0.0: return
 	var context_key = context_name.strip_edges().to_lower()
 	if context_key == "":
 		context_key = "unknown"
-	_add_nested_bucket_value(
-		metrics.doctrine.chase_self_poi_role_by_context,
-		context_key,
-		String(self_context.get("poi_role", "open")),
-		seconds
-	)
-	_add_nested_bucket_value(
-		metrics.doctrine.chase_self_route_role_by_context,
-		context_key,
-		String(self_context.get("route_role", "off_route")),
-		seconds
-	)
-	_add_nested_bucket_value(
-		metrics.doctrine.chase_target_poi_role_by_context,
-		context_key,
-		String(target_context.get("poi_role", "none")),
-		seconds
-	)
-	_add_nested_bucket_value(
-		metrics.doctrine.chase_target_route_role_by_context,
-		context_key,
-		String(target_context.get("route_role", "none")),
-		seconds
-	)
-	_add_nested_bucket_value(
-		metrics.doctrine.chase_self_poi_band_by_context,
-		context_key,
-		_poi_distance_band(self_context),
-		seconds
-	)
-	_add_nested_bucket_value(
-		metrics.doctrine.chase_target_poi_band_by_context,
-		context_key,
-		_poi_distance_band(target_context),
-		seconds
-	)
-	_add_nested_bucket_value(
-		metrics.doctrine.chase_target_route_band_by_context,
-		context_key,
-		_route_distance_band(target_context),
-		seconds
-	)
-	_add_nested_bucket_value(
-		metrics.doctrine.chase_target_kind_by_context,
-		context_key,
-		target_kind,
-		seconds
-	)
+	if _g("doctrine"):
+		_add_nested_bucket_value(
+			metrics.doctrine.chase_self_poi_role_by_context,
+			context_key,
+			String(self_context.get("poi_role", "open")),
+			seconds
+		)
+		_add_nested_bucket_value(
+			metrics.doctrine.chase_self_route_role_by_context,
+			context_key,
+			String(self_context.get("route_role", "off_route")),
+			seconds
+		)
+		_add_nested_bucket_value(
+			metrics.doctrine.chase_target_poi_role_by_context,
+			context_key,
+			String(target_context.get("poi_role", "none")),
+			seconds
+		)
+		_add_nested_bucket_value(
+			metrics.doctrine.chase_target_route_role_by_context,
+			context_key,
+			String(target_context.get("route_role", "none")),
+			seconds
+		)
+		_add_nested_bucket_value(
+			metrics.doctrine.chase_self_poi_band_by_context,
+			context_key,
+			_poi_distance_band(self_context),
+			seconds
+		)
+		_add_nested_bucket_value(
+			metrics.doctrine.chase_target_poi_band_by_context,
+			context_key,
+			_poi_distance_band(target_context),
+			seconds
+		)
+		_add_nested_bucket_value(
+			metrics.doctrine.chase_target_route_band_by_context,
+			context_key,
+			_route_distance_band(target_context),
+			seconds
+		)
+		_add_nested_bucket_value(
+			metrics.doctrine.chase_target_kind_by_context,
+			context_key,
+			target_kind,
+			seconds
+		)
 
 func log_doctrine_engage_range(archetype_name: String, distance: float):
 	if not match_in_progress or not _g("doctrine") or distance < 0.0: return
@@ -1036,6 +1086,7 @@ func _save_sim_result():
 	if _g("archetype"):  out["archetype"]  = metrics.archetype.duplicate(true)
 	if _g("ai"):         out["ai"]         = metrics.ai.duplicate(true)
 	if _g("doctrine"):   out["doctrine"]   = metrics.doctrine.duplicate(true)
+	if _g("pacing"):     out["pacing"]     = metrics.pacing.duplicate(true)
 	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(out, "\t"))
@@ -1128,6 +1179,18 @@ func _print_report():
 		print("  Telegraphed: %s  Visits: %d  Contests: %d" % [
 			str(metrics.supply.telegraphed), metrics.supply.visits, metrics.supply.contests
 		])
+	if _g("pacing"):
+		print("── Pacing ──────────────────────────────────")
+		print("  First shot/contact/damage: %.1fs / %.1fs / %.1fs" % [
+			float(metrics.pacing.first_shot_time),
+			float(metrics.pacing.first_contact_time),
+			float(metrics.pacing.first_damage_time),
+		])
+		print("  First upgrade: %s at %.1fs" % [
+			metrics.pacing.first_non_pistol_upgrade_weapon,
+			float(metrics.pacing.first_non_pistol_upgrade_time),
+		])
+		print("  Stage times: %s" % str(metrics.pacing.stage_times))
 	if _g("spawn") and int(metrics.spawn.placed_count) > 0:
 		print("── Spawn ───────────────────────────────────")
 		print("  Placed:         %d/%d  fallback: %d" % [
@@ -1230,6 +1293,17 @@ func _ensure_combat_weapon(w: String):
 		metrics.combat.kills_by_weapon[w] = 0
 	if not metrics.combat.damage_by_weapon.has(w):
 		metrics.combat.damage_by_weapon[w] = 0.0
+
+func _elapsed_seconds() -> float:
+	return (Time.get_ticks_msec() - _start_tick) / 1000.0
+
+func _record_first_pacing_time(metric_name: String):
+	if not _g("pacing") or not metrics.has("pacing"):
+		return
+	if not metrics.pacing.has(metric_name):
+		return
+	if float(metrics.pacing.get(metric_name, -1.0)) < 0.0:
+		metrics.pacing[metric_name] = _elapsed_seconds()
 
 func _add_bucket_count(bucket: Dictionary, key: String, amount: int = 1):
 	var bucket_key = key if key.strip_edges() != "" else "unknown"
