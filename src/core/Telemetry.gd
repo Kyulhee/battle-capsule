@@ -1295,7 +1295,8 @@ func _ensure_combat_weapon(w: String):
 		metrics.combat.damage_by_weapon[w] = 0.0
 
 func _elapsed_seconds() -> float:
-	return (Time.get_ticks_msec() - _start_tick) / 1000.0
+	# Keep pacing milestones on the same game-second basis as core.duration.
+	return (Time.get_ticks_msec() - _start_tick) / 1000.0 * Engine.time_scale
 
 func _record_first_pacing_time(metric_name: String):
 	if not _g("pacing") or not metrics.has("pacing"):

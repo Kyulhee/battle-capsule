@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-03` 10-15분 pacing 조정안 초안.
+- 이번 세션 기준 완료 slice: `N2-PACE-04` pacing game-time 정규화.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,12 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`는 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-03` 10-15분 pacing 조정안 초안이다. `N2-PACE-02`의 기준선 gap report를 바탕으로 watch band, tuning 순서, 검증 루프를 문서화했고 gameplay tuning은 적용하지 않았다.
+현재 완료한 본 작업은 `N2-PACE-04` pacing game-time 정규화다. `N2-PACE-02`와 `N2-PACE-03`에서 gameplay tuning은 적용하지 않았고, 이번 slice도 tuning 없이 milestone seconds가 `core.duration`과 같은 game-time 축을 쓰도록 고쳤다.
 
 통과한 단위 검증:
 
@@ -70,6 +70,10 @@ Get-Location
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_interaction.gd
 python -m py_compile tools\summarize_pacing_baseline.py tools\analyze_results.py tools\check_scale_telemetry.py tools\simulate_matches.py
+python tools\simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_pacing_time_scale_v1
+python tools\analyze_results.py C:\tmp\game_dev_pacing_time_scale_v1
+python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_time_scale_v1
+python tools\check_scale_telemetry.py C:\tmp\game_dev_pacing_time_scale_v1 --min-runs 1
 git diff --check
 ```
 
@@ -99,13 +103,18 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
 - `N2-PACE-02` 기준선 해석:
   - 명령: `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_map_clearance_v2_3run`
   - avg duration 143.6s는 10분 바닥까지 4.18x, 12.5분 midpoint까지 5.22x 짧은 구조 smoke다.
-  - first upgrade 27.3s와 stage 2 26.4s는 현재 run 내부에서는 18-19% 지점이지만 10-15분 목표 기준으로는 opening phase다.
+  - 이 run의 pacing milestone 값은 N2-PACE-04 이전 wall-clock 기준이라 phase 해석에는 더 쓰지 않는다.
 - `N2-PACE-03` 조정안 초안:
   - `target_99_probe`는 구조 gate로 유지한다.
   - 본편 체감 tuning은 별도 비기본 playable pacing 후보에서 검증한다.
   - 초안 watch band는 first contact 45-150s, first upgrade 120-300s, stage 2 240-420s, stage 3/late compression 540-720s, match end 600-900s다.
   - 조정 순서는 자기장 schedule, loot/economy spacing, POI rotation, combat/AI 순서다.
-- 다음 우선순위는 Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override 설계다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
+- `N2-PACE-04` 정규화 후 fresh 1-run:
+  - output: `C:\tmp\game_dev_pacing_time_scale_v1`
+  - duration 150.9s, first upgrade 25.1s, stage2 121.3s
+  - fallback 0.0/run, stuck 25.0/run, zone deaths 0, AI avg 540.9us, sentinel clear
+  - `check_scale_telemetry.py --min-runs 1` 통과.
+- 다음 우선순위는 fresh game-time 3-run 기준선을 만든 뒤 Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 설계하는 것이다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
 
 ## 설계 가드레일
 

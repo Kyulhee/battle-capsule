@@ -9,6 +9,9 @@ func _run() -> void:
 	if not _verify_pacing_schema_and_hooks():
 		quit(1)
 		return
+	if not _verify_pacing_uses_game_seconds():
+		quit(1)
+		return
 
 	print("Pacing telemetry smoke passed.")
 	quit(0)
@@ -99,6 +102,29 @@ func _verify_pacing_schema_and_hooks() -> bool:
 		return _fail("Stuck context did not record coarse position cells.")
 
 	tel.free()
+	return true
+
+
+func _verify_pacing_uses_game_seconds() -> bool:
+	var previous_scale := Engine.time_scale
+	var telemetry_script = load("res://src/core/Telemetry.gd")
+	var tel = telemetry_script.new()
+	root.add_child(tel)
+	Engine.time_scale = 3.0
+	tel.start_match()
+	tel._start_tick = Time.get_ticks_msec() - 1000
+	tel.log_shot()
+	tel.set_stage(2)
+
+	var first_shot := float(tel.metrics.pacing.first_shot_time)
+	var stage2 := float(tel.metrics.pacing.stage_times.get("2", 0.0))
+	tel.free()
+	Engine.time_scale = previous_scale
+
+	if first_shot < 2.5:
+		return _fail("Pacing first-shot time should use game seconds, got %.2f." % first_shot)
+	if stage2 < 2.5:
+		return _fail("Pacing stage time should use game seconds, got %.2f." % stage2)
 	return true
 
 

@@ -139,6 +139,9 @@ python tools/summarize_pacing_baseline.py C:\tmp\game_dev_pacing_map_clearance_v
 # summarize_pacing_baseline.py is a 10-15 minute gap report, not a hard structural gate.
 # Playable pacing candidates must use a separate non-default preset/override and output directory.
 # Keep target_99_probe as the structural gate; do not mix candidate pacing samples with structural smoke results.
+# N2-PACE-04 normalized pacing milestones to game seconds. Use fresh post-fix runs for milestone phase reads:
+python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_pacing_time_scale_v1
+python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_time_scale_v1
 
 # v2.0 Sluice Crossing POI probe smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_poi_sluice_crossing_probe.gd

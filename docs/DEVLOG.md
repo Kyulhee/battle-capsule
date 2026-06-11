@@ -6,6 +6,31 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Pacing Game-Time Normalization
+
+**Scope**
+
+- Fixed pacing milestone telemetry to use the same game-second basis as `core.duration`.
+- `Telemetry._elapsed_seconds()` now multiplies wall-clock elapsed time by `Engine.time_scale`.
+- Extended `tools/verify_pacing_telemetry.gd` with a time-scale regression check so first-shot and stage timing cannot silently fall back to raw wall-clock seconds.
+- No gameplay tuning was applied.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- Fresh 1-run reference after the fix:
+  - command: `python tools\simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_pacing_time_scale_v1`
+  - avg duration 150.9s, fallback 0.0/run, stuck 25.0/run, zone deaths 0, AI avg 540.9us, sentinel clear
+  - `python tools\check_scale_telemetry.py C:\tmp\game_dev_pacing_time_scale_v1 --min-runs 1` passed.
+  - `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_time_scale_v1` reported stage 2 at 121.3s instead of the old pre-fix wall-clock 26s range.
+
+**Decision**
+
+- Treat pre-fix pacing milestone values as wall-clock artifacts. Duration, structural gate status, stuck, fallback, and AI budget from those runs remain useful, but milestone phase placement must be refreshed before tuning.
+- Keep the next playable pacing candidate blocked on fresh game-time telemetry, not the old milestone phase read.
+
+---
+
 ## v2 Pacing Adjustment Plan Draft
 
 **Scope**

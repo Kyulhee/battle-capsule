@@ -36,6 +36,7 @@
 - `summarize_pacing_baseline.py`는 tuning을 적용하기 전의 해석 도구다.
 - report가 "compressed structural smoke"라고 나오면 duration, first upgrade, stage timing을 최종 체감값으로 읽지 않는다.
 - `target_99_probe` 3-run 기준선 `C:\tmp\game_dev_pacing_map_clearance_v2_3run`은 avg duration 143.6s로, 10분 바닥까지 4.18x, 12.5분 midpoint까지 5.22x 짧다.
+- N2-PACE-04 이전 run의 pacing milestone은 wall-clock seconds로 저장되었다. milestone phase를 보려면 fresh game-time run을 사용한다.
 
 ### 체감/페이싱 게이트
 
@@ -79,7 +80,7 @@ Night Artificial Forest 후보 이후 새로 볼 기준:
 | stage 3 / late compression | 540-720s | 9-12분 압축 구간에 맞춘다 |
 | match end | 600-900s | 10-15분 본편 목표 범위 |
 
-현재 143.6초 구조 smoke의 first upgrade 27.3초와 stage 2 26.4초는 이 밴드 기준으로는 opening artifact다. 이 값을 그대로 늘리거나 scale gate threshold를 낮추지 않는다.
+N2-PACE-04 이후 fresh 1-run은 duration 150.9초, first upgrade 25.1초, stage 2 121.3초를 기록했다. 아직 단발 reference이므로 이 값을 그대로 늘리거나 scale gate threshold를 낮추지 않는다.
 
 ### 조정 순서
 
