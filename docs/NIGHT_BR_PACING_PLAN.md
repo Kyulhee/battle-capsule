@@ -1,6 +1,6 @@
 # Night BR Pacing Plan
 
-> Last updated: 2026-06-08. Planning document for the 10-15 minute 99-player Night Artificial Forest direction.
+> Last updated: 2026-06-11. Planning document for the 10-15 minute 99-player Night Artificial Forest direction.
 
 ## 목적
 
@@ -27,6 +27,15 @@
 - 후보 맵은 기본 맵이나 기본 scale preset으로 승격하지 않는다.
 
 이 게이트는 "돌아가는 백본" 확인이다. 재미, 공포, 시야 싸움, 10-15분 pacing을 보장하지 않는다.
+
+### 기준선 gap report
+
+`tools/summarize_pacing_baseline.py <run_dir>`는 구조 게이트를 통과한 simulation set을 10-15분 목표에 맞춰 해석하는 리포트다.
+
+- `check_scale_telemetry.py`는 통과/실패를 내는 구조 gate다.
+- `summarize_pacing_baseline.py`는 tuning을 적용하기 전의 해석 도구다.
+- report가 "compressed structural smoke"라고 나오면 duration, first upgrade, stage timing을 최종 체감값으로 읽지 않는다.
+- `target_99_probe` 3-run 기준선 `C:\tmp\game_dev_pacing_map_clearance_v2_3run`은 avg duration 143.6s로, 10분 바닥까지 4.18x, 12.5분 midpoint까지 5.22x 짧다.
 
 ### 체감/페이싱 게이트
 

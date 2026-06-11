@@ -6,6 +6,32 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Pacing Baseline Report
+
+**Scope**
+
+- Added `tools/summarize_pacing_baseline.py` to interpret pacing telemetry against the 10-15 minute Night BR target.
+- The report is intentionally not a hard gate. It separates structural smoke results from candidate gameplay pacing values.
+- The tool prints duration scale-up, milestone phase placement, CHASE route/context dwell, and stuck route/cell watch points.
+
+**Verification**
+
+- `python -m py_compile tools\summarize_pacing_baseline.py tools\analyze_results.py tools\check_scale_telemetry.py tools\simulate_matches.py` passed.
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_map_clearance_v2_3run` passed.
+- The verified sample is classified as compressed structural smoke:
+  - avg duration 143.6s versus 600-900s target
+  - 4.18x scale-up to the 10m floor
+  - 5.22x scale-up to the 12.5m midpoint
+  - first non-pistol upgrade 27.3s and stage 2 26.4s still land in the 0-2m opening phase relative to the 10-15m target.
+- `git diff --check` passed.
+
+**Decision**
+
+- Use this report before changing zone, loot, combat, or AI pacing numbers.
+- Keep `check_scale_telemetry.py` as the structural gate and `summarize_pacing_baseline.py` as a gap report.
+
+---
+
 ## v2 Pacing Telemetry - First Pass
 
 **Scope**
@@ -542,9 +568,9 @@ Sentinel means zero total damage, zero shots, and zero combat-plan runs were all
 
 ## Current Next
 
-1. Use the new pacing/stuck telemetry for the next baseline review before changing 10-15 minute pacing knobs.
+1. Draft the first 10-15 minute pacing adjustment plan from the baseline report without applying gameplay tuning yet.
 2. Keep the Night Artificial Forest 99 candidate and `target_99_probe` as non-default structural safety gates.
-3. Do not expand bots into full flashlight, battery, fear, blackout, or cone-vs-cone night systems before the pacing baseline is interpreted.
+3. Do not expand bots into full flashlight, battery, fear, blackout, or cone-vs-cone night systems before the pacing adjustment plan has a clear verification path.
 
 ## Archive Pointers
 

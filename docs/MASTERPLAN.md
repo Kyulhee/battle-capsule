@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-11 (pacing telemetry 1차와 99 구조 gate 완료)
+> 마지막 업데이트: 2026-06-11 (pacing baseline report 도구 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,15 +9,15 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 코드 슬라이스 | N2-PACE-01 10-15분 pacing telemetry 1차 |
-| 현재 문서 슬라이스 | pacing telemetry + stuck 구조 진단/맵 clearance 결과 |
-| 다음 구현 후보 | pacing telemetry 기준선 해석 후 10-15분 본편 pacing 설계 |
+| 최신 완료 코드 슬라이스 | N2-PACE-02 pacing baseline report 도구 |
+| 현재 문서 슬라이스 | 10-15분 목표 대비 구조 smoke gap 해석 |
+| 다음 구현 후보 | 10-15분 본편 pacing 조정안 초안 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
-| 현재 미확인 항목 | 10-15분 본편 pacing 수치 해석과 조정안 |
+| 현재 미확인 항목 | 10-15분 본편 pacing 조정안과 검증 경로 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -39,6 +39,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - AI LOD 1차는 봇 의사결정/전투/이동을 건너뛰지 않고 perception tick과 footstep/gunshot/close-range all-actor scan 주기만 낮춘다. 99 후보 1-run은 fallback 0과 regression sentinel clear를 유지했다.
 - 봇 추상 야간 인지 1차는 완료했다. 첫 강한 보정은 99 smoke에서 sentinel은 clear였지만 stuck 96.0/run으로 scale gate를 실패했다. 보정값을 완화한 뒤 단발 1-run은 no first upgrade 변동으로 gate를 실패했지만, 이어서 돌린 `target_99_probe` 3-run은 avg duration 149.7s, first upgrade 23.0s, stuck 55.7/run, fallback 0.0/run, sentinel clear, AI avg 511.6us로 통과했다.
 - N2-PACE-01은 gameplay tuning 없이 telemetry row를 추가했다. 첫 shot/contact/damage/kill, 첫 non-pistol upgrade, zone stage 도달을 수집하고, analyzer는 기존 doctrine CHASE context와 route/POI dwell도 함께 출력한다. 반복 stuck 실패는 threshold를 낮추지 않고 stuck state/route/cell 진단을 추가해 Black Ridge와 south/clinic 고정 장애물 clearance로 해결했다. 최종 `target_99_probe` 3-run은 avg duration 143.6s, first upgrade 27.3s, fallback 0.0/run, stuck 20.3/run, AI avg 661.2us, sentinel clear로 통과했다.
+- N2-PACE-02는 `tools/summarize_pacing_baseline.py`로 10-15분 목표 대비 gap report를 추가했다. 최종 3-run 기준 avg duration 143.6s는 10분 바닥까지 4.18x, 12.5분 midpoint까지 5.22x 짧은 구조 smoke로 분류된다. 첫 non-pistol upgrade 27.3s와 stage 2 26.4s는 현재 run 내부에서는 약 18-19% 지점이지만 10-15분 목표 기준으로는 여전히 opening phase다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서
@@ -180,6 +181,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-AI-LOD-01 | AI perception/sensory LOD 1차 | 상태별 perception tick, 보조 감지 loop throttle | `verify_ai_lod_perception.gd`, 60/99 1-run smoke | combat/movement/state handler skip 금지 |
 | N2-AI-01 | 봇 추상 야간 인지 | 거리/확신도 보정만 있는 작은 AI patch | 1-3 run smoke, AI cost 확인 | cone-vs-cone 고비용 시뮬레이션으로 확장 금지 |
 | N2-PACE-01 | 10-15분 pacing telemetry | match duration, first contact, crossing usage 등 row | smoke + analyzer 출력 확인 | 기존 100-170초 smoke 기준을 최종 목표로 오해하지 않기 |
+| N2-PACE-02 | pacing baseline report | 10-15분 목표 대비 구조 smoke gap report | `summarize_pacing_baseline.py`, py_compile | 리포트만으로 gameplay tuning 적용 금지 |
 
 자율 진행 규칙:
 
@@ -211,7 +213,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-AI-LOD-01 완료: `Entity` perception은 누적 delta tick으로 바꾸고, 봇은 ATTACK 0.05s / 이동계 상태 0.08s / IDLE 0.12s로 perception LOD를 적용했다. footstep/gunshot/close-range 스캔은 0.15s/0.10s/0.05s로 제한했다. `visual_review`, `xlarge_60`, `target_99_probe` 1-run smoke와 60/99 `check_scale_telemetry.py --min-runs 1`을 통과했다. 99 결과는 duration 178.2s, fallback 0.0/run, zone deaths 1, stuck 51.0/run, AI update avg 463.0us, sentinel clear다.
 - N2-AI-01 완료: 봇 viewer에만 적용되는 추상 야간 인지를 추가했다. 강한 1차 상수는 `visual_review`, `xlarge_60`, `target_99_probe`에서 sentinel clear였지만 target 99 scale checker가 stuck 96.0/run으로 실패했다. 상수 완화 후 `verify_bot_night_awareness.gd`, `verify_ai_lod_perception.gd`, `verify_bush_interaction.gd`가 통과했고, `target_99_probe` 3-run도 avg duration 149.7s, first upgrade 23.0s, fallback 0.0/run, stuck 55.7/run, AI update avg 511.6us, sentinel clear로 `check_scale_telemetry.py --min-runs 3`을 통과했다. 별도 1-run은 no first upgrade로 실패했으나 stuck/AI/sentinel은 정상 범위였다.
 - N2-PACE-01 완료: `Telemetry.gd`에 `pacing` 그룹을 추가하고 analyzer 출력과 smoke verifier를 붙였다. stuck 반복 실패를 막기 위해 stuck state/route/cell 진단을 추가했고, Night 후보 Black Ridge 및 south/clinic pathing clearance를 소폭 수정했다. `target_99_probe` 3-run은 avg duration 143.6s, first upgrade 27.3s, fallback 0.0/run, stuck 20.3/run, AI avg 661.2us, sentinel clear로 통과했다.
-- 다음 우선순위: 새 pacing telemetry를 기준으로 10-15분 본편 pacing 설계안을 해석한다. 바로 zone/loot/combat 수치를 튜닝하지 않는다.
+- N2-PACE-02 완료: `tools/summarize_pacing_baseline.py`를 추가했다. `C:\tmp\game_dev_pacing_map_clearance_v2_3run` 기준 avg duration 143.6s는 10분 바닥까지 4.18x, 12.5분 midpoint까지 5.22x 짧은 구조 smoke로 분류된다. first upgrade와 stage 2는 현재 run 내부에서는 18-19% 지점이지만 10-15분 목표 기준으로는 opening phase다.
+- 다음 우선순위: 10-15분 본편 pacing 조정안 초안을 만든다. 바로 zone/loot/combat 수치를 적용하지 않는다.
 
 ## 비목표
 
@@ -259,6 +262,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - `tools/verify_ai_lod_perception.gd`
 - `tools/verify_pickup_light_lod.gd`
 - `tools/verify_player_night_readability.gd`
+- `tools/summarize_pacing_baseline.py <run_dir>`
 - 10-15분 목표에 맞춘 별도 telemetry row 추가
 - flashlight on ratio, battery depletion, darkness hit/kill, crossing usage, POI dwell, first-contact, first-upgrade, final-zone timing 확인
 - 봇 full night system 적용 전 AI cost와 behavior complexity review

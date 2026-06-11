@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-01` 10-15분 pacing telemetry 1차.
+- 이번 세션 기준 완료 slice: `N2-PACE-02` pacing baseline report 도구.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,12 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`과 `N2-PACE-01`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`는 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-01` 10-15분 pacing telemetry 1차다. gameplay tuning 없이 milestone telemetry row와 analyzer 출력만 추가했고, 반복 stuck 실패는 stuck state/route/cell 진단으로 원인을 좁혀 Night 후보 맵의 pathing clearance만 소폭 수정했다.
+현재 완료한 본 작업은 `N2-PACE-02` pacing baseline report 도구다. `N2-PACE-01`의 telemetry와 3-run 결과를 10-15분 목표에 맞춰 해석하되, gameplay tuning은 적용하지 않았다.
 
 통과한 단위 검증:
 
@@ -69,6 +69,7 @@ Get-Location
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_night_awareness.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bush_interaction.gd
+python -m py_compile tools\summarize_pacing_baseline.py tools\analyze_results.py tools\check_scale_telemetry.py tools\simulate_matches.py
 ```
 
 완화 후 99 검증:
@@ -94,7 +95,11 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
   - avg duration 143.6s, first upgrade 27.3s, fallback 0.0/run, zone deaths 0.3/run, stuck 20.3/run
   - AI update avg 661.2us, max 28729us, regression sentinel clear
   - `check_scale_telemetry.py --min-runs 3` 통과.
-- 다음 우선순위는 새 pacing telemetry를 해석해 10-15분 본편 pacing 설계안을 세우는 것이다. 바로 zone/loot/combat 수치를 튜닝하지 않는다.
+- `N2-PACE-02` 기준선 해석:
+  - 명령: `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_map_clearance_v2_3run`
+  - avg duration 143.6s는 10분 바닥까지 4.18x, 12.5분 midpoint까지 5.22x 짧은 구조 smoke다.
+  - first upgrade 27.3s와 stage 2 26.4s는 현재 run 내부에서는 18-19% 지점이지만 10-15분 목표 기준으로는 opening phase다.
+- 다음 우선순위는 10-15분 본편 pacing 조정안 초안이다. 바로 zone/loot/combat 수치를 적용하지 않는다.
 
 ## 설계 가드레일
 
