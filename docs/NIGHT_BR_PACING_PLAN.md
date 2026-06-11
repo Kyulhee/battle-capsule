@@ -61,6 +61,43 @@ Night Artificial Forest 후보 이후 새로 볼 기준:
 
 자기장은 초반에는 느리게, 후반에는 점진적으로 빠르게 좁아져야 한다. 지금처럼 짧은 smoke run에 맞춘 속도는 본편 후보에서는 그대로 쓰면 안 된다.
 
+## 10-15분 pacing 조정안 초안
+
+이 초안은 tuning 적용 순서와 검증 경로만 정의한다. `target_99_probe`는 계속 구조 안전성 게이트로 유지하고, 10-15분 체감 수치는 별도 비기본 pacing 후보에서 검증한다.
+
+### 목표 watch band
+
+아래 값은 첫 candidate tuning을 해석하기 위한 관찰 밴드다. hard gate로 쓰기 전에는 최소 3-run 반복과 구조 gate 통과를 먼저 요구한다.
+
+| 지표 | 초안 watch band | 해석 |
+|---|---|---|
+| 첫 shot/contact | 45-150s | 0-5초에 고정되면 spawn/proximity artifact를 의심한다 |
+| 첫 kill | 60-210s | 초반 교전은 가능하되 즉시 탈락이 평균 패턴이 되면 안 된다 |
+| 첫 non-pistol upgrade | 120-300s | 2-5분 구간의 첫 목표가 되어야 한다 |
+| stage 2 도달 | 240-420s | 첫 회전 압력이 생기되 초반 루팅을 끊지 않아야 한다 |
+| 첫 crossing pressure | 240-540s | Sluice Crossing 또는 우회로가 중반 선택지가 되어야 한다 |
+| stage 3 / late compression | 540-720s | 9-12분 압축 구간에 맞춘다 |
+| match end | 600-900s | 10-15분 본편 목표 범위 |
+
+현재 143.6초 구조 smoke의 first upgrade 27.3초와 stage 2 26.4초는 이 밴드 기준으로는 opening artifact다. 이 값을 그대로 늘리거나 scale gate threshold를 낮추지 않는다.
+
+### 조정 순서
+
+1. `target_99_probe`를 변경하지 않고 Night 후보 전용 비기본 pacing preset 또는 zone/economy override를 만든다.
+2. 자기장 schedule을 먼저 늘린다. early safe time과 stage duration을 늘리되 zone death가 구조 gate를 다시 깨지 않는지 확인한다.
+3. loot/economy spacing을 조정한다. 기본 무기 접근성은 유지하고, non-pistol upgrade 평균을 2-5분 구간으로 보낸다.
+4. POI rotation 압력을 조정한다. Sluice Crossing, False Clinic 재진입, Black Ridge 우회가 중반에 읽히는지 route/POI dwell과 crossing telemetry로 본다.
+5. combat damage, AI aggression, night awareness 상수는 마지막에 조정한다. duration을 맞추기 위해 전투 수치를 먼저 낮추지 않는다.
+
+### 검증 루프
+
+- 문서/수치 계획만 바꿀 때는 `git diff --check`를 통과해야 한다.
+- 첫 candidate tuning을 적용하면 기존 night verifier와 `target_99_probe` 3-run 구조 gate를 먼저 유지한다.
+- 구조 gate가 통과한 뒤 `summarize_pacing_baseline.py`로 duration scale-up, milestone phase, stuck route/cell을 다시 읽는다.
+- fallback, zero damage/shot/combat-plan sentinel, AI update budget 초과, stuck > 60/run은 pacing tuning보다 구조 회귀로 먼저 처리한다.
+- 단발 no first upgrade는 바로 tuning하지 않고 3-run으로 재확인한다.
+- candidate pacing sample은 구조 smoke와 별도 디렉토리에 저장하고, 구조 gate 결과와 섞어 해석하지 않는다.
+
 ## 야간 시스템 단계
 
 ### Phase A: 플레이어-facing 손전등
@@ -171,8 +208,8 @@ Night Artificial Forest 후보 이후 새로 볼 기준:
 
 ## 다음 구현 판단
 
-1. Night Artificial Forest 후보 `mapSpec` 초안을 만든다.
-2. 기존 scale gate로 구조 안전성을 확인한다.
-3. `Sluice Crossing`, `Wire Maze`, `Black Ridge` POI minimap 중 하나를 먼저 만든다.
-4. 플레이어-facing flashlight prototype을 붙인다.
-5. 봇은 추상 night awareness로 시작하고, full flashlight behavior는 특수 봇으로 미룬다.
+1. `target_99_probe`는 구조 안전성 게이트로 유지한다.
+2. Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 추가한다.
+3. 첫 적용은 자기장 schedule과 economy spacing에 제한한다.
+4. 적용 후 기존 night verifier, 3-run 구조 gate, `summarize_pacing_baseline.py`를 함께 돌린다.
+5. crossing, flashlight, darkness telemetry가 부족하면 combat tuning 전에 telemetry를 보강한다.

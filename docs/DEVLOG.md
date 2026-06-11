@@ -6,6 +6,31 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Pacing Adjustment Plan Draft
+
+**Scope**
+
+- Added a 10-15 minute pacing adjustment draft to `docs/NIGHT_BR_PACING_PLAN.md`.
+- No gameplay tuning was applied in this slice.
+- The plan keeps `target_99_probe` as a structural gate and moves playable pacing work to a separate non-default candidate preset or zone/economy override.
+- Documented first watch bands:
+  - first contact: 45-150s
+  - first non-pistol upgrade: 120-300s
+  - stage 2: 240-420s
+  - stage 3 / late compression: 540-720s
+  - match end: 600-900s
+
+**Verification**
+
+- `git diff --check` passed.
+
+**Decision**
+
+- First candidate tuning should adjust zone schedule and loot/economy spacing before combat damage, AI aggression, or night awareness constants.
+- Keep structure failures separate from pacing misses: fallback, stuck, zero combat sentinels, and AI budget issues block tuning.
+
+---
+
 ## v2 Pacing Baseline Report
 
 **Scope**
