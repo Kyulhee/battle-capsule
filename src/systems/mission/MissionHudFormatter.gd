@@ -60,10 +60,15 @@ static func bonus_hud_text(mission, context: Dictionary) -> String:
 		MissionDataScript.ConditionType.FIRST_KILL:
 			return "%s\n킬 횟수  %d / %d" % [mission.title, kills, int(mission.target_value)]
 		MissionDataScript.ConditionType.WIN_HIGH_HP:
-			return "%s\n현재 HP %.0f — 우승 시 HP %.0f 이상 필요" % [
+			var current_hp := float(context.get("current_hp", 0.0))
+			var max_hp := maxf(1.0, float(context.get("current_max_hp", 100.0)))
+			var hp_ratio := current_hp / max_hp
+			return "%s\n현재 HP %.0f / %.0f (%.0f%%) — 우승 시 최대 HP의 %s 이상 필요" % [
 				mission.title,
-				float(context.get("current_hp", 0.0)),
-				mission.target_value,
+				current_hp,
+				max_hp,
+				hp_ratio * 100.0,
+				MissionTuningScript.clean_win_ratio_label(),
 			]
 		MissionDataScript.ConditionType.WIN_WITH_HEALS:
 			return "%s\n구급상자(◆) 사용  %d / %d" % [

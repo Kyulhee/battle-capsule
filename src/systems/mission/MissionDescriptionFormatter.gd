@@ -26,7 +26,7 @@ static func bonus_description(mission) -> String:
 		MissionDataScript.ConditionType.FIRST_KILL:
 			return "이번 매치에서 %d킬 이상 달성" % _target_int(mission)
 		MissionDataScript.ConditionType.WIN_HIGH_HP:
-			return "HP %d%% 이상으로 1등" % _target_int(mission)
+			return "최대 HP의 %s 이상으로 1등" % MissionTuningScript.clean_win_ratio_label()
 		MissionDataScript.ConditionType.WIN_WITH_HEALS:
 			return "구급상자(◆) %d회 이상 사용 후 1등" % _target_int(mission)
 		MissionDataScript.ConditionType.KILL_WITH_ALL_WEAPONS:

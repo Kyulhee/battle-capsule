@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-11. 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-12 (mission health rule fix 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-04` pacing game-time 정규화.
+- 이번 세션 기준 완료 slice: `N2-MISSION-01` clean win ratio + no-heal max HP lock.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,16 +55,20 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`는 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-04` pacing game-time 정규화다. `N2-PACE-02`와 `N2-PACE-03`에서 gameplay tuning은 적용하지 않았고, 이번 slice도 tuning 없이 milestone seconds가 `core.duration`과 같은 game-time 축을 쓰도록 고쳤다.
+현재 완료한 본 작업은 `N2-MISSION-01` mission health rule fix다. `CLEAN WIN`은 절대 HP 50이 아니라 현재 최대 체력의 50% 이상으로 평가하고, Hell 시작 HP 1과 Zone Battery 같은 no-heal 상태는 current HP만 깎지 않고 max HP도 1로 잠근다.
 
 통과한 단위 검증:
 
 ```powershell
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_mission_health_rules.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_balance.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_runtime.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_player_night_readability.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_night_awareness.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd
@@ -114,6 +118,10 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
   - duration 150.9s, first upgrade 25.1s, stage2 121.3s
   - fallback 0.0/run, stuck 25.0/run, zone deaths 0, AI avg 540.9us, sentinel clear
   - `check_scale_telemetry.py --min-runs 1` 통과.
+- `N2-MISSION-01` mission health rule fix:
+  - `CLEAN WIN`은 현재 HP / 현재 max HP 비율이 50% 이상이면 통과한다.
+  - Hell 시작 HP 1과 Zone Battery 같은 `heal_mult=0` artifact는 `apply_health_capacity_lock(1.0)`으로 current/max HP를 모두 1로 잠근다.
+  - `verify_mission_health_rules.gd`, artifact balance/runtime, player night readability, pacing telemetry smoke가 통과했다.
 - 다음 우선순위는 fresh game-time 3-run 기준선을 만든 뒤 Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 설계하는 것이다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
 
 ## 설계 가드레일

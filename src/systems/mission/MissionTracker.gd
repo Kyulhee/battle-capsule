@@ -233,10 +233,10 @@ func on_player_zone_tick(is_outside: bool):
 	else:
 		_player_current_outside_sec = 0.0
 
-func evaluate(tel: Node, final_rank: int, player_hp: float, difficulty: int) -> bool:
+func evaluate(tel: Node, final_rank: int, player_hp: float, player_max_hp: float, difficulty: int) -> bool:
 	if active_mission == null:
 		return false
-	return MissionEvaluatorScript.evaluate(active_mission, _bonus_eval_context(tel, final_rank, player_hp, difficulty))
+	return MissionEvaluatorScript.evaluate(active_mission, _bonus_eval_context(tel, final_rank, player_hp, player_max_hp, difficulty))
 
 func get_hud_text(tel: Node) -> String:
 	if active_mission == null:
@@ -246,18 +246,22 @@ func get_hud_text(tel: Node) -> String:
 func _bonus_hud_context(tel: Node) -> Dictionary:
 	var context = _bonus_state_context(tel)
 	var current_hp: float = 0.0
+	var current_max_hp: float = 100.0
 	if tel:
 		var main_node = tel.get_node_or_null("/root/Main")
 		if main_node and is_instance_valid(main_node.player_ref):
 			current_hp = main_node.player_ref.current_health
+			current_max_hp = main_node.player_ref.stats.max_health
 	context["current_hp"] = current_hp
+	context["current_max_hp"] = current_max_hp
 	return context
 
-func _bonus_eval_context(tel: Node, final_rank: int, player_hp: float, difficulty: int) -> Dictionary:
+func _bonus_eval_context(tel: Node, final_rank: int, player_hp: float, player_max_hp: float, difficulty: int) -> Dictionary:
 	var context = _bonus_state_context(tel)
 	context["won"] = final_rank == 1
 	context["final_rank"] = final_rank
 	context["player_hp"] = player_hp
+	context["player_max_hp"] = player_max_hp
 	context["difficulty"] = difficulty
 	return context
 

@@ -5,6 +5,7 @@ const SUPPLY_KILL_RADIUS: float = 12.0
 const FULL_DETECTION_THRESHOLD: float = 1.0
 const DETECTED_BOT_COUNT: int = 2
 const HEAVILY_DETECTED_BOT_COUNT: int = 3
+const CLEAN_WIN_HP_RATIO: float = 0.5
 const LOW_HP_KILL_RATIO: float = 0.3
 const ALL_WEAPON_KILL_TARGET: int = 1
 const ALL_WEAPON_KILL_TYPES = ["pistol", "ar", "shotgun", "railgun"]
@@ -23,6 +24,10 @@ static func detection_threshold_label() -> String:
 
 static func low_hp_ratio_label() -> String:
 	return "%d%%" % int(round(LOW_HP_KILL_RATIO * 100.0))
+
+
+static func clean_win_ratio_label() -> String:
+	return "%d%%" % int(round(CLEAN_WIN_HP_RATIO * 100.0))
 
 
 static func should_filter_long_zone_pressure(zone_stage: int, target: int) -> bool:

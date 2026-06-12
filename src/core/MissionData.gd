@@ -3,7 +3,7 @@ class_name MissionData
 
 enum ConditionType {
 	FIRST_KILL,             # kills >= target_value
-	WIN_HIGH_HP,            # 승리 + HP >= target_value
+	WIN_HIGH_HP,            # 승리 + current/max HP ratio >= target_value
 	WIN_WITH_HEALS,         # 승리 + MedKit 사용 >= target_value
 	COLLECT_WEAPONS,        # 무기 종류 픽업 >= target_value (미사용)
 	SURVIVE_NO_KILLS,       # 킬 0 + 생존 시간 >= target_value

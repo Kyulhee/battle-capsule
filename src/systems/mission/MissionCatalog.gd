@@ -3,6 +3,7 @@ class_name MissionCatalog
 
 const MissionDataScript = preload("res://src/core/MissionData.gd")
 const MissionDescriptionFormatterScript = preload("res://src/systems/mission/MissionDescriptionFormatter.gd")
+const MissionTuningScript = preload("res://src/systems/mission/MissionTuning.gd")
 const PressureEffectCatalogScript = preload("res://src/core/PressureEffectCatalog.gd")
 const PressureMissionDescriptionFormatterScript = preload("res://src/systems/mission/PressureMissionDescriptionFormatter.gd")
 
@@ -159,7 +160,7 @@ static func bonus_missions() -> Array:
 	m = MissionDataScript.new()
 	m.id = "clean_win"; m.title = "CLEAN WIN"
 	m.condition_type = MissionDataScript.ConditionType.WIN_HIGH_HP
-	m.target_value = 50; m.badge_label = "무결"; m.badge_color = Color(0.2, 0.9, 0.3)
+	m.target_value = MissionTuningScript.CLEAN_WIN_HP_RATIO; m.badge_label = "무결"; m.badge_color = Color(0.2, 0.9, 0.3)
 	_append_bonus(list, m)
 
 	m = MissionDataScript.new()

@@ -716,8 +716,7 @@ func spawn_entities():
 	player_ref = p
 	p.died.connect(_on_player_died)
 	if difficulty == Difficulty.HELL and not is_simulation:
-		p.current_health = 1.0
-		p.health_changed.emit(1.0, p.stats.max_health)
+		p.apply_health_capacity_lock(1.0)
 
 	var diff_params = _get_difficulty_params()
 	var archetype_plan = BotSpawnPlannerScript.archetype_plan(bot_count)
@@ -1045,7 +1044,8 @@ func _end_match(final_rank: int = 1):
 	if mission_tracker and mission_tracker.active_mission:
 		var tel_node = get_node_or_null("/root/Telemetry")
 		var player_hp = player_ref.current_health if is_instance_valid(player_ref) else 0.0
-		mission_success = mission_tracker.evaluate(tel_node, final_rank, player_hp, difficulty as int)
+		var player_max_hp = player_ref.stats.max_health if is_instance_valid(player_ref) else 100.0
+		mission_success = mission_tracker.evaluate(tel_node, final_rank, player_hp, player_max_hp, difficulty as int)
 		var mid = mission_tracker.active_mission.id
 		if mission_success:
 			mission_tracker.save_badge(mid)
@@ -1136,7 +1136,7 @@ func _is_bonus_mission_feasible(m, art_mods: Dictionary) -> bool:
 	if art_mods.get("heal_mult", 1.0) == 0.0 and m.id == "medic_run":
 		return false
 	# armor_sponge (heal_to_shield): 힐→방어막 전환이지만 on_player_medkit_used()는 정상 호출되므로 호환
-	# silent_core (max_health_mult 0.5): WIN_HIGH_HP(50) 목표값이 최대HP와 동일해 어렵지만 가능
+	# clean_win은 max HP 대비 비율 기준이므로 max HP 1 잠금 상태에서도 평가 가능
 	return true
 
 func _process_pressure_mission(delta: float):

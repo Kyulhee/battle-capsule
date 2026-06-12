@@ -529,6 +529,13 @@ func handle_aiming(delta):
 
 func _on_shield_changed(_curr, _max): _update_hud()
 func _on_health_changed(_curr, _max): _update_hud()
+
+func apply_health_capacity_lock(max_health: float = 1.0) -> void:
+	stats.max_health = maxf(1.0, max_health)
+	current_health = min(stats.max_health, maxf(1.0, current_health))
+	_heal_regen = 0.0
+	health_changed.emit(current_health, stats.max_health)
+
 func _update_hud():
 	var main = get_tree().root.get_node_or_null("Main")
 	var alive = main.alive_count if main else 0
@@ -984,6 +991,8 @@ func apply_artifact(artifact: Dictionary):
 		stats.max_shield = int(stats.max_shield * mods["max_shield_mult"])
 		current_shield = min(current_shield, stats.max_shield)
 		shield_changed.emit(current_shield, stats.max_shield)
+	if float(mods.get("heal_mult", 1.0)) == 0.0:
+		apply_health_capacity_lock(1.0)
 	_update_artifact_hud_icon(artifact)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_artifact_selected(String(artifact.get("id", "none")))

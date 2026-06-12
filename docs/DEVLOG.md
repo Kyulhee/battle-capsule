@@ -6,6 +6,31 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Mission Health Rule Fix
+
+**Scope**
+
+- Changed `CLEAN WIN` from absolute HP 50 to current HP >= 50% of current max HP.
+- Added `Player.apply_health_capacity_lock()` and routed Hell start HP lock plus no-heal artifacts such as Zone Battery through max HP 1 / current HP 1 instead of current HP 1 with max HP still 100.
+- Updated mission HUD/description text to show current/max HP and the 50% ratio requirement.
+- Added `tools/verify_mission_health_rules.gd` to guard clean-win ratio evaluation and no-heal max-HP lock paths.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_mission_health_rules.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_balance.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_artifact_runtime.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_player_night_readability.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `git diff --check` passed with an existing line-ending warning on `MissionTracker.gd`.
+
+**Decision**
+
+- Clean win now remains achievable for max-HP-changing states because it is ratio-based.
+- No-heal states that intentionally collapse HP should collapse max HP too, so full-heal effects and HUD bars cannot imply unavailable recovery.
+
+---
+
 ## v2 Pacing Game-Time Normalization
 
 **Scope**
@@ -618,9 +643,9 @@ Sentinel means zero total damage, zero shots, and zero combat-plan runs were all
 
 ## Current Next
 
-1. Draft the first 10-15 minute pacing adjustment plan from the baseline report without applying gameplay tuning yet.
-2. Keep the Night Artificial Forest 99 candidate and `target_99_probe` as non-default structural safety gates.
-3. Do not expand bots into full flashlight, battery, fear, blackout, or cone-vs-cone night systems before the pacing adjustment plan has a clear verification path.
+1. Build a fresh game-time 3-run pacing baseline after `N2-PACE-04`.
+2. Then design a non-default playable pacing candidate preset or zone/economy override for the Night candidate.
+3. Keep the Night Artificial Forest 99 candidate and `target_99_probe` as non-default structural safety gates; do not retune combat damage, AI aggression, or night awareness constants first.
 
 ## Archive Pointers
 

@@ -12,7 +12,9 @@ static func evaluate(mission, context: Dictionary) -> bool:
 		MissionDataScript.ConditionType.FIRST_KILL:
 			return kills >= int(mission.target_value)
 		MissionDataScript.ConditionType.WIN_HIGH_HP:
-			return won and float(context.get("player_hp", 0.0)) >= mission.target_value
+			var player_hp := float(context.get("player_hp", 0.0))
+			var player_max_hp := maxf(1.0, float(context.get("player_max_hp", 100.0)))
+			return won and player_hp / player_max_hp >= float(mission.target_value)
 		MissionDataScript.ConditionType.WIN_WITH_HEALS:
 			return won and int(context.get("medkits_used", 0)) >= int(mission.target_value)
 		MissionDataScript.ConditionType.SURVIVE_NO_KILLS:
