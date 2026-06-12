@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-12 (mission health rule fix 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-13 (fresh game-time 3-run baseline 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-MISSION-01` clean win ratio + no-heal max HP lock.
+- 이번 세션 기준 완료 slice: `N2-PACE-05` fresh game-time 3-run baseline.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,12 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`는 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-MISSION-01` mission health rule fix다. `CLEAN WIN`은 절대 HP 50이 아니라 현재 최대 체력의 50% 이상으로 평가하고, Hell 시작 HP 1과 Zone Battery 같은 no-heal 상태는 current HP만 깎지 않고 max HP도 1로 잠근다.
+현재 완료한 본 작업은 `N2-PACE-05` fresh game-time 3-run baseline이다. N2-PACE-04 이후 `target_99_probe` 3-run을 새로 만들었고, structural gate는 통과했지만 10-15분 목표 대비 여전히 compressed structural smoke로 판정했다.
 
 통과한 단위 검증:
 
@@ -78,6 +78,10 @@ python tools\simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest
 python tools\analyze_results.py C:\tmp\game_dev_pacing_time_scale_v1
 python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_time_scale_v1
 python tools\check_scale_telemetry.py C:\tmp\game_dev_pacing_time_scale_v1 --min-runs 1
+python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_pacing_game_time_v2_3run
+python tools\analyze_results.py C:\tmp\game_dev_pacing_game_time_v2_3run
+python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_game_time_v2_3run
+python tools\check_scale_telemetry.py C:\tmp\game_dev_pacing_game_time_v2_3run --min-runs 3
 git diff --check
 ```
 
@@ -122,7 +126,12 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
   - `CLEAN WIN`은 현재 HP / 현재 max HP 비율이 50% 이상이면 통과한다.
   - Hell 시작 HP 1과 Zone Battery 같은 `heal_mult=0` artifact는 `apply_health_capacity_lock(1.0)`으로 current/max HP를 모두 1로 잠근다.
   - `verify_mission_health_rules.gd`, artifact balance/runtime, player night readability, pacing telemetry smoke가 통과했다.
-- 다음 우선순위는 fresh game-time 3-run 기준선을 만든 뒤 Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 설계하는 것이다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
+- `N2-PACE-05` fresh game-time 3-run:
+  - output: `C:\tmp\game_dev_pacing_game_time_v2_3run`
+  - avg duration 163.1s, first contact 1.4s, first kill 17.5s, first upgrade 27.4s, stage2 130.2s
+  - fallback 0.0/run, zone deaths 0, stuck 16.7/run, AI avg 628.9us, sentinel clear
+  - `check_scale_telemetry.py --min-runs 3` 통과. `summarize_pacing_baseline.py`는 10분 바닥까지 3.68x, 12.5분 midpoint까지 4.60x 부족한 compressed structural smoke로 판정했다.
+- 다음 우선순위는 Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 설계하는 것이다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
 
 ## 설계 가드레일
 

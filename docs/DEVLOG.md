@@ -1,8 +1,35 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-11. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-13. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 Pacing Fresh Game-Time 3-Run Baseline
+
+**Scope**
+
+- Ran the first fresh `target_99_probe` 3-run baseline after the pacing milestone time-scale fix.
+- No gameplay tuning was applied.
+- Recorded the result as a structural baseline and 10-15 minute gap report before creating a playable pacing candidate.
+
+**Verification**
+
+- `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_pacing_game_time_v2_3run` passed.
+- `python tools\analyze_results.py C:\tmp\game_dev_pacing_game_time_v2_3run` passed:
+  - avg duration 163.1s, min/max 135.2s / 187.5s
+  - first contact 1.4s, first kill 17.5s, first non-pistol upgrade 27.4s, stage 2 130.2s
+  - fallback 0.0/run, zone deaths 0, stuck 16.7/run, AI avg 628.9us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_pacing_game_time_v2_3run --min-runs 3` passed.
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_game_time_v2_3run` passed and classified the sample as compressed structural smoke:
+  - 3.68x scale-up to the 10m floor
+  - 4.60x scale-up to the 12.5m midpoint
+
+**Decision**
+
+- Treat `N2-PACE-05` as the post-fix game-time baseline, not playable pacing.
+- Next implementation should create a separate non-default playable pacing preset or zone/economy override. Keep `target_99_probe` unchanged as the structural gate.
 
 ---
 
@@ -52,7 +79,7 @@ Do not load full snapshots by default. Use this file for the current state and o
 **Decision**
 
 - Treat pre-fix pacing milestone values as wall-clock artifacts. Duration, structural gate status, stuck, fallback, and AI budget from those runs remain useful, but milestone phase placement must be refreshed before tuning.
-- Keep the next playable pacing candidate blocked on fresh game-time telemetry, not the old milestone phase read.
+- Keep the playable pacing candidate blocked on fresh game-time telemetry, not the old milestone phase read. `N2-PACE-05` now provides that post-fix baseline.
 
 ---
 
@@ -643,9 +670,9 @@ Sentinel means zero total damage, zero shots, and zero combat-plan runs were all
 
 ## Current Next
 
-1. Build a fresh game-time 3-run pacing baseline after `N2-PACE-04`.
-2. Then design a non-default playable pacing candidate preset or zone/economy override for the Night candidate.
-3. Keep the Night Artificial Forest 99 candidate and `target_99_probe` as non-default structural safety gates; do not retune combat damage, AI aggression, or night awareness constants first.
+1. Design the first non-default playable pacing candidate preset or zone/economy override for the Night candidate.
+2. Start with zone schedule and loot/economy spacing; keep combat damage, AI aggression, and night awareness constants unchanged at first.
+3. Keep the Night Artificial Forest 99 candidate and `target_99_probe` as non-default structural safety gates.
 
 ## Archive Pointers
 

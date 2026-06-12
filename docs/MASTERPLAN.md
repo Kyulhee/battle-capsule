@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-12 (mission health rule fix 완료)
+> 마지막 업데이트: 2026-06-13 (fresh game-time 3-run baseline 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,15 +9,15 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 작업 슬라이스 | N2-MISSION-01 clean win ratio + no-heal max HP lock |
-| 현재 문서 슬라이스 | mission/health rule 회귀 방지 |
+| 최신 완료 작업 슬라이스 | N2-PACE-05 fresh game-time 3-run baseline |
+| 현재 문서 슬라이스 | post-fix game-time baseline 기록 |
 | 다음 구현 후보 | Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
-| 현재 미확인 항목 | fresh game-time 3-run 기준선과 첫 playable pacing 후보 수치 |
+| 현재 미확인 항목 | 첫 playable pacing 후보 수치 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -43,6 +43,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-03은 gameplay tuning 없이 10-15분 pacing 조정안 초안을 정리했다. `target_99_probe`는 구조 gate로 유지하고, 본편 체감은 별도 비기본 playable pacing 후보에서 자기장 schedule, loot/economy spacing, POI rotation, combat/AI 순서로 검증한다. 초안 watch band는 first contact 45-150s, first upgrade 120-300s, stage 2 240-420s, stage 3/late compression 540-720s, match end 600-900s다.
 - N2-PACE-04는 `Telemetry._elapsed_seconds()`를 `core.duration`과 같은 game seconds 기준으로 정규화했다. `verify_pacing_telemetry.gd`에 time-scale 회귀 검사를 추가했고, fresh 1-run `C:\tmp\game_dev_pacing_time_scale_v1`은 duration 150.9s, first upgrade 25.1s, stage2 121.3s, fallback 0.0/run, stuck 25.0/run, sentinel clear, scale checker pass를 기록했다.
 - N2-MISSION-01은 `CLEAN WIN`을 절대 HP 50이 아니라 현재 최대 체력의 50% 이상으로 바꿨다. Zone Battery처럼 `heal_mult=0`인 no-heal artifact와 Hell 시작 HP 1은 현재 체력만 깎지 않고 max HP도 1로 잠근다. `tools/verify_mission_health_rules.gd`가 clean-win ratio와 no-heal max-HP lock 경로를 검증한다.
+- N2-PACE-05는 N2-PACE-04 이후 fresh `target_99_probe` 3-run 기준선을 확보했다. `C:\tmp\game_dev_pacing_game_time_v2_3run`은 avg duration 163.1s, first contact 1.4s, first upgrade 27.4s, stage2 130.2s, fallback 0.0/run, zone deaths 0, stuck 16.7/run, AI avg 628.9us, sentinel clear로 구조 gate를 통과했다. gap report는 10분 바닥까지 3.68x, 12.5분 midpoint까지 4.60x 부족한 compressed structural smoke로 판정했다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서
@@ -188,6 +189,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-PACE-03 | 10-15분 pacing 조정안 초안 | watch band, tuning 순서, 검증 루프 | `git diff --check` | 초안만으로 gameplay tuning 적용 금지 |
 | N2-PACE-04 | pacing game-time 정규화 | milestone seconds를 `core.duration`과 같은 축으로 기록 | `verify_pacing_telemetry.gd`, 1-run reference, scale checker | pre-fix milestone phase를 tuning 기준으로 사용 금지 |
 | N2-MISSION-01 | mission health rule fix | clean win ratio, no-heal max HP lock | `verify_mission_health_rules.gd`, artifact/player verifier | no-heal 상태에서 current HP만 깎고 max HP 유지 금지 |
+| N2-PACE-05 | fresh game-time 3-run baseline | post-fix `target_99_probe` 3-run 결과와 gap report | simulate/analyze/summarize/check 3-run | 구조 smoke를 playable pacing으로 오해하지 않기 |
 
 자율 진행 규칙:
 
@@ -223,7 +225,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-03 완료: [NIGHT_BR_PACING_PLAN.md](NIGHT_BR_PACING_PLAN.md)에 10-15분 watch band, tuning 순서, 검증 루프를 추가했다. `target_99_probe`는 구조 gate로 유지하고, 본편 체감 tuning은 별도 비기본 playable pacing 후보에서만 검증한다.
 - N2-PACE-04 완료: pacing milestone seconds를 game-time 기준으로 정규화했다. fresh 1-run은 duration 150.9s, first upgrade 25.1s, stage2 121.3s, fallback 0.0/run, stuck 25.0/run, scale checker pass다.
 - N2-MISSION-01 완료: clean win은 현재 HP가 현재 max HP의 50% 이상이면 통과한다. Hell 시작 HP 1과 Zone Battery 같은 no-heal artifact는 `apply_health_capacity_lock(1.0)`으로 current/max HP를 모두 1로 잠근다.
-- 다음 우선순위: fresh game-time 3-run 기준선을 만든 뒤 Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 설계한다. combat damage, AI aggression, night awareness 상수는 먼저 건드리지 않는다.
+- N2-PACE-05 완료: fresh `target_99_probe` 3-run은 avg duration 163.1s, first contact 1.4s, first upgrade 27.4s, stage2 130.2s, fallback 0.0/run, zone deaths 0, stuck 16.7/run, AI avg 628.9us, sentinel clear로 `check_scale_telemetry.py --min-runs 3`을 통과했다. gap report는 10분 바닥까지 3.68x, 12.5분 midpoint까지 4.60x 부족하다고 판정했다.
+- 다음 우선순위: Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 설계한다. combat damage, AI aggression, night awareness 상수는 먼저 건드리지 않는다.
 
 ## 비목표
 

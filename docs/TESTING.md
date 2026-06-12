@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-12 (mission health rule smoke 추가)
+> 마지막 업데이트: 2026-06-13 (fresh game-time 3-run baseline 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -142,7 +142,13 @@ python tools/summarize_pacing_baseline.py C:\tmp\game_dev_pacing_map_clearance_v
 # summarize_pacing_baseline.py is a 10-15 minute gap report, not a hard structural gate.
 # Playable pacing candidates must use a separate non-default preset/override and output directory.
 # Keep target_99_probe as the structural gate; do not mix candidate pacing samples with structural smoke results.
-# N2-PACE-04 normalized pacing milestones to game seconds. Use fresh post-fix runs for milestone phase reads:
+# N2-PACE-04 normalized pacing milestones to game seconds. Use fresh post-fix runs for milestone phase reads.
+# N2-PACE-05 fresh 3-run structural baseline:
+python tools/simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_pacing_game_time_v2_3run
+python tools/analyze_results.py C:\tmp\game_dev_pacing_game_time_v2_3run
+python tools/check_scale_telemetry.py C:\tmp\game_dev_pacing_game_time_v2_3run --min-runs 3
+python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_game_time_v2_3run
+# Single-run reference, useful only for quick smoke:
 python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_pacing_time_scale_v1
 python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_time_scale_v1
 
