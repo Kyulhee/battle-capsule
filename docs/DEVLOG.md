@@ -1,8 +1,41 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-13. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-14. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 Playable Pacing Preset v1
+
+**Scope**
+
+- Added the non-default `playable_pacing_v1` preset to the Night Artificial Forest candidate.
+- Kept `target_99_probe` unchanged as the structural gate.
+- Limited the first playable candidate to zone schedule and economy spacing. No combat damage, AI aggression, or night-awareness constants were changed.
+- Added `tools/verify_playable_pacing_preset.gd` to guard that the preset is candidate-only, remains 99-bot, preserves spawn reliability, extends zone schedule, and avoids economy starvation.
+
+**Verification**
+
+- `python -m json.tool data\mapSpec_night_forest_candidate.json` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_night_forest_candidate.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1` passed with the known AssetCatalog fallback warning.
+- The first lower-economy candidate reproduced `no first upgrade` in a 3-run sample, so it was rejected and the verifier now enforces economy floors for v1.
+- Final 3-run candidate:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_playable_pacing_v1_3run_v2`
+  - avg duration 294.0s, min/max 278.4s / 312.8s
+  - first contact 1.2s, first kill 15.0s, first non-pistol upgrade 36.6s, stage 2 268.5s
+  - fallback 0.0/run, zone deaths 0.7/run, stuck 16.7/run, AI avg 529.0us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2 --min-runs 3` passed.
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v1_3run_v2` passed and still reports a gap:
+  - 2.04x scale-up to the 10m floor
+  - 2.55x scale-up to the 12.5m midpoint
+
+**Decision**
+
+- Treat `N2-PACE-06` as the first playable candidate baseline, not final pacing.
+- Next work should investigate repeatability and the too-fast opening contact/upgrade timing before touching combat damage, AI aggression, or night-awareness constants.
 
 ---
 

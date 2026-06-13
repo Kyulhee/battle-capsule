@@ -1,6 +1,6 @@
 # Night BR Pacing Plan
 
-> Last updated: 2026-06-13. Planning document for the 10-15 minute 99-player Night Artificial Forest direction.
+> Last updated: 2026-06-14. Planning document for the 10-15 minute 99-player Night Artificial Forest direction.
 
 ## 목적
 
@@ -37,6 +37,7 @@
 - report가 "compressed structural smoke"라고 나오면 duration, first upgrade, stage timing을 최종 체감값으로 읽지 않는다.
 - N2-PACE-04 이전 `target_99_probe` 3-run 기준선 `C:\tmp\game_dev_pacing_map_clearance_v2_3run`은 avg duration 143.6s로, 10분 바닥까지 4.18x, 12.5분 midpoint까지 5.22x 짧다. 이 run의 pacing milestone은 wall-clock seconds로 저장되었으므로 phase 판단에는 쓰지 않는다.
 - N2-PACE-05 fresh game-time 3-run `C:\tmp\game_dev_pacing_game_time_v2_3run`은 avg duration 163.1s, first contact 1.4s, first kill 17.5s, first non-pistol upgrade 27.4s, stage 2 130.2s를 기록했다. 구조 gate는 fallback 0.0/run, zone deaths 0, stuck 16.7/run, AI avg 628.9us, sentinel clear로 통과했지만, 10분 바닥까지 3.68x, 12.5분 midpoint까지 4.60x 짧은 compressed structural smoke다.
+- N2-PACE-06 `playable_pacing_v1` 3-run `C:\tmp\game_dev_playable_pacing_v1_3run_v2`는 avg duration 294.0s, first contact 1.2s, first kill 15.0s, first non-pistol upgrade 36.6s, stage 2 268.5s를 기록했다. 구조 지표는 fallback 0.0/run, zone deaths 0.7/run, stuck 16.7/run, AI avg 529.0us, sentinel clear로 통과했지만, 10분 바닥까지 2.04x, 12.5분 midpoint까지 2.55x 짧다.
 
 ### 체감/페이싱 게이트
 
@@ -82,9 +83,29 @@ Night Artificial Forest 후보 이후 새로 볼 기준:
 
 N2-PACE-04 이후 fresh 1-run은 duration 150.9초, first upgrade 25.1초, stage 2 121.3초를 기록했다. N2-PACE-05 fresh 3-run은 duration 163.1초, first contact 1.4초, first upgrade 27.4초, stage 2 130.2초다. 둘 다 구조 smoke이며, 이 값을 그대로 늘리거나 scale gate threshold를 낮추지 않는다.
 
+N2-PACE-06 `playable_pacing_v1`은 duration을 294.0초까지 늘리고 stage 2를 268.5초로 보냈지만, first contact 1.2초와 first upgrade 36.6초는 여전히 목표보다 빠르다. 첫 낮은 economy 후보는 3-run에서 `no first upgrade`를 재현했으므로 폐기했고, 최종 verifier는 loot_count 190 이상, hotspot 1.0 이상, rare 1.05 이상, stage wave 하한을 요구한다.
+
+### playable_pacing_v1 값
+
+`playable_pacing_v1`은 Night 후보 mapSpec에만 있는 비기본 프리셋이다. `target_99_probe`와 기본 맵은 바꾸지 않는다.
+
+| 항목 | target_99_probe | playable_pacing_v1 | 의도 |
+|---|---:|---:|---|
+| bots | 99 | 99 | 구조 부하 유지 |
+| loot_count | 240 | 210 | stage wave 경제는 낮추되 starvation 방지 |
+| spawn_radius | 78.0 | 78.0 | 구조 spawn envelope 유지 |
+| safe_spawn_attempts | 180 | 180 | fallback 0 목표 유지 |
+| hotspot_density_mult | 1.16 | 1.04 | target보다 낮게 유지 |
+| rare_bias_mult | 1.45 | 1.15 | non-pistol seed는 유지 |
+| stage_wave_base/per | 0.08 / 0.08 | 0.045 / 0.055 | stage wave를 줄이되 제거하지 않음 |
+| stage_wave_count_mult | 9 | 6 | midgame supply 폭발 완화 |
+| initial_timer | 52s | 160s | 초반 zone 압박 완화 |
+| base wait/shrink | 48s / 34s | 150s / 70s | stage 2를 5분 전후로 이동 |
+| stage 2 wait/shrink/dps | 40s / 28s / 4 | 170s / 70s / 2 | 중반 회전 시간 확보 |
+
 ### 조정 순서
 
-1. `target_99_probe`를 변경하지 않고 Night 후보 전용 비기본 pacing preset 또는 zone/economy override를 만든다.
+1. `target_99_probe`를 변경하지 않고 Night 후보 전용 비기본 pacing preset 또는 zone/economy override를 만든다. 1차는 `playable_pacing_v1`으로 완료했다.
 2. 자기장 schedule을 먼저 늘린다. early safe time과 stage duration을 늘리되 zone death가 구조 gate를 다시 깨지 않는지 확인한다.
 3. loot/economy spacing을 조정한다. 기본 무기 접근성은 유지하고, non-pistol upgrade 평균을 2-5분 구간으로 보낸다.
 4. POI rotation 압력을 조정한다. Sluice Crossing, False Clinic 재진입, Black Ridge 우회가 중반에 읽히는지 route/POI dwell과 crossing telemetry로 본다.
@@ -212,5 +233,5 @@ N2-PACE-04 이후 fresh 1-run은 duration 150.9초, first upgrade 25.1초, stage
 1. `target_99_probe`는 구조 안전성 게이트로 유지한다.
 2. Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 추가한다.
 3. 첫 적용은 자기장 schedule과 economy spacing에 제한한다.
-4. 적용 후 기존 night verifier, 3-run 구조 gate, `summarize_pacing_baseline.py`를 함께 돌린다.
-5. crossing, flashlight, darkness telemetry가 부족하면 combat tuning 전에 telemetry를 보강한다.
+4. 적용 후 기존 night verifier, playable preset verifier, 3-run candidate sample, `summarize_pacing_baseline.py`를 함께 돌린다.
+5. 다음은 `playable_pacing_v1` 반복 샘플 또는 opening contact/proximity 분석이다. crossing, flashlight, darkness telemetry가 부족하면 combat tuning 전에 telemetry를 보강한다.

@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-13 (fresh game-time 3-run baseline 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-14 (playable_pacing_v1 3-run smoke 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-05` fresh game-time 3-run baseline.
+- 이번 세션 기준 완료 slice: `N2-PACE-06` playable_pacing_v1 3-run smoke.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,12 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`는 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-05` fresh game-time 3-run baseline이다. N2-PACE-04 이후 `target_99_probe` 3-run을 새로 만들었고, structural gate는 통과했지만 10-15분 목표 대비 여전히 compressed structural smoke로 판정했다.
+현재 완료한 본 작업은 `N2-PACE-06` playable_pacing_v1 preset smoke다. `target_99_probe`는 구조 gate로 그대로 두고, Night 후보에만 비기본 `playable_pacing_v1`을 추가했다. 첫 적용은 zone schedule과 economy spacing에 제한했고 combat damage, AI aggression, night awareness 상수는 건드리지 않았다.
 
 통과한 단위 검증:
 
@@ -82,6 +82,14 @@ python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest
 python tools\analyze_results.py C:\tmp\game_dev_pacing_game_time_v2_3run
 python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_game_time_v2_3run
 python tools\check_scale_telemetry.py C:\tmp\game_dev_pacing_game_time_v2_3run --min-runs 3
+python -m json.tool data\mapSpec_night_forest_candidate.json
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_night_forest_candidate.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1
+python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_playable_pacing_v1_3run_v2
+python tools\analyze_results.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
+python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
+python tools\check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2 --min-runs 3
 git diff --check
 ```
 
@@ -131,7 +139,14 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
   - avg duration 163.1s, first contact 1.4s, first kill 17.5s, first upgrade 27.4s, stage2 130.2s
   - fallback 0.0/run, zone deaths 0, stuck 16.7/run, AI avg 628.9us, sentinel clear
   - `check_scale_telemetry.py --min-runs 3` 통과. `summarize_pacing_baseline.py`는 10분 바닥까지 3.68x, 12.5분 midpoint까지 4.60x 부족한 compressed structural smoke로 판정했다.
-- 다음 우선순위는 Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 설계하는 것이다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
+- `N2-PACE-06` playable_pacing_v1:
+  - `data/mapSpec_night_forest_candidate.json`에 비기본 `playable_pacing_v1`을 추가했다. 99 bots/spawn radius/safe spawn attempts는 `target_99_probe`와 같고, loot/economy는 target보다 낮게 유지한다.
+  - 첫 낮은 economy 후보는 3-run에서 `no first upgrade`가 재현되어 폐기했다. 최종 v1은 loot_count 210, hotspot 1.04, rare 1.15, stage wave 0.045/0.055 x6이며 `verify_playable_pacing_preset.gd`가 이 하한을 검증한다.
+  - output: `C:\tmp\game_dev_playable_pacing_v1_3run_v2`
+  - avg duration 294.0s, first contact 1.2s, first kill 15.0s, first upgrade 36.6s, stage2 268.5s
+  - fallback 0.0/run, zone deaths 0.7/run, stuck 16.7/run, AI avg 529.0us, sentinel clear
+  - `check_scale_telemetry.py --min-runs 3` 통과. gap report는 10분 바닥까지 2.04x, 12.5분 midpoint까지 2.55x 부족하다고 판정했다.
+- 다음 우선순위는 `playable_pacing_v1` 반복 샘플 또는 opening contact/proximity 원인 분석이다. first contact 1.2s와 first upgrade 36.6s는 10-15분 목표 대비 여전히 빠르다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
 
 ## 설계 가드레일
 
