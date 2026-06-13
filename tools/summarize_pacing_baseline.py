@@ -49,6 +49,15 @@ def numeric_values(runs: list[dict], group: str, key: str) -> list[float]:
     return values
 
 
+def string_counter(runs: list[dict], group: str, key: str) -> Counter:
+    counter = Counter()
+    for run in runs:
+        value = str(run.get(group, {}).get(key, "none"))
+        if value and value != "none":
+            counter[value] += 1
+    return counter
+
+
 def stage_times(runs: list[dict], stage_key: str) -> list[float]:
     values: list[float] = []
     for run in runs:
@@ -159,7 +168,13 @@ def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None
     saturation = numeric_values(runs, "spawn", "annulus_saturation")
     avg_attempts = numeric_values(runs, "spawn", "avg_attempts")
     max_attempts = numeric_values(runs, "spawn", "attempt_max")
-    if not any([fallback, min_nearest, avg_nearest, saturation, avg_attempts, max_attempts]):
+    first_acquisition = positive_values(runs, "pacing", "first_target_acquisition_time")
+    first_acquisition_distance = positive_values(runs, "pacing", "first_target_acquisition_distance")
+    acquisition_sources = string_counter(runs, "pacing", "first_target_acquisition_source")
+    acquisition_states = string_counter(runs, "pacing", "first_target_acquisition_state")
+    acquisition_poi_bands = string_counter(runs, "pacing", "first_target_acquisition_poi_band")
+    acquisition_route_bands = string_counter(runs, "pacing", "first_target_acquisition_route_band")
+    if not any([fallback, min_nearest, avg_nearest, saturation, avg_attempts, max_attempts, first_acquisition]):
         return
     print("Opening pressure:")
     if fallback:
@@ -180,6 +195,19 @@ def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None
             "  spawn packing: "
             f"saturation={saturation_text}, attempts={avg_attempts_text}/{max_attempts_text} max"
         )
+    if first_acquisition:
+        print(
+            "  first target acquisition: "
+            f"{avg(first_acquisition):.1f}s, distance={avg(first_acquisition_distance):.1f}m, "
+            f"sources=[{format_mix(acquisition_sources)}], states=[{format_mix(acquisition_states)}]"
+        )
+        print(
+            "  acquisition bands: "
+            f"poi=[{format_mix(acquisition_poi_bands)}], route=[{format_mix(acquisition_route_bands)}]"
+        )
+        if first_contact:
+            contact_gap = avg(first_contact) - avg(first_acquisition)
+            print(f"  acquisition-to-contact gap: {contact_gap:.1f}s")
     if first_contact and min_nearest and avg(first_contact) < 5.0:
         print("  read: sub-5s first contact is still opening spawn/proximity pressure, not zone pacing.")
 

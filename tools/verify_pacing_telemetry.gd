@@ -34,6 +34,20 @@ func _verify_pacing_schema_and_hooks() -> bool:
 		return _fail("Pacing should record stage 1 at match start.")
 
 	tel.log_shot()
+	tel.log_doctrine_target_acquisition(
+		"AGGRESSIVE",
+		"idle_reaction",
+		"IDLE",
+		{
+			"poi_role": "open",
+			"nearest_poi_role": "transit_choke",
+			"nearest_poi_edge_distance": 9.0,
+			"route_role": "off_route",
+			"nearest_route_role": "primary_choke",
+			"nearest_route_edge_distance": 3.5,
+		},
+		18.5
+	)
 	tel.log_combat_location("damage", 12.0, {
 		"poi_role": "transit_choke",
 		"route_role": "primary_choke",
@@ -73,6 +87,27 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if float(pacing.first_shot_time) < 0.0:
 		tel.free()
 		return _fail("Pacing did not record first shot time.")
+	if float(pacing.first_target_acquisition_time) < 0.0:
+		tel.free()
+		return _fail("Pacing did not record first target acquisition time.")
+	if String(pacing.first_target_acquisition_source) != "idle_reaction":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition source.")
+	if String(pacing.first_target_acquisition_state) != "IDLE":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition state.")
+	if absf(float(pacing.first_target_acquisition_distance) - 18.5) > 0.001:
+		tel.free()
+		return _fail("Pacing did not record first target acquisition distance.")
+	if String(pacing.first_target_acquisition_poi_band) != "far_8m_plus":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition POI band.")
+	if String(pacing.first_target_acquisition_route_band) != "near_0_4m":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition route band.")
+	if String(pacing.first_target_acquisition_nearest_route_role) != "primary_choke":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition nearest route role.")
 	if float(pacing.first_contact_time) < 0.0 or float(pacing.first_damage_time) < 0.0:
 		tel.free()
 		return _fail("Pacing did not record first contact/damage time.")

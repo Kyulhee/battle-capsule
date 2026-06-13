@@ -251,6 +251,15 @@ def pacing_counter(results: list[dict], key: str) -> Counter:
     return counter
 
 
+def pacing_value_counter(results: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        value = str(run.get("pacing", {}).get(key, "none"))
+        if value and value != "none":
+            counter[value] += 1
+    return counter
+
+
 def doctrine_nested_counter(results: list[dict], key: str) -> Counter:
     counter = Counter()
     for run in results:
@@ -265,6 +274,10 @@ def doctrine_nested_counter(results: list[dict], key: str) -> Counter:
 
 def format_optional_avg(values: list[float]) -> str:
     return f"{avg(values):.1f}s" if values else "none"
+
+
+def format_optional_distance(values: list[float]) -> str:
+    return f"{avg(values):.1f}m" if values else "none"
 
 
 def first_nonempty_counter(*counters: Counter) -> Counter:
@@ -317,6 +330,12 @@ if __name__ == "__main__":
         if r.get("economy", {}).get("first_upgrade_time", -1.0) >= 0
     ]
     pacing_first_shot = positive_pacing_times(results, "first_shot_time")
+    pacing_first_acquisition = positive_pacing_times(results, "first_target_acquisition_time")
+    pacing_first_acquisition_distance = positive_pacing_times(results, "first_target_acquisition_distance")
+    pacing_first_acquisition_sources = pacing_value_counter(results, "first_target_acquisition_source")
+    pacing_first_acquisition_states = pacing_value_counter(results, "first_target_acquisition_state")
+    pacing_first_acquisition_poi_bands = pacing_value_counter(results, "first_target_acquisition_poi_band")
+    pacing_first_acquisition_route_bands = pacing_value_counter(results, "first_target_acquisition_route_band")
     pacing_first_contact = positive_pacing_times(results, "first_contact_time")
     pacing_first_damage = positive_pacing_times(results, "first_damage_time")
     pacing_first_kill = positive_pacing_times(results, "first_kill_time")
@@ -556,8 +575,9 @@ if __name__ == "__main__":
         print(f"Weapon pickups: {', '.join(pickup_parts)}")
     if any("pacing" in r for r in results):
         print(
-            "Pacing milestones: first_shot={}, first_contact={}, first_damage={}, first_kill={}, first_upgrade={}, stage2={}, stage3={}".format(
+            "Pacing milestones: first_shot={}, first_acq={}, first_contact={}, first_damage={}, first_kill={}, first_upgrade={}, stage2={}, stage3={}".format(
                 format_optional_avg(pacing_first_shot),
+                format_optional_avg(pacing_first_acquisition),
                 format_optional_avg(pacing_first_contact),
                 format_optional_avg(pacing_first_damage),
                 format_optional_avg(pacing_first_kill),
@@ -566,6 +586,16 @@ if __name__ == "__main__":
                 format_optional_avg(pacing_stage3),
             )
         )
+        if pacing_first_acquisition:
+            print(
+                "Pacing first acquisition: distance={}, sources=[{}], states=[{}], poi_bands=[{}], route_bands=[{}]".format(
+                    format_optional_distance(pacing_first_acquisition_distance),
+                    format_counter_mix(pacing_first_acquisition_sources),
+                    format_counter_mix(pacing_first_acquisition_states),
+                    format_counter_mix(pacing_first_acquisition_poi_bands),
+                    format_counter_mix(pacing_first_acquisition_route_bands),
+                )
+            )
         print(
             "Pacing CHASE context dwell: {}".format(
                 format_counter_mix(

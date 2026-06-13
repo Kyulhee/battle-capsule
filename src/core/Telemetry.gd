@@ -180,6 +180,16 @@ func _reset_metrics():
 		# pacing
 		"pacing": {
 			"first_shot_time": -1.0,
+			"first_target_acquisition_time": -1.0,
+			"first_target_acquisition_source": "none",
+			"first_target_acquisition_state": "none",
+			"first_target_acquisition_distance": -1.0,
+			"first_target_acquisition_poi_role": "none",
+			"first_target_acquisition_poi_band": "none",
+			"first_target_acquisition_route_role": "none",
+			"first_target_acquisition_route_band": "none",
+			"first_target_acquisition_nearest_poi_role": "none",
+			"first_target_acquisition_nearest_route_role": "none",
 			"first_contact_time": -1.0,
 			"first_damage_time": -1.0,
 			"first_kill_time": -1.0,
@@ -787,6 +797,17 @@ func log_doctrine_target_acquisition(
 	var poi_band := _poi_distance_band(target_context)
 	var route_band := _route_distance_band(target_context)
 	var nearest_route_role := _nearest_route_role_key(target_context, route_band)
+	if _g("pacing") and float(metrics.pacing.first_target_acquisition_time) < 0.0:
+		metrics.pacing.first_target_acquisition_time = _elapsed_seconds()
+		metrics.pacing.first_target_acquisition_source = source_key
+		metrics.pacing.first_target_acquisition_state = state_key
+		metrics.pacing.first_target_acquisition_distance = distance
+		metrics.pacing.first_target_acquisition_poi_role = String(target_context.get("poi_role", "open"))
+		metrics.pacing.first_target_acquisition_poi_band = poi_band
+		metrics.pacing.first_target_acquisition_route_role = String(target_context.get("route_role", "off_route"))
+		metrics.pacing.first_target_acquisition_route_band = route_band
+		metrics.pacing.first_target_acquisition_nearest_poi_role = String(target_context.get("nearest_poi_role", "none"))
+		metrics.pacing.first_target_acquisition_nearest_route_role = nearest_route_role
 	_add_bucket_value(metrics.doctrine.target_acquisition_by_source, source_key, 1.0)
 	_add_nested_bucket_value(
 		metrics.doctrine.target_acquisition_state_by_source,
@@ -1185,6 +1206,12 @@ func _print_report():
 			float(metrics.pacing.first_shot_time),
 			float(metrics.pacing.first_contact_time),
 			float(metrics.pacing.first_damage_time),
+		])
+		print("  First acquisition: %s/%s at %.1fs dist %.1fm" % [
+			metrics.pacing.first_target_acquisition_source,
+			metrics.pacing.first_target_acquisition_state,
+			float(metrics.pacing.first_target_acquisition_time),
+			float(metrics.pacing.first_target_acquisition_distance),
 		])
 		print("  First upgrade: %s at %.1fs" % [
 			metrics.pacing.first_non_pistol_upgrade_weapon,

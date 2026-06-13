@@ -39,6 +39,7 @@
 - N2-PACE-05 fresh game-time 3-run `C:\tmp\game_dev_pacing_game_time_v2_3run`은 avg duration 163.1s, first contact 1.4s, first kill 17.5s, first non-pistol upgrade 27.4s, stage 2 130.2s를 기록했다. 구조 gate는 fallback 0.0/run, zone deaths 0, stuck 16.7/run, AI avg 628.9us, sentinel clear로 통과했지만, 10분 바닥까지 3.68x, 12.5분 midpoint까지 4.60x 짧은 compressed structural smoke다.
 - N2-PACE-06 `playable_pacing_v1` 3-run `C:\tmp\game_dev_playable_pacing_v1_3run_v2`는 avg duration 294.0s, first contact 1.2s, first kill 15.0s, first non-pistol upgrade 36.6s, stage 2 268.5s를 기록했다. 구조 지표는 fallback 0.0/run, zone deaths 0.7/run, stuck 16.7/run, AI avg 529.0us, sentinel clear로 통과했지만, 10분 바닥까지 2.04x, 12.5분 midpoint까지 2.55x 짧다.
 - N2-PACE-07 이후 `summarize_pacing_baseline.py`는 opening pressure를 함께 출력한다. `playable_pacing_v1` 3-run은 spawn fallback 0.0/run, min nearest 3.5m, avg-nearest 7.4m, saturation 0.20이다. 로컬 5m spawn spacing smoke는 min nearest를 5.0m로 올렸지만 first contact가 1.4s로 거의 변하지 않았고 no first upgrade가 나와 폐기했다.
+- N2-PACE-08 이후 pacing telemetry는 첫 target acquisition을 따로 기록한다. `C:\tmp\game_dev_opening_acq_v1_3run`은 first acquisition 0.6s, first contact 1.0s, acquisition-to-contact gap 0.4s를 기록했다. 첫 acquisition은 retreat_counteraction / ZONE_ESCAPE, 평균 거리 5.2m였다.
 
 ### 체감/페이싱 게이트
 
@@ -87,6 +88,8 @@ N2-PACE-04 이후 fresh 1-run은 duration 150.9초, first upgrade 25.1초, stage
 N2-PACE-06 `playable_pacing_v1`은 duration을 294.0초까지 늘리고 stage 2를 268.5초로 보냈지만, first contact 1.2초와 first upgrade 36.6초는 여전히 목표보다 빠르다. 첫 낮은 economy 후보는 3-run에서 `no first upgrade`를 재현했으므로 폐기했고, 최종 verifier는 loot_count 190 이상, hotspot 1.0 이상, rare 1.05 이상, stage wave 하한을 요구한다.
 
 N2-PACE-07의 5m spawn spacing 로컬 smoke는 first contact를 유의미하게 늦추지 못했다. 다음은 단순 clearance 증가보다 spawn/proximity와 target acquisition behavior를 분리해서 봐야 한다.
+
+N2-PACE-08 결과상 first contact 이전에 이미 0.6초 target acquisition이 발생한다. 다음 조정 전에는 초기 ZONE_ESCAPE / retreat_counteraction이 왜 spawn 직후 생기는지 먼저 확인한다.
 
 ### playable_pacing_v1 값
 
@@ -237,4 +240,4 @@ N2-PACE-07의 5m spawn spacing 로컬 smoke는 first contact를 유의미하게 
 2. Night 후보 전용 비기본 playable pacing preset 또는 zone/economy override를 추가한다.
 3. 첫 적용은 자기장 schedule과 economy spacing에 제한한다.
 4. 적용 후 기존 night verifier, playable preset verifier, 3-run candidate sample, `summarize_pacing_baseline.py`를 함께 돌린다.
-5. 다음은 opening spawn/proximity pressure와 target acquisition behavior를 분리하는 것이다. crossing, flashlight, darkness telemetry가 부족하면 combat tuning 전에 telemetry를 보강한다.
+5. 다음은 초기 ZONE_ESCAPE / retreat_counteraction acquisition 원인을 확인하는 것이다. crossing, flashlight, darkness telemetry가 부족하면 combat tuning 전에 telemetry를 보강한다.

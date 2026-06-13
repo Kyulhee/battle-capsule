@@ -6,6 +6,35 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Acquisition Telemetry
+
+**Scope**
+
+- Added first target acquisition fields to pacing telemetry:
+  - time, source, state, distance, POI/route role and band.
+- Extended `tools/analyze_results.py` and `tools/summarize_pacing_baseline.py` to show first acquisition before first contact.
+- No gameplay tuning was applied.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py tools\check_scale_telemetry.py tools\simulate_matches.py` passed.
+- `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_acq_v1_3run` passed.
+- `python tools\analyze_results.py C:\tmp\game_dev_opening_acq_v1_3run` passed:
+  - avg duration 347.9s, first acquisition 0.6s, first contact 1.0s, first upgrade 53.7s, stage 2 262.0s
+  - first acquisition distance 5.2m
+  - first acquisition source/state: retreat_counteraction / ZONE_ESCAPE
+  - fallback 0.0/run, stuck 23.0/run, AI avg 474.0us, sentinel clear
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_opening_acq_v1_3run` passed and reported acquisition-to-contact gap 0.4s.
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_acq_v1_3run --min-runs 3` passed.
+
+**Decision**
+
+- The opening problem is now visible before damage: target acquisition happens almost immediately, then contact follows within 0.4s.
+- Next work should inspect why early ZONE_ESCAPE / retreat counteraction is acquiring targets at spawn, before changing combat damage, AI aggression, night awareness, or zone/economy values.
+
+---
+
 ## v2 Opening Pressure Report
 
 **Scope**

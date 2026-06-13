@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-14 (opening pressure report 보강 완료)
+> 마지막 업데이트: 2026-06-14 (opening acquisition telemetry 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,15 +9,15 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 작업 슬라이스 | N2-PACE-07 opening pressure report |
-| 현재 문서 슬라이스 | opening pressure 진단 기록 |
-| 다음 구현 후보 | opening spawn/proximity와 target acquisition behavior 분리 |
+| 최신 완료 작업 슬라이스 | N2-PACE-08 opening acquisition telemetry |
+| 현재 문서 슬라이스 | opening acquisition 진단 기록 |
+| 다음 구현 후보 | 초기 ZONE_ESCAPE / retreat_counteraction acquisition 원인 확인 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
-| 현재 미확인 항목 | sub-5s first contact를 만드는 spawn/proximity와 acquisition 기여도 |
+| 현재 미확인 항목 | spawn 직후 ZONE_ESCAPE / retreat_counteraction이 target acquisition을 만드는 원인 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -46,6 +46,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-05는 N2-PACE-04 이후 fresh `target_99_probe` 3-run 기준선을 확보했다. `C:\tmp\game_dev_pacing_game_time_v2_3run`은 avg duration 163.1s, first contact 1.4s, first upgrade 27.4s, stage2 130.2s, fallback 0.0/run, zone deaths 0, stuck 16.7/run, AI avg 628.9us, sentinel clear로 구조 gate를 통과했다. gap report는 10분 바닥까지 3.68x, 12.5분 midpoint까지 4.60x 부족한 compressed structural smoke로 판정했다.
 - N2-PACE-06은 Night 후보에 비기본 `playable_pacing_v1`을 추가했다. `target_99_probe`는 구조 gate로 그대로 두고, 99 bots/spawn radius/safe spawn attempts는 유지했다. 최종 v1은 loot_count 210, hotspot 1.04, rare 1.15, stage wave 0.045/0.055 x6, initial 160s, stage2 170/70s다. 첫 낮은 economy 후보는 3-run에서 `no first upgrade`가 재현되어 폐기했고, verifier에 economy 하한을 넣어 같은 실패를 막았다. 최종 3-run `C:\tmp\game_dev_playable_pacing_v1_3run_v2`는 avg duration 294.0s, first contact 1.2s, first upgrade 36.6s, stage2 268.5s, fallback 0.0/run, stuck 16.7/run, AI avg 529.0us, sentinel clear로 `check_scale_telemetry.py --min-runs 3`을 통과했다. gap report는 10분 바닥까지 2.04x, 12.5분 midpoint까지 2.55x 부족하다고 판정했다.
 - N2-PACE-07은 `summarize_pacing_baseline.py`에 opening pressure 출력을 추가했다. `playable_pacing_v1` 3-run은 spawn fallback 0.0/run, min nearest 3.5m, avg-min 3.7m, avg-nearest 7.4m, saturation 0.20, attempts 1.3/5 max다. 로컬 5m spacing smoke는 fallback 없이 min nearest를 5.0m로 올렸지만 first contact가 1.4s로 거의 안 움직이고 no first upgrade가 나와 폐기했다. 이 실험 변경은 커밋하지 않았다.
+- N2-PACE-08은 pacing telemetry에 첫 target acquisition 시간/source/state/distance/band를 추가했다. 새 3-run `C:\tmp\game_dev_opening_acq_v1_3run`은 avg duration 347.9s, first acquisition 0.6s, first contact 1.0s, first upgrade 53.7s, stage2 262.0s, fallback 0.0/run, stuck 23.0/run, AI avg 474.0us, sentinel clear로 구조 gate를 통과했다. 첫 acquisition은 평균 5.2m 거리의 retreat_counteraction / ZONE_ESCAPE였고, acquisition-to-contact gap은 0.4s였다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서
@@ -194,6 +195,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-PACE-05 | fresh game-time 3-run baseline | post-fix `target_99_probe` 3-run 결과와 gap report | simulate/analyze/summarize/check 3-run | 구조 smoke를 playable pacing으로 오해하지 않기 |
 | N2-PACE-06 | playable pacing preset v1 | Night 후보 비기본 `playable_pacing_v1`, zone/economy spacing, verifier | JSON parse, playable/night verifier, runtime load, candidate 3-run analyze/summarize/check | `target_99_probe`/default 승격 금지. no-first-upgrade 경제 starvation 반복 금지 |
 | N2-PACE-07 | opening pressure report | spawn fallback/min-nearest/saturation/attempts를 gap report에 출력 | py_compile, summarize playable 3-run | first contact 문제를 zone/economy만으로 오해하지 않기 |
+| N2-PACE-08 | opening acquisition telemetry | 첫 target acquisition time/source/state/distance/band를 pacing에 기록 | pacing verifier, py_compile, playable 3-run analyze/summarize/check | first contact 전 acquisition 원인 없이 combat/AI 수치 조정 금지 |
 
 자율 진행 규칙:
 
@@ -232,7 +234,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-05 완료: fresh `target_99_probe` 3-run은 avg duration 163.1s, first contact 1.4s, first upgrade 27.4s, stage2 130.2s, fallback 0.0/run, zone deaths 0, stuck 16.7/run, AI avg 628.9us, sentinel clear로 `check_scale_telemetry.py --min-runs 3`을 통과했다. gap report는 10분 바닥까지 3.68x, 12.5분 midpoint까지 4.60x 부족하다고 판정했다.
 - N2-PACE-06 완료: `playable_pacing_v1`은 avg duration 294.0s까지 늘었고 fallback/stuck/AI/sentinel은 정상이다. 다만 first contact 1.2s, first upgrade 36.6s는 10-15분 목표 대비 빠르다. 첫 낮은 economy 후보의 `no first upgrade` 실패는 verifier 하한으로 막았다.
 - N2-PACE-07 완료: pacing gap report가 opening pressure를 함께 보여준다. 5m spawn spacing 로컬 smoke는 first contact 개선이 거의 없어 폐기했다.
-- 다음 우선순위: opening spawn/proximity pressure와 target acquisition behavior를 분리해 본다. combat damage, AI aggression, night awareness 상수는 먼저 건드리지 않는다.
+- N2-PACE-08 완료: first target acquisition이 0.6초에 retreat_counteraction / ZONE_ESCAPE에서 발생하고 contact까지 0.4초밖에 없다는 것을 확인했다.
+- 다음 우선순위: 초기 ZONE_ESCAPE / retreat_counteraction acquisition 원인을 확인한다. combat damage, AI aggression, night awareness 상수는 먼저 건드리지 않는다.
 
 ## 비목표
 
