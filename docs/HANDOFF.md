@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-14 (playable_pacing_v1 3-run smoke 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-14 (opening pressure report 보강 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-06` playable_pacing_v1 3-run smoke.
+- 이번 세션 기준 완료 slice: `N2-PACE-07` opening pressure report.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,12 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-06` playable_pacing_v1 preset smoke다. `target_99_probe`는 구조 gate로 그대로 두고, Night 후보에만 비기본 `playable_pacing_v1`을 추가했다. 첫 적용은 zone schedule과 economy spacing에 제한했고 combat damage, AI aggression, night awareness 상수는 건드리지 않았다.
+현재 완료한 본 작업은 `N2-PACE-07` opening pressure report 보강이다. `summarize_pacing_baseline.py`가 이제 spawn fallback, min/avg nearest, saturation, attempts를 함께 출력한다. gameplay tuning은 커밋하지 않았다.
 
 통과한 단위 검증:
 
@@ -90,6 +90,8 @@ python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest
 python tools\analyze_results.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 python tools\check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2 --min-runs 3
+python -m py_compile tools\summarize_pacing_baseline.py
+python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 git diff --check
 ```
 
@@ -146,7 +148,11 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
   - avg duration 294.0s, first contact 1.2s, first kill 15.0s, first upgrade 36.6s, stage2 268.5s
   - fallback 0.0/run, zone deaths 0.7/run, stuck 16.7/run, AI avg 529.0us, sentinel clear
   - `check_scale_telemetry.py --min-runs 3` 통과. gap report는 10분 바닥까지 2.04x, 12.5분 midpoint까지 2.55x 부족하다고 판정했다.
-- 다음 우선순위는 `playable_pacing_v1` 반복 샘플 또는 opening contact/proximity 원인 분석이다. first contact 1.2s와 first upgrade 36.6s는 10-15분 목표 대비 여전히 빠르다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
+- `N2-PACE-07` opening pressure report:
+  - `summarize_pacing_baseline.py`에 spawn fallback, min/avg nearest, saturation, attempts, sub-5s first contact 해석을 추가했다.
+  - `C:\tmp\game_dev_playable_pacing_v1_3run_v2` 기준 spawn fallback 0.0/run, min nearest 3.5m, avg-min 3.7m, avg-nearest 7.4m, saturation 0.20, attempts 1.3/5 max다.
+  - 로컬 5m spacing smoke는 fallback 0.0/run과 min nearest 5.0m를 만들었지만 first contact가 1.4s로 거의 안 움직였고 no first upgrade가 나와 폐기했다. 해당 data/verifier 변경은 커밋하지 않았다.
+- 다음 우선순위는 opening spawn/proximity pressure와 target acquisition behavior를 분리해 보는 것이다. first contact 1.2s는 zone schedule/economy만으로 해결되지 않는다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
 
 ## 설계 가드레일
 

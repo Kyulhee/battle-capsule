@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-14 (playable_pacing_v1 3-run smoke 추가)
+> 마지막 업데이트: 2026-06-14 (opening pressure report 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -109,6 +109,7 @@ python tools/summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v1_3ru
 python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2 --min-runs 3
 # playable_pacing_v1 is not the default preset and does not replace target_99_probe.
 # A no-first-upgrade 3-run candidate is economy starvation; fix the preset, do not lower the gate.
+# summarize_pacing_baseline.py prints opening pressure: spawn fallback, nearest spacing, saturation, attempts, and sub-5s first-contact read.
 
 # v2.0 player-facing night readability / pickup light LOD / AI LOD smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd
@@ -163,6 +164,8 @@ python tools/simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest
 python tools/analyze_results.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2 --min-runs 3
 python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
+# Report script smoke:
+python -m py_compile tools\summarize_pacing_baseline.py
 # Single-run reference, useful only for quick smoke:
 python tools/simulate_matches.py 1 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=target_99_probe out_dir=C:\tmp\game_dev_pacing_time_scale_v1
 python tools\summarize_pacing_baseline.py C:\tmp\game_dev_pacing_time_scale_v1

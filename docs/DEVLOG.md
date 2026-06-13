@@ -6,6 +6,35 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Pressure Report
+
+**Scope**
+
+- Extended `tools/summarize_pacing_baseline.py` with an `Opening pressure` section.
+- The report now prints spawn fallback, min/avg nearest spawn distance, spawn packing saturation, spawn attempts, and a read when first contact is still sub-5 seconds.
+- No gameplay tuning was committed in this slice.
+
+**Verification**
+
+- `python -m py_compile tools\summarize_pacing_baseline.py` passed.
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v1_3run_v2` passed and now reports:
+  - spawn fallback 0.0/run
+  - spawn nearest min 3.5m, avg-min 3.7m, avg-nearest 7.4m
+  - saturation 0.20, attempts 1.3/5 max
+  - first contact 1.2s remains opening spawn/proximity pressure
+- A local uncommitted 5m spawn-spacing smoke was used as a negative check:
+  - output: `C:\tmp\game_dev_playable_spacing_v1_smoke`
+  - min nearest improved to 5.0m and fallback stayed 0.0/run
+  - first contact only moved to 1.4s and no first upgrade was recorded
+  - the data/verifier tuning was reverted and not committed.
+
+**Decision**
+
+- Do not treat zone schedule or economy spacing as the cause of sub-5s first contact.
+- Next tuning should separate opening spawn/proximity pressure from target acquisition behavior before changing combat damage, AI aggression, or night-awareness constants.
+
+---
+
 ## v2 Playable Pacing Preset v1
 
 **Scope**

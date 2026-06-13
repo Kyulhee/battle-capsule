@@ -38,6 +38,17 @@ def positive_values(runs: list[dict], group: str, key: str) -> list[float]:
     return values
 
 
+def numeric_values(runs: list[dict], group: str, key: str) -> list[float]:
+    values: list[float] = []
+    for run in runs:
+        raw = run.get(group, {}).get(key)
+        try:
+            values.append(float(raw))
+        except (TypeError, ValueError):
+            continue
+    return values
+
+
 def stage_times(runs: list[dict], stage_key: str) -> list[float]:
     values: list[float] = []
     for run in runs:
@@ -141,6 +152,38 @@ def print_interpretation(durations: list[float], target_min: float, target_max: 
     print("  - Do not lower structural scale gates based on this report.")
 
 
+def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None:
+    fallback = numeric_values(runs, "spawn", "fallback_count")
+    min_nearest = numeric_values(runs, "spawn", "min_nearest_distance")
+    avg_nearest = numeric_values(runs, "spawn", "avg_nearest_distance")
+    saturation = numeric_values(runs, "spawn", "annulus_saturation")
+    avg_attempts = numeric_values(runs, "spawn", "avg_attempts")
+    max_attempts = numeric_values(runs, "spawn", "attempt_max")
+    if not any([fallback, min_nearest, avg_nearest, saturation, avg_attempts, max_attempts]):
+        return
+    print("Opening pressure:")
+    if fallback:
+        print(f"  spawn fallback: {avg(fallback):.1f}/run")
+    if min_nearest or avg_nearest:
+        min_nearest_text = f"{min(min_nearest):.1f}m" if min_nearest else "none"
+        avg_min_text = f"{avg(min_nearest):.1f}m" if min_nearest else "none"
+        avg_nearest_text = f"{avg(avg_nearest):.1f}m" if avg_nearest else "none"
+        print(
+            "  spawn nearest: "
+            f"min={min_nearest_text}, avg-min={avg_min_text}, avg-nearest={avg_nearest_text}"
+        )
+    if saturation or avg_attempts or max_attempts:
+        saturation_text = f"{avg(saturation):.2f}" if saturation else "none"
+        avg_attempts_text = f"{avg(avg_attempts):.1f}" if avg_attempts else "none"
+        max_attempts_text = f"{max(max_attempts):.0f}" if max_attempts else "none"
+        print(
+            "  spawn packing: "
+            f"saturation={saturation_text}, attempts={avg_attempts_text}/{max_attempts_text} max"
+        )
+    if first_contact and min_nearest and avg(first_contact) < 5.0:
+        print("  read: sub-5s first contact is still opening spawn/proximity pressure, not zone pacing.")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Summarize pacing telemetry against the 10-15 minute Night BR target."
@@ -184,6 +227,7 @@ def main() -> int:
     print_milestone("  first non-pistol upgrade", first_upgrade, durations, args.target_min_seconds, args.target_max_seconds)
     print_milestone("  stage 2", stage2, durations, args.target_min_seconds, args.target_max_seconds)
     print_milestone("  stage 3", stage3, durations, args.target_min_seconds, args.target_max_seconds)
+    print_opening_pressure(runs, first_contact)
     print("Movement pressure:")
     print(f"  CHASE context dwell: {format_mix(chase_context)}")
     print(f"  self route dwell: {format_mix(self_route)}")
