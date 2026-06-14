@@ -112,6 +112,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 # A no-first-upgrade 3-run candidate is economy starvation; fix the preset, do not lower the gate.
 # summarize_pacing_baseline.py prints opening pressure: spawn fallback, nearest spacing, saturation, attempts, and sub-5s first-contact read.
 # analyze_results.py and summarize_pacing_baseline.py also print first target acquisition time/source/state/distance before first contact.
+# They also print the first objective interrupt source/kind/need/match plus enemy/objective distance when present.
 # check_scale_telemetry.py keeps raw stuck/disengage gates for short structural smoke, but 300s+ playable runs use spawned entity/minute rates.
 
 # v2.0 player-facing night readability / pickup light LOD / AI LOD smoke

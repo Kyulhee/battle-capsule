@@ -510,6 +510,7 @@ func _maybe_interrupt_objective_for_enemy() -> bool:
 		return false
 
 	if is_targeting_loot:
+		_log_objective_enemy_interrupt(enemy)
 		_finish_loot_objective("enemy_interrupt")
 	if not acquire_enemy_target(enemy, "objective_interrupt"):
 		return false
@@ -1447,6 +1448,29 @@ func _log_loot_objective_outcome(outcome_name: String) -> void:
 		_loot_objective_kind,
 		outcome_name,
 		state_timer,
+		_loot_objective_selection_context
+	)
+
+func _log_objective_enemy_interrupt(enemy: Entity) -> void:
+	if not has_node("/root/Telemetry") or not is_instance_valid(enemy):
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("log_doctrine_objective_enemy_interrupt"):
+		return
+	var objective_context := {}
+	var objective_distance := -1.0
+	if is_instance_valid(target_actor):
+		objective_context = _strategic_position_context(target_actor.global_position)
+		objective_distance = global_position.distance_to(target_actor.global_position)
+	tel.log_doctrine_objective_enemy_interrupt(
+		_archetype_name(),
+		_loot_objective_source,
+		_loot_objective_mode,
+		_loot_objective_kind,
+		objective_context,
+		objective_distance,
+		_strategic_position_context(enemy.global_position),
+		global_position.distance_to(enemy.global_position),
 		_loot_objective_selection_context
 	)
 

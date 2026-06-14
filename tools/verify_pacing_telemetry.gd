@@ -48,6 +48,35 @@ func _verify_pacing_schema_and_hooks() -> bool:
 		},
 		18.5
 	)
+	tel.log_doctrine_objective_enemy_interrupt(
+		"AGGRESSIVE",
+		"idle_loot",
+		"loot",
+		"pickup_weapon",
+		{
+			"poi_role": "loot_hub",
+			"nearest_poi_role": "loot_hub",
+			"nearest_poi_edge_distance": 0.0,
+			"route_role": "primary_choke",
+			"nearest_route_role": "primary_choke",
+			"nearest_route_edge_distance": 0.0,
+		},
+		6.0,
+		{
+			"poi_role": "open",
+			"nearest_poi_role": "transit_choke",
+			"nearest_poi_edge_distance": 4.0,
+			"route_role": "off_route",
+			"nearest_route_role": "flank",
+			"nearest_route_edge_distance": 7.0,
+		},
+		14.0,
+		{
+			"need": "opportunity",
+			"target_match": "weapon_new_type",
+			"target_detail": "weapon_ar",
+		}
+	)
 	tel.log_combat_location("damage", 12.0, {
 		"poi_role": "transit_choke",
 		"route_role": "primary_choke",
@@ -108,6 +137,27 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if String(pacing.first_target_acquisition_nearest_route_role) != "primary_choke":
 		tel.free()
 		return _fail("Pacing did not record first target acquisition nearest route role.")
+	if float(pacing.first_objective_interrupt_time) < 0.0:
+		tel.free()
+		return _fail("Pacing did not record first objective interrupt time.")
+	if String(pacing.first_objective_interrupt_source) != "idle_loot":
+		tel.free()
+		return _fail("Pacing did not record first objective interrupt source.")
+	if String(pacing.first_objective_interrupt_kind) != "pickup_weapon":
+		tel.free()
+		return _fail("Pacing did not record first objective interrupt kind.")
+	if String(pacing.first_objective_interrupt_need) != "opportunity":
+		tel.free()
+		return _fail("Pacing did not record first objective interrupt need.")
+	if String(pacing.first_objective_interrupt_target_match) != "weapon_new_type":
+		tel.free()
+		return _fail("Pacing did not record first objective interrupt target match.")
+	if absf(float(pacing.first_objective_interrupt_enemy_distance) - 14.0) > 0.001:
+		tel.free()
+		return _fail("Pacing did not record first objective interrupt enemy distance.")
+	if absf(float(pacing.first_objective_interrupt_objective_distance) - 6.0) > 0.001:
+		tel.free()
+		return _fail("Pacing did not record first objective interrupt objective distance.")
 	if float(pacing.first_contact_time) < 0.0 or float(pacing.first_damage_time) < 0.0:
 		tel.free()
 		return _fail("Pacing did not record first contact/damage time.")

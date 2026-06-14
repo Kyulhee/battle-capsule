@@ -336,6 +336,13 @@ if __name__ == "__main__":
     pacing_first_acquisition_states = pacing_value_counter(results, "first_target_acquisition_state")
     pacing_first_acquisition_poi_bands = pacing_value_counter(results, "first_target_acquisition_poi_band")
     pacing_first_acquisition_route_bands = pacing_value_counter(results, "first_target_acquisition_route_band")
+    pacing_first_objective_interrupt = positive_pacing_times(results, "first_objective_interrupt_time")
+    pacing_first_objective_interrupt_enemy_distance = positive_pacing_times(results, "first_objective_interrupt_enemy_distance")
+    pacing_first_objective_interrupt_objective_distance = positive_pacing_times(results, "first_objective_interrupt_objective_distance")
+    pacing_first_objective_interrupt_sources = pacing_value_counter(results, "first_objective_interrupt_source")
+    pacing_first_objective_interrupt_kinds = pacing_value_counter(results, "first_objective_interrupt_kind")
+    pacing_first_objective_interrupt_needs = pacing_value_counter(results, "first_objective_interrupt_need")
+    pacing_first_objective_interrupt_matches = pacing_value_counter(results, "first_objective_interrupt_target_match")
     pacing_first_contact = positive_pacing_times(results, "first_contact_time")
     pacing_first_damage = positive_pacing_times(results, "first_damage_time")
     pacing_first_kill = positive_pacing_times(results, "first_kill_time")
@@ -594,6 +601,18 @@ if __name__ == "__main__":
                     format_counter_mix(pacing_first_acquisition_states),
                     format_counter_mix(pacing_first_acquisition_poi_bands),
                     format_counter_mix(pacing_first_acquisition_route_bands),
+                )
+            )
+        if pacing_first_objective_interrupt:
+            print(
+                "Pacing first objective interrupt: time={}, enemy_dist={}, objective_dist={}, sources=[{}], kinds=[{}], needs=[{}], matches=[{}]".format(
+                    format_optional_avg(pacing_first_objective_interrupt),
+                    format_optional_distance(pacing_first_objective_interrupt_enemy_distance),
+                    format_optional_distance(pacing_first_objective_interrupt_objective_distance),
+                    format_counter_mix(pacing_first_objective_interrupt_sources),
+                    format_counter_mix(pacing_first_objective_interrupt_kinds),
+                    format_counter_mix(pacing_first_objective_interrupt_needs),
+                    format_counter_mix(pacing_first_objective_interrupt_matches),
                 )
             )
         print(

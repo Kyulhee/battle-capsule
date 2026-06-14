@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-14 (opening zone radius tuning 완료)
+> 마지막 업데이트: 2026-06-14 (opening objective interrupt telemetry 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,15 +9,15 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 작업 슬라이스 | N2-PACE-09 opening zone radius tuning |
-| 현재 문서 슬라이스 | opening zone radius 진단/수정 기록 |
-| 다음 구현 후보 | 초반 objective_interrupt / CHASE proximity 원인 확인 |
+| 최신 완료 작업 슬라이스 | N2-PACE-10 opening objective interrupt telemetry |
+| 현재 문서 슬라이스 | opening objective interrupt 진단 기록 |
+| 다음 구현 후보 | opening loot objective selection / interrupt rule 확인 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
-| 현재 미확인 항목 | 초반 objective_interrupt / CHASE가 2-3초대 접촉을 만드는 원인 |
+| 현재 미확인 항목 | match start에서 idle_loot heal/armor objective가 combat_low_ammo need로 잡히고 7-8m enemy에 즉시 끊기는 원인 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -48,6 +48,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-07은 `summarize_pacing_baseline.py`에 opening pressure 출력을 추가했다. `playable_pacing_v1` 3-run은 spawn fallback 0.0/run, min nearest 3.5m, avg-min 3.7m, avg-nearest 7.4m, saturation 0.20, attempts 1.3/5 max다. 로컬 5m spacing smoke는 fallback 없이 min nearest를 5.0m로 올렸지만 first contact가 1.4s로 거의 안 움직이고 no first upgrade가 나와 폐기했다. 이 실험 변경은 커밋하지 않았다.
 - N2-PACE-08은 pacing telemetry에 첫 target acquisition 시간/source/state/distance/band를 추가했다. 새 3-run `C:\tmp\game_dev_opening_acq_v1_3run`은 avg duration 347.9s, first acquisition 0.6s, first contact 1.0s, first upgrade 53.7s, stage2 262.0s, fallback 0.0/run, stuck 23.0/run, AI avg 474.0us, sentinel clear로 구조 gate를 통과했다. 첫 acquisition은 평균 5.2m 거리의 retreat_counteraction / ZONE_ESCAPE였고, acquisition-to-contact gap은 0.4s였다.
 - N2-PACE-09는 `zone.initial_radius`가 런타임에 전달되지 않던 문제를 수정했다. `Main`/`MatchBootstrap`/`ZoneController`가 초기 존 반경을 적용하고, `playable_pacing_v1`은 78m spawn ring이 즉시 `ZONE_ESCAPE`에 들어가지 않도록 initial_radius 86m를 사용한다. 새 3-run `C:\tmp\game_dev_zone_initial_radius_v1_3run`은 avg duration 389.3s, first acquisition 1.7s, first contact 2.6s, first upgrade 32.6s, stage2 275.2s, fallback 0.0/run, zone deaths 0, stuck 41.0/run, AI avg 509.0us, sentinel clear로 통과했다. 첫 acquisition은 14.2m 거리의 objective_interrupt / CHASE로 바뀌었으므로 즉시 ZONE_ESCAPE 문제는 해소됐고, 남은 sub-5s contact는 opening objective/proximity pressure로 분류한다. `check_scale_telemetry.py`는 300초 이상 playable run에서 stuck/disengage를 spawned entity/minute로 판정하고, 짧은 구조 smoke는 기존 raw gate를 유지한다.
+- N2-PACE-10은 첫 objective interrupt 진단을 pacing telemetry에 추가했다. 새 3-run `C:\tmp\game_dev_objective_interrupt_v1_3run`은 avg duration 441.0s, first acquisition 1.6s, first contact 2.4s, first upgrade 56.5s, stage2 278.0s, stage3 519.8s, fallback 0.0/run, zone deaths 0, stuck 46.3/run, AI avg 474.5us, sentinel clear로 통과했다. 첫 objective interrupt는 enemy 7.5m, objective 13.4m, source idle_loot, kind heal/armor, need combat_low_ammo였다. 남은 문제는 match start loot objective selection/interrupt 규칙이며, combat damage나 AI aggression이 아니다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서
@@ -198,6 +199,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-PACE-07 | opening pressure report | spawn fallback/min-nearest/saturation/attempts를 gap report에 출력 | py_compile, summarize playable 3-run | first contact 문제를 zone/economy만으로 오해하지 않기 |
 | N2-PACE-08 | opening acquisition telemetry | 첫 target acquisition time/source/state/distance/band를 pacing에 기록 | pacing verifier, py_compile, playable 3-run analyze/summarize/check | first contact 전 acquisition 원인 없이 combat/AI 수치 조정 금지 |
 | N2-PACE-09 | opening zone radius tuning | `zone.initial_radius` runtime 적용, playable opening radius guard, long-run normalized scale gate | zone radius verifier, playable/night verifier, runtime load, playable 3-run analyze/summarize/check | spawn ring을 즉시 ZONE_ESCAPE로 두지 않기. 긴 playable run에서 raw disengage count로 오판하지 않기 |
+| N2-PACE-10 | opening objective interrupt telemetry | 첫 objective interrupt source/kind/need/match, enemy/objective distance를 pacing에 기록 | pacing verifier, py_compile, backward-compatible analyzer/summarizer, playable 3-run analyze/summarize/check | objective_interrupt 원인 없이 loot/AI/combat 수치 조정 금지 |
 
 자율 진행 규칙:
 
@@ -238,7 +240,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-07 완료: pacing gap report가 opening pressure를 함께 보여준다. 5m spawn spacing 로컬 smoke는 first contact 개선이 거의 없어 폐기했다.
 - N2-PACE-08 완료: first target acquisition이 0.6초에 retreat_counteraction / ZONE_ESCAPE에서 발생하고 contact까지 0.4초밖에 없다는 것을 확인했다.
 - N2-PACE-09 완료: `playable_pacing_v1`의 initial_radius 86m가 런타임에 적용되면서 첫 acquisition이 objective_interrupt / CHASE로 바뀌었다. 즉시 ZONE_ESCAPE 원인은 spawn radius 78m 대비 implicit initial zone 50m였고, 남은 문제는 sub-5s objective/proximity contact다.
-- 다음 우선순위: objective_interrupt / CHASE가 왜 2-3초대 첫 접촉을 만드는지 확인한다. combat damage, AI aggression, night awareness 상수는 먼저 건드리지 않는다.
+- N2-PACE-10 완료: 첫 objective interrupt는 idle_loot heal/armor 목표가 combat_low_ammo need로 잡힌 뒤 7-8m enemy에 끊긴다. 새 telemetry는 old summary와 backward-compatible이다.
+- 다음 우선순위: opening loot objective selection과 objective interrupt rule을 확인한다. combat damage, AI aggression, night awareness 상수는 먼저 건드리지 않는다.
 
 ## 비목표
 

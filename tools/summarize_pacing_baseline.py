@@ -151,6 +151,8 @@ def print_interpretation(durations: list[float], target_min: float, target_max: 
         print("  - This sample is a compressed structural smoke, not a playable 10-15 minute pacing baseline.")
     elif current_avg < target_min * 0.70:
         print("  - This sample is still shorter than the intended match, but milestone ordering can inform the next tuning plan.")
+    elif current_avg < target_min:
+        print("  - This sample is close to the target floor, but still shorter than the intended match.")
     elif current_avg <= target_max:
         print("  - This sample is within the target duration band; pacing milestones can be evaluated as candidate gameplay values.")
     else:
@@ -174,7 +176,14 @@ def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None
     acquisition_states = string_counter(runs, "pacing", "first_target_acquisition_state")
     acquisition_poi_bands = string_counter(runs, "pacing", "first_target_acquisition_poi_band")
     acquisition_route_bands = string_counter(runs, "pacing", "first_target_acquisition_route_band")
-    if not any([fallback, min_nearest, avg_nearest, saturation, avg_attempts, max_attempts, first_acquisition]):
+    first_objective_interrupt = positive_values(runs, "pacing", "first_objective_interrupt_time")
+    first_objective_interrupt_enemy_distance = positive_values(runs, "pacing", "first_objective_interrupt_enemy_distance")
+    first_objective_interrupt_objective_distance = positive_values(runs, "pacing", "first_objective_interrupt_objective_distance")
+    objective_interrupt_sources = string_counter(runs, "pacing", "first_objective_interrupt_source")
+    objective_interrupt_kinds = string_counter(runs, "pacing", "first_objective_interrupt_kind")
+    objective_interrupt_needs = string_counter(runs, "pacing", "first_objective_interrupt_need")
+    objective_interrupt_matches = string_counter(runs, "pacing", "first_objective_interrupt_target_match")
+    if not any([fallback, min_nearest, avg_nearest, saturation, avg_attempts, max_attempts, first_acquisition, first_objective_interrupt]):
         return
     print("Opening pressure:")
     if fallback:
@@ -208,6 +217,17 @@ def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None
         if first_contact:
             contact_gap = avg(first_contact) - avg(first_acquisition)
             print(f"  acquisition-to-contact gap: {contact_gap:.1f}s")
+    if first_objective_interrupt:
+        print(
+            "  first objective interrupt: "
+            f"{avg(first_objective_interrupt):.1f}s, enemy={avg(first_objective_interrupt_enemy_distance):.1f}m, "
+            f"objective={avg(first_objective_interrupt_objective_distance):.1f}m, "
+            f"sources=[{format_mix(objective_interrupt_sources)}], kinds=[{format_mix(objective_interrupt_kinds)}]"
+        )
+        print(
+            "  objective interrupt detail: "
+            f"needs=[{format_mix(objective_interrupt_needs)}], matches=[{format_mix(objective_interrupt_matches)}]"
+        )
     if first_contact and min_nearest and avg(first_contact) < 5.0:
         print("  read: sub-5s first contact is still opening spawn/proximity pressure, not zone pacing.")
 

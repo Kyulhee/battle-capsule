@@ -190,6 +190,18 @@ func _reset_metrics():
 			"first_target_acquisition_route_band": "none",
 			"first_target_acquisition_nearest_poi_role": "none",
 			"first_target_acquisition_nearest_route_role": "none",
+			"first_objective_interrupt_time": -1.0,
+			"first_objective_interrupt_enemy_distance": -1.0,
+			"first_objective_interrupt_objective_distance": -1.0,
+			"first_objective_interrupt_source": "none",
+			"first_objective_interrupt_kind": "none",
+			"first_objective_interrupt_need": "none",
+			"first_objective_interrupt_target_match": "none",
+			"first_objective_interrupt_target_detail": "none",
+			"first_objective_interrupt_objective_poi_band": "none",
+			"first_objective_interrupt_objective_route_band": "none",
+			"first_objective_interrupt_enemy_poi_band": "none",
+			"first_objective_interrupt_enemy_route_band": "none",
 			"first_contact_time": -1.0,
 			"first_damage_time": -1.0,
 			"first_kill_time": -1.0,
@@ -865,6 +877,39 @@ func log_doctrine_target_acquisition(
 	)
 	if distance >= 0.0:
 		_add_sample_bucket(metrics.doctrine.target_acquisition_distance_by_source, source_key, distance)
+
+func log_doctrine_objective_enemy_interrupt(
+	_archetype_name: String,
+	source_name: String,
+	_mode_name: String,
+	kind_name: String,
+	objective_context: Dictionary,
+	objective_distance: float,
+	enemy_context: Dictionary,
+	enemy_distance: float,
+	selection_context: Dictionary = {}
+):
+	if not match_in_progress or not _g("doctrine"): return
+	if not _g("pacing") or float(metrics.pacing.first_objective_interrupt_time) >= 0.0:
+		return
+	var source_key := _normalized_key(source_name, "unknown")
+	var kind_key := _normalized_key(kind_name, "pickup_unknown")
+	var objective_poi_band := _poi_distance_band(objective_context)
+	var objective_route_band := _route_distance_band(objective_context)
+	var enemy_poi_band := _poi_distance_band(enemy_context)
+	var enemy_route_band := _route_distance_band(enemy_context)
+	metrics.pacing.first_objective_interrupt_time = _elapsed_seconds()
+	metrics.pacing.first_objective_interrupt_enemy_distance = enemy_distance
+	metrics.pacing.first_objective_interrupt_objective_distance = objective_distance
+	metrics.pacing.first_objective_interrupt_source = source_key
+	metrics.pacing.first_objective_interrupt_kind = kind_key
+	metrics.pacing.first_objective_interrupt_need = _normalized_key(String(selection_context.get("need", "unknown")), "unknown")
+	metrics.pacing.first_objective_interrupt_target_match = _normalized_key(String(selection_context.get("target_match", "unknown")), "unknown")
+	metrics.pacing.first_objective_interrupt_target_detail = _normalized_key(String(selection_context.get("target_detail", kind_key)), kind_key)
+	metrics.pacing.first_objective_interrupt_objective_poi_band = objective_poi_band
+	metrics.pacing.first_objective_interrupt_objective_route_band = objective_route_band
+	metrics.pacing.first_objective_interrupt_enemy_poi_band = enemy_poi_band
+	metrics.pacing.first_objective_interrupt_enemy_route_band = enemy_route_band
 
 func log_doctrine_loot_objective_start(
 	_archetype_name: String,

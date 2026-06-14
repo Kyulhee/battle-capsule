@@ -6,6 +6,38 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Objective Interrupt Telemetry
+
+**Scope**
+
+- Added first objective-interrupt fields to pacing telemetry:
+  - interrupt time, enemy distance, objective distance, objective source/kind/need/match/detail, and objective/enemy bands.
+- Logged the interrupt before loot objective state is cleared, so `objective_interrupt / CHASE` can be tied back to the interrupted loot target.
+- Extended `tools/analyze_results.py` and `tools/summarize_pacing_baseline.py` to print the first objective interrupt.
+- Fixed `summarize_pacing_baseline.py` interpretation so samples below the 600s floor are not described as inside the 10-15m target band.
+- No gameplay tuning was applied.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py tools\check_scale_telemetry.py tools\simulate_matches.py` passed.
+- `python tools\analyze_results.py C:\tmp\game_dev_zone_initial_radius_v1_3run` and `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_zone_initial_radius_v1_3run` passed on older summaries without the new fields.
+- Fresh 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_objective_interrupt_v1_3run`
+  - avg duration 441.0s, first acquisition 1.6s, first contact 2.4s, first upgrade 56.5s, stage 2 278.0s, stage 3 519.8s
+  - first acquisition source/state: objective_interrupt / CHASE
+  - first objective interrupt: enemy 7.5m, objective 13.4m, source idle_loot, kind heal/armor, need combat_low_ammo
+  - fallback 0.0/run, zone deaths 0, stuck 46.3/run, AI avg 474.5us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_objective_interrupt_v1_3run --min-runs 3` passed with long-run rates: stuck 0.07/entity/min, disengage 0.25/entity/min.
+- `git diff --check` passed.
+
+**Decision**
+
+- The remaining sub-5s opening contact is not zone escape. It is an idle-loot objective interrupted by a nearby enemy at roughly 7.5m.
+- Next work should inspect opening loot objective selection and interruption rules, especially why heal/armor objectives are selected with `combat_low_ammo` need at match start.
+
+---
+
 ## v2 Opening Zone Radius Tuning
 
 **Scope**
