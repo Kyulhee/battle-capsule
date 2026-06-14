@@ -19,6 +19,8 @@ const SENSORY_GUNSHOT_INTERVAL := 0.10
 const SENSORY_FOOTSTEP_INTERVAL := 0.15
 const IDLE_LOOT_INTERRUPT_GRACE_SECONDS := 2.0
 const IDLE_LOOT_INTERRUPT_CLOSE_RANGE := 6.0
+const LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT := 2.0
+const HEALTHY_HEAL_PICKUP_RATIO := 0.82
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -338,7 +340,7 @@ func handle_idle_state(delta):
 		rotation.y = lerp_angle(rotation.y, scan_target_rotation, stats.rotation_speed * delta)
 		if not _post_kill_loot_attempted:
 			_post_kill_loot_attempted = true
-			var nearby = _find_best_pickup(8.0)
+			var nearby = _find_best_pickup(8.0, true)
 			if nearby and _count_visible_enemies() == 0:
 				_start_loot_objective(nearby, "post_kill_loot", false)
 				change_state(State.CHASE); return
@@ -393,9 +395,9 @@ func handle_idle_state(delta):
 	# so unusable ammo and weapon-upgrade preferences stay consistent.
 	var nearest_loot: Node3D = null
 	if current_health / stats.max_health < 0.5:
-		nearest_loot = _find_best_pickup(55.0)  # wider range, scores heals highest
+		nearest_loot = _find_best_pickup(55.0, true)  # wider range, scores heals highest
 	else:
-		nearest_loot = _find_best_pickup(35.0)
+		nearest_loot = _find_best_pickup(35.0, true)
 	if nearest_loot:
 		var loot_dist = global_position.distance_to(nearest_loot.global_position)
 		if loot_dist <= 2.5 and nearest_loot.has_method("collect"):
@@ -443,7 +445,7 @@ func handle_chase_state(delta):
 			return
 		# Give up if stuck chasing loot too long — switch to a different target
 		if state_timer > 5.0:
-			var alt = _find_best_pickup(_loot_radius)
+			var alt = _find_best_pickup(_loot_radius, true)
 			if is_instance_valid(alt) and alt != target_actor:
 				var was_recovering := _recovering
 				_finish_loot_objective("retarget")
@@ -585,7 +587,7 @@ func handle_attack_state(delta):
 	if _combat_loot_threshold > 0 and stats.max_ammo > 0 and \
 			reserve_ammo <= 0 and \
 			float(stats.current_ammo) / float(stats.max_ammo) <= _combat_loot_threshold:
-		var nearby = _find_best_pickup(_combat_loot_radius)
+		var nearby = _find_best_pickup(_combat_loot_radius, true)
 		if nearby:
 			_start_loot_objective(nearby, "combat_low_ammo", true)
 			if has_node("/root/Telemetry"):
@@ -711,7 +713,7 @@ func handle_recover_state(delta):
 
 	elif recovery_substate == "seek_loot":
 		# Wider search radius when actively looking for ammo
-		var loot = _find_best_pickup(_loot_radius)
+		var loot = _find_best_pickup(_loot_radius, true)
 		if loot:
 			_start_loot_objective(loot, "recover_seek_loot", true)
 			change_state(State.CHASE)
@@ -726,7 +728,7 @@ func handle_recover_state(delta):
 
 	elif recovery_substate == "patrol":
 		# Wander to a random zone point until loot appears or timeout
-		var loot = _find_best_pickup(_loot_radius)
+		var loot = _find_best_pickup(_loot_radius, true)
 		if loot:
 			_start_loot_objective(loot, "recover_patrol_loot", true)
 			if has_node("/root/Telemetry"):
@@ -1705,7 +1707,7 @@ func _check_ambient_awareness(delta: float):
 # Scores each pickup by distance, then adjusts priority based on current need.
 # Lower score = higher priority.
 
-func _find_best_pickup(search_radius: float) -> Node3D:
+func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = false) -> Node3D:
 	var pickups = get_tree().get_nodes_in_group("pickups")
 	var best: Node3D = null
 	var best_score: float = INF
@@ -1738,14 +1740,29 @@ func _find_best_pickup(search_radius: float) -> Node3D:
 						score *= 0.5
 					elif item.weapon_stats != null:
 						if stats.weapon_type == "pistol" and item.weapon_stats.weapon_type != "pistol":
-							score *= 0.35
+							score *= 1.0 if prefer_immediate_value else 0.35
 						elif item.weapon_stats.weapon_type == stats.weapon_type \
 								and reserve_ammo == 0 and ammo_ratio <= 0.25:
 							score *= 0.9 if stats.weapon_type == "pistol" else 0.75
+			if prefer_immediate_value:
+				score *= _immediate_value_pickup_score_mult(item)
 		if score < best_score:
 			best_score = score
 			best = p
 	return best
+
+func _immediate_value_pickup_score_mult(item) -> float:
+	if item == null:
+		return 1.0
+	match item.type:
+		ItemData.Type.HEAL:
+			var hp_ratio := current_health / maxf(1.0, stats.max_health)
+			if hp_ratio >= HEALTHY_HEAL_PICKUP_RATIO:
+				return LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT
+		ItemData.Type.ARMOR:
+			if stats.max_shield <= 0.0 or current_shield >= stats.max_shield - 0.5:
+				return LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT
+	return 1.0
 
 # ─── GROUP ATTACK ─────────────────────────────────────────────────────────────
 # Count bots in ATTACK state targeting the same actor as this bot.

@@ -6,6 +6,41 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Loot Target Quality Guard
+
+**Scope**
+
+- Refined immediate-value loot scoring for bot loot objectives:
+  - healthy heal pickups are de-prioritized when a more actionable same-weapon ammo target is available.
+  - wounded bots still prefer nearby heals.
+  - pistol -> non-pistol weapon upgrade boost is disabled in immediate-value searches so target quality fixes do not pull first upgrade into the first seconds.
+- Extended `tools/verify_bot_opening_loot_rules.gd` to guard healthy-heal vs same-weapon ammo priority and wounded-heal priority.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd` passed.
+- Rejected v1 3-run:
+  - output: `C:\tmp\game_dev_idle_loot_priority_v1_3run`
+  - avg duration 363.9s, first upgrade 2.7s
+  - `check_scale_telemetry.py --min-runs 3` failed because avg first upgrade was below the 10.0s floor.
+- Fresh accepted 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_idle_loot_priority_v2_3run`
+  - avg duration 414.8s, first acquisition 1.5s, first contact 2.1s, first upgrade 54.5s, stage 2 269.7s, stage 3 510.4s
+  - first objective interrupt: enemy 4.5m, objective 21.8m, source idle_loot, kind armor/heal, need ammo_low/combat_low_ammo
+  - fallback 0.0/run, zone deaths 0, stuck 53.7/run, AI avg 441.1us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_idle_loot_priority_v2_3run --min-runs 3` passed with long-run rates: stuck 0.08/entity/min, disengage 0.26/entity/min.
+- `git diff --check` passed.
+
+**Decision**
+
+- Do not solve healthy-heal target quality by broadly promoting non-pistol upgrades; that pulls first upgrade under the structural gate.
+- The accepted guard keeps upgrade timing in the previous safe band while reducing low-value healthy-heal priority against same-weapon ammo.
+- The remaining sub-5s first contact is still close-range opening proximity pressure.
+
+---
+
 ## v2 Opening Loot Rule Guard
 
 **Scope**
