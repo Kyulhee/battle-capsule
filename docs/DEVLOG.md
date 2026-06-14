@@ -6,6 +6,38 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Loot Rule Guard
+
+**Scope**
+
+- Added a short idle-loot interrupt grace:
+  - idle-loot objectives defer enemy interrupts for 2.0s when the enemy is farther than 6.0m.
+  - close enemies still interrupt immediately.
+- Changed opening ammo need classification so ammo exactly at the combat-loot threshold is `ammo_low`, while ammo below the threshold remains `combat_low_ammo`.
+- Added `tools/verify_bot_opening_loot_rules.gd` to guard both rules.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd` passed.
+- Fresh 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_loot_rules_v1_3run`
+  - avg duration 450.5s, first acquisition 1.5s, first contact 2.2s, first upgrade 36.6s, stage 2 268.3s, stage 3 509.5s
+  - first acquisition source/state: objective_interrupt / CHASE
+  - first objective interrupt: enemy 4.8m, objective 8.4m, source idle_loot, kind heal/armor, need ammo_low 66.7% / combat_low_ammo 33.3%
+  - fallback 0.0/run, zone deaths 0, stuck 62.0/run, AI avg 468.7us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_loot_rules_v1_3run --min-runs 3` passed with long-run rates: stuck 0.08/entity/min, disengage 0.23/entity/min.
+- `git diff --check` passed.
+
+**Decision**
+
+- The new grace removed the previous 7-8m medium-range idle-loot interrupt from the opening read.
+- The remaining sub-5s contact is close-range spawn/proximity pressure, not zone escape or mid-range objective interruption.
+- Next work should inspect opening proximity and idle-loot target quality before changing combat damage, AI aggression, or night-awareness constants.
+
+---
+
 ## v2 Opening Objective Interrupt Telemetry
 
 **Scope**

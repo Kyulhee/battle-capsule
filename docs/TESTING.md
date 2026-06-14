@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-14 (opening acquisition telemetry 추가)
+> 마지막 업데이트: 2026-06-14 (opening loot rule guard 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -103,6 +103,7 @@ python tools/analyze_results.py C:\tmp\game_dev_night_candidate_99_probe_v1
 # v2.0 Night playable pacing candidate smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1
 python tools/simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_playable_pacing_v1_3run_v2
 python tools/analyze_results.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
@@ -113,6 +114,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 # summarize_pacing_baseline.py prints opening pressure: spawn fallback, nearest spacing, saturation, attempts, and sub-5s first-contact read.
 # analyze_results.py and summarize_pacing_baseline.py also print first target acquisition time/source/state/distance before first contact.
 # They also print the first objective interrupt source/kind/need/match plus enemy/objective distance when present.
+# verify_bot_opening_loot_rules.gd guards the idle-loot 2s/6m interrupt grace and exact-threshold ammo need classification.
 # check_scale_telemetry.py keeps raw stuck/disengage gates for short structural smoke, but 300s+ playable runs use spawned entity/minute rates.
 
 # v2.0 player-facing night readability / pickup light LOD / AI LOD smoke

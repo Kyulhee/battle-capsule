@@ -17,6 +17,8 @@ const PERCEPTION_LOD_IDLE_INTERVAL := 0.12
 const SENSORY_CLOSE_RANGE_INTERVAL := 0.05
 const SENSORY_GUNSHOT_INTERVAL := 0.10
 const SENSORY_FOOTSTEP_INTERVAL := 0.15
+const IDLE_LOOT_INTERRUPT_GRACE_SECONDS := 2.0
+const IDLE_LOOT_INTERRUPT_CLOSE_RANGE := 6.0
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -507,6 +509,8 @@ func _maybe_interrupt_objective_for_enemy() -> bool:
 	# Recovery and combat-loot runs keep their objective; damage and loud gunshot
 	# overrides can still break them through the existing higher-priority paths.
 	if _recovering:
+		return false
+	if _should_defer_idle_loot_interrupt(enemy):
 		return false
 
 	if is_targeting_loot:
@@ -1302,7 +1306,7 @@ func _loot_need_key() -> String:
 		return "wounded"
 	if stats.max_ammo > 0:
 		var ammo_ratio := float(stats.current_ammo) / maxf(1.0, float(stats.max_ammo))
-		if ammo_ratio <= _combat_loot_threshold and _combat_loot_threshold > 0.0:
+		if ammo_ratio < _combat_loot_threshold - 0.001 and _combat_loot_threshold > 0.0:
 			return "combat_low_ammo"
 		if ammo_ratio <= 0.25:
 			return "ammo_low"
@@ -1473,6 +1477,13 @@ func _log_objective_enemy_interrupt(enemy: Entity) -> void:
 		global_position.distance_to(enemy.global_position),
 		_loot_objective_selection_context
 	)
+
+func _should_defer_idle_loot_interrupt(enemy: Entity) -> bool:
+	if _loot_objective_source != "idle_loot" or not is_instance_valid(enemy):
+		return false
+	if state_timer >= IDLE_LOOT_INTERRUPT_GRACE_SECONDS:
+		return false
+	return global_position.distance_to(enemy.global_position) > IDLE_LOOT_INTERRUPT_CLOSE_RANGE
 
 func _strategic_position_context(world_pos: Vector3) -> Dictionary:
 	var context := {

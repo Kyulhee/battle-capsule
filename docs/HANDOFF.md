@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-14 (opening objective interrupt telemetry 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-14 (opening loot rule guard 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-10` opening objective interrupt telemetry.
+- 이번 세션 기준 완료 slice: `N2-PACE-11` opening loot rule guard.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,12 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-10` opening objective interrupt telemetry다. `zone.initial_radius` 문제는 `N2-PACE-09`에서 해결됐고, `N2-PACE-10`은 남은 `objective_interrupt / CHASE` 첫 접촉이 어떤 loot objective에서 끊기는지 기록한다. fresh 3-run 기준 첫 interrupt는 idle_loot heal/armor objective가 combat_low_ammo need로 잡힌 뒤 7-8m enemy에 끊긴다.
+현재 완료한 본 작업은 `N2-PACE-11` opening loot rule guard다. `zone.initial_radius` 문제는 `N2-PACE-09`에서 해결됐고, `N2-PACE-10`은 남은 `objective_interrupt / CHASE` 첫 접촉이 어떤 loot objective에서 끊기는지 기록했다. `N2-PACE-11`은 idle_loot 2초/6m interrupt grace와 exact-threshold ammo 분류 보정을 적용했다. fresh 3-run 기준 첫 interrupt는 7-8m 중거리가 아니라 4-5m 근접 enemy에서 발생한다.
 
 통과한 단위 검증:
 
@@ -110,6 +110,11 @@ python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest
 python tools\analyze_results.py C:\tmp\game_dev_objective_interrupt_v1_3run
 python tools\summarize_pacing_baseline.py C:\tmp\game_dev_objective_interrupt_v1_3run
 python tools\check_scale_telemetry.py C:\tmp\game_dev_objective_interrupt_v1_3run --min-runs 3
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd
+python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_loot_rules_v1_3run
+python tools\analyze_results.py C:\tmp\game_dev_opening_loot_rules_v1_3run
+python tools\summarize_pacing_baseline.py C:\tmp\game_dev_opening_loot_rules_v1_3run
+python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_loot_rules_v1_3run --min-runs 3
 git diff --check
 ```
 
@@ -189,7 +194,14 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
   - avg duration 441.0s, first acquisition 1.6s, first contact 2.4s, first upgrade 56.5s, stage2 278.0s, stage3 519.8s
   - first objective interrupt는 enemy 7.5m, objective 13.4m, source idle_loot, kind heal/armor, need combat_low_ammo
   - fallback 0.0/run, zone deaths 0, stuck 46.3/run, AI avg 474.5us, sentinel clear, long-run scale gate 통과
-- 다음 우선순위는 opening loot objective selection과 objective interrupt rule을 확인하는 것이다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
+- `N2-PACE-11` opening loot rule guard:
+  - idle_loot objective는 2초 grace 동안 6m 초과 enemy interrupt를 미루고, 6m 이내 enemy는 즉시 interrupt한다.
+  - ammo가 combat loot threshold와 정확히 같으면 `combat_low_ammo`가 아니라 `ammo_low`로 분류한다.
+  - output: `C:\tmp\game_dev_opening_loot_rules_v1_3run`
+  - avg duration 450.5s, first acquisition 1.5s, first contact 2.2s, first upgrade 36.6s, stage2 268.3s, stage3 509.5s
+  - first objective interrupt는 enemy 4.8m, objective 8.4m, source idle_loot, kind heal/armor, need ammo_low 66.7% / combat_low_ammo 33.3%
+  - fallback 0.0/run, zone deaths 0, stuck 62.0/run, AI avg 468.7us, sentinel clear, long-run scale gate 통과
+- 다음 우선순위는 opening proximity와 idle-loot target quality를 확인하는 것이다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
 
 ## 설계 가드레일
 
