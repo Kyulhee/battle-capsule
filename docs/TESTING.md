@@ -102,6 +102,7 @@ python tools/analyze_results.py C:\tmp\game_dev_night_candidate_99_probe_v1
 
 # v2.0 Night playable pacing candidate smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1
 python tools/simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_playable_pacing_v1_3run_v2
 python tools/analyze_results.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
@@ -111,6 +112,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 # A no-first-upgrade 3-run candidate is economy starvation; fix the preset, do not lower the gate.
 # summarize_pacing_baseline.py prints opening pressure: spawn fallback, nearest spacing, saturation, attempts, and sub-5s first-contact read.
 # analyze_results.py and summarize_pacing_baseline.py also print first target acquisition time/source/state/distance before first contact.
+# check_scale_telemetry.py keeps raw stuck/disengage gates for short structural smoke, but 300s+ playable runs use spawned entity/minute rates.
 
 # v2.0 player-facing night readability / pickup light LOD / AI LOD smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd

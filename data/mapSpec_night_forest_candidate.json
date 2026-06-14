@@ -210,6 +210,7 @@
         }
       },
       "zone": {
+        "initial_radius": 86.0,
         "initial_timer": 160.0,
         "wait_time": 150.0,
         "shrink_time": 70.0,

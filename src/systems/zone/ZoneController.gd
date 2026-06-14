@@ -22,11 +22,19 @@ var _outside_time: Dictionary = {}
 var _warning_played: bool = false
 var _damage_tick_timer: float = 0.0
 
+func configure_initial_zone(initial_radius: float) -> void:
+	current_radius = maxf(1.0, initial_radius)
+	_radius_start = current_radius
+
 func configure_stage_configs(configs: Dictionary) -> void:
 	stage_configs = configs.duplicate(true)
 
-func generate_next() -> void:
-	next_radius = current_radius * 0.6
+func generate_next(next_radius_override: float = -1.0) -> void:
+	if next_radius_override > 0.0:
+		next_radius = minf(next_radius_override, current_radius - 0.1)
+	else:
+		next_radius = current_radius * 0.6
+	next_radius = maxf(1.0, next_radius)
 	var max_offset = current_radius - next_radius
 	var angle = randf() * TAU
 	var dist = randf() * max_offset

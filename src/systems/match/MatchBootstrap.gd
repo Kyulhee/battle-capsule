@@ -9,16 +9,20 @@ static func create_zone(
 	initial_timer: float,
 	stage_configs: Dictionary,
 	on_stage_advanced: Callable,
-	on_zone_warning: Callable
+	on_zone_warning: Callable,
+	initial_radius: float = 50.0,
+	next_radius: float = -1.0
 ):
 	var zone = zone_script.new()
 	zone.wait_time = wait_time
 	zone.shrink_time = shrink_time
 	zone.damage_per_second = damage_per_second
+	if zone.has_method("configure_initial_zone"):
+		zone.configure_initial_zone(initial_radius)
 	if zone.has_method("configure_stage_configs"):
 		zone.configure_stage_configs(stage_configs)
 	zone.timer = initial_timer
-	zone.generate_next()
+	zone.generate_next(next_radius)
 	if on_stage_advanced.is_valid():
 		zone.stage_advanced.connect(on_stage_advanced)
 	if on_zone_warning.is_valid():

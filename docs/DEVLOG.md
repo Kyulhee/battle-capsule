@@ -6,6 +6,40 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Zone Radius Tuning
+
+**Scope**
+
+- Wired `zone.initial_radius` from `MapDefinition` through `Main` / `MatchBootstrap` into `ZoneController`.
+- Set `playable_pacing_v1` initial zone radius to 86m so the 78m spawn ring no longer starts inside immediate bot `ZONE_ESCAPE`.
+- Added `tools/verify_zone_initial_radius_tuning.gd` and extended `verify_playable_pacing_preset.gd` to guard the opening zone/spawn relationship.
+- Updated `tools/check_scale_telemetry.py` so 300s+ playable samples use stuck/disengage per spawned entity/minute while shorter structural smoke runs keep the existing raw-count gate.
+
+**Verification**
+
+- `python -c "import json, pathlib; json.loads(pathlib.Path(r'data/mapSpec_night_forest_candidate.json').read_text(encoding='utf-8')); print('json ok')"` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_night_forest_candidate.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1` passed with the known AssetCatalog fallback warning.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py tools\check_scale_telemetry.py tools\simulate_matches.py` passed.
+- Fresh 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_zone_initial_radius_v1_3run`
+  - avg duration 389.3s, first acquisition 1.7s, first contact 2.6s, first upgrade 32.6s, stage 2 275.2s
+  - first acquisition distance 14.2m, source/state: objective_interrupt / CHASE
+  - fallback 0.0/run, zone deaths 0, stuck 41.0/run, AI avg 509.0us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_zone_initial_radius_v1_3run --min-runs 3` passed with long-run rates: stuck 0.07/entity/min, disengage 0.27/entity/min.
+- Short structural baseline `C:\tmp\game_dev_pacing_game_time_v2_3run` still passed through the existing raw-count gate.
+
+**Decision**
+
+- The immediate `ZONE_ESCAPE / retreat_counteraction` opening acquisition was caused by the 78m spawn ring running against the implicit 50m initial zone radius.
+- Remaining sub-5s first contact is now `objective_interrupt / CHASE` opening proximity pressure, not zone escape pressure.
+- Do not tune combat damage, AI aggression, or night-awareness constants from this result. Next work should inspect objective interruption / opening proximity.
+
+---
+
 ## v2 Opening Acquisition Telemetry
 
 **Scope**

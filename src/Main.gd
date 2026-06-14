@@ -45,6 +45,8 @@ var zone = null
 @export var zone_shrink_time: float = 20.0
 @export var zone_damage: float = 2.0
 @export var zone_initial_timer: float = 15.0
+@export var zone_initial_radius: float = 50.0
+var zone_next_radius: float = -1.0
 var zone_stage_configs: Dictionary = {}
 var alive_count: int = 0
 var game_over: bool = false
@@ -271,7 +273,9 @@ func start_game():
 		_zone_initial_timer(),
 		zone_stage_configs,
 		Callable(self, "_on_zone_stage_changed"),
-		Callable(self, "_on_zone_warning")
+		Callable(self, "_on_zone_warning"),
+		zone_initial_radius,
+		zone_next_radius
 	)
 	
 	_show_panel("HUD")
@@ -504,6 +508,9 @@ func _apply_map_definition_tuning():
 	match_tuning["zone_shrink_time"] = float(zone_tuning.get("shrink_time", zone_shrink_time))
 	match_tuning["zone_damage"] = float(zone_tuning.get("damage_per_second", zone_damage))
 	match_tuning["zone_initial_timer"] = float(zone_tuning.get("initial_timer", zone_initial_timer))
+	match_tuning["zone_initial_radius"] = float(zone_tuning.get("initial_radius", zone_initial_radius))
+	if zone_tuning.has("next_radius"):
+		match_tuning["zone_next_radius"] = float(zone_tuning.get("next_radius", -1.0))
 	match_tuning["zone_stage_configs"] = zone_tuning.get("stages", {}).duplicate(true) if typeof(zone_tuning.get("stages", {})) == TYPE_DICTIONARY else {}
 	_apply_match_tuning(match_tuning)
 	match_runtime_tuning = map_definition.get_runtime_tuning(
@@ -527,6 +534,8 @@ func _current_match_tuning() -> Dictionary:
 		"zone_shrink_time": zone_shrink_time,
 		"zone_damage": zone_damage,
 		"zone_initial_timer": zone_initial_timer,
+		"zone_initial_radius": zone_initial_radius,
+		"zone_next_radius": zone_next_radius,
 		"zone_stage_configs": zone_stage_configs,
 	}
 
@@ -547,6 +556,10 @@ func _apply_match_tuning(tuning: Dictionary):
 		zone_damage = float(tuning["zone_damage"])
 	if tuning.has("zone_initial_timer"):
 		zone_initial_timer = float(tuning["zone_initial_timer"])
+	if tuning.has("zone_initial_radius"):
+		zone_initial_radius = maxf(1.0, float(tuning["zone_initial_radius"]))
+	if tuning.has("zone_next_radius"):
+		zone_next_radius = float(tuning["zone_next_radius"])
 	if tuning.has("zone_stage_configs"):
 		zone_stage_configs = tuning["zone_stage_configs"].duplicate(true)
 	if loot_spawner and loot_spawner.has_method("configure_count"):

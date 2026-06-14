@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-14 (opening acquisition telemetry 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-14 (opening zone radius tuning 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-08` opening acquisition telemetry.
+- 이번 세션 기준 완료 slice: `N2-PACE-09` opening zone radius tuning.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,12 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`는 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-08` opening acquisition telemetry다. pacing telemetry가 첫 target acquisition 시간/source/state/distance/band를 기록하고 analyzer/gap report가 first contact 전에 이 값을 출력한다. gameplay tuning은 커밋하지 않았다.
+현재 완료한 본 작업은 `N2-PACE-09` opening zone radius tuning이다. `zone.initial_radius`가 런타임에 전달되도록 열고, `playable_pacing_v1`의 초기 존 반경을 86m로 설정해 78m spawn ring이 시작 즉시 `ZONE_ESCAPE`에 들어가지 않게 했다. 남은 초반 접촉 문제는 `ZONE_ESCAPE / retreat_counteraction`이 아니라 `CHASE / objective_interrupt` proximity 쪽이다.
 
 통과한 단위 검증:
 
@@ -98,6 +98,12 @@ python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest
 python tools\analyze_results.py C:\tmp\game_dev_opening_acq_v1_3run
 python tools\summarize_pacing_baseline.py C:\tmp\game_dev_opening_acq_v1_3run
 python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_acq_v1_3run --min-runs 3
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd
+python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_zone_initial_radius_v1_3run
+python tools\analyze_results.py C:\tmp\game_dev_zone_initial_radius_v1_3run
+python tools\summarize_pacing_baseline.py C:\tmp\game_dev_zone_initial_radius_v1_3run
+python tools\check_scale_telemetry.py C:\tmp\game_dev_zone_initial_radius_v1_3run --min-runs 3
+python tools\check_scale_telemetry.py C:\tmp\game_dev_pacing_game_time_v2_3run --min-runs 3
 git diff --check
 ```
 
@@ -163,7 +169,15 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
   - avg duration 347.9s, first acquisition 0.6s, first contact 1.0s, first upgrade 53.7s, stage2 262.0s
   - first acquisition distance 5.2m, source/state는 retreat_counteraction / ZONE_ESCAPE, acquisition-to-contact gap은 0.4s
   - fallback 0.0/run, stuck 23.0/run, AI avg 474.0us, sentinel clear, `check_scale_telemetry.py --min-runs 3` 통과
-- 다음 우선순위는 초기 ZONE_ESCAPE / retreat_counteraction이 왜 spawn 직후 target acquisition을 만드는지 확인하는 것이다. 바로 combat damage, AI aggression, night awareness, zone/economy 수치를 건드리지 않는다.
+- `N2-PACE-09` opening zone radius tuning:
+  - `ZoneController`는 `configure_initial_zone()`과 optional `generate_next(next_radius_override)`를 지원한다. `Main`/`MatchBootstrap`이 `zone.initial_radius`를 전달한다.
+  - `playable_pacing_v1`은 `initial_radius: 86.0`으로 시작한다. `verify_zone_initial_radius_tuning.gd`와 `verify_playable_pacing_preset.gd`가 spawn ring이 opening ZONE_ESCAPE로 시작하지 않도록 검증한다.
+  - output: `C:\tmp\game_dev_zone_initial_radius_v1_3run`
+  - avg duration 389.3s, first acquisition 1.7s, first contact 2.6s, first upgrade 32.6s, stage2 275.2s
+  - first acquisition distance 14.2m, source/state는 objective_interrupt / CHASE, acquisition-to-contact gap은 0.8s
+  - fallback 0.0/run, zone deaths 0, stuck 41.0/run, AI avg 509.0us, sentinel clear
+  - `check_scale_telemetry.py --min-runs 3` 통과. 300초 이상 playable run은 stuck/disengage를 spawned entity/minute로 본다. 짧은 구조 smoke는 기존 raw gate를 유지한다.
+- 다음 우선순위는 `objective_interrupt / CHASE`가 왜 2-3초대 첫 접촉을 만드는지 확인하는 것이다. 바로 combat damage, AI aggression, night awareness 상수를 건드리지 않는다.
 
 ## 설계 가드레일
 

@@ -53,6 +53,8 @@ func _init():
 		return
 	if not _verify_zone(playable_zone, target_zone):
 		return
+	if not _verify_opening_zone(playable_match, playable_zone):
+		return
 	if int(playable_spawn.get("safe_spawn_attempts", 0)) < 180:
 		_fail("%s should keep target-99 spawn reliability attempts." % PLAYABLE_PRESET)
 		return
@@ -129,6 +131,19 @@ func _verify_zone(playable: Dictionary, target: Dictionary) -> bool:
 			return _fail_bool("%s should extend stage %s shrink time." % [PLAYABLE_PRESET, stage_key])
 	if float(playable_stages.get("2", {}).get("damage_per_second", 0.0)) > float(target_stages.get("2", {}).get("damage_per_second", 0.0)):
 		return _fail_bool("%s should not raise early zone damage." % PLAYABLE_PRESET)
+	return true
+
+
+func _verify_opening_zone(playable_match: Dictionary, playable_zone: Dictionary) -> bool:
+	var spawn_radius := float(playable_match.get("spawn_radius", 0.0))
+	var initial_radius := float(playable_zone.get("initial_radius", 50.0))
+	var zone_escape_threshold := 0.95
+	if initial_radius * zone_escape_threshold < spawn_radius:
+		return _fail_bool("%s initial_radius %.1f leaves spawn_radius %.1f in opening ZONE_ESCAPE." % [
+			PLAYABLE_PRESET,
+			initial_radius,
+			spawn_radius,
+		])
 	return true
 
 

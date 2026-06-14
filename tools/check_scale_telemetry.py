@@ -35,6 +35,23 @@ def run_numbers(runs: list[dict], predicate) -> list[int]:
     return [idx + 1 for idx, run in enumerate(runs) if predicate(run)]
 
 
+def spawned_entities(run: dict) -> int:
+    spawn = run.get("spawn", {})
+    placed = int(spawn.get("placed_count", 0))
+    if placed > 0:
+        return placed
+    requested = int(spawn.get("requested_count", 0))
+    if requested > 0:
+        return requested
+    return 1
+
+
+def per_spawned_entity_minute(run: dict, count_key: str) -> float:
+    duration = float(run.get("core", {}).get("duration", 0.0))
+    count = float(run.get("tactics", {}).get(count_key, 0.0))
+    return count / max(1.0, spawned_entities(run)) / max(1.0, duration / 60.0)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Check repeated scale-test telemetry gates.")
     parser.add_argument("run_dir", nargs="?", default="tools/sim_runs_current")
@@ -45,6 +62,9 @@ def main() -> int:
     parser.add_argument("--max-avg-first-upgrade", type=float, default=60.0)
     parser.add_argument("--max-avg-stuck", type=float, default=60.0)
     parser.add_argument("--max-avg-disengage", type=float, default=130.0)
+    parser.add_argument("--long-run-normalized-after", type=float, default=300.0)
+    parser.add_argument("--max-stuck-per-entity-minute", type=float, default=0.15)
+    parser.add_argument("--max-disengage-per-entity-minute", type=float, default=0.45)
     parser.add_argument("--max-recover-death-ratio", type=float, default=0.25)
     parser.add_argument("--max-ai-avg-usec", type=float, default=4500.0)
     parser.add_argument("--max-ai-max-usec", type=float, default=50000.0)
@@ -67,6 +87,8 @@ def main() -> int:
     died_in_recover = [int(r.get("tactics", {}).get("died_in_recover", 0)) for r in runs]
     disengage = [int(r.get("tactics", {}).get("disengage_triggered", 0)) for r in runs]
     stuck = [int(r.get("tactics", {}).get("stuck_triggered", 0)) for r in runs]
+    stuck_rate = [per_spawned_entity_minute(r, "stuck_triggered") for r in runs]
+    disengage_rate = [per_spawned_entity_minute(r, "disengage_triggered") for r in runs]
     ai_samples = sum(int(r.get("ai", {}).get("update_samples", 0)) for r in runs)
     ai_total_usec = sum(int(r.get("ai", {}).get("update_total_usec", 0)) for r in runs)
     ai_max_usec = max((int(r.get("ai", {}).get("update_max_usec", 0)) for r in runs), default=0)
@@ -97,10 +119,21 @@ def main() -> int:
         failures.append(
             f"recover death ratio {recover_death_ratio:.2f} > {args.max_recover_death_ratio:.2f}"
         )
-    if avg(stuck) > args.max_avg_stuck:
-        failures.append(f"avg stuck {avg(stuck):.1f} > {args.max_avg_stuck:.1f}")
-    if avg(disengage) > args.max_avg_disengage:
-        failures.append(f"avg disengage {avg(disengage):.1f} > {args.max_avg_disengage:.1f}")
+    use_long_run_rates = avg(durations) >= args.long_run_normalized_after
+    if use_long_run_rates:
+        if avg(stuck_rate) > args.max_stuck_per_entity_minute:
+            failures.append(
+                f"stuck/entity/min {avg(stuck_rate):.2f} > {args.max_stuck_per_entity_minute:.2f}"
+            )
+        if avg(disengage_rate) > args.max_disengage_per_entity_minute:
+            failures.append(
+                f"disengage/entity/min {avg(disengage_rate):.2f} > {args.max_disengage_per_entity_minute:.2f}"
+            )
+    else:
+        if avg(stuck) > args.max_avg_stuck:
+            failures.append(f"avg stuck {avg(stuck):.1f} > {args.max_avg_stuck:.1f}")
+        if avg(disengage) > args.max_avg_disengage:
+            failures.append(f"avg disengage {avg(disengage):.1f} > {args.max_avg_disengage:.1f}")
     if ai_samples > 0:
         ai_avg_usec = ai_total_usec / ai_samples
         if ai_avg_usec > args.max_ai_avg_usec:
@@ -149,6 +182,13 @@ def main() -> int:
     print(f"Avg first upgrade: {avg(first_upgrade) if first_upgrade else -1.0:.1f}s")
     print(f"Recover death ratio: {recover_death_ratio:.3f}")
     print(f"Avg stuck/disengage: {avg(stuck):.1f} / {avg(disengage):.1f}")
+    print(
+        "Per spawned entity/min: stuck={:.2f}, disengage={:.2f}{}".format(
+            avg(stuck_rate),
+            avg(disengage_rate),
+            " (long-run gate)" if use_long_run_rates else "",
+        )
+    )
     if ai_samples > 0:
         print(f"AI update budget: samples={ai_samples}, avg={ai_total_usec / ai_samples:.1f}us, max={ai_max_usec}us")
     else:
