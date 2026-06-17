@@ -1,8 +1,48 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-14. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-17. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 Opening Proximity Guard
+
+**Scope**
+
+- Raised `playable_pacing_v1` opening spawn spacing:
+  - `safe_spawn_attempts` is now 260.
+  - `entity_clearance` is now 5.0m.
+  - `verify_playable_pacing_preset.gd` guards attempts, clearance, and spawn saturation.
+- Tightened idle-loot close interrupt classification from 6.0m to 5.0m.
+- Extended `tools/verify_bot_opening_loot_rules.gd` so 5.5m enemies are deferred during the opening grace, while 4.0m enemies still interrupt immediately.
+
+**Verification**
+
+- `python -c "import json, pathlib; json.loads(pathlib.Path(r'data/mapSpec_night_forest_candidate.json').read_text(encoding='utf-8')); print('json ok')"` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- Intermediate 5m spawn-only 3-run:
+  - output: `C:\tmp\game_dev_playable_spawn_clearance_v1_3run`
+  - avg duration 382.7s, first contact 2.2s, first upgrade 19.2s, spawn fallback 0.0/run
+  - spawn nearest min 5.0m, avg-nearest 8.6m, saturation 0.42
+  - first objective interrupt enemy 5.6m, objective 7.7m, objective_interrupt 100%
+- Fresh accepted 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_proximity_guard_v1_3run`
+  - avg duration 360.7s, first acquisition 1.8s, first contact 2.6s, first damage 2.8s, first upgrade 29.4s, stage 2 269.9s
+  - first acquisition source: objective_interrupt 66.7%, idle_reaction 33.3%
+  - first objective interrupt: enemy 4.7m, objective 14.0m, source idle_loot, kind armor/heal
+  - spawn fallback 0.0/run, nearest min 5.0m, avg-nearest 8.6m, saturation 0.42
+  - zone deaths 0.3/run, stuck 0.11/entity/min, disengage 0.27/entity/min, AI avg 466.3us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_proximity_guard_v1_3run --min-runs 3` passed.
+- `git diff --check` passed.
+
+**Decision**
+
+- 5m spawn spacing alone was insufficient because the old 6m close cutoff still allowed a 5.6m idle-loot interrupt.
+- The accepted guard makes the opening proximity envelope explicit and reduces objective_interrupt share, but sub-5s first contact remains mixed close objective_interrupt / idle_reaction pressure.
+- Next work should inspect opening idle reaction or awareness grace. Do not jump to combat damage, AI aggression, or zone pacing.
 
 ---
 

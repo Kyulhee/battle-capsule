@@ -55,8 +55,7 @@ func _init():
 		return
 	if not _verify_opening_zone(playable_match, playable_zone):
 		return
-	if int(playable_spawn.get("safe_spawn_attempts", 0)) < 180:
-		_fail("%s should keep target-99 spawn reliability attempts." % PLAYABLE_PRESET)
+	if not _verify_spawn(playable_spawn, playable_match):
 		return
 
 	print("%s smoke passed: bots=%d loot=%d initial=%.1f stage2=%.1f/%.1f." % [
@@ -107,6 +106,22 @@ func _verify_loot(playable: Dictionary, target: Dictionary) -> bool:
 		return _fail_bool("%s should reduce stage wave count multiplier." % PLAYABLE_PRESET)
 	if int(playable.get("stage_wave_count_mult", 0)) < 5:
 		return _fail_bool("%s stage wave count multiplier is too low for playable pacing v1." % PLAYABLE_PRESET)
+	return true
+
+
+func _verify_spawn(playable_spawn: Dictionary, playable_match: Dictionary) -> bool:
+	if int(playable_spawn.get("safe_spawn_attempts", 0)) < 220:
+		return _fail_bool("%s should raise safe spawn attempts for 5m opening spacing." % PLAYABLE_PRESET)
+	var clearance := float(playable_spawn.get("entity_clearance", 0.0))
+	if clearance < 5.0:
+		return _fail_bool("%s should keep 5m opening entity clearance." % PLAYABLE_PRESET)
+	var spawn_radius := float(playable_match.get("spawn_radius", 0.0))
+	var inner_radius := float(playable_spawn.get("inner_radius", 0.0))
+	var total_entities := int(playable_match.get("bot_count", 0)) + 1
+	var annulus := maxf(1.0, spawn_radius * spawn_radius - inner_radius * inner_radius)
+	var saturation := float(total_entities) * clearance * clearance / annulus
+	if saturation > 0.55:
+		return _fail_bool("%s 5m opening spacing is too saturated: %.2f." % [PLAYABLE_PRESET, saturation])
 	return true
 
 

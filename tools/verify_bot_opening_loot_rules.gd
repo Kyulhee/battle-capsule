@@ -83,6 +83,10 @@ func _verify_idle_loot_interrupt_grace() -> bool:
 	if not bot._should_defer_idle_loot_interrupt(enemy):
 		failure = "Idle loot should defer medium-range enemy interrupts during the opening grace window."
 	else:
+		enemy.global_position = Vector3(5.5, 0.0, 0.0)
+		if not bot._should_defer_idle_loot_interrupt(enemy):
+			failure = "Idle loot should defer enemies just outside the close-range cutoff."
+	if failure == "":
 		enemy.global_position = Vector3(4.0, 0.0, 0.0)
 		if bot._should_defer_idle_loot_interrupt(enemy):
 			failure = "Idle loot should not defer close-range enemy interrupts."

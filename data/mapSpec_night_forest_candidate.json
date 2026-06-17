@@ -3,7 +3,7 @@
     "id": "night_artificial_forest_candidate",
     "name": "Night Artificial Forest Candidate",
     "theme": "night_artificial_forest",
-    "version": "0.4-playable-pacing-preset",
+    "version": "0.5-opening-proximity-guard",
     "world_size": 180,
     "layout": "diagonal_sluice_black_ridge_wire_broadcast_false_clinic_probe_integrated"
   },
@@ -198,8 +198,9 @@
       },
       "runtime": {
         "spawn": {
-          "safe_spawn_attempts": 180,
-          "inner_radius": 8.0
+          "safe_spawn_attempts": 260,
+          "inner_radius": 8.0,
+          "entity_clearance": 5.0
         },
         "loot": {
           "stage_wave_base_prob": 0.045,
