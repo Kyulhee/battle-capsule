@@ -6,6 +6,40 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Loot Safety Guard
+
+**Scope**
+
+- Added opening idle-loot safety during the spawn window:
+  - far idle-loot objectives are deferred for 3.0s when another actor is within 5.0m.
+  - idle-loot objective interrupts are also deferred for 3.0s unless the enemy is within 2.0m bump range.
+  - immediate 2.5m pickup collection still works.
+- Extended `tools/verify_bot_opening_loot_rules.gd` to guard objective-start safety, interrupt safety, bump-range exceptions, and spawn-window expiry.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- Rejected v1 3-run:
+  - output: `C:\tmp\game_dev_opening_loot_safety_v1_3run`
+  - avg duration 503.4s, first acquisition 2.1s, first contact 3.0s
+  - first objective interrupt still happened at 2.1s, enemy 4.8m, objective 15.4m
+- Fresh accepted v2 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_loot_safety_v2_3run`
+  - avg duration 393.8s, first acquisition 5.9s, first contact 6.5s, first damage 6.5s, first upgrade 20.2s, stage 2 280.9s, stage 3 520.6s
+  - first acquisition source: idle_reaction 100.0%, distance 1.1m
+  - first objective interrupt: 9.8s, enemy 8.3m, objective 14.1m, source idle_loot, kind armor/heal
+  - spawn fallback 0.0/run, nearest min 5.0m, avg-nearest 8.8m, saturation 0.42
+  - zone deaths 0.3/run, stuck 0.10/entity/min, disengage 0.26/entity/min, AI avg 514.7us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_loot_safety_v2_3run --min-runs 3` passed.
+
+**Decision**
+
+- Starting-safety alone was insufficient because enemies could move into close interrupt range after the idle-loot objective had already started.
+- Deferring both opening idle-loot start and opening idle-loot interrupt outside bump range moved first contact beyond 5s and moved the first objective interrupt to 9.8s.
+- The remaining opening pressure is now true bump-range proximity, not close objective interrupt or idle-loot target quality.
+
+---
+
 ## v2 Opening Idle Reaction Grace
 
 **Scope**

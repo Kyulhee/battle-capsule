@@ -21,6 +21,8 @@ const IDLE_LOOT_INTERRUPT_GRACE_SECONDS := 2.0
 const IDLE_LOOT_INTERRUPT_CLOSE_RANGE := 5.0
 const OPENING_IDLE_REACTION_GRACE_SECONDS := 3.0
 const OPENING_IDLE_REACTION_CLOSE_RANGE := 2.0
+const OPENING_IDLE_LOOT_SAFETY_SECONDS := 3.0
+const OPENING_IDLE_LOOT_NEAR_ACTOR_RANGE := 5.0
 const LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT := 2.0
 const HEALTHY_HEAL_PICKUP_RATIO := 0.82
 
@@ -414,6 +416,8 @@ func handle_idle_state(delta):
 			nearest_loot.collect(self)
 			_try_reload()
 		else:
+			if _should_defer_opening_idle_loot_objective(nearest_loot):
+				return
 			_start_loot_objective(nearest_loot, "idle_loot", false)
 			change_state(State.CHASE)
 		return
@@ -1493,6 +1497,8 @@ func _log_objective_enemy_interrupt(enemy: Entity) -> void:
 func _should_defer_idle_loot_interrupt(enemy: Entity) -> bool:
 	if _loot_objective_source != "idle_loot" or not is_instance_valid(enemy):
 		return false
+	if _should_defer_opening_idle_loot_interrupt(enemy):
+		return true
 	if state_timer >= IDLE_LOOT_INTERRUPT_GRACE_SECONDS:
 		return false
 	return global_position.distance_to(enemy.global_position) > IDLE_LOOT_INTERRUPT_CLOSE_RANGE
@@ -1504,6 +1510,31 @@ func _should_defer_opening_idle_reaction(enemy: Entity) -> bool:
 	if _spawn_age >= OPENING_IDLE_REACTION_GRACE_SECONDS:
 		return false
 	return global_position.distance_to(enemy.global_position) > OPENING_IDLE_REACTION_CLOSE_RANGE
+
+
+func _should_defer_opening_idle_loot_objective(loot_target: Node3D) -> bool:
+	if not is_instance_valid(loot_target):
+		return false
+	if _spawn_age >= OPENING_IDLE_LOOT_SAFETY_SECONDS:
+		return false
+	if global_position.distance_to(loot_target.global_position) <= 2.5:
+		return false
+	return _has_nearby_opening_actor(OPENING_IDLE_LOOT_NEAR_ACTOR_RANGE)
+
+
+func _should_defer_opening_idle_loot_interrupt(enemy: Entity) -> bool:
+	if _spawn_age >= OPENING_IDLE_LOOT_SAFETY_SECONDS:
+		return false
+	return global_position.distance_to(enemy.global_position) > OPENING_IDLE_REACTION_CLOSE_RANGE
+
+
+func _has_nearby_opening_actor(radius: float) -> bool:
+	for actor in get_tree().get_nodes_in_group("actors"):
+		if actor == self or not actor is Entity or actor.is_dead:
+			continue
+		if global_position.distance_to(actor.global_position) <= radius:
+			return true
+	return false
 
 
 func _strategic_position_context(world_pos: Vector3) -> Dictionary:

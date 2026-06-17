@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-17 (opening idle reaction grace 추가)
+> 마지막 업데이트: 2026-06-17 (opening loot safety guard 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -116,7 +116,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 # They also print the first objective interrupt source/kind/need/match plus enemy/objective distance when present.
 # verify_playable_pacing_preset.gd guards playable_pacing_v1 opening spawn reliability, 5m clearance, and saturation.
 # verify_bot_opening_loot_rules.gd guards the idle-loot 2s grace, 5m close-interrupt cutoff, opening idle-reaction 3s/2m grace,
-# exact-threshold ammo need classification, and immediate-value loot priority so healthy heals do not outrank same-weapon ammo while wounded heals still work.
+# opening idle-loot 3s near-actor start/interrupt safety, exact-threshold ammo need classification, and immediate-value loot priority.
 # check_scale_telemetry.py keeps raw stuck/disengage gates for short structural smoke, but 300s+ playable runs use spawned entity/minute rates.
 
 # v2.0 player-facing night readability / pickup light LOD / AI LOD smoke

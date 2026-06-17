@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-17 (opening idle reaction grace 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-17 (opening loot safety guard 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-14` opening idle reaction grace.
+- 이번 세션 기준 완료 slice: `N2-PACE-15` opening loot safety guard.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,12 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-14` opening idle reaction grace다. `N2-PACE-13`은 `playable_pacing_v1` spawn clearance를 5m로 올리고 idle_loot close interrupt cutoff를 5m로 낮췄다. `N2-PACE-14`는 spawn 후 3초 동안 IDLE enemy acquisition을 2m 밖에서 미뤄 첫 acquisition source에서 idle_reaction을 제거했다. fresh 3-run 기준 첫 acquisition은 objective_interrupt 100%로 남았으므로 다음 우선순위는 close objective interrupt / opening loot objective safety다.
+현재 완료한 본 작업은 `N2-PACE-15` opening loot safety guard다. `N2-PACE-14`는 spawn 후 3초 동안 IDLE enemy acquisition을 2m 밖에서 미뤄 첫 acquisition source에서 idle_reaction을 제거했다. `N2-PACE-15`는 spawn 후 3초 동안 near actor 주변 먼 idle-loot start와 2m 밖 objective interrupt를 미룬다. fresh v2 3-run 기준 first contact는 6.5s, first objective interrupt는 9.8s까지 밀렸다. 다음 우선순위는 1.1m bump-range idle_reaction으로 좁혀진 opening spawn/proximity다.
 
 통과한 단위 검증:
 
@@ -128,6 +128,11 @@ python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest
 python tools\analyze_results.py C:\tmp\game_dev_opening_idle_reaction_grace_v1_3run
 python tools\summarize_pacing_baseline.py C:\tmp\game_dev_opening_idle_reaction_grace_v1_3run
 python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_idle_reaction_grace_v1_3run --min-runs 3
+python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_loot_safety_v1_3run
+python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_loot_safety_v2_3run
+python tools\analyze_results.py C:\tmp\game_dev_opening_loot_safety_v2_3run
+python tools\summarize_pacing_baseline.py C:\tmp\game_dev_opening_loot_safety_v2_3run
+python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_loot_safety_v2_3run --min-runs 3
 git diff --check
 ```
 
@@ -240,7 +245,17 @@ python tools\check_scale_telemetry.py C:\tmp\game_dev_bot_night_awareness_target
   - first objective interrupt는 enemy 4.8m, objective 21.2m, source idle_loot, kind heal/armor, need ammo_low
   - spawn fallback 0.0/run, min nearest 5.0m, avg-nearest 8.6m, saturation 0.42
   - zone deaths 0, stuck 0.08/entity/min, disengage 0.29/entity/min, AI avg 531.6us, sentinel clear, long-run scale gate 통과
-- 다음 우선순위는 close objective interrupt / opening loot objective safety를 확인하는 것이다. 바로 combat damage, AI aggression, zone pacing 상수를 건드리지 않는다.
+- `N2-PACE-15` opening loot safety guard:
+  - spawn 후 3초 동안 5m 안 actor가 있으면 먼 idle-loot objective 시작을 미룬다.
+  - 같은 opening window에서 idle-loot objective interrupt도 2m bump 밖이면 미룬다.
+  - v1 `C:\tmp\game_dev_opening_loot_safety_v1_3run`은 first objective interrupt가 2.1s/enemy 4.8m로 남아 폐기했다.
+  - 채택 후보 output: `C:\tmp\game_dev_opening_loot_safety_v2_3run`
+  - avg duration 393.8s, first acquisition 5.9s, first contact 6.5s, first damage 6.5s, first upgrade 20.2s, stage2 280.9s, stage3 520.6s
+  - first acquisition source는 idle_reaction 100.0%, distance 1.1m
+  - first objective interrupt는 9.8s, enemy 8.3m, objective 14.1m, source idle_loot, kind armor/heal
+  - spawn fallback 0.0/run, min nearest 5.0m, avg-nearest 8.8m, saturation 0.42
+  - zone deaths 0.3/run, stuck 0.10/entity/min, disengage 0.26/entity/min, AI avg 514.7us, sentinel clear, long-run scale gate 통과
+- 다음 우선순위는 opening bump-range spawn/proximity를 확인하는 것이다. 바로 combat damage, AI aggression, zone pacing 상수를 건드리지 않는다.
 
 ## 설계 가드레일
 
