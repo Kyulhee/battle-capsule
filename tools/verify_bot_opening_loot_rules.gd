@@ -18,6 +18,9 @@ func _run() -> void:
 	if not await _verify_opening_idle_reaction_grace():
 		quit(1)
 		return
+	if not await _verify_opening_close_range_reveal_guard():
+		quit(1)
+		return
 	if not await _verify_opening_idle_loot_safety():
 		quit(1)
 		return
@@ -124,18 +127,66 @@ func _verify_opening_idle_reaction_grace() -> bool:
 		failure = "Opening idle reaction should defer visible enemies outside bump range."
 	else:
 		enemy.global_position = Vector3(1.8, 0.0, 0.0)
+		if not bot._should_defer_opening_idle_reaction(enemy):
+			failure = "Opening idle reaction should defer near-bump enemies during the opening window."
+	if failure == "":
+		enemy.global_position = Vector3(0.8, 0.0, 0.0)
 		if bot._should_defer_opening_idle_reaction(enemy):
-			failure = "Opening idle reaction should not defer bump-range enemies."
+			failure = "Opening idle reaction should not defer hard-bump enemies."
 	if failure == "":
 		enemy.global_position = Vector3(3.0, 0.0, 0.0)
 		bot.set("_spawn_age", 3.1)
 		if bot._should_defer_opening_idle_reaction(enemy):
-			failure = "Opening idle reaction should not defer after the spawn grace window."
+			failure = "Opening idle reaction should not defer enemies outside close range after the spawn grace window."
+	if failure == "":
+		enemy.global_position = Vector3(1.8, 0.0, 0.0)
+		if not bot._should_defer_opening_idle_reaction(enemy):
+			failure = "Opening idle reaction should keep near-bump deferral after the wider idle grace expires."
+	if failure == "":
+		bot.set("_spawn_age", 7.1)
+		if bot._should_defer_opening_idle_reaction(enemy):
+			failure = "Opening near-bump reaction should not defer after the opening reveal window."
 	if failure == "":
 		bot.current_state = 1 # CHASE
 		bot.set("_spawn_age", 1.0)
 		if bot._should_defer_opening_idle_reaction(enemy):
 			failure = "Opening idle reaction grace should only apply while idle."
+	await _cleanup_tree_nodes([bot, enemy])
+	if failure != "":
+		return _fail(failure)
+	return true
+
+
+func _verify_opening_close_range_reveal_guard() -> bool:
+	var bot = _new_tree_bot()
+	var enemy = _new_entity()
+	enemy.set_process(false)
+	enemy.set_physics_process(false)
+	root.add_child(bot)
+	root.add_child(enemy)
+	bot.global_position = Vector3.ZERO
+	bot.current_state = 0 # IDLE
+	bot.set("_spawn_age", 5.0)
+	enemy.global_position = Vector3(1.5, 0.0, 0.0)
+	var failure := ""
+	bot._check_close_range(0.1)
+	if float(bot.perception_meters.get(enemy, 0.0)) >= 1.0:
+		failure = "Opening close-range reveal should not instantly detect near-bump enemies."
+	if failure == "":
+		bot.perception_meters.clear()
+		bot.set("_close_range_check_timer", 0.0)
+		enemy.global_position = Vector3(0.8, 0.0, 0.0)
+		bot._check_close_range(0.1)
+		if float(bot.perception_meters.get(enemy, 0.0)) < 1.0:
+			failure = "Opening close-range reveal should still detect hard-bump enemies."
+	if failure == "":
+		bot.perception_meters.clear()
+		bot.set("_close_range_check_timer", 0.0)
+		bot.set("_spawn_age", 7.1)
+		enemy.global_position = Vector3(1.5, 0.0, 0.0)
+		bot._check_close_range(0.1)
+		if float(bot.perception_meters.get(enemy, 0.0)) < 1.0:
+			failure = "Opening close-range reveal should restore 2m detection after the reveal window."
 	await _cleanup_tree_nodes([bot, enemy])
 	if failure != "":
 		return _fail(failure)

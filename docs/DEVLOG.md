@@ -1,8 +1,52 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-17. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-18. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 Opening Bump Reveal Guard
+
+**Scope**
+
+- Rejected a wider spawn-spacing candidate before touching AI:
+  - `playable_pacing_v1` 5.7m clearance / 340 attempts kept fallback at 0, but failed the long-run stuck gate.
+  - The candidate also did not improve the first-acquisition read, so it was reverted.
+- Added an opening close-range reveal guard instead:
+  - for the first 7.0s after spawn, IDLE bots do not turn 1-2m near-bump brushes into instant close-range reveal.
+  - 1.0m hard bumps still reveal immediately.
+  - enemies outside 2.0m still use the existing 3.0s opening idle-reaction grace.
+  - non-IDLE states, damage response, gunshot locks, and later close-range reveal keep their existing paths.
+- Extended `tools/verify_bot_opening_loot_rules.gd` to guard hard-bump reveal, near-bump deferral, and post-window restoration.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_night_awareness.gd` passed.
+- Rejected spawn-spacing 3-run:
+  - output: `C:\tmp\game_dev_opening_bump_spacing_v1_3run`
+  - avg duration 375.2s, first acquisition 5.0s, first contact 5.7s, first upgrade 19.9s
+  - spawn fallback 0.0/run, nearest min 5.7m, avg-nearest 8.9m, saturation 0.54
+  - failed `check_scale_telemetry.py --min-runs 3`: stuck/entity/min 0.16 > 0.15
+- Fresh accepted 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_bump_reveal_guard_v1_3run`
+  - avg duration 458.8s, first acquisition 5.4s, first contact 6.0s, first damage 6.0s, first kill 16.9s, first upgrade 19.0s, stage 2 270.6s, stage 3 511.7s
+  - first acquisition source: objective_interrupt 100.0%, distance 2.9m
+  - first objective interrupt: 5.4s, enemy 2.9m, objective 15.9m, source idle_loot, kind armor/weapon, need ammo_low
+  - spawn fallback 0.0/run, nearest min 5.1m, avg-nearest 8.4m, saturation 0.42
+  - zone deaths 0, stuck 0.06/entity/min, disengage 0.21/entity/min, AI avg 462.5us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_bump_reveal_guard_v1_3run --min-runs 3` passed.
+
+**Decision**
+
+- Do not widen playable spawn clearance beyond 5m for this issue; the 5.7m candidate consumed spawn envelope and failed the stuck gate.
+- The first-acquisition idle_reaction bump path is no longer the first read in the accepted run.
+- The next remaining opening pressure is post-window close objective interrupt around 3m, not the original 1.1m idle_reaction bump or mid-range objective interrupt.
 
 ---
 
@@ -997,9 +1041,9 @@ Sentinel means zero total damage, zero shots, and zero combat-plan runs were all
 
 ## Current Next
 
-1. Design the first non-default playable pacing candidate preset or zone/economy override for the Night candidate.
-2. Start with zone schedule and loot/economy spacing; keep combat damage, AI aggression, and night awareness constants unchanged at first.
-3. Keep the Night Artificial Forest 99 candidate and `target_99_probe` as non-default structural safety gates.
+1. Inspect post-window close objective interrupt around 3m in `playable_pacing_v1`.
+2. Keep combat damage, AI aggression, and zone pacing constants unchanged until the opening objective/proximity path is isolated.
+3. Keep the Night Artificial Forest 99 candidate, `playable_pacing_v1`, and `target_99_probe` as non-default candidate gates.
 
 ## Archive Pointers
 

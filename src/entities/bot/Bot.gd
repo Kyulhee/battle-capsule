@@ -21,6 +21,8 @@ const IDLE_LOOT_INTERRUPT_GRACE_SECONDS := 2.0
 const IDLE_LOOT_INTERRUPT_CLOSE_RANGE := 5.0
 const OPENING_IDLE_REACTION_GRACE_SECONDS := 3.0
 const OPENING_IDLE_REACTION_CLOSE_RANGE := 2.0
+const OPENING_CLOSE_RANGE_REVEAL_GRACE_SECONDS := 7.0
+const OPENING_CLOSE_RANGE_HARD_BUMP_RANGE := 1.0
 const OPENING_IDLE_LOOT_SAFETY_SECONDS := 3.0
 const OPENING_IDLE_LOOT_NEAR_ACTOR_RANGE := 5.0
 const LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT := 2.0
@@ -1507,9 +1509,21 @@ func _should_defer_idle_loot_interrupt(enemy: Entity) -> bool:
 func _should_defer_opening_idle_reaction(enemy: Entity) -> bool:
 	if current_state != State.IDLE or not is_instance_valid(enemy):
 		return false
+	var distance := global_position.distance_to(enemy.global_position)
+	if _spawn_age < OPENING_CLOSE_RANGE_REVEAL_GRACE_SECONDS:
+		if distance > OPENING_CLOSE_RANGE_HARD_BUMP_RANGE and distance <= OPENING_IDLE_REACTION_CLOSE_RANGE:
+			return true
 	if _spawn_age >= OPENING_IDLE_REACTION_GRACE_SECONDS:
 		return false
-	return global_position.distance_to(enemy.global_position) > OPENING_IDLE_REACTION_CLOSE_RANGE
+	return distance > OPENING_IDLE_REACTION_CLOSE_RANGE
+
+
+func _should_defer_opening_close_range_reveal(actor: Entity, distance: float) -> bool:
+	if current_state != State.IDLE or not is_instance_valid(actor):
+		return false
+	if _spawn_age >= OPENING_CLOSE_RANGE_REVEAL_GRACE_SECONDS:
+		return false
+	return distance > OPENING_CLOSE_RANGE_HARD_BUMP_RANGE and distance <= OPENING_IDLE_REACTION_CLOSE_RANGE
 
 
 func _should_defer_opening_idle_loot_objective(loot_target: Node3D) -> bool:
@@ -1699,8 +1713,8 @@ func _check_gunshot_sounds(delta: float):
 				change_state(State.RECOVER)
 
 # ─── CLOSE RANGE INSTANT DETECTION ─────────────────────────────────────────
-# Any actor within 2m is immediately fully detected — like bumping into someone.
-# Runs every physics frame in all states, regardless of awareness level.
+# Any actor within 2m is immediately fully detected, except for the opening
+# near-bump guard that keeps 1-2m spawn-window brushes from becoming instant aggro.
 
 func _check_close_range(delta: float):
 	_close_range_check_timer -= delta
@@ -1711,7 +1725,14 @@ func _check_close_range(delta: float):
 	for actor in actors:
 		if actor == self or not actor is Entity or actor.is_dead: continue
 		if perception_meters.get(actor, 0.0) >= 1.0: continue
-		if global_position.distance_to(actor.global_position) > 2.0: continue
+		var distance := global_position.distance_to(actor.global_position)
+		if distance > OPENING_IDLE_REACTION_CLOSE_RANGE: continue
+		if _should_defer_opening_close_range_reveal(actor, distance):
+			last_known_target_pos = actor.global_position
+			var opening_dir_to = (actor.global_position - global_position).normalized()
+			scan_target_rotation = atan2(opening_dir_to.x, opening_dir_to.z) + PI
+			_scan_alert = true
+			continue
 		perception_meters[actor] = 1.0
 		last_known_target_pos = actor.global_position
 		var dir_to = (actor.global_position - global_position).normalized()
