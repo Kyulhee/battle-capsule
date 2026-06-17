@@ -6,6 +6,35 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Idle Reaction Grace
+
+**Scope**
+
+- Added a spawn-age based opening IDLE reaction grace:
+  - IDLE bots defer visible enemy acquisition for 3.0s after spawn when the enemy is outside 2.0m bump range.
+  - 2.0m bump-range detection, damage response, gunshot locks, recovery melee, and objective interrupts keep their existing paths.
+- Extended `tools/verify_bot_opening_loot_rules.gd` to guard the 3.0s / 2.0m opening idle-reaction rule.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- Fresh accepted 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_idle_reaction_grace_v1_3run`
+  - avg duration 328.2s, first acquisition 2.6s, first contact 3.4s, first damage 3.4s, first upgrade 38.3s, stage 2 280.5s
+  - first acquisition source: objective_interrupt 100.0%, idle_reaction 0.0%
+  - first objective interrupt: enemy 4.8m, objective 21.2m, source idle_loot, kind heal/armor, need ammo_low
+  - spawn fallback 0.0/run, nearest min 5.0m, avg-nearest 8.6m, saturation 0.42
+  - zone deaths 0, stuck 0.08/entity/min, disengage 0.29/entity/min, AI avg 531.6us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_idle_reaction_grace_v1_3run --min-runs 3` passed.
+
+**Decision**
+
+- The opening idle-reaction path is now isolated from the first-acquisition read without changing global perception, combat damage, or difficulty reaction delay.
+- First contact is still sub-5s because the first acquisition is now 100% close idle-loot objective interrupt around 4.8m.
+- Next work should inspect close objective interrupt / opening loot objective safety, not idle reaction.
+
+---
+
 ## v2 Opening Proximity Guard
 
 **Scope**

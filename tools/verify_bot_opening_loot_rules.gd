@@ -15,6 +15,9 @@ func _run() -> void:
 	if not await _verify_idle_loot_interrupt_grace():
 		quit(1)
 		return
+	if not await _verify_opening_idle_reaction_grace():
+		quit(1)
+		return
 	print("Bot opening loot rules smoke passed.")
 	quit(0)
 
@@ -95,6 +98,40 @@ func _verify_idle_loot_interrupt_grace() -> bool:
 			bot.state_timer = 2.1
 			if bot._should_defer_idle_loot_interrupt(enemy):
 				failure = "Idle loot should not defer interrupts after the grace window."
+	await _cleanup_tree_nodes([bot, enemy])
+	if failure != "":
+		return _fail(failure)
+	return true
+
+
+func _verify_opening_idle_reaction_grace() -> bool:
+	var bot = _new_tree_bot()
+	var enemy = _new_entity()
+	enemy.set_process(false)
+	enemy.set_physics_process(false)
+	root.add_child(bot)
+	root.add_child(enemy)
+	bot.global_position = Vector3.ZERO
+	enemy.global_position = Vector3(3.0, 0.0, 0.0)
+	bot.current_state = 0 # IDLE
+	bot.set("_spawn_age", 1.0)
+	var failure := ""
+	if not bot._should_defer_opening_idle_reaction(enemy):
+		failure = "Opening idle reaction should defer visible enemies outside bump range."
+	else:
+		enemy.global_position = Vector3(1.8, 0.0, 0.0)
+		if bot._should_defer_opening_idle_reaction(enemy):
+			failure = "Opening idle reaction should not defer bump-range enemies."
+	if failure == "":
+		enemy.global_position = Vector3(3.0, 0.0, 0.0)
+		bot.set("_spawn_age", 3.1)
+		if bot._should_defer_opening_idle_reaction(enemy):
+			failure = "Opening idle reaction should not defer after the spawn grace window."
+	if failure == "":
+		bot.current_state = 1 # CHASE
+		bot.set("_spawn_age", 1.0)
+		if bot._should_defer_opening_idle_reaction(enemy):
+			failure = "Opening idle reaction grace should only apply while idle."
 	await _cleanup_tree_nodes([bot, enemy])
 	if failure != "":
 		return _fail(failure)

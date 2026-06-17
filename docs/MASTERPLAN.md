@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-17 (opening proximity guard 완료)
+> 마지막 업데이트: 2026-06-17 (opening idle reaction grace 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,15 +9,15 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 작업 슬라이스 | N2-PACE-13 opening proximity guard |
-| 현재 문서 슬라이스 | opening proximity guard 기록 |
-| 다음 구현 후보 | opening idle reaction / awareness opening grace 확인 |
+| 최신 완료 작업 슬라이스 | N2-PACE-14 opening idle reaction grace |
+| 현재 문서 슬라이스 | opening idle reaction grace 기록 |
+| 다음 구현 후보 | close objective interrupt / opening loot objective safety 확인 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
-| 현재 미확인 항목 | 5m spawn/interrupt guard 이후에도 sub-5s contact가 close objective_interrupt / idle_reaction으로 남는 원인 |
+| 현재 미확인 항목 | idle_reaction 제거 후에도 sub-5s contact가 4-5m close objective_interrupt로 남는 원인 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -52,6 +52,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-11은 idle_loot objective interrupt guard를 추가했다. idle_loot 목표는 2초 grace 동안 6m 초과 enemy interrupt를 미루고, 6m 이내 근접 enemy는 그대로 즉시 반응한다. ammo ratio가 combat loot threshold와 정확히 같은 경우는 `combat_low_ammo`가 아니라 `ammo_low`로 분류한다. 새 3-run `C:\tmp\game_dev_opening_loot_rules_v1_3run`은 avg duration 450.5s, first acquisition 1.5s, first contact 2.2s, first upgrade 36.6s, stage2 268.3s, stage3 509.5s, fallback 0.0/run, zone deaths 0, stuck 62.0/run, AI avg 468.7us, sentinel clear로 통과했다. 첫 objective interrupt는 enemy 4.8m, objective 8.4m, source idle_loot, kind heal/armor, need ammo_low 66.7% / combat_low_ammo 33.3%다. 7-8m 중거리 interrupt는 제거됐고, 남은 sub-5s contact는 근접 spawn/proximity pressure로 본다.
 - N2-PACE-12는 immediate-value loot scoring을 보수적으로 보정했다. healthy heal은 같은 무기 ammo보다 낮은 우선순위가 되지만, wounded bot은 여전히 heal을 우선한다. immediate-value 검색에서는 pistol -> non-pistol upgrade 보너스를 끄고, first upgrade가 2.7s까지 당겨진 실패 후보를 폐기했다. 채택한 새 3-run `C:\tmp\game_dev_idle_loot_priority_v2_3run`은 avg duration 414.8s, first acquisition 1.5s, first contact 2.1s, first upgrade 54.5s, stage2 269.7s, stage3 510.4s, fallback 0.0/run, zone deaths 0, stuck 53.7/run, AI avg 441.1us, sentinel clear로 통과했다. 첫 objective interrupt는 enemy 4.5m, objective 21.8m, source idle_loot, kind armor/heal이다. 남은 문제는 loot target quality보다 근접 opening proximity pressure다.
 - N2-PACE-13은 `playable_pacing_v1` opening spawn clearance를 5.0m로 올리고 safe spawn attempts를 260으로 높였다. idle_loot close interrupt cutoff는 6m에서 5m로 낮췄고, verifier가 5.5m defer와 4.0m 즉시 interrupt를 함께 검증한다. 5m spawn-only 후보는 first objective interrupt enemy 5.6m로 남아 폐기했고, 채택한 새 3-run `C:\tmp\game_dev_opening_proximity_guard_v1_3run`은 avg duration 360.7s, first acquisition 1.8s, first contact 2.6s, first upgrade 29.4s, stage2 269.9s, spawn fallback 0.0/run, min nearest 5.0m, saturation 0.42, AI avg 466.3us, sentinel clear로 통과했다. 첫 acquisition은 objective_interrupt 66.7% / idle_reaction 33.3%라서 다음 문제는 opening idle reaction/awareness grace로 분류한다.
+- N2-PACE-14는 spawn-age 기반 opening IDLE reaction grace를 추가했다. IDLE 봇은 spawn 후 3초 동안 2m bump 범위 밖의 visible enemy acquisition을 미루지만, 2m bump, 피격, 총성, recovery melee, objective interrupt 경로는 유지한다. 새 3-run `C:\tmp\game_dev_opening_idle_reaction_grace_v1_3run`은 avg duration 328.2s, first acquisition 2.6s, first contact 3.4s, first upgrade 38.3s, stage2 280.5s, spawn fallback 0.0/run, min nearest 5.0m, saturation 0.42, zone deaths 0, AI avg 531.6us, sentinel clear로 통과했다. 첫 acquisition은 objective_interrupt 100%가 되어 idle_reaction 경로는 분리됐고, 남은 문제는 4-5m close objective interrupt다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서
@@ -206,6 +207,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-PACE-11 | opening loot rule guard | idle_loot 2초/6m interrupt grace, exact threshold ammo_low 분류 | bot opening loot verifier, pacing/AI LOD smoke, playable 3-run analyze/summarize/check | 중거리 objective interrupt와 근접 proximity pressure를 섞어 해석하지 않기 |
 | N2-PACE-12 | opening loot target quality guard | healthy heal보다 same-weapon ammo 우선, immediate upgrade rush 억제 | bot opening loot verifier, rejected/accepted playable 3-run analyze/summarize/check | target quality 보정으로 first upgrade gate를 깨지 않기 |
 | N2-PACE-13 | opening proximity guard | playable 5m spawn clearance, 5m idle-loot close interrupt cutoff | playable/zone/bot opening verifiers, spawn-only rejection, accepted playable 3-run analyze/summarize/check | spawn spacing과 close idle reaction을 분리해서 해석하기 |
+| N2-PACE-14 | opening idle reaction grace | spawn 후 3초/2m IDLE acquisition defer | bot opening verifier, accepted playable 3-run analyze/summarize/check | idle_reaction 제거 후 남은 close objective interrupt를 별도로 해석하기 |
 
 자율 진행 규칙:
 
@@ -250,7 +252,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-11 완료: idle_loot 목표는 2초 grace 동안 6m 초과 enemy interrupt를 미루고, exact combat threshold ammo는 `ammo_low`로 분류한다. 새 playable 3-run은 enemy 4.8m/objective 8.4m first interrupt로 바뀌어 7-8m 중거리 interrupt가 사라졌고, scale gate도 통과했다.
 - N2-PACE-12 완료: healthy heal을 same-weapon ammo보다 낮게 보되 non-pistol upgrade rush는 억제했다. broad non-pistol boost 후보는 first upgrade 2.7s로 gate 실패해서 폐기했고, 채택 후보는 first upgrade 54.5s로 통과했다.
 - N2-PACE-13 완료: `playable_pacing_v1`은 5m spawn clearance와 260 safe attempts를 사용하고, idle_loot close interrupt cutoff는 5m로 낮췄다. 채택 후보는 spawn fallback 0.0/run, min nearest 5.0m, saturation 0.42, first contact 2.6s, first upgrade 29.4s, long-run scale gate 통과다.
-- 다음 우선순위: opening idle reaction / awareness opening grace를 확인한다. combat damage, AI aggression, zone pacing 상수는 먼저 건드리지 않는다.
+- N2-PACE-14 완료: spawn 후 3초 동안 IDLE enemy acquisition을 2m 밖에서는 미룬다. 채택 후보는 first acquisition source가 objective_interrupt 100%로 바뀌고 idle_reaction이 첫 read에서 사라졌으며, first contact 3.4s, first upgrade 38.3s, long-run scale gate 통과다.
+- 다음 우선순위: close objective interrupt / opening loot objective safety를 확인한다. combat damage, AI aggression, zone pacing 상수는 먼저 건드리지 않는다.
 
 ## 비목표
 

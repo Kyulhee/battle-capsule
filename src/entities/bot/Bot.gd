@@ -19,6 +19,8 @@ const SENSORY_GUNSHOT_INTERVAL := 0.10
 const SENSORY_FOOTSTEP_INTERVAL := 0.15
 const IDLE_LOOT_INTERRUPT_GRACE_SECONDS := 2.0
 const IDLE_LOOT_INTERRUPT_CLOSE_RANGE := 5.0
+const OPENING_IDLE_REACTION_GRACE_SECONDS := 3.0
+const OPENING_IDLE_REACTION_CLOSE_RANGE := 2.0
 const LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT := 2.0
 const HEALTHY_HEAL_PICKUP_RATIO := 0.82
 
@@ -27,6 +29,7 @@ var current_state: State = State.IDLE
 var target_actor: Node3D = null
 
 var state_timer: float = 0.0
+var _spawn_age: float = 0.0
 var attack_bout_timer: float = 0.0
 var is_targeting_loot: bool = false
 var scan_timer: float = 0.0
@@ -181,6 +184,7 @@ func _physics_process(delta):
 	if _disengage_cooldown > 0: _disengage_cooldown -= delta
 	if _reaction_timer > 0: _reaction_timer -= delta
 	if _zone_thrash_cooldown > 0: _zone_thrash_cooldown -= delta
+	_spawn_age += delta
 	state_timer += delta
 	_log_doctrine_state_time(delta)
 
@@ -375,6 +379,12 @@ func handle_idle_state(delta):
 
 	var nearest_enemy = _find_nearest_target()
 	if nearest_enemy:
+		if _should_defer_opening_idle_reaction(nearest_enemy):
+			_pending_target = null
+			var dir_to_enemy = (nearest_enemy.global_position - global_position).normalized()
+			scan_target_rotation = atan2(dir_to_enemy.x, dir_to_enemy.z) + PI
+			_scan_alert = true
+			return
 		if nearest_enemy != _pending_target:
 			_pending_target = nearest_enemy
 			_reaction_timer = _reaction_delay
@@ -1486,6 +1496,15 @@ func _should_defer_idle_loot_interrupt(enemy: Entity) -> bool:
 	if state_timer >= IDLE_LOOT_INTERRUPT_GRACE_SECONDS:
 		return false
 	return global_position.distance_to(enemy.global_position) > IDLE_LOOT_INTERRUPT_CLOSE_RANGE
+
+
+func _should_defer_opening_idle_reaction(enemy: Entity) -> bool:
+	if current_state != State.IDLE or not is_instance_valid(enemy):
+		return false
+	if _spawn_age >= OPENING_IDLE_REACTION_GRACE_SECONDS:
+		return false
+	return global_position.distance_to(enemy.global_position) > OPENING_IDLE_REACTION_CLOSE_RANGE
+
 
 func _strategic_position_context(world_pos: Vector3) -> Dictionary:
 	var context := {
