@@ -6,6 +6,41 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 First Acquisition Self/Zone Context
+
+**Scope**
+
+- Added first-acquisition self context to pacing telemetry:
+  - self POI/route role and band
+  - self nearest POI/route role
+  - spawn age
+  - zone distance/radius/ratio/status
+- Updated `tools/analyze_results.py` and `tools/summarize_pacing_baseline.py` so per-run opening acquisition samples show target bands, self bands, zone ratio/status, and spawn age.
+- Updated `tools/verify_pacing_telemetry.gd` to guard the new schema fields.
+- This is a diagnostic-only slice: no gameplay constants, AI behavior, zone timing, map data, or economy values changed.
+
+**Verification**
+
+- `python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- Fresh accepted 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_first_acq_context_v2_3run`
+  - avg duration 341.9s, first acquisition/contact/damage 16.4s, first kill 24.9s, first upgrade 21.2s, stage 2 294.4s
+  - first acquisition source/state: retreat_counteraction / ZONE_ESCAPE 100.0%, avg distance 6.2m
+  - run samples: 11.4s / 19.7s / 18.2s, all zone ratio 0.95 edge, spawn age 3.4s / 6.8s / 6.0s
+  - spawn fallback 0.0/run, min nearest 5.0m, avg nearest 8.4m, saturation 0.42
+  - zone deaths 0, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 546.5us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_first_acq_context_v2_3run --min-runs 3` passed.
+
+**Decision**
+
+- `N2-PACE-20` separates the latest opening pressure from idle/objective guard tuning.
+- The fresh 3-run shows the first acquisition now comes from bots already in `ZONE_ESCAPE` at the inner edge band (`zone_ratio=0.95`, status `edge`), not from normal IDLE visual acquisition.
+- The next slice should inspect opening `ZONE_ESCAPE` entry/exit and retreat-counteraction gating at zone edge. Do not change combat damage, global AI aggression, loot economy, or spawn clearance before that.
+
+---
+
 ## v2 Mixed Opening Acquisition Report
 
 **Scope**

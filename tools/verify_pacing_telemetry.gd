@@ -46,7 +46,22 @@ func _verify_pacing_schema_and_hooks() -> bool:
 			"nearest_route_role": "primary_choke",
 			"nearest_route_edge_distance": 3.5,
 		},
-		18.5
+		18.5,
+		{
+			"poi_role": "recovery_pocket",
+			"nearest_poi_role": "recovery_pocket",
+			"nearest_poi_edge_distance": 0.0,
+			"route_role": "flank",
+			"nearest_route_role": "flank",
+			"nearest_route_edge_distance": 0.0,
+		},
+		{
+			"spawn_age": 3.25,
+			"zone_distance": 82.0,
+			"zone_radius": 100.0,
+			"zone_ratio": 0.82,
+			"zone_status": "edge",
+		}
 	)
 	tel.log_doctrine_objective_enemy_interrupt(
 		"AGGRESSIVE",
@@ -137,6 +152,30 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if String(pacing.first_target_acquisition_nearest_route_role) != "primary_choke":
 		tel.free()
 		return _fail("Pacing did not record first target acquisition nearest route role.")
+	if String(pacing.first_target_acquisition_self_poi_role) != "recovery_pocket":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition self POI role.")
+	if String(pacing.first_target_acquisition_self_poi_band) != "inside":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition self POI band.")
+	if String(pacing.first_target_acquisition_self_route_role) != "flank":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition self route role.")
+	if String(pacing.first_target_acquisition_self_route_band) != "on_route":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition self route band.")
+	if String(pacing.first_target_acquisition_self_nearest_route_role) != "flank":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition self nearest route role.")
+	if absf(float(pacing.first_target_acquisition_spawn_age) - 3.25) > 0.001:
+		tel.free()
+		return _fail("Pacing did not record first target acquisition spawn age.")
+	if absf(float(pacing.first_target_acquisition_zone_ratio) - 0.82) > 0.001:
+		tel.free()
+		return _fail("Pacing did not record first target acquisition zone ratio.")
+	if String(pacing.first_target_acquisition_zone_status) != "edge":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition zone status.")
 	if float(pacing.first_objective_interrupt_time) < 0.0:
 		tel.free()
 		return _fail("Pacing did not record first objective interrupt time.")

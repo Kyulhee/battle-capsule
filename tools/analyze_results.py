@@ -276,6 +276,14 @@ def _sample_distance(pacing: dict, key: str) -> str:
     return f"{value:.1f}m" if value >= 0.0 else "none"
 
 
+def _sample_ratio(pacing: dict, key: str) -> str:
+    try:
+        value = float(pacing.get(key, -1.0))
+    except (TypeError, ValueError):
+        return "none"
+    return f"{value:.2f}" if value >= 0.0 else "none"
+
+
 def pacing_first_acquisition_samples(results: list[dict]) -> list[str]:
     lines: list[str] = []
     for index, run in enumerate(results, start=1):
@@ -288,12 +296,19 @@ def pacing_first_acquisition_samples(results: list[dict]) -> list[str]:
         contact_time = _sample_time(pacing, "first_contact_time")
         objective_time = _sample_time(pacing, "first_objective_interrupt_time")
         lines.append(
-            "  run {}: acq={} source={} state={} dist={} contact={} objective_interrupt={} obj_enemy={} obj_target={}".format(
+            "  run {}: acq={} source={} state={} dist={} target={}/{} self={}/{} zone={}/{} spawn_age={} contact={} objective_interrupt={} obj_enemy={} obj_target={}".format(
                 index,
                 acq_time,
                 pacing.get("first_target_acquisition_source", "none"),
                 pacing.get("first_target_acquisition_state", "none"),
                 _sample_distance(pacing, "first_target_acquisition_distance"),
+                pacing.get("first_target_acquisition_poi_band", "none"),
+                pacing.get("first_target_acquisition_route_band", "none"),
+                pacing.get("first_target_acquisition_self_poi_band", "none"),
+                pacing.get("first_target_acquisition_self_route_band", "none"),
+                _sample_ratio(pacing, "first_target_acquisition_zone_ratio"),
+                pacing.get("first_target_acquisition_zone_status", "unknown"),
+                _sample_time(pacing, "first_target_acquisition_spawn_age"),
                 contact_time,
                 objective_time,
                 _sample_distance(pacing, "first_objective_interrupt_enemy_distance"),

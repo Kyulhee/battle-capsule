@@ -2023,6 +2023,37 @@ func _switch_target(new_target: Entity, source_name: String = "peripheral_switch
 		return
 	state_timer = 0.0
 
+func _target_acquisition_runtime_context() -> Dictionary:
+	var context := {
+		"spawn_age": _spawn_age,
+		"zone_distance": -1.0,
+		"zone_radius": -1.0,
+		"zone_ratio": -1.0,
+		"zone_status": "unknown",
+	}
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		return context
+	var zone = main.get("zone")
+	if zone == null:
+		return context
+	var zone_center: Vector2 = zone.current_center
+	var zone_radius := float(zone.current_radius)
+	var self_2d := Vector2(global_position.x, global_position.z)
+	var zone_distance := self_2d.distance_to(zone_center)
+	context["zone_distance"] = zone_distance
+	context["zone_radius"] = zone_radius
+	if zone_radius > 0.0:
+		var zone_ratio := zone_distance / zone_radius
+		context["zone_ratio"] = zone_ratio
+		if zone_distance > zone_radius:
+			context["zone_status"] = "outside"
+		elif zone_ratio >= 0.75:
+			context["zone_status"] = "edge"
+		else:
+			context["zone_status"] = "inside"
+	return context
+
 func _log_target_acquisition(source_name: String, enemy: Entity):
 	if not has_node("/root/Telemetry") or not is_instance_valid(enemy):
 		return
@@ -2034,7 +2065,9 @@ func _log_target_acquisition(source_name: String, enemy: Entity):
 		source_name,
 		State.keys()[current_state],
 		_strategic_position_context(enemy.global_position),
-		global_position.distance_to(enemy.global_position)
+		global_position.distance_to(enemy.global_position),
+		_strategic_position_context(global_position),
+		_target_acquisition_runtime_context()
 	)
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────

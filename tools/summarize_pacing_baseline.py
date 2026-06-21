@@ -74,6 +74,14 @@ def sample_distance(pacing: dict, key: str) -> str:
     return f"{value:.1f}m" if value >= 0.0 else "none"
 
 
+def sample_ratio(pacing: dict, key: str) -> str:
+    try:
+        value = float(pacing.get(key, -1.0))
+    except (TypeError, ValueError):
+        return "none"
+    return f"{value:.2f}" if value >= 0.0 else "none"
+
+
 def opening_sample_lines(runs: list[dict]) -> list[str]:
     lines: list[str] = []
     for index, run in enumerate(runs, start=1):
@@ -83,12 +91,19 @@ def opening_sample_lines(runs: list[dict]) -> list[str]:
         if sample_time(pacing, "first_target_acquisition_time") == "none":
             continue
         lines.append(
-            "  run {}: acq={} source={} state={} dist={} contact={} objective_interrupt={} obj_enemy={} obj_target={}".format(
+            "  run {}: acq={} source={} state={} dist={} target={}/{} self={}/{} zone={}/{} spawn_age={} contact={} objective_interrupt={} obj_enemy={} obj_target={}".format(
                 index,
                 sample_time(pacing, "first_target_acquisition_time"),
                 pacing.get("first_target_acquisition_source", "none"),
                 pacing.get("first_target_acquisition_state", "none"),
                 sample_distance(pacing, "first_target_acquisition_distance"),
+                pacing.get("first_target_acquisition_poi_band", "none"),
+                pacing.get("first_target_acquisition_route_band", "none"),
+                pacing.get("first_target_acquisition_self_poi_band", "none"),
+                pacing.get("first_target_acquisition_self_route_band", "none"),
+                sample_ratio(pacing, "first_target_acquisition_zone_ratio"),
+                pacing.get("first_target_acquisition_zone_status", "unknown"),
+                sample_time(pacing, "first_target_acquisition_spawn_age"),
                 sample_time(pacing, "first_contact_time"),
                 sample_time(pacing, "first_objective_interrupt_time"),
                 sample_distance(pacing, "first_objective_interrupt_enemy_distance"),

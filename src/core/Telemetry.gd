@@ -190,6 +190,17 @@ func _reset_metrics():
 			"first_target_acquisition_route_band": "none",
 			"first_target_acquisition_nearest_poi_role": "none",
 			"first_target_acquisition_nearest_route_role": "none",
+			"first_target_acquisition_self_poi_role": "none",
+			"first_target_acquisition_self_poi_band": "none",
+			"first_target_acquisition_self_route_role": "none",
+			"first_target_acquisition_self_route_band": "none",
+			"first_target_acquisition_self_nearest_poi_role": "none",
+			"first_target_acquisition_self_nearest_route_role": "none",
+			"first_target_acquisition_spawn_age": -1.0,
+			"first_target_acquisition_zone_distance": -1.0,
+			"first_target_acquisition_zone_radius": -1.0,
+			"first_target_acquisition_zone_ratio": -1.0,
+			"first_target_acquisition_zone_status": "unknown",
 			"first_objective_interrupt_time": -1.0,
 			"first_objective_interrupt_enemy_distance": -1.0,
 			"first_objective_interrupt_objective_distance": -1.0,
@@ -797,7 +808,9 @@ func log_doctrine_target_acquisition(
 	source_name: String,
 	state_name: String,
 	target_context: Dictionary,
-	distance: float
+	distance: float,
+	self_context: Dictionary = {},
+	acquisition_context: Dictionary = {}
 ):
 	if not match_in_progress or not _g("doctrine"): return
 	var source_key = source_name.strip_edges().to_lower()
@@ -809,6 +822,9 @@ func log_doctrine_target_acquisition(
 	var poi_band := _poi_distance_band(target_context)
 	var route_band := _route_distance_band(target_context)
 	var nearest_route_role := _nearest_route_role_key(target_context, route_band)
+	var self_poi_band := _poi_distance_band(self_context)
+	var self_route_band := _route_distance_band(self_context)
+	var self_nearest_route_role := _nearest_route_role_key(self_context, self_route_band)
 	if _g("pacing") and float(metrics.pacing.first_target_acquisition_time) < 0.0:
 		metrics.pacing.first_target_acquisition_time = _elapsed_seconds()
 		metrics.pacing.first_target_acquisition_source = source_key
@@ -820,6 +836,17 @@ func log_doctrine_target_acquisition(
 		metrics.pacing.first_target_acquisition_route_band = route_band
 		metrics.pacing.first_target_acquisition_nearest_poi_role = String(target_context.get("nearest_poi_role", "none"))
 		metrics.pacing.first_target_acquisition_nearest_route_role = nearest_route_role
+		metrics.pacing.first_target_acquisition_self_poi_role = String(self_context.get("poi_role", "none"))
+		metrics.pacing.first_target_acquisition_self_poi_band = self_poi_band
+		metrics.pacing.first_target_acquisition_self_route_role = String(self_context.get("route_role", "none"))
+		metrics.pacing.first_target_acquisition_self_route_band = self_route_band
+		metrics.pacing.first_target_acquisition_self_nearest_poi_role = String(self_context.get("nearest_poi_role", "none"))
+		metrics.pacing.first_target_acquisition_self_nearest_route_role = self_nearest_route_role
+		metrics.pacing.first_target_acquisition_spawn_age = float(acquisition_context.get("spawn_age", -1.0))
+		metrics.pacing.first_target_acquisition_zone_distance = float(acquisition_context.get("zone_distance", -1.0))
+		metrics.pacing.first_target_acquisition_zone_radius = float(acquisition_context.get("zone_radius", -1.0))
+		metrics.pacing.first_target_acquisition_zone_ratio = float(acquisition_context.get("zone_ratio", -1.0))
+		metrics.pacing.first_target_acquisition_zone_status = _normalized_key(String(acquisition_context.get("zone_status", "unknown")), "unknown")
 	_add_bucket_value(metrics.doctrine.target_acquisition_by_source, source_key, 1.0)
 	_add_nested_bucket_value(
 		metrics.doctrine.target_acquisition_state_by_source,
