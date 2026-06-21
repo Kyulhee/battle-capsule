@@ -1,6 +1,19 @@
 extends SceneTree
 
 
+class MockZone:
+	extends RefCounted
+	var current_center := Vector2.ZERO
+	var current_radius := 100.0
+	var stage := 1
+
+
+class MockMain:
+	extends Node
+	var zone = MockZone.new()
+	var alive_count := 100
+
+
 func _init():
 	call_deferred("_run")
 
@@ -22,6 +35,9 @@ func _run() -> void:
 		quit(1)
 		return
 	if not await _verify_opening_idle_loot_safety():
+		quit(1)
+		return
+	if not await _verify_opening_zone_escape_counteraction_guard():
 		quit(1)
 		return
 	print("Bot opening loot rules smoke passed.")
@@ -250,6 +266,46 @@ func _verify_opening_idle_loot_safety() -> bool:
 		if bot._should_defer_idle_loot_interrupt(enemy):
 			failure = "Opening idle loot interrupt safety should expire after the wider interrupt window."
 	await _cleanup_tree_nodes([bot, enemy, loot])
+	if failure != "":
+		return _fail(failure)
+	return true
+
+
+func _verify_opening_zone_escape_counteraction_guard() -> bool:
+	var main := MockMain.new()
+	main.name = "Main"
+	main.zone.current_center = Vector2.ZERO
+	main.zone.current_radius = 100.0
+	var bot = _new_tree_bot()
+	var enemy = _new_entity()
+	enemy.set_process(false)
+	enemy.set_physics_process(false)
+	root.add_child(main)
+	root.add_child(bot)
+	root.add_child(enemy)
+	bot.current_state = 3 # ZONE_ESCAPE
+	bot.set("_spawn_age", 6.0)
+	bot.global_position = Vector3(95.0, 0.0, 0.0)
+	enemy.global_position = Vector3(101.0, 0.0, 0.0)
+	var failure := ""
+	if not bot._should_defer_opening_zone_escape_counteraction(enemy):
+		failure = "Opening zone-edge escape should defer retreat counteraction while still inside the zone."
+	if failure == "":
+		enemy.global_position = Vector3(95.8, 0.0, 0.0)
+		if bot._should_defer_opening_zone_escape_counteraction(enemy):
+			failure = "Opening zone-edge escape should not defer hard-bump threats."
+	if failure == "":
+		enemy.global_position = Vector3(101.0, 0.0, 0.0)
+		bot.set("_spawn_age", 10.1)
+		if bot._should_defer_opening_zone_escape_counteraction(enemy):
+			failure = "Opening zone-edge escape should not defer retreat counteraction after the opening window."
+	if failure == "":
+		bot.set("_spawn_age", 6.0)
+		bot.global_position = Vector3(101.0, 0.0, 0.0)
+		enemy.global_position = Vector3(107.0, 0.0, 0.0)
+		if bot._should_defer_opening_zone_escape_counteraction(enemy):
+			failure = "Opening zone-edge escape should not defer counteraction when actually outside the zone."
+	await _cleanup_tree_nodes([bot, enemy, main])
 	if failure != "":
 		return _fail(failure)
 	return true

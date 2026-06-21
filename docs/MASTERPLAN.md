@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-21 (first acquisition self/zone context 완료)
+> 마지막 업데이트: 2026-06-21 (opening zone edge counteraction guard 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,15 +9,15 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 작업 슬라이스 | N2-PACE-20 first acquisition self/zone context |
-| 현재 문서 슬라이스 | first acquisition self/zone context 기록 |
-| 다음 구현 후보 | opening edge ZONE_ESCAPE entry/retreat-counteraction gating |
+| 최신 완료 작업 슬라이스 | N2-PACE-21 opening zone edge counteraction guard |
+| 현재 문서 슬라이스 | opening zone edge counteraction guard 기록 |
+| 다음 구현 후보 | 1m hard-bump opening exception 유지 여부 판단 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
-| 현재 미확인 항목 | spawn 후 3-7초 zone edge ZONE_ESCAPE 상태가 첫 교전을 여는 경로를 어떻게 늦출지 |
+| 현재 미확인 항목 | 남은 1m hard-bump objective/idle acquisition을 의도된 예외로 둘지, 별도 opening design으로 다룰지 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -59,6 +59,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-18은 2m 밖 visible enemy에 대한 IDLE opening reaction window를 10초로 늘렸다. 1m hard bump, 1-2m near-bump 7초 guard, idle-loot objective interrupt 7초/1m guard는 유지한다. 채택한 `C:\tmp\game_dev_opening_idle_reaction_window_v1_3run`은 avg duration 577.1s, first acquisition 13.9s, first contact 14.3s, first upgrade 38.1s, stage2 281.3s, stage3 524.3s, spawn fallback 0.0/run, min nearest 5.0m, saturation 0.42, stuck 0.07/entity/min, AI avg 462.3us, sentinel clear로 long-run scale gate를 통과했다. 첫 acquisition source는 objective_interrupt / idle_reaction / retreat_counteraction으로 갈라졌으므로 다음 문제는 mixed opening acquisition context다.
 - N2-PACE-19는 gameplay 변경 없이 mixed opening acquisition report를 추가했다. `analyze_results.py`와 `summarize_pacing_baseline.py`가 run별 first acquisition sample을 출력한다. N2-PACE-18 기준 run 1은 11.3s objective_interrupt/CHASE/0.9m, run 2는 18.6s idle_reaction/IDLE/1.4m, run 3은 11.8s retreat_counteraction/ZONE_ESCAPE/9.9m이다. 다음은 combat/AI/zone 수치 튜닝이 아니라 retreat_counteraction / ZONE_ESCAPE와 post-window objective/idle 경로가 같은 opening pressure인지 분리 확인한다.
 - N2-PACE-20은 gameplay 변경 없이 first acquisition self/zone context를 telemetry에 추가했다. `C:\tmp\game_dev_first_acq_context_v2_3run`은 avg duration 341.9s, first acquisition/contact/damage 16.4s, first kill 24.9s, first upgrade 21.2s, stage2 294.4s, spawn fallback 0.0/run, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 546.5us, sentinel clear로 scale gate를 통과했다. 첫 acquisition은 3/3 모두 retreat_counteraction/ZONE_ESCAPE였고, self zone ratio는 모두 0.95 edge, spawn age는 3.4s/6.8s/6.0s였다. 다음 문제는 opening edge ZONE_ESCAPE entry/exit와 retreat-counteraction gating이다.
+- N2-PACE-21은 spawn 후 10초 안에 아직 zone 안쪽 edge에 있는 `ZONE_ESCAPE` 봇의 retreat-counteraction target acquisition만 미루는 guard를 추가했다. 1m hard bump, 실제 zone 밖 counteraction, zone escape movement는 유지한다. 채택한 `C:\tmp\game_dev_opening_zone_edge_guard_v1_3run`은 avg duration 342.1s, first acquisition 12.9s, first contact/damage 17.3s, first kill 23.9s, first upgrade 18.7s, stage2 275.9s, spawn fallback 0.0/run, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 474.6us, sentinel clear로 scale gate를 통과했다. 첫 acquisition에서 retreat_counteraction/ZONE_ESCAPE는 0%가 됐고, 남은 빠른 acquisition은 1.0m hard-bump objective_interrupt 예외다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서

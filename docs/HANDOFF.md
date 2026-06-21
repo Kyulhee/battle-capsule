@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-21 (first acquisition self/zone context 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-21 (opening zone edge counteraction guard 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-20` first acquisition self/zone context.
+- 이번 세션 기준 완료 slice: `N2-PACE-21` opening zone edge counteraction guard.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,23 +55,23 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`, `N2-PACE-19`, `N2-PACE-20`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`, `N2-PACE-19`, `N2-PACE-20`, `N2-PACE-21`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-20` first acquisition self/zone context다. `N2-PACE-19`는 mixed acquisition을 run별로 보이게 했고, `N2-PACE-20`은 first acquisition self POI/route band, spawn age, zone ratio/status를 telemetry와 analyzer/summarizer에 추가했다.
+현재 완료한 본 작업은 `N2-PACE-21` opening zone edge counteraction guard다. `N2-PACE-20`에서 first acquisition이 3/3 모두 `retreat_counteraction / ZONE_ESCAPE`이고 self zone ratio가 0.95 edge인 것을 확인했고, `N2-PACE-21`은 spawn 후 10초 안에 아직 zone 안쪽 edge에 있는 `ZONE_ESCAPE` 봇의 retreat-counteraction target acquisition만 미루도록 했다. 1m hard bump와 실제 zone 밖 counteraction, zone escape movement는 유지한다.
 
-fresh 3-run `C:\tmp\game_dev_first_acq_context_v2_3run` 결과:
+fresh 3-run `C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` 결과:
 
-- avg duration 341.9s, first acquisition/contact/damage 16.4s, first kill 24.9s, first upgrade 21.2s, stage2 294.4s
-- first acquisition은 3/3 모두 `retreat_counteraction / ZONE_ESCAPE`, avg distance 6.2m
-- run 1: 11.4s, dist 6.8m, target inside/on_route, self inside/on_route, zone 0.95 edge, spawn age 3.4s
-- run 2: 19.7s, dist 8.5m, target inside/on_route, self near_0_4m/near_0_4m, zone 0.95 edge, spawn age 6.8s
-- run 3: 18.2s, dist 3.4m, target inside/on_route, self inside/on_route, zone 0.95 edge, spawn age 6.0s
-- scale gate 통과: fallback 0.0/run, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 546.5us, sentinel clear
+- avg duration 342.1s, first acquisition 12.9s, first contact/damage 17.3s, first kill 23.9s, first upgrade 18.7s, stage2 275.9s
+- first acquisition은 idle_reaction 66.7% / objective_interrupt 33.3%, `retreat_counteraction / ZONE_ESCAPE` first acquisition은 0%
+- run 1: 16.0s idle_reaction / IDLE / 1.0m, contact 16.5s
+- run 2: 17.6s idle_reaction / IDLE / 1.0m, contact 18.0s
+- run 3: 5.1s objective_interrupt / CHASE / 1.0m hard bump, contact 17.3s
+- scale gate 통과: fallback 0.0/run, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 474.6us, sentinel clear
 
-다음 우선순위는 opening `ZONE_ESCAPE` entry/exit와 retreat-counteraction gating이다. 현재 첫 교전은 IDLE visible reaction이나 idle-loot objective interrupt보다, spawn 후 3-7초의 zone edge escape 상태가 먼저 combat target을 잡는 경로로 분리됐다. combat damage, global AI aggression, loot economy, spawn clearance는 이 context 확인 전까지 건드리지 않는다.
+다음 우선순위는 1m hard-bump 예외를 그대로 둘지 별도 디자인 결정으로 다룰지 판단하는 것이다. 이 경로는 의도적으로 남긴 예외이므로, combat damage, global AI aggression, zone pacing, spawn clearance, economy를 건드려 해결하려고 하지 않는다.
 
 통과한 단위 검증:
 

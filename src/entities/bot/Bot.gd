@@ -26,6 +26,8 @@ const OPENING_CLOSE_RANGE_HARD_BUMP_RANGE := 1.0
 const OPENING_IDLE_LOOT_SAFETY_SECONDS := 3.0
 const OPENING_IDLE_LOOT_INTERRUPT_SAFETY_SECONDS := 7.0
 const OPENING_IDLE_LOOT_NEAR_ACTOR_RANGE := 5.0
+const OPENING_ZONE_ESCAPE_COUNTERACTION_GRACE_SECONDS := 10.0
+const OPENING_ZONE_ESCAPE_COUNTERACTION_HARD_BUMP_RANGE := 1.0
 const LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT := 2.0
 const HEALTHY_HEAL_PICKUP_RATIO := 0.82
 
@@ -779,7 +781,7 @@ func handle_zone_escape_state(delta):
 		change_state(State.IDLE); return
 	var zone_center_3d = Vector3(zone_c.x, global_position.y, zone_c.y)
 	var threat = _find_retreat_threat(BOT_TUNING.RETREAT_THREAT_SCAN_RANGE)
-	var countering = threat != null
+	var countering = threat != null and not _should_defer_opening_zone_escape_counteraction(threat)
 	# When stuck, use wall-slide escape direction rather than random stuck override.
 	if _stuck_override_timer > 0:
 		handle_movement(_sample_zone_escape_dir(zone_c, threat), delta, not countering)
@@ -787,6 +789,8 @@ func handle_zone_escape_state(delta):
 		_nav_move_toward(zone_center_3d, delta, not countering)
 	if countering:
 		_try_retreat_counteraction(threat, delta, "zone_escape_fire")
+	elif threat != null:
+		last_known_target_pos = threat.global_position
 
 func _sample_zone_escape_dir(zone_c: Vector2, threat: Entity = null) -> Vector3:
 	var to_center = Vector3(zone_c.x - global_position.x, 0, zone_c.y - global_position.z).normalized()
@@ -861,6 +865,8 @@ func _try_retreat_counteraction(threat: Entity, delta: float, gun_event: String)
 		return false
 	var dist = global_position.distance_to(threat.global_position)
 	if dist > BOT_TUNING.RETREAT_THREAT_SCAN_RANGE:
+		return false
+	if _should_defer_opening_zone_escape_counteraction(threat):
 		return false
 	if target_actor != threat:
 		acquire_enemy_target(threat, "retreat_counteraction")
@@ -1541,6 +1547,28 @@ func _should_defer_opening_idle_loot_interrupt(enemy: Entity) -> bool:
 	if _spawn_age >= OPENING_IDLE_LOOT_INTERRUPT_SAFETY_SECONDS:
 		return false
 	return global_position.distance_to(enemy.global_position) > OPENING_CLOSE_RANGE_HARD_BUMP_RANGE
+
+
+func _should_defer_opening_zone_escape_counteraction(threat: Entity) -> bool:
+	if current_state != State.ZONE_ESCAPE or not is_instance_valid(threat):
+		return false
+	if _spawn_age >= OPENING_ZONE_ESCAPE_COUNTERACTION_GRACE_SECONDS:
+		return false
+	var distance := global_position.distance_to(threat.global_position)
+	if distance <= OPENING_ZONE_ESCAPE_COUNTERACTION_HARD_BUMP_RANGE:
+		return false
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main:
+		return false
+	var zone = main.get("zone")
+	if zone == null:
+		return false
+	var zone_radius := float(zone.current_radius)
+	if zone_radius <= 0.0:
+		return false
+	var zone_center: Vector2 = zone.current_center
+	var zone_distance := Vector2(global_position.x, global_position.z).distance_to(zone_center)
+	return zone_distance <= zone_radius
 
 
 func _has_nearby_opening_actor(radius: float) -> bool:

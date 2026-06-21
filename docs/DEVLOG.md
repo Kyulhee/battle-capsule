@@ -6,6 +6,44 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Zone Edge Counteraction Guard
+
+**Scope**
+
+- Added an opening `ZONE_ESCAPE` counteraction guard in `src/entities/bot/Bot.gd`.
+- During the first 10.0s after spawn, bots that are in `ZONE_ESCAPE` but still inside the current zone defer retreat-counteraction target acquisition.
+- Kept critical exceptions intact:
+  - 1.0m hard-bump threats still counter immediately.
+  - bots actually outside the zone still counter immediately.
+  - normal zone escape movement is not deferred.
+  - DISENGAGE counterfire, IDLE visual reactions, idle-loot objective rules, combat damage, zone timing, spawn clearance, and economy values were not changed.
+- Updated `tools/verify_bot_opening_loot_rules.gd` to guard the zone-edge deferral, hard-bump exception, post-window expiry, and outside-zone exception.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_night_awareness.gd` passed.
+- Fresh accepted 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_zone_edge_guard_v1_3run`
+  - avg duration 342.1s, first acquisition 12.9s, first contact/damage 17.3s, first kill 23.9s, first upgrade 18.7s, stage 2 275.9s
+  - first acquisition source/state: idle_reaction 66.7% / objective_interrupt 33.3%, IDLE 66.7% / CHASE 33.3%; no first-acquisition `retreat_counteraction / ZONE_ESCAPE`
+  - run samples: 16.0s idle_reaction at 1.0m, 17.6s idle_reaction at 1.0m, 5.1s objective_interrupt at 1.0m hard bump
+  - spawn fallback 0.0/run, min nearest 5.0m, avg nearest 8.5m, saturation 0.42
+  - zone deaths 0, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 474.6us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_zone_edge_guard_v1_3run --min-runs 3` passed.
+
+**Decision**
+
+- `N2-PACE-21` removes the N2-PACE-20 failure mode where zone-edge `ZONE_ESCAPE` immediately opened first combat through retreat counteraction.
+- The remaining earliest acquisition is a 1.0m hard-bump objective interrupt, which is the explicit exception kept throughout the opening-guard work.
+- Do not reintroduce broad zone, combat, AI aggression, spawn clearance, or economy changes to solve this path. If opening pressure still needs work, inspect the hard-bump exception as its own design decision.
+
+---
+
 ## v2 First Acquisition Self/Zone Context
 
 **Scope**
