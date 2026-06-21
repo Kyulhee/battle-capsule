@@ -1,8 +1,45 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-18. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-21. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 Opening Idle Reaction Visual Window
+
+**Scope**
+
+- Extended the opening IDLE visible-enemy reaction window for enemies outside 2.0m from 3.0s to 10.0s.
+- Kept the narrower close/bump rules intact:
+  - 1.0m hard bumps still reveal immediately.
+  - 1-2m near-bump forced reveal stays guarded for 7.0s.
+  - idle-loot objective interrupt safety stays 7.0s / 1.0m hard bump.
+  - damage response, gunshot locks, non-IDLE reactions, and zone/combat/economy values were not changed.
+- Updated `tools/verify_bot_opening_loot_rules.gd` to guard 10.0s visual deferral, 7.0s near-bump restoration, and post-window expiry.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_night_awareness.gd` passed.
+- Fresh accepted 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_idle_reaction_window_v1_3run`
+  - avg duration 577.1s, first acquisition 13.9s, first contact 14.3s, first damage 14.5s, first kill 26.0s, first upgrade 38.1s, stage 2 281.3s, stage 3 524.3s
+  - first acquisition source: objective_interrupt / idle_reaction / retreat_counteraction split 33.3% each, distance 4.1m
+  - first objective interrupt: 27.4s, enemy 1.9m, objective 11.0m, source idle_loot
+  - spawn fallback 0.0/run, nearest min 5.0m, avg-nearest 8.5m, saturation 0.42
+  - zone deaths 0, stuck 0.07/entity/min, disengage 0.21/entity/min, AI avg 462.3us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_idle_reaction_window_v1_3run --min-runs 3` passed.
+
+**Decision**
+
+- The N2-PACE-17 first-read idle_reaction at 8.6s / 5.4m is no longer a single dominant opening path.
+- First contact is now 14.3s, and the 3-run sample is close to the 10-minute target floor while preserving spawn fallback, AI budget, and sentinel gates.
+- The next remaining opening read is mixed objective_interrupt / idle_reaction / retreat_counteraction around 14s. Further work should inspect that mixed opening acquisition context before changing combat damage, AI aggression, zone pacing, or global perception.
 
 ---
 
@@ -1077,8 +1114,8 @@ Sentinel means zero total damage, zero shots, and zero combat-plan runs were all
 
 ## Current Next
 
-1. Inspect the remaining 8.6s / 5.4m post-window idle_reaction read in `playable_pacing_v1`.
-2. Keep combat damage, AI aggression, and zone pacing constants unchanged until the opening visibility/reaction path is isolated.
+1. Inspect the mixed 13.9s opening acquisition split across objective_interrupt / idle_reaction / retreat_counteraction in `playable_pacing_v1`.
+2. Keep combat damage, AI aggression, zone pacing, and global perception constants unchanged until that mixed opening context is understood.
 3. Keep the Night Artificial Forest 99 candidate, `playable_pacing_v1`, and `target_99_probe` as non-default candidate gates.
 
 ## Archive Pointers

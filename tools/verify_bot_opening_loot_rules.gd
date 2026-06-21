@@ -136,10 +136,15 @@ func _verify_opening_idle_reaction_grace() -> bool:
 	if failure == "":
 		enemy.global_position = Vector3(3.0, 0.0, 0.0)
 		bot.set("_spawn_age", 3.1)
+		if not bot._should_defer_opening_idle_reaction(enemy):
+			failure = "Opening idle reaction should keep visible enemies outside close range deferred through the visual grace window."
+	if failure == "":
+		bot.set("_spawn_age", 10.1)
 		if bot._should_defer_opening_idle_reaction(enemy):
-			failure = "Opening idle reaction should not defer enemies outside close range after the spawn grace window."
+			failure = "Opening idle reaction should not defer enemies outside close range after the visual grace window."
 	if failure == "":
 		enemy.global_position = Vector3(1.8, 0.0, 0.0)
+		bot.set("_spawn_age", 3.1)
 		if not bot._should_defer_opening_idle_reaction(enemy):
 			failure = "Opening idle reaction should keep near-bump deferral after the wider idle grace expires."
 	if failure == "":
