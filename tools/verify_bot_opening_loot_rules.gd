@@ -87,7 +87,7 @@ func _verify_idle_loot_interrupt_grace() -> bool:
 	bot.global_position = Vector3.ZERO
 	enemy.global_position = Vector3(7.5, 0.0, 0.0)
 	bot.set("_loot_objective_source", "idle_loot")
-	bot.set("_spawn_age", 3.1)
+	bot.set("_spawn_age", 7.1)
 	bot.state_timer = 1.0
 	var failure := ""
 	if not bot._should_defer_idle_loot_interrupt(enemy):
@@ -226,16 +226,24 @@ func _verify_opening_idle_loot_safety() -> bool:
 			failure = "Opening idle loot should allow immediate collection range pickups."
 	if failure == "":
 		enemy.global_position = Vector3(1.8, 0.0, 0.0)
+		if not bot._should_defer_idle_loot_interrupt(enemy):
+			failure = "Opening idle loot should defer near-bump objective interrupts."
+	if failure == "":
+		enemy.global_position = Vector3(0.8, 0.0, 0.0)
 		if bot._should_defer_idle_loot_interrupt(enemy):
-			failure = "Opening idle loot should not defer bump-range objective interrupts."
+			failure = "Opening idle loot should not defer hard-bump objective interrupts."
 	if failure == "":
 		enemy.global_position = Vector3(4.8, 0.0, 0.0)
 		loot.global_position = Vector3(12.0, 0.0, 0.0)
 		bot.set("_spawn_age", 3.1)
 		if bot._should_defer_opening_idle_loot_objective(loot):
 			failure = "Opening idle loot safety should expire after the spawn window."
-		elif bot._should_defer_idle_loot_interrupt(enemy):
-			failure = "Opening idle loot interrupt safety should expire after the spawn window."
+		elif not bot._should_defer_idle_loot_interrupt(enemy):
+			failure = "Opening idle loot interrupt safety should remain active after the objective-start window."
+	if failure == "":
+		bot.set("_spawn_age", 7.1)
+		if bot._should_defer_idle_loot_interrupt(enemy):
+			failure = "Opening idle loot interrupt safety should expire after the wider interrupt window."
 	await _cleanup_tree_nodes([bot, enemy, loot])
 	if failure != "":
 		return _fail(failure)

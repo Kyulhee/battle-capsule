@@ -6,6 +6,42 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Opening Objective Interrupt Window
+
+**Scope**
+
+- Split the opening idle-loot safety window by responsibility:
+  - far idle-loot objective start safety stays at 3.0s.
+  - idle-loot objective interrupt safety now lasts 7.0s.
+  - during that interrupt window, only 1.0m hard bumps can break an idle-loot objective through the enemy-interrupt path.
+- Kept damage response, gunshot locks, non-idle close-range reveal, and post-window idle-loot interrupt rules intact.
+- Updated `tools/verify_bot_opening_loot_rules.gd` so generic idle-loot 2.0s / 5.0m interrupt grace is tested outside the opening window, while the new 7.0s / 1.0m opening interrupt guard is tested separately.
+
+**Verification**
+
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_lod_perception.gd` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_night_awareness.gd` passed.
+- Fresh accepted 3-run:
+  - command: `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1 out_dir=C:\tmp\game_dev_opening_objective_interrupt_window_v1_3run`
+  - avg duration 345.6s, first acquisition 8.6s, first contact 9.2s, first damage 9.2s, first kill 18.6s, first upgrade 54.9s, stage 2 268.4s
+  - first acquisition source: idle_reaction 100.0%, distance 5.4m
+  - first objective interrupt: 28.6s, enemy 8.5m, objective 7.2m, source post_kill_loot / loot_retarget / idle_loot
+  - spawn fallback 0.0/run, nearest min 5.0m, avg-nearest 8.6m, saturation 0.42
+  - zone deaths 0.3/run, stuck 0.09/entity/min, disengage 0.27/entity/min, AI avg 420.0us, sentinel clear
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_opening_objective_interrupt_window_v1_3run --min-runs 3` passed.
+
+**Decision**
+
+- The 5.4s / 2.9m close objective_interrupt from N2-PACE-16 is no longer the first-acquisition path.
+- The first objective interrupt is now a later 28.6s mixed loot event, not an opening close-proximity interrupt.
+- The next remaining opening read is 8.6s / 5.4m idle_reaction after the opening hard-bump and close objective guards. Do not jump to combat damage, AI aggression, or zone pacing from this result.
+
+---
+
 ## v2 Opening Bump Reveal Guard
 
 **Scope**
@@ -1041,8 +1077,8 @@ Sentinel means zero total damage, zero shots, and zero combat-plan runs were all
 
 ## Current Next
 
-1. Inspect post-window close objective interrupt around 3m in `playable_pacing_v1`.
-2. Keep combat damage, AI aggression, and zone pacing constants unchanged until the opening objective/proximity path is isolated.
+1. Inspect the remaining 8.6s / 5.4m post-window idle_reaction read in `playable_pacing_v1`.
+2. Keep combat damage, AI aggression, and zone pacing constants unchanged until the opening visibility/reaction path is isolated.
 3. Keep the Night Artificial Forest 99 candidate, `playable_pacing_v1`, and `target_99_probe` as non-default candidate gates.
 
 ## Archive Pointers

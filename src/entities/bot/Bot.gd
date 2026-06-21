@@ -24,6 +24,7 @@ const OPENING_IDLE_REACTION_CLOSE_RANGE := 2.0
 const OPENING_CLOSE_RANGE_REVEAL_GRACE_SECONDS := 7.0
 const OPENING_CLOSE_RANGE_HARD_BUMP_RANGE := 1.0
 const OPENING_IDLE_LOOT_SAFETY_SECONDS := 3.0
+const OPENING_IDLE_LOOT_INTERRUPT_SAFETY_SECONDS := 7.0
 const OPENING_IDLE_LOOT_NEAR_ACTOR_RANGE := 5.0
 const LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT := 2.0
 const HEALTHY_HEAL_PICKUP_RATIO := 0.82
@@ -1537,9 +1538,9 @@ func _should_defer_opening_idle_loot_objective(loot_target: Node3D) -> bool:
 
 
 func _should_defer_opening_idle_loot_interrupt(enemy: Entity) -> bool:
-	if _spawn_age >= OPENING_IDLE_LOOT_SAFETY_SECONDS:
+	if _spawn_age >= OPENING_IDLE_LOOT_INTERRUPT_SAFETY_SECONDS:
 		return false
-	return global_position.distance_to(enemy.global_position) > OPENING_IDLE_REACTION_CLOSE_RANGE
+	return global_position.distance_to(enemy.global_position) > OPENING_CLOSE_RANGE_HARD_BUMP_RANGE
 
 
 func _has_nearby_opening_actor(radius: float) -> bool:

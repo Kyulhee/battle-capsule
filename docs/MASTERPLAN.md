@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-18 (opening bump reveal guard 완료)
+> 마지막 업데이트: 2026-06-18 (opening objective interrupt window 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,15 +9,15 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 작업 슬라이스 | N2-PACE-16 opening bump reveal guard |
-| 현재 문서 슬라이스 | opening bump reveal guard 기록 |
-| 다음 구현 후보 | post-window close objective interrupt 확인 |
+| 최신 완료 작업 슬라이스 | N2-PACE-17 opening objective interrupt window |
+| 현재 문서 슬라이스 | opening objective interrupt window 기록 |
+| 다음 구현 후보 | post-window idle reaction 확인 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
-| 현재 미확인 항목 | first contact 6.0s 이후 첫 acquisition이 2.9m close objective_interrupt로 남는 원인 |
+| 현재 미확인 항목 | first contact 9.2s 이후 첫 acquisition이 5.4m idle_reaction으로 남는 원인 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -55,6 +55,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-14는 spawn-age 기반 opening IDLE reaction grace를 추가했다. IDLE 봇은 spawn 후 3초 동안 2m bump 범위 밖의 visible enemy acquisition을 미루지만, 2m bump, 피격, 총성, recovery melee, objective interrupt 경로는 유지한다. 새 3-run `C:\tmp\game_dev_opening_idle_reaction_grace_v1_3run`은 avg duration 328.2s, first acquisition 2.6s, first contact 3.4s, first upgrade 38.3s, stage2 280.5s, spawn fallback 0.0/run, min nearest 5.0m, saturation 0.42, zone deaths 0, AI avg 531.6us, sentinel clear로 통과했다. 첫 acquisition은 objective_interrupt 100%가 되어 idle_reaction 경로는 분리됐고, 남은 문제는 4-5m close objective interrupt다.
 - N2-PACE-15는 opening idle-loot safety guard를 추가했다. spawn 후 3초 동안 5m 안에 actor가 있으면 먼 idle-loot objective 시작을 미루고, idle-loot objective interrupt도 2m bump 밖에서는 미룬다. v1은 first objective interrupt가 2.1s/enemy 4.8m로 남아 폐기했다. 채택한 v2 `C:\tmp\game_dev_opening_loot_safety_v2_3run`은 avg duration 393.8s, first acquisition 5.9s, first contact 6.5s, first upgrade 20.2s, stage2 280.9s, stage3 520.6s, spawn fallback 0.0/run, min nearest 5.0m, saturation 0.42, AI avg 514.7us, sentinel clear로 통과했다. 첫 objective interrupt는 9.8s/enemy 8.3m까지 밀렸고, 남은 첫 acquisition은 1.1m bump-range idle_reaction이다.
 - N2-PACE-16은 opening close-range reveal guard를 추가했다. 5.7m spawn-spacing 후보는 fallback 0이었지만 stuck/entity/min 0.16으로 scale gate를 실패해서 폐기했다. 채택한 `C:\tmp\game_dev_opening_bump_reveal_guard_v1_3run`은 spawn 후 7초 동안 IDLE 1-2m near-bump forced reveal을 미루고 1m hard bump는 유지한다. avg duration 458.8s, first acquisition 5.4s, first contact 6.0s, first upgrade 19.0s, stage2 270.6s, stage3 511.7s, spawn fallback 0.0/run, min nearest 5.1m, saturation 0.42, stuck 0.06/entity/min, AI avg 462.5us, sentinel clear로 long-run scale gate를 통과했다. 첫 acquisition은 objective_interrupt 100% / enemy 2.9m라서 다음 문제는 post-window close objective interrupt다.
+- N2-PACE-17은 idle-loot objective interrupt safety를 start safety와 분리했다. 먼 idle-loot objective 시작 safety는 3초로 유지하고, idle-loot objective interrupt만 7초 / 1m hard bump 기준으로 미룬다. 채택한 `C:\tmp\game_dev_opening_objective_interrupt_window_v1_3run`은 avg duration 345.6s, first acquisition 8.6s, first contact 9.2s, first upgrade 54.9s, stage2 268.4s, spawn fallback 0.0/run, min nearest 5.0m, saturation 0.42, stuck 0.09/entity/min, AI avg 420.0us, sentinel clear로 long-run scale gate를 통과했다. 첫 objective interrupt는 28.6s/enemy 8.5m까지 밀렸고, 남은 첫 acquisition은 5.4m idle_reaction이다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서
@@ -212,6 +213,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-PACE-14 | opening idle reaction grace | spawn 후 3초/2m IDLE acquisition defer | bot opening verifier, accepted playable 3-run analyze/summarize/check | idle_reaction 제거 후 남은 close objective interrupt를 별도로 해석하기 |
 | N2-PACE-15 | opening loot safety guard | spawn 후 3초 동안 near actor 주변 먼 idle-loot start/interrupt defer | bot opening verifier, rejected v1, accepted playable v2 3-run analyze/summarize/check | objective interrupt 해결 뒤 남은 bump-range proximity를 별도로 해석하기 |
 | N2-PACE-16 | opening bump reveal guard | spawn 후 7초 동안 IDLE 1-2m near-bump forced reveal defer, 1m hard bump 유지 | bot/playable/zone/pacing/AI verifiers, rejected spacing, accepted playable 3-run analyze/summarize/check | spawn envelope 확대로 해결하지 않고 post-window close objective interrupt를 별도로 해석하기 |
+| N2-PACE-17 | opening objective interrupt window | idle-loot start safety 3초 유지, interrupt safety 7초/1m hard bump로 분리 | bot/playable/zone/pacing/AI verifiers, accepted playable 3-run analyze/summarize/check | close objective interrupt 해결 뒤 남은 post-window idle_reaction을 별도로 해석하기 |
 
 자율 진행 규칙:
 
@@ -259,7 +261,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-14 완료: spawn 후 3초 동안 IDLE enemy acquisition을 2m 밖에서는 미룬다. 채택 후보는 first acquisition source가 objective_interrupt 100%로 바뀌고 idle_reaction이 첫 read에서 사라졌으며, first contact 3.4s, first upgrade 38.3s, long-run scale gate 통과다.
 - N2-PACE-15 완료: spawn 후 3초 동안 5m 안 actor 주변 먼 idle-loot start와 2m 밖 objective interrupt를 미룬다. v1은 first objective interrupt가 2.1s로 남아 폐기했고, v2는 first contact 6.5s, first objective interrupt 9.8s, first upgrade 20.2s, long-run scale gate 통과다.
 - N2-PACE-16 완료: 5.7m spawn-spacing 후보는 stuck gate 실패로 폐기했고, 채택 후보는 spawn 후 7초 동안 IDLE 1-2m near-bump forced reveal을 미룬다. first acquisition은 objective_interrupt 100%, first contact 6.0s, first upgrade 19.0s, long-run scale gate 통과다.
-- 다음 우선순위: post-window close objective interrupt를 확인한다. combat damage, AI aggression, zone pacing 상수는 먼저 건드리지 않는다.
+- N2-PACE-17 완료: idle-loot objective interrupt safety만 7초 / 1m hard bump 기준으로 분리했다. first objective interrupt는 28.6s까지 밀렸고 first contact는 9.2s, first upgrade 54.9s, long-run scale gate 통과다.
+- 다음 우선순위: post-window idle_reaction을 확인한다. combat damage, AI aggression, zone pacing 상수는 먼저 건드리지 않는다.
 
 ## 비목표
 
