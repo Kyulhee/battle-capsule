@@ -260,6 +260,49 @@ def pacing_value_counter(results: list[dict], key: str) -> Counter:
     return counter
 
 
+def _sample_time(pacing: dict, key: str) -> str:
+    try:
+        value = float(pacing.get(key, -1.0))
+    except (TypeError, ValueError):
+        return "none"
+    return f"{value:.1f}s" if value >= 0.0 else "none"
+
+
+def _sample_distance(pacing: dict, key: str) -> str:
+    try:
+        value = float(pacing.get(key, -1.0))
+    except (TypeError, ValueError):
+        return "none"
+    return f"{value:.1f}m" if value >= 0.0 else "none"
+
+
+def pacing_first_acquisition_samples(results: list[dict]) -> list[str]:
+    lines: list[str] = []
+    for index, run in enumerate(results, start=1):
+        pacing = run.get("pacing", {})
+        if not isinstance(pacing, dict):
+            continue
+        if _sample_time(pacing, "first_target_acquisition_time") == "none":
+            continue
+        acq_time = _sample_time(pacing, "first_target_acquisition_time")
+        contact_time = _sample_time(pacing, "first_contact_time")
+        objective_time = _sample_time(pacing, "first_objective_interrupt_time")
+        lines.append(
+            "  run {}: acq={} source={} state={} dist={} contact={} objective_interrupt={} obj_enemy={} obj_target={}".format(
+                index,
+                acq_time,
+                pacing.get("first_target_acquisition_source", "none"),
+                pacing.get("first_target_acquisition_state", "none"),
+                _sample_distance(pacing, "first_target_acquisition_distance"),
+                contact_time,
+                objective_time,
+                _sample_distance(pacing, "first_objective_interrupt_enemy_distance"),
+                _sample_distance(pacing, "first_objective_interrupt_objective_distance"),
+            )
+        )
+    return lines
+
+
 def doctrine_nested_counter(results: list[dict], key: str) -> Counter:
     counter = Counter()
     for run in results:
@@ -603,6 +646,11 @@ if __name__ == "__main__":
                     format_counter_mix(pacing_first_acquisition_route_bands),
                 )
             )
+            sample_lines = pacing_first_acquisition_samples(results)
+            if sample_lines:
+                print("Pacing first acquisition samples:")
+                for line in sample_lines:
+                    print(line)
         if pacing_first_objective_interrupt:
             print(
                 "Pacing first objective interrupt: time={}, enemy_dist={}, objective_dist={}, sources=[{}], kinds=[{}], needs=[{}], matches=[{}]".format(

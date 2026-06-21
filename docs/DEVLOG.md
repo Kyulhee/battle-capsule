@@ -6,6 +6,31 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Mixed Opening Acquisition Report
+
+**Scope**
+
+- Added per-run opening acquisition samples to `tools/analyze_results.py` and `tools/summarize_pacing_baseline.py`.
+- This is a diagnostic-only slice: no gameplay constants, AI rules, zone timing, economy, map data, or telemetry schema changed.
+- The new report prints first acquisition time/source/state/distance, first contact time, and first objective interrupt enemy/objective distances for each run that has pacing telemetry.
+
+**Verification**
+
+- `python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py` passed.
+- `python tools\analyze_results.py C:\tmp\game_dev_opening_idle_reaction_window_v1_3run` passed and printed:
+  - run 1: acquisition 11.3s, objective_interrupt, CHASE, 0.9m, contact 12.1s, objective interrupt 11.3s, enemy 0.9m, objective 11.1m
+  - run 2: acquisition 18.6s, idle_reaction, IDLE, 1.4m, contact 19.0s, objective interrupt 55.1s, enemy 3.7m, objective 12.8m
+  - run 3: acquisition 11.8s, retreat_counteraction, ZONE_ESCAPE, 9.9m, contact 11.8s, objective interrupt 15.8s, enemy 1.0m, objective 9.2m
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_opening_idle_reaction_window_v1_3run` passed with the same sample block under Opening pressure.
+
+**Decision**
+
+- `N2-PACE-19` confirms the N2-PACE-18 result is mixed, not one remaining constant to blindly extend.
+- Run 1 is a hard-bump objective interrupt at 0.9m, run 2 is an IDLE visible reaction after the opening windows, and run 3 is a ZONE_ESCAPE retreat-counteraction acquisition at 9.9m.
+- The next slice should inspect the retreat/zone acquisition context and objective/idle post-window path before changing combat damage, global AI aggression, zone pacing, or spawn clearance.
+
+---
+
 ## v2 Opening Idle Reaction Visual Window
 
 **Scope**

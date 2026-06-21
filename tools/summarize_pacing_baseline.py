@@ -58,6 +58,46 @@ def string_counter(runs: list[dict], group: str, key: str) -> Counter:
     return counter
 
 
+def sample_time(pacing: dict, key: str) -> str:
+    try:
+        value = float(pacing.get(key, -1.0))
+    except (TypeError, ValueError):
+        return "none"
+    return f"{value:.1f}s" if value >= 0.0 else "none"
+
+
+def sample_distance(pacing: dict, key: str) -> str:
+    try:
+        value = float(pacing.get(key, -1.0))
+    except (TypeError, ValueError):
+        return "none"
+    return f"{value:.1f}m" if value >= 0.0 else "none"
+
+
+def opening_sample_lines(runs: list[dict]) -> list[str]:
+    lines: list[str] = []
+    for index, run in enumerate(runs, start=1):
+        pacing = run.get("pacing", {})
+        if not isinstance(pacing, dict):
+            continue
+        if sample_time(pacing, "first_target_acquisition_time") == "none":
+            continue
+        lines.append(
+            "  run {}: acq={} source={} state={} dist={} contact={} objective_interrupt={} obj_enemy={} obj_target={}".format(
+                index,
+                sample_time(pacing, "first_target_acquisition_time"),
+                pacing.get("first_target_acquisition_source", "none"),
+                pacing.get("first_target_acquisition_state", "none"),
+                sample_distance(pacing, "first_target_acquisition_distance"),
+                sample_time(pacing, "first_contact_time"),
+                sample_time(pacing, "first_objective_interrupt_time"),
+                sample_distance(pacing, "first_objective_interrupt_enemy_distance"),
+                sample_distance(pacing, "first_objective_interrupt_objective_distance"),
+            )
+        )
+    return lines
+
+
 def stage_times(runs: list[dict], stage_key: str) -> list[float]:
     values: list[float] = []
     for run in runs:
@@ -214,6 +254,11 @@ def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None
             "  acquisition bands: "
             f"poi=[{format_mix(acquisition_poi_bands)}], route=[{format_mix(acquisition_route_bands)}]"
         )
+        sample_lines = opening_sample_lines(runs)
+        if sample_lines:
+            print("  first acquisition samples:")
+            for line in sample_lines:
+                print(line)
         if first_contact:
             contact_gap = avg(first_contact) - avg(first_acquisition)
             print(f"  acquisition-to-contact gap: {contact_gap:.1f}s")

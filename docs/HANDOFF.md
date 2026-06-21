@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-21 (opening idle reaction visual window 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-21 (mixed opening acquisition report 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-18` opening idle reaction visual window.
+- 이번 세션 기준 완료 slice: `N2-PACE-19` mixed opening acquisition report.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,18 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`, `N2-PACE-19`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-18` opening idle reaction visual window다. `N2-PACE-17`은 idle-loot objective interrupt safety를 7초 / 1m hard bump 기준으로 분리했고, `N2-PACE-18`은 2m 밖 IDLE visible enemy reaction window를 10초로 늘렸다. fresh 3-run 기준 first contact는 14.3s, first objective interrupt는 27.4s다. 다음 우선순위는 13.9s의 objective_interrupt / idle_reaction / retreat_counteraction mixed opening acquisition이다.
+현재 완료한 본 작업은 `N2-PACE-19` mixed opening acquisition report다. `N2-PACE-18`의 fresh 3-run은 avg duration 577.1s, first acquisition 13.9s, first contact 14.3s, first objective interrupt 27.4s였고, 새 analyzer/summarizer 샘플은 세 런의 opening acquisition 원인을 아래처럼 분리했다.
+
+- run 1: 11.3s objective_interrupt / CHASE / 0.9m, objective interrupt도 11.3s(enemy 0.9m, objective 11.1m)
+- run 2: 18.6s idle_reaction / IDLE / 1.4m, objective interrupt는 55.1s(enemy 3.7m, objective 12.8m)
+- run 3: 11.8s retreat_counteraction / ZONE_ESCAPE / 9.9m, objective interrupt는 15.8s(enemy 1.0m, objective 9.2m)
+
+다음 우선순위는 gameplay 수치 변경이 아니라 이 세 경로 중 `retreat_counteraction / ZONE_ESCAPE`와 post-window objective/idle path가 구조적으로 같은 문제인지 확인하는 것이다. combat damage, global AI aggression, zone pacing, spawn clearance는 이 context 확인 전까지 건드리지 않는다.
 
 통과한 단위 검증:
 

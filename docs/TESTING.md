@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-21 (opening idle reaction visual window 추가)
+> 마지막 업데이트: 2026-06-21 (mixed opening acquisition report 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -114,6 +114,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 # summarize_pacing_baseline.py prints opening pressure: spawn fallback, nearest spacing, saturation, attempts, and sub-5s first-contact read.
 # analyze_results.py and summarize_pacing_baseline.py also print first target acquisition time/source/state/distance before first contact.
 # They also print the first objective interrupt source/kind/need/match plus enemy/objective distance when present.
+# For mixed opening reads, both tools print per-run first acquisition samples with source/state/distance, contact, and objective-interrupt distances.
 # verify_playable_pacing_preset.gd guards playable_pacing_v1 opening spawn reliability, 5m clearance, and saturation.
 # verify_bot_opening_loot_rules.gd guards the idle-loot 2s grace, 5m close-interrupt cutoff, opening idle-reaction 10s/2m visual grace,
 # opening close-range 7s/1m hard-bump reveal guard, opening idle-loot 3s near-actor start safety,
