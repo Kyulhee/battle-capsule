@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-23 (playable_pacing_v2 late-zone candidate 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-23 (economy candidate rejection 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-25` playable_pacing_v2 late-zone candidate.
+- 이번 세션 기준 완료 slice: `N2-PACE-26` economy candidate rejection.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,27 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`, `N2-PACE-19`, `N2-PACE-20`, `N2-PACE-21`, `N2-PACE-22`, `N2-PACE-23`, `N2-PACE-24`, `N2-PACE-25`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`, `N2-PACE-19`, `N2-PACE-20`, `N2-PACE-21`, `N2-PACE-22`, `N2-PACE-23`, `N2-PACE-24`, `N2-PACE-25`, `N2-PACE-26`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-25` playable_pacing_v2 late-zone candidate다. `N2-PACE-24`는 `summarize_pacing_baseline.py`에 watch band 대비 `Phase gap read`를 추가했고, `N2-PACE-25`는 그 결과에 따라 stage2 entry timing은 유지한 채 stage2 이후 compression만 늘리는 비기본 `playable_pacing_v2`를 추가했다.
+현재 완료한 본 작업은 `N2-PACE-26` economy candidate rejection이다. `N2-PACE-25`는 stage2 entry timing은 유지한 채 stage2 이후 compression만 늘리는 비기본 `playable_pacing_v2`를 추가했다. `N2-PACE-26`은 v2 위에 단순 loot_count/hotspot/rare 축소 후보를 로컬로 검증했고, late-zone 결과가 후퇴해 폐기했다.
+
+폐기한 로컬 v3 후보는 커밋하지 않았다:
+
+- loot_count 210 -> 205
+- hotspot_density_mult 1.04 -> 1.02
+- rare_bias_mult 1.15 -> 1.08
+- v2 late-zone timing은 유지
+
+폐기 후보 `C:\tmp\game_dev_playable_pacing_v3_economy_v1_3run` 결과:
+
+- avg duration 454.1s, min/max 272.7s / 639.4s
+- first contact 12.9s, first kill 16.6s, first upgrade 56.0s
+- stage2 270.3s, stage3 none
+- scale gate는 통과: fallback 0.0/run, stuck 0.15/entity/min, disengage 0.24/entity/min, AI avg 409.4us, sentinel clear.
+- 판정: first upgrade는 v2의 19.4s보다 늦어졌지만, avg duration은 533.3s -> 454.1s로 후퇴했고 stage3가 다시 사라졌다. no-first-upgrade starvation은 없었지만 채택하지 않는다.
 
 `playable_pacing_v2` 설계:
 
@@ -98,7 +113,15 @@ fresh 3-run `C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` 결과:
 - hard-bump acquisition impact: 3/3 runs, avg contact gap 4.4s, delayed 5s+ 1, read=contact-gap-not-acquisition-only
 - scale gate 통과: fallback 0.0/run, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 474.6us, sentinel clear
 
-다음 우선순위는 `playable_pacing_v2`를 기준으로 first-upgrade/economy pacing 후보를 설계하는 것이다. v2는 stage2/stage3 band를 맞췄지만 match end가 아직 600s floor보다 66.7s 짧고 run 1은 265.9s로 짧다. economy 변경은 no-first-upgrade starvation을 재발시키지 않게 작은 후보로 분리하고, stage2/later zone은 이번 후보를 기준으로 유지한다.
+다음 우선순위는 `playable_pacing_v2`를 기준으로 first-upgrade source/weapon/route context를 먼저 진단하는 것이다. 단순 global loot_count/hotspot/rare 축소는 v3에서 폐기했으므로 반복하지 않는다. 다음 후보는 non-pistol upgrade timing을 직접 겨냥하되 stage2/stage3 band를 깨지 않는 작은 변경이어야 한다.
+
+N2-PACE-26 통과/폐기 검증:
+
+- local v3 JSON parse, `verify_playable_pacing_preset.gd`, `verify_night_forest_candidate.gd`, runtime load 통과
+- `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v3 out_dir=C:\tmp\game_dev_playable_pacing_v3_economy_v1_3run`
+- `python tools\analyze_results.py C:\tmp\game_dev_playable_pacing_v3_economy_v1_3run`
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v3_economy_v1_3run`
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v3_economy_v1_3run --min-runs 3`
 
 N2-PACE-25 통과 검증:
 

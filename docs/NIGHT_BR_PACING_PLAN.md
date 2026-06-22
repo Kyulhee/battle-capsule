@@ -95,6 +95,8 @@ N2-PACE-24부터 `summarize_pacing_baseline.py`는 `Phase gap read`를 출력한
 
 N2-PACE-25는 비기본 `playable_pacing_v2`를 추가했다. v2는 v1의 99 bots, loot_count 210, 5m opening clearance, loot economy, initial_radius 86, initial/base zone timing을 유지하고 stage2 이후 wait/shrink를 늘리며 damage를 낮춘다. 3-run `C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run`은 avg duration 533.3s, stage2 268.1s, stage3 638.4s, first upgrade 19.4s, fallback 0.0/run, stuck 0.09/entity/min, AI avg 418.9us로 scale gate를 통과했다. stage2/stage3는 band 안이고 match end는 600s floor보다 66.7s 짧다. 다음 후보는 v2 기준 first-upgrade/economy pacing을 늦추되 no-first-upgrade starvation을 피한다.
 
+N2-PACE-26의 local `playable_pacing_v3` economy 후보는 폐기했다. loot_count 205, hotspot 1.02, rare 1.08은 first upgrade를 56.0s까지 늦췄지만 avg duration 454.1s, stage3 none으로 v2의 late-zone 개선을 깨뜨렸다. 다음 후보는 global loot/rare 축소가 아니라 first-upgrade source/weapon/route context를 먼저 진단한다.
+
 ### playable_pacing_v1 값
 
 `playable_pacing_v1`은 Night 후보 mapSpec에만 있는 비기본 프리셋이다. `target_99_probe`와 기본 맵은 바꾸지 않는다.

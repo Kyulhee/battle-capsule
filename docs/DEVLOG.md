@@ -6,6 +6,38 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Playable Pacing Economy Candidate Rejection
+
+**Scope**
+
+- Tested a local, uncommitted `playable_pacing_v3` economy candidate on top of `playable_pacing_v2`.
+- Candidate change was intentionally narrow:
+  - loot_count 210 -> 205
+  - hotspot_density_mult 1.04 -> 1.02
+  - rare_bias_mult 1.15 -> 1.08
+  - v2 late-zone timing was kept unchanged
+- The candidate data/verifier changes were removed after validation and are not part of the committed map spec.
+
+**Verification**
+
+- Local v3 JSON parse, `verify_playable_pacing_preset.gd`, `verify_night_forest_candidate.gd`, and runtime load passed during the experiment.
+- `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v3 out_dir=C:\tmp\game_dev_playable_pacing_v3_economy_v1_3run` passed.
+- `python tools\analyze_results.py C:\tmp\game_dev_playable_pacing_v3_economy_v1_3run`, `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v3_economy_v1_3run`, and `python tools\check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v3_economy_v1_3run --min-runs 3` passed.
+
+**Result**
+
+- v3 3-run: avg duration 454.1s, min/max 272.7/639.4s, first contact 12.9s, first kill 16.6s, first upgrade 56.0s, stage2 270.3s, stage3 none.
+- Scale gate still passed: fallback 0.0/run, stuck 0.15/entity/min, disengage 0.24/entity/min, AI avg 409.4us, sentinel clear.
+- It delayed first upgrade versus v2 (19.4s -> 56.0s) and avoided no-first-upgrade starvation, but it regressed v2's late-zone win: avg duration fell from 533.3s to 454.1s and stage3 disappeared again.
+
+**Decision**
+
+- `N2-PACE-26` rejects simple global loot_count/hotspot/rare reduction as the next pacing lever.
+- Keep committed `playable_pacing_v2` as the current late-zone candidate.
+- The next step should inspect first-upgrade source/weapon/route context and target non-pistol upgrade timing directly instead of broadly starving the economy.
+
+---
+
 ## v2 Playable Pacing Late-Zone Candidate
 
 **Scope**
