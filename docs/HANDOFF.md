@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-22 (hard-bump acquisition impact report 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-23 (hard-bump exception read policy 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-22` hard-bump acquisition impact report.
+- 이번 세션 기준 완료 slice: `N2-PACE-23` hard-bump exception read policy.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,12 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`, `N2-PACE-19`, `N2-PACE-20`, `N2-PACE-21`, `N2-PACE-22`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`, `N2-PACE-19`, `N2-PACE-20`, `N2-PACE-21`, `N2-PACE-22`, `N2-PACE-23`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-22` hard-bump acquisition impact report다. `N2-PACE-21`은 spawn 후 10초 안에 아직 zone 안쪽 edge에 있는 `ZONE_ESCAPE` 봇의 retreat-counteraction target acquisition만 미루도록 했고, `N2-PACE-22`는 남은 1m hard-bump first acquisition이 실제 first contact와 얼마나 붙어 있는지 analyzer/summarizer에서 바로 보이게 했다.
+현재 완료한 본 작업은 `N2-PACE-23` hard-bump exception read policy다. `N2-PACE-21`은 spawn 후 10초 안에 아직 zone 안쪽 edge에 있는 `ZONE_ESCAPE` 봇의 retreat-counteraction target acquisition만 미루도록 했고, `N2-PACE-22`는 남은 1m hard-bump first acquisition이 실제 first contact와 얼마나 붙어 있는지 analyzer/summarizer에서 바로 보이게 했다. `N2-PACE-23`은 1m hard-bump 예외를 의도된 collision/readability rule로 유지하고, hard-bump opening pressure는 first acquisition 단독이 아니라 contact gap으로 읽는다고 리포트에 명시했다.
 
 fresh 3-run `C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` 결과:
 
@@ -69,10 +69,10 @@ fresh 3-run `C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` 결과:
 - run 1: 16.0s idle_reaction / IDLE / 1.0m hard bump, contact 16.5s, gap 0.5s
 - run 2: 17.6s idle_reaction / IDLE / 1.0m hard bump, contact 18.0s, gap 0.5s
 - run 3: 5.1s objective_interrupt / CHASE / 1.0m hard bump, contact 17.3s, gap 12.2s
-- hard-bump acquisition impact: 3/3 runs, avg contact gap 4.4s, delayed 5s+ 1
+- hard-bump acquisition impact: 3/3 runs, avg contact gap 4.4s, delayed 5s+ 1, read=contact-gap-not-acquisition-only
 - scale gate 통과: fallback 0.0/run, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 474.6us, sentinel clear
 
-다음 우선순위는 1m hard-bump 예외를 그대로 둘지 별도 opening collision/readability 디자인으로 다룰지 판단하는 것이다. 이 경로는 의도적으로 남긴 예외이고 first acquisition만으로 즉시 교전 압력을 뜻하지 않으므로, combat damage, global AI aggression, zone pacing, spawn clearance, economy를 건드려 해결하려고 하지 않는다.
+다음 우선순위는 opening exception churn을 멈추고 `playable_pacing_v1`의 10-15분 duration gap, stage progression, first-upgrade timing을 다시 확인하는 것이다. 1m hard-bump 예외는 유지하며, combat damage, global AI aggression, zone pacing, spawn clearance, economy를 hard-bump first acquisition만 보고 건드리지 않는다.
 
 통과한 단위 검증:
 

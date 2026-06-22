@@ -336,7 +336,8 @@ def pacing_hard_bump_impact_summary(results: list[dict]) -> str:
     return (
         "Pacing hard-bump acquisition impact: "
         f"{hard_bump_count}/{acquisition_count} runs, avg_contact_gap={avg_gap_text}, "
-        f"delayed_5s_plus={hard_bump_delayed_count}"
+        f"delayed_5s_plus={hard_bump_delayed_count}, "
+        "read=contact_gap_not_acquisition_only"
     )
 
 

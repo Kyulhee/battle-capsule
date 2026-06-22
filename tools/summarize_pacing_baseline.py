@@ -133,7 +133,8 @@ def hard_bump_impact_summary(runs: list[dict]) -> str:
     avg_gap_text = f"{avg_gap:.1f}s" if avg_gap >= 0.0 else "none"
     return (
         f"  hard-bump acquisition impact: {hard_bump_count}/{acquisition_count} runs, "
-        f"avg-contact-gap={avg_gap_text}, delayed-5s-plus={hard_bump_delayed_count}"
+        f"avg-contact-gap={avg_gap_text}, delayed-5s-plus={hard_bump_delayed_count}, "
+        "read=contact-gap-not-acquisition-only"
     )
 
 

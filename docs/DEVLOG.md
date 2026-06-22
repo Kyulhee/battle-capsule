@@ -1,8 +1,30 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-22. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-23. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 Hard-Bump Exception Read Policy
+
+**Scope**
+
+- Kept the 1.0m hard-bump exception as an intentional collision/readability rule.
+- Updated `tools/analyze_results.py` and `tools/summarize_pacing_baseline.py` hard-bump impact summaries to include an explicit read policy:
+  - use contact gap, not first acquisition alone, when judging hard-bump opening pressure.
+- This is a policy/reporting slice: no gameplay constants, AI behavior, zone timing, spawn clearance, economy, telemetry schema, or map data changed.
+
+**Verification**
+
+- `python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py` passed.
+- `python tools\analyze_results.py C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` passed and prints `read=contact_gap_not_acquisition_only`.
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` passed and prints `read=contact-gap-not-acquisition-only`.
+
+**Decision**
+
+- `N2-PACE-23` locks the interpretation: 1.0m hard bumps remain allowed, and future opening tuning must use first contact and acquisition-to-contact gap before treating hard-bump acquisition as combat pressure.
+- The next pacing work should move away from opening exception churn and inspect the broader 10-15 minute duration gap, stage progression, and first-upgrade timing under `playable_pacing_v1`.
 
 ---
 
