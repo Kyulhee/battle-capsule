@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-23 (playable pacing phase gap report 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-23 (playable_pacing_v2 late-zone candidate 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -17,7 +17,7 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-24` playable pacing phase gap report.
+- 이번 세션 기준 완료 slice: `N2-PACE-25` playable_pacing_v2 late-zone candidate.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -55,12 +55,26 @@ Get-Location
 주의:
 
 - `.gitignore`, `asset_generator/`, `docs/ASSET_GENERATION_PROMPTS.md`, `plan_report/`는 기존 로컬/참고 자료다. 사용자가 명시하기 전까지 커밋하지 않는다.
-- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`, `N2-PACE-19`, `N2-PACE-20`, `N2-PACE-21`, `N2-PACE-22`, `N2-PACE-23`, `N2-PACE-24`은 검증 완료 slice다.
+- `N2-AI-01`, `N2-PACE-01`, `N2-PACE-02`, `N2-PACE-03`, `N2-PACE-04`, `N2-MISSION-01`, `N2-PACE-05`, `N2-PACE-06`, `N2-PACE-07`, `N2-PACE-08`, `N2-PACE-09`, `N2-PACE-10`, `N2-PACE-11`, `N2-PACE-12`, `N2-PACE-13`, `N2-PACE-14`, `N2-PACE-15`, `N2-PACE-16`, `N2-PACE-17`, `N2-PACE-18`, `N2-PACE-19`, `N2-PACE-20`, `N2-PACE-21`, `N2-PACE-22`, `N2-PACE-23`, `N2-PACE-24`, `N2-PACE-25`은 검증 완료 slice다.
 - 강한 상수는 `target_99_probe` stuck 96.0/run으로 실패했다. 완화 후 단발 1-run은 no first upgrade로 scale checker를 실패했지만, 3-run 구조 smoke는 통과했다.
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-24` playable pacing phase gap report다. `N2-PACE-23`은 1m hard-bump 예외를 의도된 collision/readability rule로 유지하고, hard-bump opening pressure는 first acquisition 단독이 아니라 contact gap으로 읽는다고 리포트에 명시했다. `N2-PACE-24`는 `summarize_pacing_baseline.py`에 watch band 대비 `Phase gap read`를 추가했다.
+현재 완료한 본 작업은 `N2-PACE-25` playable_pacing_v2 late-zone candidate다. `N2-PACE-24`는 `summarize_pacing_baseline.py`에 watch band 대비 `Phase gap read`를 추가했고, `N2-PACE-25`는 그 결과에 따라 stage2 entry timing은 유지한 채 stage2 이후 compression만 늘리는 비기본 `playable_pacing_v2`를 추가했다.
+
+`playable_pacing_v2` 설계:
+
+- v1과 같은 99 bots / loot_count 210 / spawn_radius 78 / safe_spawn_attempts 260 / entity_clearance 5m / loot economy.
+- initial_radius 86, initial_timer 160, base wait/shrink 150/70은 v1과 같게 유지해 stage2 entry timing을 보존한다.
+- stage2 이후만 확장한다: stage2 260/110s dps 1.5, stage3 220/95s dps 3.0, stage4 160/80s dps 6.0, stage5 110/65s dps 10.0.
+
+`playable_pacing_v2` 3-run `C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run` 결과:
+
+- avg duration 533.3s, min/max 265.9s / 672.8s
+- first contact 13.5s, first kill 20.3s, first upgrade 19.4s
+- stage2 268.1s, stage3 638.4s
+- phase gap: stage2 and stage3 are in band; match end is still 66.7s short; first upgrade is still 100.6s early.
+- scale gate 통과: fallback 0.0/run, stuck 0.09/entity/min, disengage 0.20/entity/min, AI avg 418.9us, sentinel clear.
 
 `playable_pacing_v1` 3-run `C:\tmp\game_dev_playable_pacing_v1_3run_v2` phase gap:
 
@@ -84,7 +98,19 @@ fresh 3-run `C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` 결과:
 - hard-bump acquisition impact: 3/3 runs, avg contact gap 4.4s, delayed 5s+ 1, read=contact-gap-not-acquisition-only
 - scale gate 통과: fallback 0.0/run, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 474.6us, sentinel clear
 
-다음 우선순위는 `playable_pacing_v1`의 late-zone compression 후보를 별도 비기본 preset/override로 설계하는 것이다. stage2는 이미 240-420s band 안이므로 먼저 stage3/match end를 늘리고, first-upgrade 지연은 no-first-upgrade starvation 재발 방지와 함께 별도 경제 후보로 다룬다.
+다음 우선순위는 `playable_pacing_v2`를 기준으로 first-upgrade/economy pacing 후보를 설계하는 것이다. v2는 stage2/stage3 band를 맞췄지만 match end가 아직 600s floor보다 66.7s 짧고 run 1은 265.9s로 짧다. economy 변경은 no-first-upgrade starvation을 재발시키지 않게 작은 후보로 분리하고, stage2/later zone은 이번 후보를 기준으로 유지한다.
+
+N2-PACE-25 통과 검증:
+
+- `python -m json.tool data\mapSpec_night_forest_candidate.json`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_night_forest_candidate.gd`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd`
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v2`
+- `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v2 out_dir=C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run`
+- `python tools\analyze_results.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run`
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run`
+- `python tools\check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run --min-runs 3`
 
 N2-PACE-24 통과 검증:
 

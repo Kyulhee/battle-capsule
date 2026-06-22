@@ -3,7 +3,7 @@
     "id": "night_artificial_forest_candidate",
     "name": "Night Artificial Forest Candidate",
     "theme": "night_artificial_forest",
-    "version": "0.5-opening-proximity-guard",
+    "version": "0.6-playable-pacing-v2",
     "world_size": 180,
     "layout": "diagonal_sluice_black_ridge_wire_broadcast_false_clinic_probe_integrated"
   },
@@ -236,6 +236,56 @@
             "wait_time": 70.0,
             "shrink_time": 45.0,
             "damage_per_second": 12.0
+          }
+        }
+      }
+    },
+    "playable_pacing_v2": {
+      "match": {
+        "bot_count": 99,
+        "loot_count": 210,
+        "spawn_radius": 78.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 260,
+          "inner_radius": 8.0,
+          "entity_clearance": 5.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.045,
+          "stage_wave_prob_per_stage": 0.055,
+          "stage_wave_count_mult": 6,
+          "hotspot_density_mult": 1.04,
+          "rare_bias_mult": 1.15
+        }
+      },
+      "zone": {
+        "initial_radius": 86.0,
+        "initial_timer": 160.0,
+        "wait_time": 150.0,
+        "shrink_time": 70.0,
+        "damage_per_second": 1.0,
+        "stages": {
+          "2": {
+            "wait_time": 260.0,
+            "shrink_time": 110.0,
+            "damage_per_second": 1.5
+          },
+          "3": {
+            "wait_time": 220.0,
+            "shrink_time": 95.0,
+            "damage_per_second": 3.0
+          },
+          "4": {
+            "wait_time": 160.0,
+            "shrink_time": 80.0,
+            "damage_per_second": 6.0
+          },
+          "5": {
+            "wait_time": 110.0,
+            "shrink_time": 65.0,
+            "damage_per_second": 10.0
           }
         }
       }

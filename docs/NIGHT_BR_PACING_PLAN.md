@@ -93,6 +93,8 @@ N2-PACE-08 결과상 first contact 이전에 이미 0.6초 target acquisition이
 
 N2-PACE-24부터 `summarize_pacing_baseline.py`는 `Phase gap read`를 출력한다. `playable_pacing_v1` 3-run 기준 first contact 1.2s는 45-150s band보다 43.8s 빠르고, first kill 15.0s는 45.0s 빠르며, first non-pistol upgrade 36.6s는 83.4s 빠르다. 반면 stage2 268.5s는 240-420s band 안이고, stage3는 없으며, match end 294.0s는 600s floor보다 306.0s 빠르다. 따라서 다음 gameplay 후보는 stage2를 다시 움직이기보다 late-zone compression과 first-upgrade 지연을 분리해서 설계한다.
 
+N2-PACE-25는 비기본 `playable_pacing_v2`를 추가했다. v2는 v1의 99 bots, loot_count 210, 5m opening clearance, loot economy, initial_radius 86, initial/base zone timing을 유지하고 stage2 이후 wait/shrink를 늘리며 damage를 낮춘다. 3-run `C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run`은 avg duration 533.3s, stage2 268.1s, stage3 638.4s, first upgrade 19.4s, fallback 0.0/run, stuck 0.09/entity/min, AI avg 418.9us로 scale gate를 통과했다. stage2/stage3는 band 안이고 match end는 600s floor보다 66.7s 짧다. 다음 후보는 v2 기준 first-upgrade/economy pacing을 늦추되 no-first-upgrade starvation을 피한다.
+
 ### playable_pacing_v1 값
 
 `playable_pacing_v1`은 Night 후보 mapSpec에만 있는 비기본 프리셋이다. `target_99_probe`와 기본 맵은 바꾸지 않는다.

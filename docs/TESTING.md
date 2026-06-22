@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-23 (playable pacing phase gap report 추가)
+> 마지막 업데이트: 2026-06-23 (playable_pacing_v2 late-zone candidate 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -109,6 +109,11 @@ python tools/simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest
 python tools/analyze_results.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 python tools/summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2 --min-runs 3
+# v2 late-zone candidate:
+python tools/simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v2 out_dir=C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run
+python tools/analyze_results.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run
+python tools/summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run
+python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run --min-runs 3
 # playable_pacing_v1 is not the default preset and does not replace target_99_probe.
 # A no-first-upgrade 3-run candidate is economy starvation; fix the preset, do not lower the gate.
 # summarize_pacing_baseline.py prints opening pressure: spawn fallback, nearest spacing, saturation, attempts, and sub-5s first-contact read.
@@ -117,7 +122,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 # They also print the first objective interrupt source/kind/need/match plus enemy/objective distance when present.
 # For mixed opening reads, both tools print per-run first acquisition samples with source/state/distance, target/self bands, zone ratio/status, spawn age, contact, and objective-interrupt distances.
 # The same sample block now marks 1m hard-bump acquisition and prints acquisition-to-contact gap plus aggregate hard-bump impact; read hard-bump pressure from contact gap, not first acquisition alone.
-# verify_playable_pacing_preset.gd guards playable_pacing_v1 opening spawn reliability, 5m clearance, and saturation.
+# verify_playable_pacing_preset.gd guards playable_pacing_v1 and playable_pacing_v2 opening spawn reliability, 5m clearance, saturation, and v2 late-zone-only scope.
 # verify_bot_opening_loot_rules.gd guards the idle-loot 2s grace, 5m close-interrupt cutoff, opening idle-reaction 10s/2m visual grace,
 # opening close-range 7s/1m hard-bump reveal guard, opening idle-loot 3s near-actor start safety,
 # opening idle-loot 7s/1m hard-bump interrupt safety, opening zone-edge 10s/1m hard-bump counteraction guard,
@@ -165,6 +170,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_pacing_map_clearance_v2_3r
 python tools/summarize_pacing_baseline.py C:\tmp\game_dev_pacing_map_clearance_v2_3run
 # summarize_pacing_baseline.py is a 10-15 minute gap report, not a hard structural gate.
 # N2-PACE-24 added Phase gap read. On playable_pacing_v1 v2, stage2 is in band but stage3/match end are short and first upgrade is early.
+# N2-PACE-25 added playable_pacing_v2. Its 3-run candidate has stage2/stage3 in band, avg duration 533.3s, and first upgrade still early.
 # Playable pacing candidates must use a separate non-default preset/override and output directory.
 # Keep target_99_probe as the structural gate; do not mix candidate pacing samples with structural smoke results.
 # N2-PACE-04 normalized pacing milestones to game seconds. Use fresh post-fix runs for milestone phase reads.

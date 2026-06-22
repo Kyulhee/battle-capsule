@@ -6,6 +6,37 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Playable Pacing Late-Zone Candidate
+
+**Scope**
+
+- Added non-default `playable_pacing_v2` to `data/mapSpec_night_forest_candidate.json`.
+- `playable_pacing_v2` keeps v1 match/spawn/loot values and the same opening/base zone timing so stage 2 timing is preserved.
+- It only extends post-stage-2 compression:
+  - stage2 260/110s at 1.5 dps
+  - stage3 220/95s at 3.0 dps
+  - stage4 160/80s at 6.0 dps
+  - stage5 110/65s at 10.0 dps
+- Updated `tools/verify_playable_pacing_preset.gd` to guard both v1 and v2 and to ensure v2 keeps baseline stage2 entry timing while extending later stages.
+- This does not change the default map, `target_99_probe`, AI behavior, spawn envelope, opening guards, or economy values.
+
+**Verification**
+
+- `python -m json.tool data\mapSpec_night_forest_candidate.json` passed.
+- `.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd` passed for v1 and v2.
+- `verify_night_forest_candidate.gd`, `verify_zone_initial_radius_tuning.gd`, and runtime load with `scale_preset=playable_pacing_v2` passed.
+- `python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v2 out_dir=C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run` passed.
+- `python tools\analyze_results.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run`, `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run`, and `python tools\check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run --min-runs 3` passed.
+
+**Result**
+
+- v2 3-run: avg duration 533.3s, min/max 265.9/672.8s, first contact 13.5s, first kill 20.3s, first upgrade 19.4s, stage2 268.1s, stage3 638.4s.
+- Phase gap: stage2 and stage3 are in band; match end is still 66.7s short of the 600s floor; first upgrade is still 100.6s early.
+- Scale gate passed: fallback 0.0/run, stuck 0.09/entity/min, disengage 0.20/entity/min, AI avg 418.9us, sentinel clear.
+- Next pacing work should keep v2 as the late-zone candidate and focus on first-upgrade/economy pacing plus the short-run variance, without reintroducing no-first-upgrade starvation.
+
+---
+
 ## v2 Playable Pacing Phase Gap Report
 
 **Scope**
