@@ -91,6 +91,8 @@ N2-PACE-07의 5m spawn spacing 로컬 smoke는 first contact를 유의미하게 
 
 N2-PACE-08 결과상 first contact 이전에 이미 0.6초 target acquisition이 발생한다. 다음 조정 전에는 초기 ZONE_ESCAPE / retreat_counteraction이 왜 spawn 직후 생기는지 먼저 확인한다.
 
+N2-PACE-24부터 `summarize_pacing_baseline.py`는 `Phase gap read`를 출력한다. `playable_pacing_v1` 3-run 기준 first contact 1.2s는 45-150s band보다 43.8s 빠르고, first kill 15.0s는 45.0s 빠르며, first non-pistol upgrade 36.6s는 83.4s 빠르다. 반면 stage2 268.5s는 240-420s band 안이고, stage3는 없으며, match end 294.0s는 600s floor보다 306.0s 빠르다. 따라서 다음 gameplay 후보는 stage2를 다시 움직이기보다 late-zone compression과 first-upgrade 지연을 분리해서 설계한다.
+
 ### playable_pacing_v1 값
 
 `playable_pacing_v1`은 Night 후보 mapSpec에만 있는 비기본 프리셋이다. `target_99_probe`와 기본 맵은 바꾸지 않는다.
@@ -100,7 +102,7 @@ N2-PACE-08 결과상 first contact 이전에 이미 0.6초 target acquisition이
 | bots | 99 | 99 | 구조 부하 유지 |
 | loot_count | 240 | 210 | stage wave 경제는 낮추되 starvation 방지 |
 | spawn_radius | 78.0 | 78.0 | 구조 spawn envelope 유지 |
-| safe_spawn_attempts | 180 | 180 | fallback 0 목표 유지 |
+| safe_spawn_attempts | 180 | 260 | fallback 0과 5m opening clearance 유지 |
 | hotspot_density_mult | 1.16 | 1.04 | target보다 낮게 유지 |
 | rare_bias_mult | 1.45 | 1.15 | non-pistol seed는 유지 |
 | stage_wave_base/per | 0.08 / 0.08 | 0.045 / 0.055 | stage wave를 줄이되 제거하지 않음 |

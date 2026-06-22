@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-23 (hard-bump exception read policy 추가)
+> 마지막 업데이트: 2026-06-23 (playable pacing phase gap report 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -112,6 +112,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 # playable_pacing_v1 is not the default preset and does not replace target_99_probe.
 # A no-first-upgrade 3-run candidate is economy starvation; fix the preset, do not lower the gate.
 # summarize_pacing_baseline.py prints opening pressure: spawn fallback, nearest spacing, saturation, attempts, and sub-5s first-contact read.
+# summarize_pacing_baseline.py also prints Phase gap read against the Night BR watch bands before changing zone, loot, or combat numbers.
 # analyze_results.py and summarize_pacing_baseline.py also print first target acquisition time/source/state/distance before first contact.
 # They also print the first objective interrupt source/kind/need/match plus enemy/objective distance when present.
 # For mixed opening reads, both tools print per-run first acquisition samples with source/state/distance, target/self bands, zone ratio/status, spawn age, contact, and objective-interrupt distances.
@@ -163,6 +164,7 @@ python tools/analyze_results.py C:\tmp\game_dev_pacing_map_clearance_v2_3run
 python tools/check_scale_telemetry.py C:\tmp\game_dev_pacing_map_clearance_v2_3run --min-runs 3
 python tools/summarize_pacing_baseline.py C:\tmp\game_dev_pacing_map_clearance_v2_3run
 # summarize_pacing_baseline.py is a 10-15 minute gap report, not a hard structural gate.
+# N2-PACE-24 added Phase gap read. On playable_pacing_v1 v2, stage2 is in band but stage3/match end are short and first upgrade is early.
 # Playable pacing candidates must use a separate non-default preset/override and output directory.
 # Keep target_99_probe as the structural gate; do not mix candidate pacing samples with structural smoke results.
 # N2-PACE-04 normalized pacing milestones to game seconds. Use fresh post-fix runs for milestone phase reads.

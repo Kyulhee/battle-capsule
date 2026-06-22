@@ -6,6 +6,35 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## v2 Playable Pacing Phase Gap Report
+
+**Scope**
+
+- Added a `Phase gap read` section to `tools/summarize_pacing_baseline.py`.
+- The report now compares first contact, first kill, first non-pistol upgrade, stage 2, stage 3, and match end against the Night BR watch bands before any gameplay tuning.
+- This is a reporting slice: no gameplay constants, map data, spawn rules, economy values, zone schedule, telemetry schema, or AI behavior changed.
+
+**Verification**
+
+- `python -m py_compile tools\summarize_pacing_baseline.py` passed.
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v1_3run_v2` passed and prints:
+  - first contact 1.2s vs 45-150s: early by 43.8s
+  - first kill 15.0s vs 60-210s: early by 45.0s
+  - first non-pistol upgrade 36.6s vs 120-300s: early by 83.4s
+  - stage 2 268.5s vs 240-420s: in band
+  - stage 3: missing
+  - match end 294.0s vs 600-900s: early by 306.0s
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` passed with the same phase-gap section and the N2-PACE-23 hard-bump read policy.
+
+**Decision**
+
+- `N2-PACE-24` confirms stage 2 is already in the target band on the older `playable_pacing_v1` baseline, while stage 3 / match end are short or missing.
+- The next gameplay candidate should inspect late-zone compression before moving stage 2.
+- First non-pistol upgrade is still too early, but economy changes must delay upgrade access without recreating the rejected `no first upgrade` starvation path.
+- First contact remains opening pressure and should stay separate from duration/stage tuning.
+
+---
+
 ## v2 Hard-Bump Exception Read Policy
 
 **Scope**

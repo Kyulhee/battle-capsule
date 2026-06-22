@@ -6,6 +6,11 @@ from pathlib import Path
 
 DEFAULT_TARGET_MIN_SECONDS = 600.0
 DEFAULT_TARGET_MAX_SECONDS = 900.0
+FIRST_CONTACT_BAND_SECONDS = (45.0, 150.0)
+FIRST_KILL_BAND_SECONDS = (60.0, 210.0)
+FIRST_UPGRADE_BAND_SECONDS = (120.0, 300.0)
+STAGE2_BAND_SECONDS = (240.0, 420.0)
+STAGE3_BAND_SECONDS = (540.0, 720.0)
 
 
 def load_runs(run_dir: Path) -> list[dict]:
@@ -256,6 +261,65 @@ def print_milestone(label: str, values: list[float], durations: list[float], tar
     )
 
 
+def band_status_line(label: str, values: list[float], floor: float, ceiling: float) -> str:
+    if not values:
+        return f"  {label}: none vs {floor:.0f}-{ceiling:.0f}s -> missing"
+    value = avg(values)
+    if value < floor:
+        return (
+            f"  {label}: {value:.1f}s vs {floor:.0f}-{ceiling:.0f}s "
+            f"-> early by {floor - value:.1f}s"
+        )
+    if value > ceiling:
+        return (
+            f"  {label}: {value:.1f}s vs {floor:.0f}-{ceiling:.0f}s "
+            f"-> late by {value - ceiling:.1f}s"
+        )
+    return f"  {label}: {value:.1f}s vs {floor:.0f}-{ceiling:.0f}s -> in band"
+
+
+def values_in_band(values: list[float], floor: float, ceiling: float) -> bool:
+    return bool(values) and floor <= avg(values) <= ceiling
+
+
+def print_phase_gap_read(
+    durations: list[float],
+    first_contact: list[float],
+    first_kill: list[float],
+    first_upgrade: list[float],
+    stage2: list[float],
+    stage3: list[float],
+    target_min: float,
+    target_max: float,
+) -> None:
+    print("Phase gap read:")
+    print(band_status_line("first contact", first_contact, *FIRST_CONTACT_BAND_SECONDS))
+    print(band_status_line("first kill", first_kill, *FIRST_KILL_BAND_SECONDS))
+    print(band_status_line("first non-pistol upgrade", first_upgrade, *FIRST_UPGRADE_BAND_SECONDS))
+    print(band_status_line("stage 2", stage2, *STAGE2_BAND_SECONDS))
+    print(band_status_line("stage 3", stage3, *STAGE3_BAND_SECONDS))
+    print(band_status_line("match end", durations, target_min, target_max))
+
+    duration_short = avg(durations) < target_min
+    stage2_in_band = values_in_band(stage2, *STAGE2_BAND_SECONDS)
+    stage3_missing_or_early = not stage3 or (avg(stage3) < STAGE3_BAND_SECONDS[0])
+    if duration_short and stage2_in_band and stage3_missing_or_early:
+        print(
+            "  read: stage 2 is already in band while match end/stage 3 are short; "
+            "inspect late-zone compression before moving stage 2."
+        )
+    if first_upgrade and avg(first_upgrade) < FIRST_UPGRADE_BAND_SECONDS[0]:
+        print(
+            "  read: first upgrade is early; delay non-pistol access carefully "
+            "without recreating no-first-upgrade starvation."
+        )
+    if first_contact and avg(first_contact) < FIRST_CONTACT_BAND_SECONDS[0]:
+        print(
+            "  read: first contact remains opening pressure; keep it separate "
+            "from duration/stage tuning."
+        )
+
+
 def print_interpretation(durations: list[float], target_min: float, target_max: float) -> None:
     current_avg = avg(durations)
     target_mid = (target_min + target_max) * 0.5
@@ -396,6 +460,16 @@ def main() -> int:
     print_milestone("  first non-pistol upgrade", first_upgrade, durations, args.target_min_seconds, args.target_max_seconds)
     print_milestone("  stage 2", stage2, durations, args.target_min_seconds, args.target_max_seconds)
     print_milestone("  stage 3", stage3, durations, args.target_min_seconds, args.target_max_seconds)
+    print_phase_gap_read(
+        durations,
+        first_contact,
+        first_kill,
+        first_upgrade,
+        stage2,
+        stage3,
+        args.target_min_seconds,
+        args.target_max_seconds,
+    )
     print_opening_pressure(runs, first_contact)
     print("Movement pressure:")
     print(f"  CHASE context dwell: {format_mix(chase_context)}")
@@ -406,7 +480,7 @@ def main() -> int:
         print(f"  stuck route ids: {format_mix(stuck_routes)}")
         print(f"  stuck cells: {format_mix(stuck_cells)}")
     print("Next read:")
-    print("  - Use this as a gap report before changing zone, loot, or combat numbers.")
+    print("  - Use the phase gap read before changing zone, loot, or combat numbers.")
     print("  - If structural gates fail, fix the structural failure first and rerun this report.")
     return 0
 

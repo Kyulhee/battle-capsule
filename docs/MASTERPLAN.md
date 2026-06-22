@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-23 (hard-bump exception read policy 완료)
+> 마지막 업데이트: 2026-06-23 (playable pacing phase gap report 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,15 +9,15 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 작업 슬라이스 | N2-PACE-23 hard-bump exception read policy |
-| 현재 문서 슬라이스 | hard-bump exception read policy 기록 |
-| 다음 구현 후보 | `playable_pacing_v1` 10-15분 duration/stage/upgrade gap 재확인 |
+| 최신 완료 작업 슬라이스 | N2-PACE-24 playable pacing phase gap report |
+| 현재 문서 슬라이스 | playable pacing phase gap report 기록 |
+| 다음 구현 후보 | `playable_pacing_v1` late-zone compression 후보 설계 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
-| 현재 미확인 항목 | `playable_pacing_v1`이 10-15분 목표 대비 아직 짧은 원인이 zone schedule, stage progression, first-upgrade timing 중 어디에 있는지 |
+| 현재 미확인 항목 | stage2는 band 안인 상태에서 stage3/match end를 늘리는 late-zone compression 후보와, no-first-upgrade 없이 first upgrade를 늦추는 경제 후보 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -62,6 +62,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-21은 spawn 후 10초 안에 아직 zone 안쪽 edge에 있는 `ZONE_ESCAPE` 봇의 retreat-counteraction target acquisition만 미루는 guard를 추가했다. 1m hard bump, 실제 zone 밖 counteraction, zone escape movement는 유지한다. 채택한 `C:\tmp\game_dev_opening_zone_edge_guard_v1_3run`은 avg duration 342.1s, first acquisition 12.9s, first contact/damage 17.3s, first kill 23.9s, first upgrade 18.7s, stage2 275.9s, spawn fallback 0.0/run, stuck 0.08/entity/min, disengage 0.26/entity/min, AI avg 474.6us, sentinel clear로 scale gate를 통과했다. 첫 acquisition에서 retreat_counteraction/ZONE_ESCAPE는 0%가 됐고, 남은 빠른 acquisition은 1.0m hard-bump objective_interrupt 예외다.
 - N2-PACE-22는 gameplay 변경 없이 hard-bump acquisition impact report를 추가했다. `analyze_results.py`와 `summarize_pacing_baseline.py`가 run별 acquisition-to-contact gap과 hard_bump marker를 출력하고, hard-bump first acquisition count / avg contact gap / 5s+ delayed count를 요약한다. N2-PACE-21 기준 hard-bump first acquisition은 3/3, avg contact gap은 4.4s, delayed 5s+는 1/3이다. 따라서 first acquisition만으로 즉시 교전 압력이라고 해석하지 않고, 1m hard-bump 예외를 유지할지 별도 design으로 다룰지 분리 판단한다.
 - N2-PACE-23은 gameplay 변경 없이 hard-bump exception read policy를 고정했다. 1.0m hard-bump는 intentional collision/readability rule로 유지하고, `analyze_results.py`와 `summarize_pacing_baseline.py` hard-bump impact summary가 `read=contact_gap_not_acquisition_only` / `read=contact-gap-not-acquisition-only`를 출력한다. 다음 pacing 작업은 opening 예외가 아니라 `playable_pacing_v1`의 10-15분 duration, stage progression, first-upgrade gap으로 돌아간다.
+- N2-PACE-24는 gameplay 변경 없이 `summarize_pacing_baseline.py`에 `Phase gap read`를 추가했다. `playable_pacing_v1` 3-run 기준 first contact 1.2s, first kill 15.0s, first upgrade 36.6s는 watch band보다 빠르고, stage2 268.5s는 240-420s band 안이며, stage3는 없고 match end 294.0s는 600s floor보다 306.0s 빠르다. 따라서 다음 gameplay 후보는 stage2를 다시 움직이기보다 late-zone compression과 first-upgrade 지연을 분리해서 설계한다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서
@@ -226,6 +227,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | N2-PACE-21 | opening zone-edge counteraction guard | opening edge ZONE_ESCAPE retreat-counteraction acquisition defer, hard bump 유지 | bot opening verifier, playable 3-run analyze/summarize/check | 실제 zone 밖 counteraction과 1m hard bump 예외를 막지 않기 |
 | N2-PACE-22 | hard-bump acquisition impact report | hard_bump marker, acquisition-to-contact gap, aggregate impact 출력 | py_compile, existing 3-run analyze/summarize | first acquisition만으로 즉시 교전 압력이라고 판정하지 않기 |
 | N2-PACE-23 | hard-bump exception read policy | hard-bump impact summary에 contact-gap read policy 명시 | py_compile, existing 3-run analyze/summarize, diff check | opening exception churn으로 10-15분 pacing 작업을 계속 미루지 않기 |
+| N2-PACE-24 | playable pacing phase gap report | watch band 대비 contact/kill/upgrade/stage/end gap 출력 | py_compile, playable/opening 3-run summarize | stage2가 band 안인데도 stage2만 다시 움직이지 않기 |
 
 자율 진행 규칙:
 
@@ -280,7 +282,8 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-21 완료: spawn 후 10초 안에 zone 안쪽 edge에 있는 `ZONE_ESCAPE` 봇의 retreat-counteraction target acquisition만 미뤘다. `C:\tmp\game_dev_opening_zone_edge_guard_v1_3run`은 first acquisition 12.9s, first contact 17.3s, first upgrade 18.7s, scale gate 통과다.
 - N2-PACE-22 완료: hard-bump acquisition impact report를 추가했다. N2-PACE-21 기준 hard-bump first acquisition은 3/3, avg contact gap 4.4s, delayed 5s+ 1/3이다.
 - N2-PACE-23 완료: 1m hard-bump 예외를 intentional collision/readability rule로 유지하고, hard-bump pressure는 first acquisition 단독이 아니라 acquisition-to-contact gap으로 읽는 정책을 리포트에 고정했다.
-- 다음 우선순위: opening exception churn을 멈추고 `playable_pacing_v1`의 10-15분 duration gap, stage progression, first-upgrade timing을 다시 확인한다.
+- N2-PACE-24 완료: `summarize_pacing_baseline.py`가 `Phase gap read`를 출력한다. `playable_pacing_v1`은 stage2 268.5s가 band 안이지만 stage3가 없고 match end가 306.0s 빠르며, first upgrade도 83.4s 빠르다.
+- 다음 우선순위: stage2를 다시 움직이기보다 late-zone compression 후보를 먼저 설계하고, first-upgrade 지연은 no-first-upgrade starvation 방지와 함께 별도 경제 후보로 다룬다.
 
 ## 비목표
 
