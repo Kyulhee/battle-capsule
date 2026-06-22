@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-21 (opening zone edge counteraction guard 추가)
+> 마지막 업데이트: 2026-06-22 (hard-bump acquisition impact report 추가)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -115,6 +115,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v1_3run_v2
 # analyze_results.py and summarize_pacing_baseline.py also print first target acquisition time/source/state/distance before first contact.
 # They also print the first objective interrupt source/kind/need/match plus enemy/objective distance when present.
 # For mixed opening reads, both tools print per-run first acquisition samples with source/state/distance, target/self bands, zone ratio/status, spawn age, contact, and objective-interrupt distances.
+# The same sample block now marks 1m hard-bump acquisition and prints acquisition-to-contact gap plus aggregate hard-bump impact.
 # verify_playable_pacing_preset.gd guards playable_pacing_v1 opening spawn reliability, 5m clearance, and saturation.
 # verify_bot_opening_loot_rules.gd guards the idle-loot 2s grace, 5m close-interrupt cutoff, opening idle-reaction 10s/2m visual grace,
 # opening close-range 7s/1m hard-bump reveal guard, opening idle-loot 3s near-actor start safety,

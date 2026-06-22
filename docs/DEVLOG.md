@@ -1,8 +1,38 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-21. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-22. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## v2 Hard-Bump Acquisition Impact Report
+
+**Scope**
+
+- Added hard-bump impact output to `tools/analyze_results.py` and `tools/summarize_pacing_baseline.py`.
+- Per-run first acquisition samples now print:
+  - acquisition-to-contact gap
+  - `hard_bump=yes/no`
+  - the existing target/self band, zone ratio/status, spawn age, contact, and objective interrupt context
+- The tools also print a hard-bump impact summary: hard-bump first-acquisition run count, average contact gap, and count of hard-bump runs delayed by 5s or more.
+- This is a diagnostic-only slice: no gameplay constants, AI behavior, zone timing, spawn clearance, economy, telemetry schema, or map data changed.
+
+**Verification**
+
+- `python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py` passed.
+- `python tools\analyze_results.py C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` passed and printed:
+  - run 1: 16.0s idle_reaction, 1.0m hard bump, contact 16.5s, gap 0.5s
+  - run 2: 17.6s idle_reaction, 1.0m hard bump, contact 18.0s, gap 0.5s
+  - run 3: 5.1s objective_interrupt, 1.0m hard bump, contact 17.3s, gap 12.2s
+  - hard-bump acquisition impact: 3/3 runs, avg contact gap 4.4s, delayed 5s+ 1
+- `python tools\summarize_pacing_baseline.py C:\tmp\game_dev_opening_zone_edge_guard_v1_3run` passed with the same hard-bump sample and impact block.
+
+**Decision**
+
+- `N2-PACE-22` confirms the remaining early first-acquisition samples are all 1.0m hard-bump cases, but only one of three produced a long acquisition-to-contact delay.
+- The hard-bump exception is now measurable separately from first contact. Do not treat first acquisition alone as immediate combat pressure on this slice.
+- The next gameplay decision is whether to keep the 1m hard-bump exception as an intended collision/readability rule or redesign opening collision behavior explicitly. Do not solve it through broad combat, zone, spawn, or economy tuning.
 
 ---
 

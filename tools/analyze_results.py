@@ -284,6 +284,62 @@ def _sample_ratio(pacing: dict, key: str) -> str:
     return f"{value:.2f}" if value >= 0.0 else "none"
 
 
+def _sample_float(pacing: dict, key: str) -> float:
+    try:
+        return float(pacing.get(key, -1.0))
+    except (TypeError, ValueError):
+        return -1.0
+
+
+def _sample_gap(pacing: dict, start_key: str, end_key: str) -> str:
+    start = _sample_float(pacing, start_key)
+    end = _sample_float(pacing, end_key)
+    if start < 0.0 or end < 0.0:
+        return "none"
+    return f"{end - start:.1f}s"
+
+
+def _hard_bump_marker(pacing: dict) -> str:
+    distance = _sample_float(pacing, "first_target_acquisition_distance")
+    if distance < 0.0:
+        return "unknown"
+    return "yes" if distance <= 1.05 else "no"
+
+
+def pacing_hard_bump_impact_summary(results: list[dict]) -> str:
+    acquisition_count = 0
+    hard_bump_count = 0
+    hard_bump_gaps: list[float] = []
+    hard_bump_delayed_count = 0
+    for run in results:
+        pacing = run.get("pacing", {})
+        if not isinstance(pacing, dict):
+            continue
+        acq_time = _sample_float(pacing, "first_target_acquisition_time")
+        if acq_time < 0.0:
+            continue
+        acquisition_count += 1
+        distance = _sample_float(pacing, "first_target_acquisition_distance")
+        if distance > 1.05:
+            continue
+        hard_bump_count += 1
+        contact_time = _sample_float(pacing, "first_contact_time")
+        if contact_time >= 0.0:
+            gap = contact_time - acq_time
+            hard_bump_gaps.append(gap)
+            if gap >= 5.0:
+                hard_bump_delayed_count += 1
+    if acquisition_count <= 0:
+        return ""
+    avg_gap = avg(hard_bump_gaps) if hard_bump_gaps else -1.0
+    avg_gap_text = f"{avg_gap:.1f}s" if avg_gap >= 0.0 else "none"
+    return (
+        "Pacing hard-bump acquisition impact: "
+        f"{hard_bump_count}/{acquisition_count} runs, avg_contact_gap={avg_gap_text}, "
+        f"delayed_5s_plus={hard_bump_delayed_count}"
+    )
+
+
 def pacing_first_acquisition_samples(results: list[dict]) -> list[str]:
     lines: list[str] = []
     for index, run in enumerate(results, start=1):
@@ -296,12 +352,13 @@ def pacing_first_acquisition_samples(results: list[dict]) -> list[str]:
         contact_time = _sample_time(pacing, "first_contact_time")
         objective_time = _sample_time(pacing, "first_objective_interrupt_time")
         lines.append(
-            "  run {}: acq={} source={} state={} dist={} target={}/{} self={}/{} zone={}/{} spawn_age={} contact={} objective_interrupt={} obj_enemy={} obj_target={}".format(
+            "  run {}: acq={} source={} state={} dist={} hard_bump={} target={}/{} self={}/{} zone={}/{} spawn_age={} contact={} gap={} objective_interrupt={} obj_enemy={} obj_target={}".format(
                 index,
                 acq_time,
                 pacing.get("first_target_acquisition_source", "none"),
                 pacing.get("first_target_acquisition_state", "none"),
                 _sample_distance(pacing, "first_target_acquisition_distance"),
+                _hard_bump_marker(pacing),
                 pacing.get("first_target_acquisition_poi_band", "none"),
                 pacing.get("first_target_acquisition_route_band", "none"),
                 pacing.get("first_target_acquisition_self_poi_band", "none"),
@@ -310,6 +367,7 @@ def pacing_first_acquisition_samples(results: list[dict]) -> list[str]:
                 pacing.get("first_target_acquisition_zone_status", "unknown"),
                 _sample_time(pacing, "first_target_acquisition_spawn_age"),
                 contact_time,
+                _sample_gap(pacing, "first_target_acquisition_time", "first_contact_time"),
                 objective_time,
                 _sample_distance(pacing, "first_objective_interrupt_enemy_distance"),
                 _sample_distance(pacing, "first_objective_interrupt_objective_distance"),
@@ -666,6 +724,9 @@ if __name__ == "__main__":
                 print("Pacing first acquisition samples:")
                 for line in sample_lines:
                     print(line)
+            hard_bump_summary = pacing_hard_bump_impact_summary(results)
+            if hard_bump_summary:
+                print(hard_bump_summary)
         if pacing_first_objective_interrupt:
             print(
                 "Pacing first objective interrupt: time={}, enemy_dist={}, objective_dist={}, sources=[{}], kinds=[{}], needs=[{}], matches=[{}]".format(
