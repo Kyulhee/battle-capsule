@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-23 (first-upgrade context telemetry 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-24 (N2-OPS tracker 도입 중). 새 세션은 이 파일보다 [CURRENT.md](CURRENT.md)를 먼저 현재 작업 화면으로 사용한다.
 
 ## 먼저 확인할 것
 
@@ -18,7 +18,9 @@ Get-Location
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-27` first-upgrade context telemetry/report.
+- 이번 세션 기준 완료 gameplay slice: `N2-PACE-27` first-upgrade context telemetry/report.
+- 현재 ops slice: `N2-OPS-01` workflow tracker reset.
+- 현재 로컬은 `7e3c3f8 report first upgrade context` 때문에 `origin/master`보다 1 commit ahead일 수 있다. push는 명시 승인 필요.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`

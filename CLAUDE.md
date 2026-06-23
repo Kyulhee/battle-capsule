@@ -8,14 +8,14 @@ Repository: `https://github.com/Kyulhee/battle-capsule`
 
 | Item | Status |
 |---|---|
-| Last public release baseline | v1.7.3.1 — main menu / How to Play hotfix |
-| Current development line | v1.10-dev — Main slimdown + UI/catalog boundaries |
-| v1.10 completion | In progress. Completed slices do not mean Main slimdown is finished. |
-| Current stabilization add-on | v1.10.x — Item/Asset Readability Polish |
+| Current development line | v2-dev — Night BR candidate, 99-player structural gates, playable pacing |
+| Current operating tracker | [CURRENT.md](docs/CURRENT.md) |
+| Latest verified gameplay slice | N2-PACE-27 first-upgrade context telemetry/report |
+| Current ops slice | N2-OPS-01 workflow tracker reset |
 | Release policy | Paused. Do not create GitHub releases unless explicitly requested. |
-| External asset workspace | `asset_generator/` stays untracked unless explicitly integrated. |
+| External source pools | `asset_generator/`, `plan_report/`, and local prompt scratch files stay untracked unless explicitly integrated. |
 
-v1.10 is infrastructure work, not a content expansion. Keep changes incremental, preserve current gameplay state ownership in `Main.gd`, and avoid starting v1.11 Complex Artifacts until item/asset readability and the v1.10 completion gate in [MASTERPLAN.md](docs/MASTERPLAN.md) are stable.
+The project is no longer in a small one-feature-at-a-time cleanup phase. Work from the milestone tracker first, then pick the smallest slice that advances the active milestone without losing sight of playability.
 
 ## Default Reading Path
 
@@ -23,18 +23,22 @@ Read only the documents needed for the task. Do not load archived long documents
 
 | Order | Document | Read When |
 |---|---|---|
-| 1 | [HANDOFF.md](docs/HANDOFF.md) | Every new session or context resume |
-| 2 | [DOCS_INDEX.md](docs/DOCS_INDEX.md) | To choose the right source document |
-| 3 | [MASTERPLAN.md](docs/MASTERPLAN.md) | Current roadmap, scope, non-goals |
-| 4 | [IMPACT_MAP.md](docs/IMPACT_MAP.md) | Before code changes that touch game state, entities, UI, map, or telemetry |
-| 5 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Before structural refactors or module boundary changes |
-| 6 | [TESTING.md](docs/TESTING.md) | Before/after verification |
+| 1 | [CURRENT.md](docs/CURRENT.md) | Every session; use it as the active tracker |
+| 2 | [HANDOFF.md](docs/HANDOFF.md) | Context resume, git state, local execution notes |
+| 3 | [DECISIONS.md](docs/DECISIONS.md) | Before reopening blocked/default/pacing decisions |
+| 4 | [EXPERIMENTS.md](docs/EXPERIMENTS.md) | Before new tuning candidates, to avoid repeating rejected paths |
+| 5 | [DOCS_INDEX.md](docs/DOCS_INDEX.md) | To choose task-specific references |
+| 6 | [IMPACT_MAP.md](docs/IMPACT_MAP.md) | Before code changes that touch game state, entities, UI, map, or telemetry |
 
 Task-specific documents:
 
 | Document | Use |
 |---|---|
+| [PLAYTEST.md](docs/PLAYTEST.md) | Manual feel/readability notes; telemetry cannot replace this |
+| [MASTERPLAN.md](docs/MASTERPLAN.md) | Broader roadmap and historical context; do not treat it as the active tracker |
 | [DEVLOG.md](docs/DEVLOG.md) | Short active log only. Historical details are indexed under `docs/devlog/`. |
+| [TESTING.md](docs/TESTING.md) | Verification commands and gate interpretation |
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Structural refactors or module boundary changes |
 | [ASSET_BRIEF.md](docs/ASSET_BRIEF.md) | Stable style/file-format reference for assets |
 | [UI_DESIGN.md](docs/UI_DESIGN.md) | Screenshot-driven UI visual review guidance |
 | [RELEASE.md](docs/RELEASE.md) | Release work only |
@@ -50,8 +54,12 @@ Excluded from default context:
 
 | Event | Update |
 |---|---|
-| Current scope/roadmap changes | `docs/MASTERPLAN.md` |
-| Completed verified work | `docs/DEVLOG.md` |
+| Active tracker, next work, major risk changes | `docs/CURRENT.md` |
+| Stable project decision changes | `docs/DECISIONS.md` |
+| Accepted/rejected experiment outcome | `docs/EXPERIMENTS.md` |
+| Manual feel/readability result | `docs/PLAYTEST.md` |
+| Completed verified work | `docs/DEVLOG.md` as a short summary only |
+| Larger roadmap changes | `docs/MASTERPLAN.md` |
 | New/changed architecture boundary | `docs/ARCHITECTURE.md` and, if impact changes, `docs/IMPACT_MAP.md` |
 | New telemetry or validation rule | `docs/TESTING.md` |
 | External asset generation request changes | local `docs/ASSET_GENERATION_PROMPTS.md` scratch file and, if stable style/format changes, `docs/ASSET_BRIEF.md` |
@@ -65,24 +73,24 @@ src/entities/player/Player.gd       — player input, weapon slots, HUD
 src/entities/bot/Bot.gd             — AI state machine and combat execution
 src/entities/pickup/Pickup.gd       — pickup visibility, label, icon decal, collect logic
 src/entities/Entity.gd              — shared HP, shield, movement, perception
-src/core/ZoneController.gd          — zone lifecycle and damage
-src/core/MissionTracker.gd          — bonus/pressure mission state
+src/systems/zone/ZoneController.gd  — zone lifecycle and damage
+src/systems/mission/MissionTracker.gd — bonus/pressure mission state
 src/core/Telemetry.gd               — match metrics; preserve JSON schema unless planned
 src/core/AssetCatalog.gd            — audio/icon/prop/cosmetic ID lookup and fallback
-src/core/LootSpawner.gd             — loot hotspot and position calculations
-src/core/SupplyDropController.gd    — supply drop timing/position calculations
+src/systems/loot/LootSpawner.gd     — loot hotspot and position calculations
+src/systems/loot/SupplyDropController.gd — supply drop timing/position calculations
 src/ui/MenuIconFactory.gd           — procedural menu/records/help icons
 ```
 
 ## Verification Rhythm
 
-For narrow v1.10 refactors and readability polish, normally run:
+For narrow docs/tooling changes, normally run:
 
 ```powershell
 git diff --check
-.\Godot_v4.6.2-stable_win64_console.exe --path . --headless --quit
-python tools\simulate_matches.py 1
 ```
+
+For gameplay, AI, map, telemetry, or pacing changes, select the relevant gate from [TESTING.md](docs/TESTING.md). Do not rely on a telemetry pass alone for major feel decisions; add a [PLAYTEST.md](docs/PLAYTEST.md) note when the user-facing experience changes.
 
 Expected warning while audio assets are missing:
 

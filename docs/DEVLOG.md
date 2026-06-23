@@ -6,6 +6,15 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## N2-OPS-01 Workflow Tracker Reset
+
+- Scope: added `CURRENT`, `DECISIONS`, `EXPERIMENTS`, and `PLAYTEST` as the default big-frame tracker for solo-dev work.
+- Updated `CLAUDE.md` and `DOCS_INDEX.md` so new sessions start from milestone/risk/experiment context instead of long historical docs.
+- Added verification profiles to `TESTING.md` so future work chooses a gate by profile rather than accumulating command lists.
+- Decision: use `CURRENT.md` as the default planning surface before every slice; keep DEVLOG entries short and move rejected-candidate detail to `EXPERIMENTS.md`.
+
+---
+
 ## N2-PACE-27 First-Upgrade Context Telemetry
 
 - Scope: diagnostic-only telemetry/reporting for first non-pistol upgrade weapon plus POI/route/nearest context. No gameplay, map, economy, zone, spawn, or AI values changed.

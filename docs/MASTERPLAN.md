@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-23 (first-upgrade context telemetry 완료)
+> 마지막 업데이트: 2026-06-24 (N2-OPS tracker 도입 중)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -10,8 +10,8 @@
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
 | 최신 완료 작업 슬라이스 | N2-PACE-27 first-upgrade context telemetry/report |
-| 현재 문서 슬라이스 | first-upgrade context 진단 결과 기록 |
-| 다음 구현 후보 | `playable_pacing_v2` shotgun/non-pistol access를 context별로 늦추는 작은 후보 |
+| 현재 문서 슬라이스 | N2-OPS-01 workflow tracker reset |
+| 다음 구현 후보 | 검증 profile 자동화 후 `playable_pacing_v2` shotgun/non-pistol access 후보 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
@@ -74,6 +74,10 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | 문서 | 용도 |
 |---|---|
 | [../CLAUDE.md](../CLAUDE.md) | 세션 온보딩과 기본 작업 규칙 |
+| [CURRENT.md](CURRENT.md) | 현재 milestone tracker, risk board, next queue |
+| [DECISIONS.md](DECISIONS.md) | 안정 결정과 reopen 조건 |
+| [EXPERIMENTS.md](EXPERIMENTS.md) | tuning/검증 실험 ledger와 반복 금지 |
+| [PLAYTEST.md](PLAYTEST.md) | 수동 체감/가독성 체크리스트 |
 | [HANDOFF.md](HANDOFF.md) | 다음 세션용 짧은 상태와 로컬 git 주의점 |
 | [DOCS_INDEX.md](DOCS_INDEX.md) | 문서 라우팅과 활성 문서 예산 |
 | [DEVLOG.md](DEVLOG.md) | 최근 검증 작업의 압축 로그 |

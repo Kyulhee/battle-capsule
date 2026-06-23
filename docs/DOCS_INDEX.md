@@ -1,16 +1,20 @@
 # Documentation Index
 
-> Last updated: 2026-06-08. This file defines the default reading path so agents and humans do not need to load every long document.
+> Last updated: 2026-06-24. This file defines the default reading path so agents and humans do not need to load every long document.
 
 ## Read First
 
 | Document | Role | Default? |
 |---|---|---|
 | [../CLAUDE.md](../CLAUDE.md) | Session onboarding and current operating rules | Yes |
-| [HANDOFF.md](HANDOFF.md) | Short next-session context and local git notes | Yes |
-| [MASTERPLAN.md](MASTERPLAN.md) | Current roadmap, scope, non-goals, next candidates | Yes |
-| [DEVLOG.md](DEVLOG.md) | Active log for recent verified work | Update after work; do not load full file for onboarding |
-| [IMPACT_MAP.md](IMPACT_MAP.md) | Ownership and change-impact map | Yes, before code changes |
+| [CURRENT.md](CURRENT.md) | Active milestone tracker, risk board, and next queue | Yes |
+| [HANDOFF.md](HANDOFF.md) | Resume context, git state, local execution notes | Yes |
+| [DECISIONS.md](DECISIONS.md) | Stable decisions and reopen conditions | Yes, before reopening big decisions |
+| [EXPERIMENTS.md](EXPERIMENTS.md) | Accepted/rejected experiment ledger | Yes, before new tuning candidates |
+| [PLAYTEST.md](PLAYTEST.md) | Manual feel/readability checklist and notes | Before user-facing feel changes |
+| [DEVLOG.md](DEVLOG.md) | Recent verified work summary | Update after work; do not load full file for onboarding |
+| [MASTERPLAN.md](MASTERPLAN.md) | Broader roadmap and historical current-state detail | Reference only |
+| [IMPACT_MAP.md](IMPACT_MAP.md) | Ownership and change-impact map | Before code changes |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Module boundaries and dependency structure | Structural changes only |
 | [TESTING.md](TESTING.md) | Verification commands and interpretation | Verification only |
 | [ASSET_STATUS.md](ASSET_STATUS.md) | Integrated/generated/deferred asset state | Asset work only |
@@ -23,13 +27,17 @@ These are operating limits for default-session docs, not strict CI rules.
 
 | Document | Target |
 |---|---|
+| [CURRENT.md](CURRENT.md) | 100 lines or less |
+| [DECISIONS.md](DECISIONS.md) | 120 lines or less |
+| [EXPERIMENTS.md](EXPERIMENTS.md) | 150 lines or less |
+| [PLAYTEST.md](PLAYTEST.md) | 150 lines or less |
 | [HANDOFF.md](HANDOFF.md) | 100 lines or less |
-| [MASTERPLAN.md](MASTERPLAN.md) | 350 lines or less after v1.11.35 |
-| [DEVLOG.md](DEVLOG.md) | 200 lines or less after v1.11.35 |
+| [MASTERPLAN.md](MASTERPLAN.md) | Reference doc; compress after tracker adoption |
+| [DEVLOG.md](DEVLOG.md) | 200 lines or less after N2-OPS adoption |
 | Per-version devlogs under `docs/devlog/` | 150 lines or less per active version |
 | [ARCHITECTURE.md](ARCHITECTURE.md) / [IMPACT_MAP.md](IMPACT_MAP.md) | Keep as reference docs; open only when relevant |
 
-When a default-session document exceeds its budget, snapshot the full raw content under `docs/devlog/` or `docs/archive/`, then leave only compressed current status, rules, and next actions in the active file.
+When a default-session document exceeds its budget, snapshot the full raw content under `docs/devlog/` or `docs/archive/`, then leave only compressed current status, rules, decisions, and next actions in the active file.
 
 ## Asset Work
 
