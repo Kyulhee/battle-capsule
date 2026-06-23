@@ -15,7 +15,7 @@
 
 | Item | Value |
 |---|---|
-| Active slice | N2-OPS-02 verification profile runner |
+| Active slice | N2-PACE-28 first-upgrade candidate design |
 | Latest verified gameplay slice | N2-PACE-27 first-upgrade context telemetry/report |
 | Current branch note | Local `master` may have unpushed commits; check `git status -sb`. Push needs explicit approval |
 | Execution note | Use elevated shell commands when local sandbox fails with `CreateProcessAsUserW failed: 1312` |
