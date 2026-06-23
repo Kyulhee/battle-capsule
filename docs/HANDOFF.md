@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-24 (N2-OPS tracker 도입 중). 새 세션은 이 파일보다 [CURRENT.md](CURRENT.md)를 먼저 현재 작업 화면으로 사용한다.
+> 마지막 업데이트: 2026-06-24 (N2-OPS verification profiles 도입 중). 새 세션은 이 파일보다 [CURRENT.md](CURRENT.md)를 먼저 현재 작업 화면으로 사용한다.
 
 ## 먼저 확인할 것
 
@@ -19,7 +19,7 @@ Get-Location
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
 - 이번 세션 기준 완료 gameplay slice: `N2-PACE-27` first-upgrade context telemetry/report.
-- 현재 ops slice: `N2-OPS-01` workflow tracker reset.
+- 현재 ops slice: `N2-OPS-02` verification profile runner.
 - 현재 로컬은 `7e3c3f8 report first upgrade context` 때문에 `origin/master`보다 1 commit ahead일 수 있다. push는 명시 승인 필요.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
@@ -64,6 +64,15 @@ Get-Location
 ## 다음 작업
 
 현재 완료한 본 작업은 `N2-PACE-27` first-upgrade context telemetry/report다. `N2-PACE-25`는 stage2 entry timing은 유지한 채 stage2 이후 compression만 늘리는 비기본 `playable_pacing_v2`를 추가했다. `N2-PACE-26`은 v2 위에 단순 loot_count/hotspot/rare 축소 후보를 로컬로 검증했고, late-zone 결과가 후퇴해 폐기했다.
+
+검증 profile 진입점:
+
+- `python tools\run_verify.py --profile docs_only`
+- `python tools\run_verify.py --profile tooling`
+- `python tools\run_verify.py --profile unit_smoke`
+- `python tools\run_verify.py --profile pacing_v2`
+- `python tools\run_verify.py --profile scale_99`
+- `python tools\run_verify.py --profile visual_review`
 
 `N2-PACE-27` 완료 범위:
 

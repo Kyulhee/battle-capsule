@@ -1,0 +1,155 @@
+import argparse
+import os
+import subprocess
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_GODOT = ROOT / "Godot_v4.6.2-stable_win64_console.exe"
+DEFAULT_OUT_ROOT = Path(os.environ.get("GAME_DEV_VERIFY_OUT", r"C:\tmp"))
+MAP_SPEC = "res://data/mapSpec_night_forest_candidate.json"
+
+
+@dataclass(frozen=True)
+class Step:
+    label: str
+    argv: list[str]
+
+
+def rel(path: str) -> str:
+    return str(ROOT / path)
+
+
+def godot_script(godot: str, script: str) -> Step:
+    return Step(script, [godot, "--headless", "--path", str(ROOT), "--script", f"res://tools/{script}"])
+
+
+def py_compile(paths: list[str]) -> Step:
+    return Step("python py_compile", [sys.executable, "-m", "py_compile", *[rel(path) for path in paths]])
+
+
+def simulate_step(runs: int, preset: str, out_dir: Path) -> Step:
+    return Step(
+        f"simulate {preset} x{runs}",
+        [
+            sys.executable,
+            rel("tools/simulate_matches.py"),
+            str(runs),
+            f"map_spec_path={MAP_SPEC}",
+            f"scale_preset={preset}",
+            f"out_dir={out_dir}",
+        ],
+    )
+
+
+def profile_steps(profile: str, godot: str, runs: int, out_root: Path) -> list[Step]:
+    docs_only = [Step("git diff --check", ["git", "diff", "--check"])]
+    report_scripts = [
+        "tools/analyze_results.py",
+        "tools/summarize_pacing_baseline.py",
+        "tools/check_scale_telemetry.py",
+        "tools/simulate_matches.py",
+        "tools/run_verify.py",
+    ]
+
+    if profile == "docs_only":
+        return docs_only
+
+    if profile == "tooling":
+        return [*docs_only, py_compile(report_scripts)]
+
+    if profile == "unit_smoke":
+        return [
+            *docs_only,
+            py_compile(report_scripts),
+            godot_script(godot, "verify_pacing_telemetry.gd"),
+            godot_script(godot, "verify_playable_pacing_preset.gd"),
+            godot_script(godot, "verify_zone_initial_radius_tuning.gd"),
+            godot_script(godot, "verify_bot_opening_loot_rules.gd"),
+        ]
+
+    if profile == "pacing_v2":
+        out_dir = out_root / "game_dev_verify_pacing_v2"
+        return [
+            *profile_steps("unit_smoke", godot, runs, out_root),
+            simulate_step(runs, "playable_pacing_v2", out_dir),
+            Step("analyze pacing_v2", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
+            Step("summarize pacing_v2", [sys.executable, rel("tools/summarize_pacing_baseline.py"), str(out_dir)]),
+            Step(
+                "scale gate pacing_v2",
+                [sys.executable, rel("tools/check_scale_telemetry.py"), str(out_dir), "--min-runs", str(runs)],
+            ),
+        ]
+
+    if profile == "scale_99":
+        out_dir = out_root / "game_dev_verify_scale_99"
+        return [
+            *docs_only,
+            godot_script(godot, "verify_candidate_99_probe.gd"),
+            simulate_step(runs, "target_99_probe", out_dir),
+            Step("analyze scale_99", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
+            Step(
+                "scale gate scale_99",
+                [sys.executable, rel("tools/check_scale_telemetry.py"), str(out_dir), "--min-runs", str(runs)],
+            ),
+        ]
+
+    if profile == "visual_review":
+        out_dir = out_root / "game_dev_verify_visual_review"
+        return [
+            *docs_only,
+            godot_script(godot, "verify_player_night_readability.gd"),
+            Step(
+                "capture player night readability",
+                [godot, "--path", str(ROOT), "--script", "res://tools/capture_player_night_readability.gd"],
+            ),
+            simulate_step(1, "visual_review", out_dir),
+            Step("analyze visual_review", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
+        ]
+
+    raise ValueError(f"Unknown profile: {profile}")
+
+
+def run_step(step: Step, dry_run: bool) -> int:
+    print(f"\n== {step.label} ==", flush=True)
+    print(" ".join(step.argv), flush=True)
+    if dry_run:
+        return 0
+    proc = subprocess.run(step.argv, cwd=ROOT)
+    return int(proc.returncode)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description="Run Battle Capsule verification profiles.")
+    parser.add_argument(
+        "--profile",
+        choices=["docs_only", "tooling", "unit_smoke", "pacing_v2", "scale_99", "visual_review"],
+        required=True,
+    )
+    parser.add_argument("--runs", type=int, default=3, help="Run count for simulation profiles.")
+    parser.add_argument("--out-root", default=str(DEFAULT_OUT_ROOT))
+    parser.add_argument("--godot", default=str(DEFAULT_GODOT))
+    parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--keep-going", action="store_true")
+    args = parser.parse_args()
+
+    steps = profile_steps(args.profile, args.godot, max(1, args.runs), Path(args.out_root))
+    failures = 0
+    for step in steps:
+        code = run_step(step, args.dry_run)
+        if code != 0:
+            failures += 1
+            print(f"FAIL: {step.label} exited with {code}.", flush=True)
+            if not args.keep_going:
+                return code
+    if failures:
+        print(f"\nProfile {args.profile} finished with {failures} failure(s).", flush=True)
+        return 1
+    print(f"\nProfile {args.profile} passed.", flush=True)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

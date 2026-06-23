@@ -15,7 +15,7 @@
 
 | Item | Value |
 |---|---|
-| Active slice | N2-OPS-01 workflow tracker reset |
+| Active slice | N2-OPS-02 verification profile runner |
 | Latest verified gameplay slice | N2-PACE-27 first-upgrade context telemetry/report |
 | Current branch note | Local `master` may have unpushed commits; check `git status -sb`. Push needs explicit approval |
 | Execution note | Use elevated shell commands when local sandbox fails with `CreateProcessAsUserW failed: 1312` |
@@ -31,8 +31,8 @@
 
 | Priority | Work | Exit |
 |---|---|---|
-| P0 | Finish N2-OPS-01 doc routing | New tracker docs are the default reading path and old long docs are reference docs |
-| P1 | Add verification profiles | One command can run smoke / pacing_v2 / visual_review gates |
+| P0 | Finish N2-OPS-01 doc routing | Done: tracker docs are the default reading path |
+| P1 | Add verification profiles | Done: `tools/run_verify.py --profile ...` covers docs/tooling/unit/pacing/scale/visual gates |
 | P2 | Design first-upgrade candidate | Use N2-PACE-27 context: shotgun, concealment_field/loot_hub, on-route |
 | P3 | Run manual visual/playtest pass | Record qualitative read in `PLAYTEST.md` before deep numeric tuning |
 

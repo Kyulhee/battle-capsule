@@ -6,6 +6,15 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## N2-OPS-02 Verification Profile Runner
+
+- Scope: added `tools/run_verify.py` as a single entry point for `docs_only`, `tooling`, `unit_smoke`, `pacing_v2`, `scale_99`, and `visual_review` verification profiles.
+- Updated `TESTING.md` and `CURRENT.md` so future work chooses a profile instead of copying long command blocks into active planning.
+- Verification: `docs_only`, `tooling`, and `unit_smoke` profiles passed; `pacing_v2 --dry-run` passed for long-run command wiring.
+- Decision: use the smallest profile that matches the slice; reserve `pacing_v2` and `scale_99` for gameplay/scale changes because they run simulations.
+
+---
+
 ## N2-OPS-01 Workflow Tracker Reset
 
 - Scope: added `CURRENT`, `DECISIONS`, `EXPERIMENTS`, and `PLAYTEST` as the default big-frame tracker for solo-dev work.
