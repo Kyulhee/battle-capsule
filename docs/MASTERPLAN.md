@@ -1,6 +1,6 @@
 # 배틀 캡슐 마스터플랜
 
-> 마지막 업데이트: 2026-06-23 (economy candidate rejection 완료)
+> 마지막 업데이트: 2026-06-23 (first-upgrade context telemetry 완료)
 
 현재 세션에서 기본으로 읽는 압축 로드맵이다. 압축 전 전체 원문은 [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md)에 보존했다. 더 오래된 기록은 `docs/archive/`에 남아 있다.
 
@@ -9,15 +9,16 @@
 | 항목 | 상태 |
 |---|---|
 | 현재 개발 라인 | v2-dev: 구조 안전성 게이트 + 99인 야간 맵 후보 전환 |
-| 최신 완료 작업 슬라이스 | N2-PACE-26 economy candidate rejection |
-| 현재 문서 슬라이스 | simple global economy reduction rejection 기록 |
-| 다음 구현 후보 | `playable_pacing_v2` first-upgrade source/context 진단 |
+| 최신 완료 작업 슬라이스 | N2-PACE-27 first-upgrade context telemetry/report |
+| 현재 문서 슬라이스 | first-upgrade context 진단 결과 기록 |
+| 다음 구현 후보 | `playable_pacing_v2` shotgun/non-pistol access를 context별로 늦추는 작은 후보 |
 | 목표 플레이 시간 | 10-15분 본편 매치 |
 | 현재 telemetry 역할 | 최종 밸런스가 아니라 구조 안전성 게이트 |
 | 99인 런타임 상태 | 기본 맵/기본 프리셋 승격 금지. 후보 맵과 `target_99_probe`에서만 검증 |
 | 수동 화면 검토 | `visual_review` 프리셋 사용. `xlarge_60`/`target_99_probe`는 렉이 큰 구조 부하 검증용 |
 | 성능 LOD 상태 | 픽업 광원 LOD와 AI perception/sensory tick LOD 1차 적용 |
 | 현재 미확인 항목 | first upgrade가 어떤 weapon/source/route context에서 너무 빨라지는지, 그리고 stage2/stage3 band를 깨지 않고 직접 늦출 수 있는지 |
+| 현재 실행 주의 | 권한 상승 없는 shell은 `CreateProcessAsUserW failed: 1312`로 실패할 수 있음. shell/git/Godot/Python은 `require_escalated` 명시 실행 사용 |
 | 릴리즈 상태 | 일시 중지. 명시 요청 전까지 버전별 개발 지속 |
 | 로컬 참고 자료 | `plan_report/`는 참고용 로컬 디렉토리이며 커밋 대상 아님 |
 | 외부 에셋 | `asset_generator/`, 로컬 프롬프트 스크래치는 선택 통합 전까지 untracked 유지 |
@@ -65,6 +66,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 - N2-PACE-24는 gameplay 변경 없이 `summarize_pacing_baseline.py`에 `Phase gap read`를 추가했다. `playable_pacing_v1` 3-run 기준 first contact 1.2s, first kill 15.0s, first upgrade 36.6s는 watch band보다 빠르고, stage2 268.5s는 240-420s band 안이며, stage3는 없고 match end 294.0s는 600s floor보다 306.0s 빠르다. 따라서 다음 gameplay 후보는 stage2를 다시 움직이기보다 late-zone compression과 first-upgrade 지연을 분리해서 설계한다.
 - N2-PACE-25는 비기본 `playable_pacing_v2`를 추가했다. v2는 v1의 match/spawn/loot/opening/base zone을 유지하고 stage2 이후 wait/shrink를 늘리고 damage를 낮춘 late-zone 후보다. 3-run `C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run`은 avg duration 533.3s, stage2 268.1s, stage3 638.4s, first upgrade 19.4s, fallback 0.0/run, stuck 0.09/entity/min, AI avg 418.9us, sentinel clear로 scale gate를 통과했다. stage2/stage3는 band 안이고 match end는 600s floor보다 66.7s 짧다.
 - N2-PACE-26은 로컬 `playable_pacing_v3` economy 후보를 폐기했다. loot_count 205, hotspot 1.02, rare 1.08은 first upgrade를 56.0s까지 늦췄고 no-first-upgrade는 재발하지 않았지만, avg duration이 454.1s로 후퇴하고 stage3가 다시 사라졌다. 단순 global loot/rare 축소는 다음 후보로 반복하지 않는다.
+- N2-PACE-27은 gameplay 값 변경 없이 first non-pistol upgrade의 weapon/POI/route/nearest context를 telemetry와 analyzer/summarizer에 추가했다. `C:\tmp\game_dev_first_upgrade_context_v1_3run`은 avg duration 345.2s, first contact 19.2s, first kill 26.5s, first upgrade 40.5s, stage2 293.7s, stage3 none, scale gate PASS다. First upgrade는 shotgun 100%, concealment_field 66.7% / loot_hub 33.3%, on-route 100%였으므로 다음 후보는 context별 shotgun/non-pistol access를 직접 늦춘다.
 - 10-15분 목표는 현재 짧은 scale smoke의 수치와 별도 축이다. 자기장, 루팅, 첫 교전, 중반 이동, 최종 교전 페이싱은 야간 맵 후보 이후 다시 잡는다.
 
 ## 활성 문서

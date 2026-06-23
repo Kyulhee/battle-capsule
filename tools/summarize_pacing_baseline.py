@@ -320,6 +320,57 @@ def print_phase_gap_read(
         )
 
 
+def first_nonempty_counter(*counters: Counter) -> Counter:
+    for counter in counters:
+        if counter:
+            return counter
+    return Counter()
+
+
+def print_first_upgrade_context(runs: list[dict]) -> None:
+    weapons = first_nonempty_counter(
+        string_counter(runs, "economy", "first_upgrade_weapon"),
+        string_counter(runs, "pacing", "first_non_pistol_upgrade_weapon"),
+    )
+    poi_roles = first_nonempty_counter(
+        string_counter(runs, "economy", "first_upgrade_poi_role"),
+        string_counter(runs, "pacing", "first_non_pistol_upgrade_poi_role"),
+    )
+    poi_bands = first_nonempty_counter(
+        string_counter(runs, "economy", "first_upgrade_poi_band"),
+        string_counter(runs, "pacing", "first_non_pistol_upgrade_poi_band"),
+    )
+    route_roles = first_nonempty_counter(
+        string_counter(runs, "economy", "first_upgrade_route_role"),
+        string_counter(runs, "pacing", "first_non_pistol_upgrade_route_role"),
+    )
+    route_bands = first_nonempty_counter(
+        string_counter(runs, "economy", "first_upgrade_route_band"),
+        string_counter(runs, "pacing", "first_non_pistol_upgrade_route_band"),
+    )
+    nearest_poi = first_nonempty_counter(
+        string_counter(runs, "economy", "first_upgrade_nearest_poi_role"),
+        string_counter(runs, "pacing", "first_non_pistol_upgrade_nearest_poi_role"),
+    )
+    nearest_route = first_nonempty_counter(
+        string_counter(runs, "economy", "first_upgrade_nearest_route_role"),
+        string_counter(runs, "pacing", "first_non_pistol_upgrade_nearest_route_role"),
+    )
+    if not any([weapons, poi_roles, poi_bands, route_roles, route_bands, nearest_poi, nearest_route]):
+        return
+    print("First upgrade context:")
+    print(f"  weapons=[{format_mix(weapons)}]")
+    print(
+        "  pickup source: "
+        f"poi_roles=[{format_mix(poi_roles)}], poi_bands=[{format_mix(poi_bands)}], "
+        f"route_roles=[{format_mix(route_roles)}], route_bands=[{format_mix(route_bands)}]"
+    )
+    print(
+        "  nearest source: "
+        f"poi=[{format_mix(nearest_poi)}], route=[{format_mix(nearest_route)}]"
+    )
+
+
 def print_interpretation(durations: list[float], target_min: float, target_max: float) -> None:
     current_avg = avg(durations)
     target_mid = (target_min + target_max) * 0.5
@@ -470,6 +521,7 @@ def main() -> int:
         args.target_min_seconds,
         args.target_max_seconds,
     )
+    print_first_upgrade_context(runs)
     print_opening_pressure(runs, first_contact)
     print("Movement pressure:")
     print(f"  CHASE context dwell: {format_mix(chase_context)}")

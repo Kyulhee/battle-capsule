@@ -102,6 +102,14 @@ func _verify_pacing_schema_and_hooks() -> bool:
 		"route_role": "primary_choke",
 		"route_id": "sluice_direct_crossing",
 	})
+	tel.log_pickup_location("collect", "weapon", {
+		"poi_role": "loot_hub",
+		"nearest_poi_role": "loot_hub",
+		"nearest_poi_edge_distance": 0.0,
+		"route_role": "primary_choke",
+		"nearest_route_role": "primary_choke",
+		"nearest_route_edge_distance": 0.0,
+	})
 	tel.log_pickup("shotgun", "weapon", false)
 	tel.set_stage(2)
 	tel.log_doctrine_chase_location(
@@ -206,6 +214,27 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if String(pacing.first_non_pistol_upgrade_weapon) != "shotgun":
 		tel.free()
 		return _fail("Pacing did not mirror first non-pistol upgrade.")
+	if String(pacing.first_non_pistol_upgrade_poi_role) != "loot_hub":
+		tel.free()
+		return _fail("Pacing did not record first upgrade POI role.")
+	if String(pacing.first_non_pistol_upgrade_poi_band) != "inside":
+		tel.free()
+		return _fail("Pacing did not record first upgrade POI band.")
+	if String(pacing.first_non_pistol_upgrade_route_role) != "primary_choke":
+		tel.free()
+		return _fail("Pacing did not record first upgrade route role.")
+	if String(pacing.first_non_pistol_upgrade_route_band) != "on_route":
+		tel.free()
+		return _fail("Pacing did not record first upgrade route band.")
+	if String(pacing.first_non_pistol_upgrade_nearest_route_role) != "primary_choke":
+		tel.free()
+		return _fail("Pacing did not record first upgrade nearest route role.")
+	if String(tel.metrics.economy.first_upgrade_poi_role) != "loot_hub":
+		tel.free()
+		return _fail("Economy did not record first upgrade POI role.")
+	if String(tel.metrics.economy.first_upgrade_route_role) != "primary_choke":
+		tel.free()
+		return _fail("Economy did not record first upgrade route role.")
 	if not pacing.stage_times.has("2"):
 		tel.free()
 		return _fail("Pacing did not record stage 2 timing.")

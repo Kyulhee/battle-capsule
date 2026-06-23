@@ -1,6 +1,6 @@
 # 다음 세션 핸드오프
 
-> 마지막 업데이트: 2026-06-23 (economy candidate rejection 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
+> 마지막 업데이트: 2026-06-23 (first-upgrade context telemetry 완료). 기존 긴 handoff는 제거했고, 새 관리자 권한 Codex 세션이 이어받는 데 필요한 내용만 남긴다.
 
 ## 먼저 확인할 것
 
@@ -12,12 +12,13 @@ Get-Location
 ```
 
 권한 상승 없이 성공하면 Windows sandbox 문제가 해결된 것이다. 실패하면서 `windows sandbox: spawn setup refresh`가 나오면 아직 VS Code/Codex 호스트가 비관리자 권한으로 떠 있는 상태다.
+현재 세션에서는 권한 상승 없는 shell이 `CreateProcessAsUserW failed: 1312`로 실패했지만, `sandbox_permissions: "require_escalated"` 명시 실행은 정상 동작했다. shell/git/Godot/Python 검증이 필요하면 권한 상승 명시를 우선 사용한다.
 
 ## 현재 Git 상태
 
 - 브랜치: `master`
 - 원격 최신 커밋은 `git log -1 --oneline origin/master` 또는 `git status -sb`로 확인한다.
-- 이번 세션 기준 완료 slice: `N2-PACE-26` economy candidate rejection.
+- 이번 세션 기준 완료 slice: `N2-PACE-27` first-upgrade context telemetry/report.
 - GitHub 저장소: <https://github.com/Kyulhee/battle-capsule>
 - 안정 릴리즈: <https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion>
 - 안정 태그: `v2.0.0-pre-expansion`
@@ -60,7 +61,22 @@ Get-Location
 
 ## 다음 작업
 
-현재 완료한 본 작업은 `N2-PACE-26` economy candidate rejection이다. `N2-PACE-25`는 stage2 entry timing은 유지한 채 stage2 이후 compression만 늘리는 비기본 `playable_pacing_v2`를 추가했다. `N2-PACE-26`은 v2 위에 단순 loot_count/hotspot/rare 축소 후보를 로컬로 검증했고, late-zone 결과가 후퇴해 폐기했다.
+현재 완료한 본 작업은 `N2-PACE-27` first-upgrade context telemetry/report다. `N2-PACE-25`는 stage2 entry timing은 유지한 채 stage2 이후 compression만 늘리는 비기본 `playable_pacing_v2`를 추가했다. `N2-PACE-26`은 v2 위에 단순 loot_count/hotspot/rare 축소 후보를 로컬로 검증했고, late-zone 결과가 후퇴해 폐기했다.
+
+`N2-PACE-27` 완료 범위:
+
+- `src/core/Telemetry.gd`: first upgrade context fields 추가, pickup call-order 방어.
+- `tools/verify_pacing_telemetry.gd`: synthetic pickup context assertion 추가.
+- `tools/analyze_results.py`: `First upgrade context` aggregate 출력 추가.
+- `tools/summarize_pacing_baseline.py`: `First upgrade context` report section 추가.
+
+`N2-PACE-27` 검증 결과:
+
+- `verify_pacing_telemetry.gd`, `py_compile`, `playable_pacing_v2` 3-run, analyzer, summarizer, scale gate 통과.
+- 출력: `C:\tmp\game_dev_first_upgrade_context_v1_3run`
+- 결과: avg duration 345.2s, first contact 19.2s, first kill 26.5s, first upgrade 40.5s, stage2 293.7s, stage3 none, scale gate PASS.
+- first upgrade는 shotgun 100%, context는 concealment_field 66.7% / loot_hub 33.3%, on-route 100%.
+- 다음 후보는 shotgun/non-pistol access를 context별로 늦추는 작은 변경이다. 단순 global loot_count/hotspot/rare 축소는 반복하지 않는다.
 
 폐기한 로컬 v3 후보는 커밋하지 않았다:
 

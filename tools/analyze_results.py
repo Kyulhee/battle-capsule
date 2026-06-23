@@ -260,6 +260,15 @@ def pacing_value_counter(results: list[dict], key: str) -> Counter:
     return counter
 
 
+def economy_value_counter(results: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for run in results:
+        value = str(run.get("economy", {}).get(key, "none"))
+        if value and value != "none":
+            counter[value] += 1
+    return counter
+
+
 def _sample_time(pacing: dict, key: str) -> str:
     try:
         value = float(pacing.get(key, -1.0))
@@ -472,6 +481,12 @@ if __name__ == "__main__":
     total_recover_deaths = sum(died_in_recover)
     weapon_pickups = Counter()
     first_upgrade_weapons = Counter()
+    first_upgrade_poi_roles = economy_value_counter(results, "first_upgrade_poi_role")
+    first_upgrade_poi_bands = economy_value_counter(results, "first_upgrade_poi_band")
+    first_upgrade_route_roles = economy_value_counter(results, "first_upgrade_route_role")
+    first_upgrade_route_bands = economy_value_counter(results, "first_upgrade_route_band")
+    first_upgrade_nearest_poi_roles = economy_value_counter(results, "first_upgrade_nearest_poi_role")
+    first_upgrade_nearest_route_roles = economy_value_counter(results, "first_upgrade_nearest_route_role")
     for r in results:
         economy = r.get("economy", {})
         weapon_pickups.update(economy.get("weapon_pickups", {}))
@@ -694,6 +709,22 @@ if __name__ == "__main__":
     if first_upgrade_weapons:
         first_parts = [f"{weapon}={count}" for weapon, count in sorted(first_upgrade_weapons.items())]
         print(f"First upgrade weapons: {', '.join(first_parts)}")
+    if (
+        first_upgrade_poi_roles
+        or first_upgrade_poi_bands
+        or first_upgrade_route_roles
+        or first_upgrade_route_bands
+    ):
+        print(
+            "First upgrade context: poi_roles=[{}], poi_bands=[{}], route_roles=[{}], route_bands=[{}], nearest_poi=[{}], nearest_route=[{}]".format(
+                format_counter_mix(first_upgrade_poi_roles),
+                format_counter_mix(first_upgrade_poi_bands),
+                format_counter_mix(first_upgrade_route_roles),
+                format_counter_mix(first_upgrade_route_bands),
+                format_counter_mix(first_upgrade_nearest_poi_roles),
+                format_counter_mix(first_upgrade_nearest_route_roles),
+            )
+        )
     if weapon_pickups:
         pickup_parts = [f"{weapon}={count}" for weapon, count in sorted(weapon_pickups.items())]
         print(f"Weapon pickups: {', '.join(pickup_parts)}")

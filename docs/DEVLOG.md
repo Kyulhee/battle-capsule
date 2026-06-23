@@ -6,6 +6,16 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## N2-PACE-27 First-Upgrade Context Telemetry
+
+- Scope: diagnostic-only telemetry/reporting for first non-pistol upgrade weapon plus POI/route/nearest context. No gameplay, map, economy, zone, spawn, or AI values changed.
+- Verification: `verify_pacing_telemetry.gd`, `py_compile`, `playable_pacing_v2` 3-run, analyzer, summarizer, and scale gate passed.
+- Result (`C:\tmp\game_dev_first_upgrade_context_v1_3run`): avg duration 345.2s, first contact 19.2s, first kill 26.5s, first upgrade 40.5s, stage2 293.7s, stage3 none, scale gate PASS.
+- First upgrade read: shotgun 100%; context was concealment_field 66.7% / loot_hub 33.3%, on-route 100%.
+- Decision: next candidate should target shotgun/non-pistol access in context, not repeat global `loot_count` / `hotspot_density_mult` / `rare_bias_mult` cuts rejected by N2-PACE-26.
+
+---
+
 ## v2 Playable Pacing Economy Candidate Rejection
 
 **Scope**

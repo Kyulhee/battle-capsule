@@ -1,6 +1,6 @@
 # 배틀캡슐 테스팅 가이드
 
-> 마지막 업데이트: 2026-06-23 (playable_pacing_v2 late-zone candidate 추가)
+> 마지막 업데이트: 2026-06-23 (first-upgrade context telemetry 검증 완료)
 
 > ⚠️ **중요: 체크리스트 기준 변경 금지**
 > 이 파일의 체크리스트 기준값(임계치, pass/fail 조건)은 **반드시 개발자와 상의 후에만** 수정한다.
@@ -102,6 +102,7 @@ python tools/analyze_results.py C:\tmp\game_dev_night_candidate_99_probe_v1
 
 # v2.0 Night playable pacing candidate smoke
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd
+./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd
 ./Godot_v4.6.2-stable_win64_console.exe --headless --path . --quit -- map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v1
@@ -114,10 +115,17 @@ python tools/simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest
 python tools/analyze_results.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run
 python tools/summarize_pacing_baseline.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run
 python tools/check_scale_telemetry.py C:\tmp\game_dev_playable_pacing_v2_late_zone_v1_3run --min-runs 3
+# first-upgrade context diagnostic rerun:
+python -m py_compile tools/analyze_results.py tools/summarize_pacing_baseline.py
+python tools/simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v2 out_dir=C:\tmp\game_dev_first_upgrade_context_v1_3run
+python tools/analyze_results.py C:\tmp\game_dev_first_upgrade_context_v1_3run
+python tools/summarize_pacing_baseline.py C:\tmp\game_dev_first_upgrade_context_v1_3run
+python tools/check_scale_telemetry.py C:\tmp\game_dev_first_upgrade_context_v1_3run --min-runs 3
 # playable_pacing_v1 is not the default preset and does not replace target_99_probe.
 # A no-first-upgrade 3-run candidate is economy starvation; fix the preset, do not lower the gate.
 # summarize_pacing_baseline.py prints opening pressure: spawn fallback, nearest spacing, saturation, attempts, and sub-5s first-contact read.
 # summarize_pacing_baseline.py also prints Phase gap read against the Night BR watch bands before changing zone, loot, or combat numbers.
+# analyze_results.py and summarize_pacing_baseline.py print First upgrade context when the telemetry schema is present.
 # analyze_results.py and summarize_pacing_baseline.py also print first target acquisition time/source/state/distance before first contact.
 # They also print the first objective interrupt source/kind/need/match plus enemy/objective distance when present.
 # For mixed opening reads, both tools print per-run first acquisition samples with source/state/distance, target/self bands, zone ratio/status, spawn age, contact, and objective-interrupt distances.
