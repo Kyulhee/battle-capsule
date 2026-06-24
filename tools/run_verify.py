@@ -83,6 +83,19 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path) -> list[S
             ),
         ]
 
+    if profile == "pacing_v3":
+        out_dir = out_root / "game_dev_verify_pacing_v3"
+        return [
+            *profile_steps("unit_smoke", godot, runs, out_root),
+            simulate_step(runs, "playable_pacing_v3", out_dir),
+            Step("analyze pacing_v3", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
+            Step("summarize pacing_v3", [sys.executable, rel("tools/summarize_pacing_baseline.py"), str(out_dir)]),
+            Step(
+                "scale gate pacing_v3",
+                [sys.executable, rel("tools/check_scale_telemetry.py"), str(out_dir), "--min-runs", str(runs)],
+            ),
+        ]
+
     if profile == "scale_99":
         out_dir = out_root / "game_dev_verify_scale_99"
         return [
@@ -125,7 +138,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run Battle Capsule verification profiles.")
     parser.add_argument(
         "--profile",
-        choices=["docs_only", "tooling", "unit_smoke", "pacing_v2", "scale_99", "visual_review"],
+        choices=["docs_only", "tooling", "unit_smoke", "pacing_v2", "pacing_v3", "scale_99", "visual_review"],
         required=True,
     )
     parser.add_argument("--runs", type=int, default=3, help="Run count for simulation profiles.")

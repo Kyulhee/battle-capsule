@@ -14,9 +14,11 @@
 | D-006 | 1m hard-bump exception remains allowed | It is treated as collision/readability, judged by contact gap | A dedicated opening collision redesign is planned |
 | D-007 | Generated source pools stay untracked | `asset_generator/` and `plan_report/` are input/reference pools, not runtime content | User asks to integrate selected assets |
 | D-008 | Active docs must optimize next action, not history | Long logs already slowed development | A historical audit explicitly needs full detail |
+| D-009 | Role-specific initial weapon multipliers are allowed only as non-default pacing experiments | N2-PACE-28 targeted first-upgrade context without repeating global economy cuts | A promoted candidate needs manual playtest and pacing evidence |
 
 ## Current Design Bias
 
 - Prefer milestone-level decisions over endless micro-slices.
 - Prefer a playable vertical loop over more diagnostic fields unless the next decision cannot be made without data.
 - Prefer small targeted gameplay candidates over broad global tuning when previous broad tuning regressed another milestone.
+- Keep `playable_pacing_v2` as the late-zone reference until a candidate beats it on both pacing evidence and feel.

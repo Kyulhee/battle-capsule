@@ -24,6 +24,7 @@ const DEFAULTS := {
 		"stage_wave_count_mult": 10,
 		"hotspot_density_mult": 1.0,
 		"rare_bias_mult": 1.0,
+		"role_weapon_chance_mult": {},
 	},
 	"supply_fallback": {
 		"range": 25.0,
@@ -92,7 +93,19 @@ static func _sanitize_loot(loot_tuning: Dictionary) -> Dictionary:
 		"stage_wave_count_mult": max(0, int(loot_tuning.get("stage_wave_count_mult", 10))),
 		"hotspot_density_mult": maxf(0.0, float(loot_tuning.get("hotspot_density_mult", 1.0))),
 		"rare_bias_mult": maxf(0.0, float(loot_tuning.get("rare_bias_mult", 1.0))),
+		"role_weapon_chance_mult": _sanitize_role_float_dict(loot_tuning.get("role_weapon_chance_mult", {})),
 	}
+
+static func _sanitize_role_float_dict(source) -> Dictionary:
+	var sanitized: Dictionary = {}
+	if typeof(source) != TYPE_DICTIONARY:
+		return sanitized
+	for key in source.keys():
+		var role := String(key).strip_edges()
+		if role.is_empty():
+			continue
+		sanitized[role] = maxf(0.0, float(source[key]))
+	return sanitized
 
 static func _sanitize_supply_fallback(supply_tuning: Dictionary) -> Dictionary:
 	return {

@@ -4,6 +4,7 @@ extends RefCounted
 var loot_count: int = 40
 var hotspot_density_mult: float = 1.0
 var rare_bias_mult: float = 1.0
+var role_weapon_chance_mult: Dictionary = {}
 var hotspots: Array[Dictionary] = []
 
 func configure_count(value: int) -> void:
@@ -14,6 +15,14 @@ func configure_density_multiplier(value: float) -> void:
 
 func configure_rare_bias_multiplier(value: float) -> void:
 	rare_bias_mult = maxf(0.0, value)
+
+func configure_role_weapon_chance_multipliers(values: Dictionary) -> void:
+	role_weapon_chance_mult.clear()
+	for key in values.keys():
+		var role := String(key).strip_edges()
+		if role.is_empty():
+			continue
+		role_weapon_chance_mult[role] = maxf(0.0, float(values[key]))
 
 func register_from_map_spec(map_spec) -> void:
 	hotspots.clear()
@@ -38,7 +47,11 @@ func spawn_count(prob: float, count_mult: int = 1) -> int:
 func initial_weapon_chance(hotspot: Dictionary) -> float:
 	var density = float(hotspot.get("density", 0.5))
 	var rare_bias = float(hotspot.get("rare_bias", 0.0))
-	return clampf(0.01 + density * 0.045 + rare_bias * 0.035, 0.02, 0.08)
+	var chance := clampf(0.01 + density * 0.045 + rare_bias * 0.035, 0.02, 0.08)
+	var role := String(hotspot.get("role", ""))
+	if role_weapon_chance_mult.has(role):
+		chance *= float(role_weapon_chance_mult[role])
+	return clampf(chance, 0.0, 0.08)
 
 func initial_consumable_count(hotspot: Dictionary) -> int:
 	var density = float(hotspot.get("density", 0.5))

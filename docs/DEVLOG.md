@@ -1,14 +1,24 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-23. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-24. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
 
 ---
 
+## N2-PACE-28 Role-Based First-Upgrade Candidate
+
+- Scope: added non-default `playable_pacing_v3` plus `runtime.loot.role_weapon_chance_mult` so initial weapon access can be lowered by POI role without changing global loot count, rare bias, wave rate, spawn, or zone timing.
+- Candidate: `concealment_field` initial weapon chance x0.55 and `loot_hub` x0.75 on top of `playable_pacing_v2`.
+- Verification: `python tools\run_verify.py --profile pacing_v3 --runs 3 --out-root C:\tmp\game_dev_N2_PACE_28_v3` passed.
+- Result (`C:\tmp\game_dev_N2_PACE_28_v3\game_dev_verify_pacing_v3`): avg duration 327.9s, first contact 17.5s, first kill 25.8s, first upgrade 56.7s, stage2 277.7s, stage3 none, scale gate PASS.
+- Read: first upgrade moved from concealment/loot-hub to transit_choke 100%, still on-route 100%, with shotgun 66.7% / AR 33.3%. Keep this as a diagnostic candidate, not a promoted replacement for `playable_pacing_v2`.
+
+---
+
 ## N2-OPS-02 Verification Profile Runner
 
-- Scope: added `tools/run_verify.py` as a single entry point for `docs_only`, `tooling`, `unit_smoke`, `pacing_v2`, `scale_99`, and `visual_review` verification profiles.
+- Scope: added `tools/run_verify.py` as a single entry point for `docs_only`, `tooling`, `unit_smoke`, `pacing_v2`, `pacing_v3`, `scale_99`, and `visual_review` verification profiles.
 - Updated `TESTING.md` and `CURRENT.md` so future work chooses a profile instead of copying long command blocks into active planning.
 - Verification: `docs_only`, `tooling`, and `unit_smoke` profiles passed; `pacing_v2 --dry-run` passed for long-run command wiring.
 - Decision: use the smallest profile that matches the slice; reserve `pacing_v2` and `scale_99` for gameplay/scale changes because they run simulations.

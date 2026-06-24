@@ -6,8 +6,8 @@
 
 | Track | State | Goal |
 |---|---|---|
-| M0 Ops Reset | Active | Make the solo-dev workflow fast enough for larger feature decisions |
-| M1 First Playable Night BR | Next | A full match loop that feels readable, tense, and playable before final balance |
+| M0 Ops Reset | Supporting | Make the solo-dev workflow fast enough for larger feature decisions |
+| M1 First Playable Night BR | Active | A full match loop that feels readable, tense, and playable before final balance |
 | M2 Vertical Slice | Planned | One representative Night BR slice with map, night readability, loot, combat, zone, and UI working together |
 | M3 Content Stabilization | Later | Tune, polish, and expand after the core loop proves itself |
 
@@ -15,8 +15,8 @@
 
 | Item | Value |
 |---|---|
-| Active slice | N2-PACE-28 first-upgrade candidate design |
-| Latest verified gameplay slice | N2-PACE-27 first-upgrade context telemetry/report |
+| Active slice | N2-PACE-29 transit-choke upgrade source follow-up |
+| Latest verified gameplay slice | N2-PACE-28 role-based first-upgrade diagnostic candidate |
 | Current branch note | Local `master` may have unpushed commits; check `git status -sb`. Push needs explicit approval |
 | Execution note | Use elevated shell commands when local sandbox fails with `CreateProcessAsUserW failed: 1312` |
 
@@ -33,8 +33,9 @@
 |---|---|---|
 | P0 | Finish N2-OPS-01 doc routing | Done: tracker docs are the default reading path |
 | P1 | Add verification profiles | Done: `tools/run_verify.py --profile ...` covers docs/tooling/unit/pacing/scale/visual gates |
-| P2 | Design first-upgrade candidate | Use N2-PACE-27 context: shotgun, concealment_field/loot_hub, on-route |
-| P3 | Run manual visual/playtest pass | Record qualitative read in `PLAYTEST.md` before deep numeric tuning |
+| P2 | Design first-upgrade candidate | Done: N2-PACE-28 `playable_pacing_v3` role multiplier candidate passed, but is diagnostic only |
+| P3 | Isolate next upgrade source | N2-PACE-28 moved first upgrade to transit_choke/on-route; target route/weapon access without global economy cuts |
+| P4 | Run manual visual/playtest pass | Record qualitative read in `PLAYTEST.md` before promoting pacing candidates |
 
 ## Risk Board
 

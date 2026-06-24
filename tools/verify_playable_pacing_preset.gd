@@ -5,7 +5,8 @@ const CANDIDATE_PATH := "res://data/mapSpec_night_forest_candidate.json"
 const STRUCTURAL_PRESET := "target_99_probe"
 const PLAYABLE_BASELINE_PRESET := "playable_pacing_v1"
 const PLAYABLE_LATE_ZONE_PRESET := "playable_pacing_v2"
-const PLAYABLE_PRESETS := [PLAYABLE_BASELINE_PRESET, PLAYABLE_LATE_ZONE_PRESET]
+const PLAYABLE_FIRST_UPGRADE_PRESET := "playable_pacing_v3"
+const PLAYABLE_PRESETS := [PLAYABLE_BASELINE_PRESET, PLAYABLE_LATE_ZONE_PRESET, PLAYABLE_FIRST_UPGRADE_PRESET]
 
 
 func _init():
@@ -40,6 +41,11 @@ func _init():
 	var target_loot: Dictionary = runtime_tuning_script.loot(target_runtime)
 	var target_zone: Dictionary = candidate.get_zone_tuning(game_config, {}, STRUCTURAL_PRESET)
 	var baseline_zone: Dictionary = candidate.get_zone_tuning(game_config, {}, PLAYABLE_BASELINE_PRESET)
+	var late_zone_match: Dictionary = candidate.get_match_tuning(game_config, {}, PLAYABLE_LATE_ZONE_PRESET)
+	var late_zone_runtime: Dictionary = candidate.get_runtime_tuning(game_config, {}, PLAYABLE_LATE_ZONE_PRESET)
+	var late_zone_spawn: Dictionary = runtime_tuning_script.spawn(late_zone_runtime)
+	var late_zone_loot: Dictionary = runtime_tuning_script.loot(late_zone_runtime)
+	var late_zone_zone: Dictionary = candidate.get_zone_tuning(game_config, {}, PLAYABLE_LATE_ZONE_PRESET)
 
 	for preset_name in PLAYABLE_PRESETS:
 		var issues: Array = candidate.validate(game_config, preset_name)
@@ -64,6 +70,18 @@ func _init():
 		if not _verify_spawn(preset_name, playable_spawn, playable_match):
 			return
 		if preset_name == PLAYABLE_LATE_ZONE_PRESET and not _verify_late_zone_candidate(preset_name, playable_zone, baseline_zone):
+			return
+		if preset_name == PLAYABLE_FIRST_UPGRADE_PRESET and not _verify_first_upgrade_candidate(
+			preset_name,
+			playable_match,
+			playable_spawn,
+			playable_loot,
+			playable_zone,
+			late_zone_match,
+			late_zone_spawn,
+			late_zone_loot,
+			late_zone_zone
+		):
 			return
 
 		print("%s smoke passed: bots=%d loot=%d initial=%.1f stage2=%.1f/%.1f." % [
@@ -175,6 +193,56 @@ func _verify_late_zone_candidate(preset_name: String, playable: Dictionary, base
 			return _fail_bool("%s should extend stage %s shrink time versus %s." % [preset_name, stage_key, PLAYABLE_BASELINE_PRESET])
 		if float(playable_stage.get("damage_per_second", 0.0)) > float(baseline_stage.get("damage_per_second", 0.0)):
 			return _fail_bool("%s should not raise stage %s damage versus %s." % [preset_name, stage_key, PLAYABLE_BASELINE_PRESET])
+	return true
+
+
+func _verify_first_upgrade_candidate(
+	preset_name: String,
+	playable_match: Dictionary,
+	playable_spawn: Dictionary,
+	playable_loot: Dictionary,
+	playable_zone: Dictionary,
+	late_zone_match: Dictionary,
+	late_zone_spawn: Dictionary,
+	late_zone_loot: Dictionary,
+	late_zone_zone: Dictionary
+) -> bool:
+	for key in ["bot_count", "loot_count", "spawn_radius"]:
+		if absf(float(playable_match.get(key, 0.0)) - float(late_zone_match.get(key, -1.0))) > 0.001:
+			return _fail_bool("%s should keep %s from %s." % [preset_name, key, PLAYABLE_LATE_ZONE_PRESET])
+	for key in ["safe_spawn_attempts", "inner_radius", "entity_clearance"]:
+		if absf(float(playable_spawn.get(key, 0.0)) - float(late_zone_spawn.get(key, -1.0))) > 0.001:
+			return _fail_bool("%s should keep spawn.%s from %s." % [preset_name, key, PLAYABLE_LATE_ZONE_PRESET])
+	for key in ["stage_wave_base_prob", "stage_wave_prob_per_stage", "stage_wave_count_mult", "hotspot_density_mult", "rare_bias_mult"]:
+		if absf(float(playable_loot.get(key, 0.0)) - float(late_zone_loot.get(key, -1.0))) > 0.001:
+			return _fail_bool("%s should keep loot.%s from %s." % [preset_name, key, PLAYABLE_LATE_ZONE_PRESET])
+	for key in ["initial_radius", "initial_timer", "wait_time", "shrink_time", "damage_per_second"]:
+		if absf(float(playable_zone.get(key, 0.0)) - float(late_zone_zone.get(key, -1.0))) > 0.001:
+			return _fail_bool("%s should keep zone.%s from %s." % [preset_name, key, PLAYABLE_LATE_ZONE_PRESET])
+	var playable_stages: Dictionary = playable_zone.get("stages", {})
+	var late_zone_stages: Dictionary = late_zone_zone.get("stages", {})
+	for stage_key in ["2", "3", "4", "5"]:
+		var playable_stage: Dictionary = playable_stages.get(stage_key, {})
+		var late_zone_stage: Dictionary = late_zone_stages.get(stage_key, {})
+		for key in ["wait_time", "shrink_time", "damage_per_second"]:
+			if absf(float(playable_stage.get(key, 0.0)) - float(late_zone_stage.get(key, -1.0))) > 0.001:
+				return _fail_bool("%s should keep zone stage %s %s from %s." % [preset_name, stage_key, key, PLAYABLE_LATE_ZONE_PRESET])
+
+	var role_mult_variant = playable_loot.get("role_weapon_chance_mult", {})
+	if typeof(role_mult_variant) != TYPE_DICTIONARY:
+		return _fail_bool("%s role_weapon_chance_mult should be a dictionary." % preset_name)
+	var role_mult: Dictionary = role_mult_variant
+	for role in ["concealment_field", "loot_hub"]:
+		if not role_mult.has(role):
+			return _fail_bool("%s should tune initial weapon access for %s." % [preset_name, role])
+		var value := float(role_mult[role])
+		if value <= 0.0 or value >= 1.0:
+			return _fail_bool("%s %s multiplier %.2f should reduce without disabling." % [preset_name, role, value])
+	if float(role_mult["concealment_field"]) > float(role_mult["loot_hub"]):
+		return _fail_bool("%s should reduce concealment initial weapons at least as much as loot hubs." % preset_name)
+	for role in ["transit_choke", "recovery_pocket"]:
+		if role_mult.has(role) and absf(float(role_mult[role]) - 1.0) > 0.001:
+			return _fail_bool("%s should not tune %s in the first-upgrade context candidate." % [preset_name, role])
 	return true
 
 

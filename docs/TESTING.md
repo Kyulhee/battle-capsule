@@ -31,6 +31,7 @@ python tools\run_verify.py --profile docs_only
 python tools\run_verify.py --profile tooling
 python tools\run_verify.py --profile unit_smoke
 python tools\run_verify.py --profile pacing_v2
+python tools\run_verify.py --profile pacing_v3
 python tools\run_verify.py --profile scale_99
 python tools\run_verify.py --profile visual_review
 ```
@@ -41,6 +42,7 @@ python tools\run_verify.py --profile visual_review
 | `tooling` | Python report/check scripts change | `git diff --check`; `python -m py_compile <changed scripts>` |
 | `unit_smoke` | GDScript verifier or small logic change | Relevant `tools/verify_*.gd`; `git diff --check` |
 | `pacing_v2` | Night BR playable pacing changes | relevant verifiers; 3-run `playable_pacing_v2`; analyze; summarize; scale gate |
+| `pacing_v3` | First-upgrade diagnostic candidates on top of v2 | relevant verifiers; 3-run `playable_pacing_v3`; analyze; summarize; scale gate |
 | `scale_99` | 99-player structural gate changes | `target_99_probe` 3-run; analyze; scale gate |
 | `visual_review` | Player-facing readability/UI/map feel | normal renderer `visual_review`; optional capture; `PLAYTEST.md` note |
 | `release_candidate` | Explicit release/build request only | full smoke set, export/build, release notes |
