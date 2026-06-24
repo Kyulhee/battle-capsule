@@ -8,7 +8,7 @@
 |---|---|
 | Build surface | `mapSpec_night_forest_candidate.json` |
 | Preferred preset | `visual_review` for manual feel; `playable_pacing_v2` for automated pacing |
-| Current focus | Night readability, opening pressure, transit-choke first upgrade access, stage2-to-stage3 transition |
+| Current focus | Night readability, opening pressure, initial/wave non-pistol access, stage2-to-stage3 transition |
 
 ## Manual Pass Checklist
 

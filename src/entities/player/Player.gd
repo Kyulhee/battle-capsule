@@ -739,7 +739,7 @@ func _drop_on_death():
 		var wp = PICKUP_SCN.instantiate()
 		get_tree().root.add_child(wp)
 		wp.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
-		wp.init(item)
+		wp.init(item, "player_drop")
 		var total_ammo = slots.slot_ammo[i] + slots.slot_reserve[i]
 		if total_ammo > 0:
 			var ammo_item = ItemData.new()
@@ -752,7 +752,7 @@ func _drop_on_death():
 			var ap = PICKUP_SCN.instantiate()
 			get_tree().root.add_child(ap)
 			ap.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
-			ap.init(ammo_item)
+			ap.init(ammo_item, "player_drop")
 	if stats.heal_items > 0:
 		var heal_item = ItemData.new()
 		heal_item.type = ItemData.Type.HEAL
@@ -763,7 +763,7 @@ func _drop_on_death():
 		var hp = PICKUP_SCN.instantiate()
 		get_tree().root.add_child(hp)
 		hp.global_position = global_position + Vector3(0, 0.3, 0)
-		hp.init(heal_item)
+		hp.init(heal_item, "player_drop")
 	if stats.advanced_heals > 0:
 		var adv_item = ItemData.new()
 		adv_item.type = ItemData.Type.HEAL
@@ -774,7 +774,7 @@ func _drop_on_death():
 		var ap2 = PICKUP_SCN.instantiate()
 		get_tree().root.add_child(ap2)
 		ap2.global_position = global_position + Vector3(0, 0.3, 0.5)
-		ap2.init(adv_item)
+		ap2.init(adv_item, "player_drop")
 
 func _reveal_for_fire(weapon_type: String) -> void:
 	if weapon_type != "knife" and _artifact_runtime.is_ghost_grass_active():

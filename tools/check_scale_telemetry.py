@@ -59,7 +59,7 @@ def main() -> int:
     parser.add_argument("--min-avg-duration", type=float, default=70.0)
     parser.add_argument("--max-runs-under-60", type=int, default=0)
     parser.add_argument("--min-avg-first-upgrade", type=float, default=10.0)
-    parser.add_argument("--max-avg-first-upgrade", type=float, default=60.0)
+    parser.add_argument("--max-avg-first-upgrade", type=float, default=300.0)
     parser.add_argument("--max-avg-stuck", type=float, default=60.0)
     parser.add_argument("--max-avg-disengage", type=float, default=130.0)
     parser.add_argument("--long-run-normalized-after", type=float, default=300.0)

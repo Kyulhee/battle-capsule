@@ -481,6 +481,7 @@ if __name__ == "__main__":
     total_recover_deaths = sum(died_in_recover)
     weapon_pickups = Counter()
     first_upgrade_weapons = Counter()
+    first_upgrade_sources = economy_value_counter(results, "first_upgrade_source")
     first_upgrade_poi_roles = economy_value_counter(results, "first_upgrade_poi_role")
     first_upgrade_poi_bands = economy_value_counter(results, "first_upgrade_poi_band")
     first_upgrade_route_roles = economy_value_counter(results, "first_upgrade_route_role")
@@ -709,6 +710,8 @@ if __name__ == "__main__":
     if first_upgrade_weapons:
         first_parts = [f"{weapon}={count}" for weapon, count in sorted(first_upgrade_weapons.items())]
         print(f"First upgrade weapons: {', '.join(first_parts)}")
+    if first_upgrade_sources:
+        print(f"First upgrade sources: {format_counter_mix(first_upgrade_sources)}")
     if (
         first_upgrade_poi_roles
         or first_upgrade_poi_bands

@@ -10,14 +10,15 @@
 | E-002 | Can simple global economy cuts delay first upgrade safely? | N2-PACE-26: first upgrade 56.0s, but avg duration 454.1s and stage3 disappeared | Rejected as next lever |
 | E-003 | Where does first upgrade happen under v2? | N2-PACE-27: shotgun 100%, concealment_field 66.7% / loot_hub 33.3%, on-route 100% | Target shotgun/non-pistol access in context |
 | E-004 | Is hard-bump acquisition immediate combat pressure? | N2-PACE-23 policy: read contact gap, not acquisition alone | Keep exception unless redesigning opening collision |
-| E-005 | Can role-specific initial weapon access delay first upgrade safely? | N2-PACE-28 `playable_pacing_v3`: avg 327.9s, first upgrade 56.7s, stage2 277.7s, scale PASS; context moved to transit_choke 100% | Keep as diagnostic candidate, not promoted over v2 |
+| E-005 | Can role-specific initial weapon access delay first upgrade safely? | N2-PACE-29 corrected game-time: avg 579.2s, first upgrade 97.4s, stage2 274.1s, stage3 642.0s; source initial_loot 66.7% / stage_wave 33.3% | Keep as diagnostic candidate, next target map/wave non-pistol access |
 
 ## Rejected Patterns
 
 | Pattern | Rejection Signal | Do Not Repeat Until |
 |---|---|---|
 | Global loot_count/hotspot/rare reduction | Delayed first upgrade but regressed duration and stage3 | A targeted route/weapon-source reason proves global economy is still the bottleneck |
-| Treating concealment/loot-hub role multipliers as complete fix | N2-PACE-28 moved first upgrade to transit_choke but still averaged 56.7s | Transit_choke/on-route source is addressed |
+| Treating concealment/loot-hub role multipliers as complete fix | N2-PACE-29 corrected read still has first upgrade at 97.4s before the 120s floor | Map/wave non-pistol source is addressed |
+| Tuning bot weapon drops for first-upgrade timing | N2-PACE-29 source read did not implicate bot drops | Pickup source telemetry shows bot_drop first upgrades |
 | Spawn-spacing-only opening fix | Improved distance but did not solve contact and risked no-upgrade/stuck regressions | A map/nav reason is proven |
 | Moving stage2 earlier/later to solve match length | Stage2 is already inside the watch band in playable samples | Late-zone and match-end gap are isolated |
 | Lowering structural gates to pass | Gates caught real fallback/stuck/sentinel risks | A new gate definition is approved |

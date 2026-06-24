@@ -15,6 +15,7 @@
 | D-007 | Generated source pools stay untracked | `asset_generator/` and `plan_report/` are input/reference pools, not runtime content | User asks to integrate selected assets |
 | D-008 | Active docs must optimize next action, not history | Long logs already slowed development | A historical audit explicitly needs full detail |
 | D-009 | Role-specific initial weapon multipliers are allowed only as non-default pacing experiments | N2-PACE-28 targeted first-upgrade context without repeating global economy cuts | A promoted candidate needs manual playtest and pacing evidence |
+| D-010 | First-upgrade telemetry is game-time, not wall-clock time | N2-PACE-29 found economy first_upgrade used real seconds while other pacing milestones used game seconds | A new canonical time basis is approved |
 
 ## Current Design Bias
 
@@ -22,3 +23,4 @@
 - Prefer a playable vertical loop over more diagnostic fields unless the next decision cannot be made without data.
 - Prefer small targeted gameplay candidates over broad global tuning when previous broad tuning regressed another milestone.
 - Keep `playable_pacing_v2` as the late-zone reference until a candidate beats it on both pacing evidence and feel.
+- Treat old first-upgrade seconds before N2-PACE-29 as suspect for timing, though their weapon/POI/route context can still inform diagnosis.

@@ -16,6 +16,7 @@ var _focused: bool = false
 var _light: OmniLight3D = null
 var _light_base_energy: float = 0.0
 var _light_base_range: float = 0.0
+var _spawn_source: String = "unknown"
 
 func _ready():
 	add_to_group("pickups")
@@ -44,8 +45,11 @@ func set_focused(value: bool) -> void:
 	_update_focus_marker_visibility(visible)
 	_update_light_lod(get_tree().get_first_node_in_group("players"), visible)
 
-func init(data: ItemData):
+func init(data: ItemData, spawn_source: String = "unknown"):
 	item = data
+	_spawn_source = spawn_source.strip_edges().to_lower()
+	if _spawn_source == "":
+		_spawn_source = "unknown"
 	if is_inside_tree():
 		_update_visuals()
 
@@ -338,7 +342,8 @@ func _log_pickup_location(event_name: String) -> void:
 	tel.log_pickup_location(
 		event_name,
 		ItemData.Type.keys()[item.type].to_lower(),
-		_strategic_position_context()
+		_strategic_position_context(),
+		_spawn_source
 	)
 
 func log_spawn_location() -> void:

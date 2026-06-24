@@ -162,10 +162,13 @@ func _reset_metrics():
 			"pickup_collect_route_role_by_kind": {},
 			"pickup_spawn_poi_band_by_kind": {},
 			"pickup_spawn_route_band_by_kind": {},
+			"pickup_spawn_source_by_kind": {},
 			"pickup_collect_poi_band_by_kind": {},
 			"pickup_collect_route_band_by_kind": {},
+			"pickup_collect_source_by_kind": {},
 			"first_upgrade_time": -1.0,
 			"first_upgrade_weapon": "none",
+			"first_upgrade_source": "none",
 			"first_upgrade_poi_role": "none",
 			"first_upgrade_poi_band": "none",
 			"first_upgrade_route_role": "none",
@@ -228,6 +231,7 @@ func _reset_metrics():
 			"first_kill_time": -1.0,
 			"first_non_pistol_upgrade_time": -1.0,
 			"first_non_pistol_upgrade_weapon": "none",
+			"first_non_pistol_upgrade_source": "none",
 			"first_non_pistol_upgrade_poi_role": "none",
 			"first_non_pistol_upgrade_poi_band": "none",
 			"first_non_pistol_upgrade_route_role": "none",
@@ -544,7 +548,7 @@ func log_combat_audit(event: String, value: float = 0.0):
 
 func log_pickup(item_name: String, item_type: String, is_rare: bool):
 	if not match_in_progress or not _g("economy"): return
-	var elapsed = (Time.get_ticks_msec() - _start_tick) / 1000.0
+	var elapsed = _elapsed_seconds()
 	if item_type == "weapon":
 		var w = _norm_weapon(item_name)
 		metrics.economy.weapon_pickups[w] = metrics.economy.weapon_pickups.get(w, 0) + 1
@@ -559,7 +563,7 @@ func log_pickup(item_name: String, item_type: String, is_rare: bool):
 	if is_rare:
 		metrics.economy.rare_pickups += 1
 
-func log_pickup_location(event_name: String, item_type: String, context: Dictionary):
+func log_pickup_location(event_name: String, item_type: String, context: Dictionary, source_name: String = "unknown"):
 	if not match_in_progress or not _g("economy"): return
 	var event_key = event_name.strip_edges().to_lower()
 	if event_key != "spawn" and event_key != "collect":
@@ -572,6 +576,10 @@ func log_pickup_location(event_name: String, item_type: String, context: Diction
 	var route_key = "pickup_%s_route_role_by_kind" % event_key
 	var poi_band_key = "pickup_%s_poi_band_by_kind" % event_key
 	var route_band_key = "pickup_%s_route_band_by_kind" % event_key
+	var source_key = "pickup_%s_source_by_kind" % event_key
+	var source_value = source_name.strip_edges().to_lower()
+	if source_value == "":
+		source_value = "unknown"
 	if metrics.economy.has(count_key):
 		_add_bucket_value(metrics.economy[count_key], kind, 1.0)
 	if metrics.economy.has(poi_key):
@@ -602,9 +610,17 @@ func log_pickup_location(event_name: String, item_type: String, context: Diction
 			_route_distance_band(context),
 			1.0
 		)
+	if metrics.economy.has(source_key):
+		_add_nested_bucket_value(
+			metrics.economy[source_key],
+			kind,
+			source_value,
+			1.0
+		)
 	if event_key == "collect" and kind == "weapon":
+		context["source"] = source_value
 		_pending_weapon_collect_context = context.duplicate(true)
-		_pending_weapon_collect_elapsed = (Time.get_ticks_msec() - _start_tick) / 1000.0
+		_pending_weapon_collect_elapsed = _elapsed_seconds()
 		if float(metrics.economy.get("first_upgrade_time", -1.0)) >= 0.0:
 			_record_first_upgrade_context(context)
 
@@ -1285,8 +1301,10 @@ func _print_report():
 			metrics.economy.heals_used, metrics.economy.shields_picked, metrics.economy.rare_pickups
 		])
 		if metrics.economy.first_upgrade_time >= 0:
-			print("  First upgrade: %s at %.1fs" % [
-				metrics.economy.first_upgrade_weapon, metrics.economy.first_upgrade_time
+			print("  First upgrade: %s from %s at %.1fs" % [
+				metrics.economy.first_upgrade_weapon,
+				metrics.economy.first_upgrade_source,
+				metrics.economy.first_upgrade_time,
 			])
 			print("  First upgrade context: poi=%s/%s route=%s/%s nearest=%s/%s" % [
 				metrics.economy.first_upgrade_poi_role,
@@ -1316,8 +1334,9 @@ func _print_report():
 			float(metrics.pacing.first_target_acquisition_time),
 			float(metrics.pacing.first_target_acquisition_distance),
 		])
-		print("  First upgrade: %s at %.1fs" % [
+		print("  First upgrade: %s from %s at %.1fs" % [
 			metrics.pacing.first_non_pistol_upgrade_weapon,
+			metrics.pacing.first_non_pistol_upgrade_source,
 			float(metrics.pacing.first_non_pistol_upgrade_time),
 		])
 		print("  First upgrade context: poi=%s/%s route=%s/%s nearest=%s/%s" % [
@@ -1455,7 +1474,9 @@ func _record_first_upgrade_context(context: Dictionary):
 	var route_role := String(context.get("route_role", "off_route"))
 	var nearest_poi_role := String(context.get("nearest_poi_role", "none"))
 	var nearest_route_role := _nearest_route_role_key(context, route_band)
+	var source := String(context.get("source", "unknown"))
 	if _g("economy") and String(metrics.economy.get("first_upgrade_poi_role", "none")) == "none":
+		metrics.economy.first_upgrade_source = source
 		metrics.economy.first_upgrade_poi_role = poi_role
 		metrics.economy.first_upgrade_poi_band = poi_band
 		metrics.economy.first_upgrade_route_role = route_role
@@ -1463,6 +1484,7 @@ func _record_first_upgrade_context(context: Dictionary):
 		metrics.economy.first_upgrade_nearest_poi_role = nearest_poi_role
 		metrics.economy.first_upgrade_nearest_route_role = nearest_route_role
 	if _g("pacing") and metrics.has("pacing") and String(metrics.pacing.get("first_non_pistol_upgrade_poi_role", "none")) == "none":
+		metrics.pacing.first_non_pistol_upgrade_source = source
 		metrics.pacing.first_non_pistol_upgrade_poi_role = poi_role
 		metrics.pacing.first_non_pistol_upgrade_poi_band = poi_band
 		metrics.pacing.first_non_pistol_upgrade_route_role = route_role

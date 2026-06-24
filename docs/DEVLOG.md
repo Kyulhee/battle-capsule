@@ -6,6 +6,17 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## N2-PACE-29 First-Upgrade Source Telemetry
+
+- Scope: added pickup source telemetry (`initial_loot`, `stage_wave`, `supply`, `bot_drop`, `player_drop`) and report output for `first_upgrade_source`.
+- Fixed a time-basis bug: `first_upgrade_time` and `first_non_pistol_upgrade_time` now use game-time seconds like stage/contact pacing milestones.
+- Updated `check_scale_telemetry.py` first-upgrade max from obsolete wall-clock 60s to game-time 300s, matching the 120-300s Night BR watch band upper guard.
+- Verification: `unit_smoke` passed; corrected `pacing_v3` 3-run at `C:\tmp\game_dev_N2_PACE_29_source_v2\game_dev_verify_pacing_v3` analyzed/summarized and scale gate PASS after the threshold fix.
+- Result: avg duration 579.2s, first contact 17.3s, first kill 21.8s, first upgrade 97.4s, stage2 274.1s, stage3 642.0s, match end 20.8s short of the 600s floor.
+- First upgrade source read: initial_loot 66.7% / stage_wave 33.3%, not bot drops. Next candidate should tune map/wave non-pistol access, not bot weapon drops.
+
+---
+
 ## N2-PACE-28 Role-Based First-Upgrade Candidate
 
 - Scope: added non-default `playable_pacing_v3` plus `runtime.loot.role_weapon_chance_mult` so initial weapon access can be lowered by POI role without changing global loot count, rare bias, wave rate, spawn, or zone timing.
@@ -13,6 +24,8 @@ Do not load full snapshots by default. Use this file for the current state and o
 - Verification: `python tools\run_verify.py --profile pacing_v3 --runs 3 --out-root C:\tmp\game_dev_N2_PACE_28_v3` passed.
 - Result (`C:\tmp\game_dev_N2_PACE_28_v3\game_dev_verify_pacing_v3`): avg duration 327.9s, first contact 17.5s, first kill 25.8s, first upgrade 56.7s, stage2 277.7s, stage3 none, scale gate PASS.
 - Read: first upgrade moved from concealment/loot-hub to transit_choke 100%, still on-route 100%, with shotgun 66.7% / AR 33.3%. Keep this as a diagnostic candidate, not a promoted replacement for `playable_pacing_v2`.
+- Timing note: N2-PACE-29 supersedes this first-upgrade timing because the old economy pickup clock used wall-clock seconds.
+
 
 ---
 

@@ -332,6 +332,10 @@ def print_first_upgrade_context(runs: list[dict]) -> None:
         string_counter(runs, "economy", "first_upgrade_weapon"),
         string_counter(runs, "pacing", "first_non_pistol_upgrade_weapon"),
     )
+    sources = first_nonempty_counter(
+        string_counter(runs, "economy", "first_upgrade_source"),
+        string_counter(runs, "pacing", "first_non_pistol_upgrade_source"),
+    )
     poi_roles = first_nonempty_counter(
         string_counter(runs, "economy", "first_upgrade_poi_role"),
         string_counter(runs, "pacing", "first_non_pistol_upgrade_poi_role"),
@@ -356,10 +360,11 @@ def print_first_upgrade_context(runs: list[dict]) -> None:
         string_counter(runs, "economy", "first_upgrade_nearest_route_role"),
         string_counter(runs, "pacing", "first_non_pistol_upgrade_nearest_route_role"),
     )
-    if not any([weapons, poi_roles, poi_bands, route_roles, route_bands, nearest_poi, nearest_route]):
+    if not any([weapons, sources, poi_roles, poi_bands, route_roles, route_bands, nearest_poi, nearest_route]):
         return
     print("First upgrade context:")
     print(f"  weapons=[{format_mix(weapons)}]")
+    print(f"  pickup type source=[{format_mix(sources)}]")
     print(
         "  pickup source: "
         f"poi_roles=[{format_mix(poi_roles)}], poi_bands=[{format_mix(poi_bands)}], "

@@ -49,6 +49,8 @@ python tools\run_verify.py --profile visual_review
 
 If local sandbox shell fails with `CreateProcessAsUserW failed: 1312`, rerun commands with explicit elevated execution in Codex.
 
+`check_scale_telemetry.py` first-upgrade thresholds are game-time based. The default upper guard is 300s to catch starvation against the Night BR 120-300s watch band, not the pre-N2-PACE-29 wall-clock 60s value.
+
 ---
 
 ## 빠른 실행

@@ -37,14 +37,14 @@ static func spawn_initial_loot(
 		var weapon_chance = loot_spawner.initial_weapon_chance(hotspot)
 		if not weapon_templates.is_empty() and randf() < weapon_chance:
 			var weapon_pos = _call_random_position(random_position, hotspot)
-			_spawn_pickup(pickup_scene, loot_parent, Vector3(weapon_pos.x, 0.5, weapon_pos.y), _random_item(weapon_templates), true)
+			_spawn_pickup(pickup_scene, loot_parent, Vector3(weapon_pos.x, 0.5, weapon_pos.y), _random_item(weapon_templates), true, "initial_loot")
 			spawned += 1
 		var consumable_count = loot_spawner.initial_consumable_count(hotspot)
 		for _i in range(consumable_count):
 			if consumable_templates.is_empty():
 				break
 			var consumable_pos = _call_random_position(random_position, hotspot)
-			_spawn_pickup(pickup_scene, loot_parent, Vector3(consumable_pos.x, 0.5, consumable_pos.y), _random_item(consumable_templates), false)
+			_spawn_pickup(pickup_scene, loot_parent, Vector3(consumable_pos.x, 0.5, consumable_pos.y), _random_item(consumable_templates), false, "initial_loot")
 			spawned += 1
 	return spawned
 
@@ -69,7 +69,7 @@ static func spawn_loot_wave(
 		var template = _random_item(weapon_templates if use_weapon else item_templates)
 		if not template:
 			continue
-		_spawn_pickup(pickup_scene, loot_parent, Vector3(spawn_pos.x, 0.5, spawn_pos.y), template, use_weapon)
+		_spawn_pickup(pickup_scene, loot_parent, Vector3(spawn_pos.x, 0.5, spawn_pos.y), template, use_weapon, "stage_wave")
 		spawned += 1
 	return spawned
 
@@ -106,13 +106,13 @@ static func spawn_supply_cluster(
 		return 0
 	var spawned = 0
 	if railgun_item:
-		_spawn_pickup(pickup_scene, loot_parent, supply_pos, railgun_item, true)
+		_spawn_pickup(pickup_scene, loot_parent, supply_pos, railgun_item, true, "supply")
 		spawned += 1
 	for _i in range(max(0, consumable_count)):
 		var template = _random_item(consumable_templates if not consumable_templates.is_empty() else item_templates)
 		if not template:
 			continue
-		_spawn_pickup(pickup_scene, loot_parent, supply_pos + _call_cluster_offset(cluster_offset), template, false)
+		_spawn_pickup(pickup_scene, loot_parent, supply_pos + _call_cluster_offset(cluster_offset), template, false, "supply")
 		spawned += 1
 	return spawned
 
@@ -121,14 +121,15 @@ static func _spawn_pickup(
 	loot_parent: Node,
 	world_position: Vector3,
 	template,
-	duplicate_template: bool
+	duplicate_template: bool,
+	spawn_source: String
 ):
 	if not template:
 		return null
 	var pickup = pickup_scene.instantiate()
 	loot_parent.add_child(pickup)
 	pickup.global_position = world_position
-	pickup.init(template.duplicate(true) if duplicate_template else template)
+	pickup.init(template.duplicate(true) if duplicate_template else template, spawn_source)
 	if pickup.has_method("log_spawn_location"):
 		pickup.log_spawn_location()
 	return pickup

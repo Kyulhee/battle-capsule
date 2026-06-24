@@ -15,8 +15,8 @@
 
 | Item | Value |
 |---|---|
-| Active slice | N2-PACE-29 transit-choke upgrade source follow-up |
-| Latest verified gameplay slice | N2-PACE-28 role-based first-upgrade diagnostic candidate |
+| Active slice | N2-PACE-30 initial/wave non-pistol access follow-up |
+| Latest verified gameplay slice | N2-PACE-29 first-upgrade source telemetry and time-basis fix |
 | Current branch note | Local `master` may have unpushed commits; check `git status -sb`. Push needs explicit approval |
 | Execution note | Use elevated shell commands when local sandbox fails with `CreateProcessAsUserW failed: 1312` |
 
@@ -34,8 +34,9 @@
 | P0 | Finish N2-OPS-01 doc routing | Done: tracker docs are the default reading path |
 | P1 | Add verification profiles | Done: `tools/run_verify.py --profile ...` covers docs/tooling/unit/pacing/scale/visual gates |
 | P2 | Design first-upgrade candidate | Done: N2-PACE-28 `playable_pacing_v3` role multiplier candidate passed, but is diagnostic only |
-| P3 | Isolate next upgrade source | N2-PACE-28 moved first upgrade to transit_choke/on-route; target route/weapon access without global economy cuts |
-| P4 | Run manual visual/playtest pass | Record qualitative read in `PLAYTEST.md` before promoting pacing candidates |
+| P3 | Isolate next upgrade source | Done: N2-PACE-29 source read is initial_loot 66.7% / stage_wave 33.3%, not bot drops |
+| P4 | Tune initial/wave non-pistol access | First upgrade is 97.4s game-time, still 22.6s before the 120s watch floor |
+| P5 | Run manual visual/playtest pass | Record qualitative read in `PLAYTEST.md` before promoting pacing candidates |
 
 ## Risk Board
 

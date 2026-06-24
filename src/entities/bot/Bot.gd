@@ -2230,7 +2230,7 @@ func _drop_weapon():
 	var pickup = PICKUP_SCN.instantiate()
 	get_tree().root.add_child(pickup)
 	pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5))
-	pickup.init(item)
+	pickup.init(item, "bot_drop")
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_weapon_drop()
 
@@ -2247,7 +2247,7 @@ func _drop_ammo():
 	var pickup = PICKUP_SCN.instantiate()
 	get_tree().root.add_child(pickup)
 	pickup.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
-	pickup.init(item)
+	pickup.init(item, "bot_drop")
 
 func _drop_heals():
 	if stats.heal_items > 0:
@@ -2260,7 +2260,7 @@ func _drop_heals():
 		var pickup = PICKUP_SCN.instantiate()
 		get_tree().root.add_child(pickup)
 		pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5))
-		pickup.init(item)
+		pickup.init(item, "bot_drop")
 	if stats.advanced_heals > 0:
 		var item = ItemData.new()
 		item.type = ItemData.Type.HEAL
@@ -2271,7 +2271,7 @@ func _drop_heals():
 		var pickup = PICKUP_SCN.instantiate()
 		get_tree().root.add_child(pickup)
 		pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5))
-		pickup.init(item)
+		pickup.init(item, "bot_drop")
 
 # ─── DAMAGE OVERRIDE ─────────────────────────────────────────────────────────
 # Force immediate RECOVER when hit with no ammo left — prevents bots from
