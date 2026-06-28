@@ -20,6 +20,7 @@
 | Global loot_count/hotspot/rare reduction | Delayed first upgrade but regressed duration and stage3 | A targeted route/weapon-source reason proves global economy is still the bottleneck |
 | Treating concealment/loot-hub role multipliers as complete fix | N2-PACE-29 corrected read still has first upgrade at 97.4s before the 120s floor | Map/wave non-pistol source is addressed |
 | Lowering broad weapon chance to delay first upgrade | It either preserves 5-10s initial non-pistol spikes or starves upgrades entirely | Use `initial_non_pistol_weapon_weight_mult` plus stage/supply sources |
+| Hard-bump threshold-only opening fix | Local 0.75m probe only moved first contact to 18.2s and regressed avg duration/stage3 | Use a broader opening-pressure design and preserve v4 duration gates |
 | Tuning bot weapon drops for first-upgrade timing | N2-PACE-29 source read did not implicate bot drops | Pickup source telemetry shows bot_drop first upgrades |
 | Spawn-spacing-only opening fix | Improved distance but did not solve contact and risked no-upgrade/stuck regressions | A map/nav reason is proven |
 | Moving stage2 earlier/later to solve match length | Stage2 is already inside the watch band in playable samples | Late-zone and match-end gap are isolated |

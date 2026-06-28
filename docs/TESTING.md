@@ -157,7 +157,7 @@ python tools/check_scale_telemetry.py C:\tmp\game_dev_first_upgrade_context_v1_3
 python tools/run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v4 --runs 3 --out-root C:\tmp\game_dev_N2_PACE_30_v4_initial_pool_fix_3run
 # playable_pacing_v1 is not the default preset and does not replace target_99_probe.
 # A no-first-upgrade 3-run candidate is economy starvation; fix the preset, do not lower the gate.
-# pacing_candidate adds first-upgrade gates: avg must be >=120s and missing first-upgrade runs must be 0.
+# pacing_candidate adds gates: avg duration >=540s, avg first upgrade >=120s, and missing first-upgrade runs must be 0.
 # summarize_pacing_baseline.py prints opening pressure: spawn fallback, nearest spacing, saturation, attempts, and sub-5s first-contact read.
 # summarize_pacing_baseline.py also prints Phase gap read against the Night BR watch bands before changing zone, loot, or combat numbers.
 # analyze_results.py and summarize_pacing_baseline.py print First upgrade context when the telemetry schema is present.

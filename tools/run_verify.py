@@ -50,6 +50,7 @@ def pacing_steps(
     godot: str,
     runs: int,
     out_root: Path,
+    min_avg_duration: float | None = None,
     min_avg_first_upgrade: float = 10.0,
     max_missing_first_upgrade: int | None = None,
 ) -> list[Step]:
@@ -63,6 +64,8 @@ def pacing_steps(
         "--min-avg-first-upgrade",
         f"{min_avg_first_upgrade:.1f}",
     ]
+    if min_avg_duration is not None:
+        scale_gate_args.extend(["--min-avg-duration", f"{min_avg_duration:.1f}"])
     if max_missing_first_upgrade is not None:
         scale_gate_args.extend(["--max-missing-first-upgrade", str(max_missing_first_upgrade)])
     return [
@@ -109,7 +112,7 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
     if profile == "pacing_candidate":
         if not pacing_preset:
             raise ValueError("--pacing-preset is required for pacing_candidate.")
-        return pacing_steps("pacing_candidate", pacing_preset, godot, runs, out_root, 120.0, 0)
+        return pacing_steps("pacing_candidate", pacing_preset, godot, runs, out_root, 540.0, 120.0, 0)
 
     if profile == "scale_99":
         out_dir = out_root / "game_dev_verify_scale_99"

@@ -11,6 +11,7 @@ Do not load full snapshots by default. Use this file for the current state and o
 - Scope: added `playable_pacing_v4`, candidate verification profile support, strict candidate first-upgrade gates, and runtime tuning for initial non-pistol weapon weight.
 - Fixed `spawn_loot_wave()` to receive `loot_spawner` explicitly so stage-wave weapon chance tuning is not an implicit static reference.
 - Decision: role/global weapon chance is not the right lever for 120-300s first upgrade; v4 removes non-pistol weapons from initial loot and lets stage/supply sources carry the upgrade window.
+- Guardrail: `pacing_candidate` now also requires avg duration >=540s so opening-pressure probes cannot pass after collapsing the v4 match-length/stage3 read.
 - Verification: `python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v4 --runs 3 --out-root C:\tmp\game_dev_N2_PACE_30_v4_initial_pool_fix_3run` passed.
 - Result: avg duration 599.6s, first contact 14.1s, first kill 23.2s, first upgrade 294.9s, missing first upgrade 0, stage2 284.3s, stage3 654.2s, scale gate PASS.
 - Next read: upgrade timing is now in band; opening pressure is still early and hard-bump acquisition appeared in 3/3 runs, so do not move zone/economy to solve contact.
