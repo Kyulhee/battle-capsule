@@ -37,8 +37,10 @@ static func spawn_initial_loot(
 		var weapon_chance = loot_spawner.initial_weapon_chance(hotspot)
 		if not weapon_templates.is_empty() and randf() < weapon_chance:
 			var weapon_pos = _call_random_position(random_position, hotspot)
-			_spawn_pickup(pickup_scene, loot_parent, Vector3(weapon_pos.x, 0.5, weapon_pos.y), _random_item(weapon_templates), true, "initial_loot")
-			spawned += 1
+			var weapon_template = loot_spawner.choose_initial_weapon_template(weapon_templates) if loot_spawner.has_method("choose_initial_weapon_template") else _random_item(weapon_templates)
+			if weapon_template:
+				_spawn_pickup(pickup_scene, loot_parent, Vector3(weapon_pos.x, 0.5, weapon_pos.y), weapon_template, true, "initial_loot")
+				spawned += 1
 		var consumable_count = loot_spawner.initial_consumable_count(hotspot)
 		for _i in range(consumable_count):
 			if consumable_templates.is_empty():
@@ -52,6 +54,7 @@ static func spawn_loot_wave(
 	pickup_scene: PackedScene,
 	loot_parent: Node,
 	total_to_spawn: int,
+	loot_spawner,
 	choose_hotspot: Callable,
 	random_position: Callable,
 	weapon_templates: Array,
@@ -65,7 +68,8 @@ static func spawn_loot_wave(
 		if hotspot.is_empty():
 			continue
 		var spawn_pos = _call_random_position(random_position, hotspot)
-		var use_weapon = randf() < float(hotspot.get("rare_bias", 0.0)) and not weapon_templates.is_empty()
+		var weapon_chance = loot_spawner.wave_weapon_chance(hotspot) if loot_spawner and loot_spawner.has_method("wave_weapon_chance") else float(hotspot.get("rare_bias", 0.0))
+		var use_weapon = randf() < weapon_chance and not weapon_templates.is_empty()
 		var template = _random_item(weapon_templates if use_weapon else item_templates)
 		if not template:
 			continue

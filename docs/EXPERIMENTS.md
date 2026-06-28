@@ -1,6 +1,6 @@
 # Experiments
 
-> Last updated: 2026-06-24. Use this as the repetition guard. Keep each row short.
+> Last updated: 2026-06-29. Use this as the repetition guard. Keep each row short.
 
 ## Active Reads
 
@@ -11,6 +11,7 @@
 | E-003 | Where does first upgrade happen under v2? | N2-PACE-27: shotgun 100%, concealment_field 66.7% / loot_hub 33.3%, on-route 100% | Target shotgun/non-pistol access in context |
 | E-004 | Is hard-bump acquisition immediate combat pressure? | N2-PACE-23 policy: read contact gap, not acquisition alone | Keep exception unless redesigning opening collision |
 | E-005 | Can role-specific initial weapon access delay first upgrade safely? | N2-PACE-29 corrected game-time: avg 579.2s, first upgrade 97.4s, stage2 274.1s, stage3 642.0s; source initial_loot 66.7% / stage_wave 33.3% | Keep as diagnostic candidate, next target map/wave non-pistol access |
+| E-006 | Can initial non-pistol pool control delay first upgrade without starvation? | N2-PACE-30 `C:\tmp\game_dev_N2_PACE_30_v4_initial_pool_fix_3run`: avg duration 599.6s, first upgrade 294.9s, missing 0, stage2 284.3s, stage3 654.2s | Accepted as automated pacing candidate; manual/opening-pressure read next |
 
 ## Rejected Patterns
 
@@ -18,6 +19,7 @@
 |---|---|---|
 | Global loot_count/hotspot/rare reduction | Delayed first upgrade but regressed duration and stage3 | A targeted route/weapon-source reason proves global economy is still the bottleneck |
 | Treating concealment/loot-hub role multipliers as complete fix | N2-PACE-29 corrected read still has first upgrade at 97.4s before the 120s floor | Map/wave non-pistol source is addressed |
+| Lowering broad weapon chance to delay first upgrade | It either preserves 5-10s initial non-pistol spikes or starves upgrades entirely | Use `initial_non_pistol_weapon_weight_mult` plus stage/supply sources |
 | Tuning bot weapon drops for first-upgrade timing | N2-PACE-29 source read did not implicate bot drops | Pickup source telemetry shows bot_drop first upgrades |
 | Spawn-spacing-only opening fix | Improved distance but did not solve contact and risked no-upgrade/stuck regressions | A map/nav reason is proven |
 | Moving stage2 earlier/later to solve match length | Stage2 is already inside the watch band in playable samples | Late-zone and match-end gap are isolated |

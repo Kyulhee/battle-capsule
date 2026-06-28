@@ -24,7 +24,9 @@ const DEFAULTS := {
 		"stage_wave_count_mult": 10,
 		"hotspot_density_mult": 1.0,
 		"rare_bias_mult": 1.0,
+		"initial_non_pistol_weapon_weight_mult": 1.0,
 		"role_weapon_chance_mult": {},
+		"role_wave_weapon_chance_mult": {},
 	},
 	"supply_fallback": {
 		"range": 25.0,
@@ -93,7 +95,9 @@ static func _sanitize_loot(loot_tuning: Dictionary) -> Dictionary:
 		"stage_wave_count_mult": max(0, int(loot_tuning.get("stage_wave_count_mult", 10))),
 		"hotspot_density_mult": maxf(0.0, float(loot_tuning.get("hotspot_density_mult", 1.0))),
 		"rare_bias_mult": maxf(0.0, float(loot_tuning.get("rare_bias_mult", 1.0))),
+		"initial_non_pistol_weapon_weight_mult": maxf(0.0, float(loot_tuning.get("initial_non_pistol_weapon_weight_mult", 1.0))),
 		"role_weapon_chance_mult": _sanitize_role_float_dict(loot_tuning.get("role_weapon_chance_mult", {})),
+		"role_wave_weapon_chance_mult": _sanitize_role_float_dict(loot_tuning.get("role_wave_weapon_chance_mult", {})),
 	}
 
 static func _sanitize_role_float_dict(source) -> Dictionary:

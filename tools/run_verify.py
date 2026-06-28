@@ -44,7 +44,37 @@ def simulate_step(runs: int, preset: str, out_dir: Path) -> Step:
     )
 
 
-def profile_steps(profile: str, godot: str, runs: int, out_root: Path) -> list[Step]:
+def pacing_steps(
+    label: str,
+    preset: str,
+    godot: str,
+    runs: int,
+    out_root: Path,
+    min_avg_first_upgrade: float = 10.0,
+    max_missing_first_upgrade: int | None = None,
+) -> list[Step]:
+    out_dir = out_root / f"game_dev_verify_{preset}"
+    scale_gate_args = [
+        sys.executable,
+        rel("tools/check_scale_telemetry.py"),
+        str(out_dir),
+        "--min-runs",
+        str(runs),
+        "--min-avg-first-upgrade",
+        f"{min_avg_first_upgrade:.1f}",
+    ]
+    if max_missing_first_upgrade is not None:
+        scale_gate_args.extend(["--max-missing-first-upgrade", str(max_missing_first_upgrade)])
+    return [
+        *profile_steps("unit_smoke", godot, runs, out_root),
+        simulate_step(runs, preset, out_dir),
+        Step(f"analyze {label}", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
+        Step(f"summarize {label}", [sys.executable, rel("tools/summarize_pacing_baseline.py"), str(out_dir)]),
+        Step(f"scale gate {label}", scale_gate_args),
+    ]
+
+
+def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_preset: str = "") -> list[Step]:
     docs_only = [Step("git diff --check", ["git", "diff", "--check"])]
     report_scripts = [
         "tools/analyze_results.py",
@@ -71,30 +101,15 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path) -> list[S
         ]
 
     if profile == "pacing_v2":
-        out_dir = out_root / "game_dev_verify_pacing_v2"
-        return [
-            *profile_steps("unit_smoke", godot, runs, out_root),
-            simulate_step(runs, "playable_pacing_v2", out_dir),
-            Step("analyze pacing_v2", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
-            Step("summarize pacing_v2", [sys.executable, rel("tools/summarize_pacing_baseline.py"), str(out_dir)]),
-            Step(
-                "scale gate pacing_v2",
-                [sys.executable, rel("tools/check_scale_telemetry.py"), str(out_dir), "--min-runs", str(runs)],
-            ),
-        ]
+        return pacing_steps("pacing_v2", "playable_pacing_v2", godot, runs, out_root)
 
     if profile == "pacing_v3":
-        out_dir = out_root / "game_dev_verify_pacing_v3"
-        return [
-            *profile_steps("unit_smoke", godot, runs, out_root),
-            simulate_step(runs, "playable_pacing_v3", out_dir),
-            Step("analyze pacing_v3", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
-            Step("summarize pacing_v3", [sys.executable, rel("tools/summarize_pacing_baseline.py"), str(out_dir)]),
-            Step(
-                "scale gate pacing_v3",
-                [sys.executable, rel("tools/check_scale_telemetry.py"), str(out_dir), "--min-runs", str(runs)],
-            ),
-        ]
+        return pacing_steps("pacing_v3", "playable_pacing_v3", godot, runs, out_root)
+
+    if profile == "pacing_candidate":
+        if not pacing_preset:
+            raise ValueError("--pacing-preset is required for pacing_candidate.")
+        return pacing_steps("pacing_candidate", pacing_preset, godot, runs, out_root, 120.0, 0)
 
     if profile == "scale_99":
         out_dir = out_root / "game_dev_verify_scale_99"
@@ -138,9 +153,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run Battle Capsule verification profiles.")
     parser.add_argument(
         "--profile",
-        choices=["docs_only", "tooling", "unit_smoke", "pacing_v2", "pacing_v3", "scale_99", "visual_review"],
+        choices=["docs_only", "tooling", "unit_smoke", "pacing_v2", "pacing_v3", "pacing_candidate", "scale_99", "visual_review"],
         required=True,
     )
+    parser.add_argument("--pacing-preset", default="", help="Scale preset for --profile pacing_candidate.")
     parser.add_argument("--runs", type=int, default=3, help="Run count for simulation profiles.")
     parser.add_argument("--out-root", default=str(DEFAULT_OUT_ROOT))
     parser.add_argument("--godot", default=str(DEFAULT_GODOT))
@@ -148,7 +164,7 @@ def main() -> int:
     parser.add_argument("--keep-going", action="store_true")
     args = parser.parse_args()
 
-    steps = profile_steps(args.profile, args.godot, max(1, args.runs), Path(args.out_root))
+    steps = profile_steps(args.profile, args.godot, max(1, args.runs), Path(args.out_root), args.pacing_preset)
     failures = 0
     for step in steps:
         code = run_step(step, args.dry_run)

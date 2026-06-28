@@ -4,7 +4,9 @@ extends RefCounted
 var loot_count: int = 40
 var hotspot_density_mult: float = 1.0
 var rare_bias_mult: float = 1.0
+var initial_non_pistol_weapon_weight_mult: float = 1.0
 var role_weapon_chance_mult: Dictionary = {}
+var role_wave_weapon_chance_mult: Dictionary = {}
 var hotspots: Array[Dictionary] = []
 
 func configure_count(value: int) -> void:
@@ -16,13 +18,23 @@ func configure_density_multiplier(value: float) -> void:
 func configure_rare_bias_multiplier(value: float) -> void:
 	rare_bias_mult = maxf(0.0, value)
 
+func configure_initial_non_pistol_weapon_weight_multiplier(value: float) -> void:
+	initial_non_pistol_weapon_weight_mult = maxf(0.0, value)
+
 func configure_role_weapon_chance_multipliers(values: Dictionary) -> void:
 	role_weapon_chance_mult.clear()
+	_configure_role_float_multipliers(role_weapon_chance_mult, values)
+
+func configure_role_wave_weapon_chance_multipliers(values: Dictionary) -> void:
+	role_wave_weapon_chance_mult.clear()
+	_configure_role_float_multipliers(role_wave_weapon_chance_mult, values)
+
+func _configure_role_float_multipliers(target: Dictionary, values: Dictionary) -> void:
 	for key in values.keys():
 		var role := String(key).strip_edges()
 		if role.is_empty():
 			continue
-		role_weapon_chance_mult[role] = maxf(0.0, float(values[key]))
+		target[role] = maxf(0.0, float(values[key]))
 
 func register_from_map_spec(map_spec) -> void:
 	hotspots.clear()
@@ -48,10 +60,52 @@ func initial_weapon_chance(hotspot: Dictionary) -> float:
 	var density = float(hotspot.get("density", 0.5))
 	var rare_bias = float(hotspot.get("rare_bias", 0.0))
 	var chance := clampf(0.01 + density * 0.045 + rare_bias * 0.035, 0.02, 0.08)
+	return clampf(chance * _role_weapon_chance_multiplier(hotspot), 0.0, 0.08)
+
+func choose_initial_weapon_template(weapon_templates: Array):
+	return _weighted_weapon_template(weapon_templates, initial_non_pistol_weapon_weight_mult)
+
+func wave_weapon_chance(hotspot: Dictionary) -> float:
+	var chance := float(hotspot.get("rare_bias", 0.0))
+	return clampf(chance * _role_wave_weapon_chance_multiplier(hotspot), 0.0, 1.0)
+
+func _role_weapon_chance_multiplier(hotspot: Dictionary) -> float:
 	var role := String(hotspot.get("role", ""))
 	if role_weapon_chance_mult.has(role):
-		chance *= float(role_weapon_chance_mult[role])
-	return clampf(chance, 0.0, 0.08)
+		return maxf(0.0, float(role_weapon_chance_mult[role]))
+	return 1.0
+
+func _role_wave_weapon_chance_multiplier(hotspot: Dictionary) -> float:
+	var role := String(hotspot.get("role", ""))
+	if role_wave_weapon_chance_mult.has(role):
+		return maxf(0.0, float(role_wave_weapon_chance_mult[role]))
+	return 1.0
+
+func _weighted_weapon_template(weapon_templates: Array, non_pistol_mult: float):
+	if weapon_templates.is_empty():
+		return null
+	var weights: Array[float] = []
+	var total_weight := 0.0
+	for template in weapon_templates:
+		var weight := 1.0
+		if _weapon_type(template) != "pistol":
+			weight *= non_pistol_mult
+		weight = maxf(0.0, weight)
+		weights.append(weight)
+		total_weight += weight
+	if total_weight <= 0.0:
+		return null
+	var ticket := randf() * total_weight
+	for idx in range(weapon_templates.size()):
+		ticket -= weights[idx]
+		if ticket <= 0.0:
+			return weapon_templates[idx]
+	return weapon_templates[weapon_templates.size() - 1]
+
+func _weapon_type(template) -> String:
+	if template == null or template.weapon_stats == null:
+		return ""
+	return String(template.weapon_stats.weapon_type)
 
 func initial_consumable_count(hotspot: Dictionary) -> int:
 	var density = float(hotspot.get("density", 0.5))

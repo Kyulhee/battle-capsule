@@ -6,7 +6,8 @@ const STRUCTURAL_PRESET := "target_99_probe"
 const PLAYABLE_BASELINE_PRESET := "playable_pacing_v1"
 const PLAYABLE_LATE_ZONE_PRESET := "playable_pacing_v2"
 const PLAYABLE_FIRST_UPGRADE_PRESET := "playable_pacing_v3"
-const PLAYABLE_PRESETS := [PLAYABLE_BASELINE_PRESET, PLAYABLE_LATE_ZONE_PRESET, PLAYABLE_FIRST_UPGRADE_PRESET]
+const PLAYABLE_MAP_WAVE_PRESET := "playable_pacing_v4"
+const PLAYABLE_PRESETS := [PLAYABLE_BASELINE_PRESET, PLAYABLE_LATE_ZONE_PRESET, PLAYABLE_FIRST_UPGRADE_PRESET, PLAYABLE_MAP_WAVE_PRESET]
 
 
 func _init():
@@ -80,7 +81,26 @@ func _init():
 			late_zone_match,
 			late_zone_spawn,
 			late_zone_loot,
-			late_zone_zone
+			late_zone_zone,
+			["concealment_field", "loot_hub"],
+			["transit_choke", "recovery_pocket"],
+			[]
+		):
+			return
+		if preset_name == PLAYABLE_MAP_WAVE_PRESET and not _verify_first_upgrade_candidate(
+			preset_name,
+			playable_match,
+			playable_spawn,
+			playable_loot,
+			playable_zone,
+			late_zone_match,
+			late_zone_spawn,
+			late_zone_loot,
+			late_zone_zone,
+			["concealment_field", "loot_hub"],
+			["transit_choke", "recovery_pocket"],
+			[],
+			true
 		):
 			return
 
@@ -205,7 +225,11 @@ func _verify_first_upgrade_candidate(
 	late_zone_match: Dictionary,
 	late_zone_spawn: Dictionary,
 	late_zone_loot: Dictionary,
-	late_zone_zone: Dictionary
+	late_zone_zone: Dictionary,
+	required_roles: Array,
+	blocked_roles: Array,
+	required_wave_roles: Array,
+	requires_initial_non_pistol_tuning: bool = false
 ) -> bool:
 	for key in ["bot_count", "loot_count", "spawn_radius"]:
 		if absf(float(playable_match.get(key, 0.0)) - float(late_zone_match.get(key, -1.0))) > 0.001:
@@ -232,17 +256,36 @@ func _verify_first_upgrade_candidate(
 	if typeof(role_mult_variant) != TYPE_DICTIONARY:
 		return _fail_bool("%s role_weapon_chance_mult should be a dictionary." % preset_name)
 	var role_mult: Dictionary = role_mult_variant
-	for role in ["concealment_field", "loot_hub"]:
+	for role in required_roles:
 		if not role_mult.has(role):
-			return _fail_bool("%s should tune initial weapon access for %s." % [preset_name, role])
+			return _fail_bool("%s should tune weapon access for %s." % [preset_name, role])
 		var value := float(role_mult[role])
 		if value <= 0.0 or value >= 1.0:
 			return _fail_bool("%s %s multiplier %.2f should reduce without disabling." % [preset_name, role, value])
-	if float(role_mult["concealment_field"]) > float(role_mult["loot_hub"]):
+	if role_mult.has("concealment_field") and role_mult.has("loot_hub") and float(role_mult["concealment_field"]) > float(role_mult["loot_hub"]):
 		return _fail_bool("%s should reduce concealment initial weapons at least as much as loot hubs." % preset_name)
-	for role in ["transit_choke", "recovery_pocket"]:
+	for role in blocked_roles:
 		if role_mult.has(role) and absf(float(role_mult[role]) - 1.0) > 0.001:
 			return _fail_bool("%s should not tune %s in the first-upgrade context candidate." % [preset_name, role])
+	var wave_role_mult_variant = playable_loot.get("role_wave_weapon_chance_mult", {})
+	if typeof(wave_role_mult_variant) != TYPE_DICTIONARY:
+		return _fail_bool("%s role_wave_weapon_chance_mult should be a dictionary." % preset_name)
+	var wave_role_mult: Dictionary = wave_role_mult_variant
+	for role in required_wave_roles:
+		if not wave_role_mult.has(role):
+			return _fail_bool("%s should tune wave weapon access for %s." % [preset_name, role])
+		var wave_value := float(wave_role_mult[role])
+		if wave_value <= 0.0 or wave_value >= 1.0:
+			return _fail_bool("%s wave %s multiplier %.2f should reduce without disabling." % [preset_name, role, wave_value])
+	if required_wave_roles.is_empty() and not wave_role_mult.is_empty():
+		return _fail_bool("%s should not tune wave weapon access." % preset_name)
+	var initial_non_pistol_mult := float(playable_loot.get("initial_non_pistol_weapon_weight_mult", 1.0))
+	if requires_initial_non_pistol_tuning:
+		if initial_non_pistol_mult < 0.0 or initial_non_pistol_mult >= 1.0:
+			return _fail_bool("%s initial non-pistol multiplier %.2f should reduce opening upgrades." % [preset_name, initial_non_pistol_mult])
+	else:
+		if absf(initial_non_pistol_mult - 1.0) > 0.001:
+			return _fail_bool("%s should not tune initial non-pistol weapon weights." % preset_name)
 	return true
 
 

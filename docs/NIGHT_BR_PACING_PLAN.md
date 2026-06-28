@@ -97,6 +97,10 @@ N2-PACE-25는 비기본 `playable_pacing_v2`를 추가했다. v2는 v1의 99 bot
 
 N2-PACE-26의 local `playable_pacing_v3` economy 후보는 폐기했다. loot_count 205, hotspot 1.02, rare 1.08은 first upgrade를 56.0s까지 늦췄지만 avg duration 454.1s, stage3 none으로 v2의 late-zone 개선을 깨뜨렸다. 다음 후보는 global loot/rare 축소가 아니라 first-upgrade source/weapon/route context를 먼저 진단한다.
 
+N2-PACE-29는 first-upgrade source telemetry와 game-time fix를 추가했다. corrected v3 read는 avg duration 579.2s, first upgrade 97.4s였지만 실제 샘플은 initial_loot 5.6s/9.8s와 stage_wave 276.9s가 섞인 평균이었다. 따라서 다음 조정은 전체 무기 확률을 낮추는 방식이 아니라 초기 비권총 풀과 중반 공급원을 분리해야 한다.
+
+N2-PACE-30 `playable_pacing_v4`는 초기 루팅의 비권총 무기 가중치를 0으로 낮추고 stage/supply source를 첫 업그레이드 창으로 남긴다. `C:\tmp\game_dev_N2_PACE_30_v4_initial_pool_fix_3run`은 avg duration 599.6s, first upgrade 294.9s, missing 0, stage2 284.3s, stage3 654.2s로 자동 pacing gate를 통과했다. 남은 큰 gap은 first contact 14.1s / hard-bump acquisition 3/3이므로, 다음 후보는 zone/economy가 아니라 opening pressure를 본다.
+
 ### playable_pacing_v1 값
 
 `playable_pacing_v1`은 Night 후보 mapSpec에만 있는 비기본 프리셋이다. `target_99_probe`와 기본 맵은 바꾸지 않는다.

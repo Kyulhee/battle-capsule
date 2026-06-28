@@ -60,6 +60,7 @@ def main() -> int:
     parser.add_argument("--max-runs-under-60", type=int, default=0)
     parser.add_argument("--min-avg-first-upgrade", type=float, default=10.0)
     parser.add_argument("--max-avg-first-upgrade", type=float, default=300.0)
+    parser.add_argument("--max-missing-first-upgrade", type=int, default=-1)
     parser.add_argument("--max-avg-stuck", type=float, default=60.0)
     parser.add_argument("--max-avg-disengage", type=float, default=130.0)
     parser.add_argument("--long-run-normalized-after", type=float, default=300.0)
@@ -112,6 +113,11 @@ def main() -> int:
             failures.append(f"avg first upgrade {avg_first:.1f}s < {args.min_avg_first_upgrade:.1f}s")
         if avg_first > args.max_avg_first_upgrade:
             failures.append(f"avg first upgrade {avg_first:.1f}s > {args.max_avg_first_upgrade:.1f}s")
+    missing_first_upgrade = len(runs) - len(first_upgrade)
+    if args.max_missing_first_upgrade >= 0 and missing_first_upgrade > args.max_missing_first_upgrade:
+        failures.append(
+            f"missing first upgrade runs {missing_first_upgrade} > {args.max_missing_first_upgrade}"
+        )
     recover_total = sum(recover)
     recover_deaths = sum(died_in_recover)
     recover_death_ratio = recover_deaths / max(1, recover_total)
@@ -180,6 +186,7 @@ def main() -> int:
     print(f"Avg duration: {avg(durations):.1f}s")
     print(f"Runs under 60s: {runs_under_60}")
     print(f"Avg first upgrade: {avg(first_upgrade) if first_upgrade else -1.0:.1f}s")
+    print(f"Missing first upgrade runs: {missing_first_upgrade}")
     print(f"Recover death ratio: {recover_death_ratio:.3f}")
     print(f"Avg stuck/disengage: {avg(stuck):.1f} / {avg(disengage):.1f}")
     print(

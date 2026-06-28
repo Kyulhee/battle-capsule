@@ -343,6 +343,61 @@
           }
         }
       }
+    },
+    "playable_pacing_v4": {
+      "match": {
+        "bot_count": 99,
+        "loot_count": 210,
+        "spawn_radius": 78.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 260,
+          "inner_radius": 8.0,
+          "entity_clearance": 5.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.045,
+          "stage_wave_prob_per_stage": 0.055,
+          "stage_wave_count_mult": 6,
+          "hotspot_density_mult": 1.04,
+          "rare_bias_mult": 1.15,
+          "initial_non_pistol_weapon_weight_mult": 0.0,
+          "role_weapon_chance_mult": {
+            "concealment_field": 0.55,
+            "loot_hub": 0.75
+          }
+        }
+      },
+      "zone": {
+        "initial_radius": 86.0,
+        "initial_timer": 160.0,
+        "wait_time": 150.0,
+        "shrink_time": 70.0,
+        "damage_per_second": 1.0,
+        "stages": {
+          "2": {
+            "wait_time": 260.0,
+            "shrink_time": 110.0,
+            "damage_per_second": 1.5
+          },
+          "3": {
+            "wait_time": 220.0,
+            "shrink_time": 95.0,
+            "damage_per_second": 3.0
+          },
+          "4": {
+            "wait_time": 160.0,
+            "shrink_time": 80.0,
+            "damage_per_second": 6.0
+          },
+          "5": {
+            "wait_time": 110.0,
+            "shrink_time": 65.0,
+            "damage_per_second": 10.0
+          }
+        }
+      }
     }
   },
   "scale_envelopes": {

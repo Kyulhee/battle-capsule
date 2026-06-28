@@ -1,6 +1,6 @@
 # Current Tracker
 
-> Last updated: 2026-06-24. This is the default planning surface. Keep it short enough to read before every work slice.
+> Last updated: 2026-06-29. This is the default planning surface. Keep it short enough to read before every work slice.
 
 ## Big Frame
 
@@ -15,8 +15,8 @@
 
 | Item | Value |
 |---|---|
-| Active slice | N2-PACE-30 initial/wave non-pistol access follow-up |
-| Latest verified gameplay slice | N2-PACE-29 first-upgrade source telemetry and time-basis fix |
+| Active slice | N2-PACE-31 manual read + opening pressure follow-up |
+| Latest verified gameplay slice | N2-PACE-30 initial non-pistol pool candidate |
 | Current branch note | Local `master` may have unpushed commits; check `git status -sb`. Push needs explicit approval |
 | Execution note | Use elevated shell commands when local sandbox fails with `CreateProcessAsUserW failed: 1312` |
 
@@ -35,8 +35,9 @@
 | P1 | Add verification profiles | Done: `tools/run_verify.py --profile ...` covers docs/tooling/unit/pacing/scale/visual gates |
 | P2 | Design first-upgrade candidate | Done: N2-PACE-28 `playable_pacing_v3` role multiplier candidate passed, but is diagnostic only |
 | P3 | Isolate next upgrade source | Done: N2-PACE-29 source read is initial_loot 66.7% / stage_wave 33.3%, not bot drops |
-| P4 | Tune initial/wave non-pistol access | First upgrade is 97.4s game-time, still 22.6s before the 120s watch floor |
+| P4 | Tune initial/wave non-pistol access | Done: `playable_pacing_v4` 3-run first upgrade 294.9s, missing 0, stage2/stage3 in band |
 | P5 | Run manual visual/playtest pass | Record qualitative read in `PLAYTEST.md` before promoting pacing candidates |
+| P6 | Follow opening pressure | Automated read still has first contact 14.1s and hard-bump acquisition 3/3 |
 
 ## Risk Board
 
@@ -46,6 +47,7 @@
 | Telemetry tunnel vision | Numeric PASS but unclear game feel | Add PLAYTEST notes before accepting major pacing decisions |
 | Large-file ownership | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd` remain large | Extract only when a slice touches that domain |
 | Experiment repetition | Rejected candidates reappear | Check `EXPERIMENTS.md` before new tuning |
+| Opening pressure | Pacing v4 fixed upgrade timing but first contact is still early | Do not move zone/economy to solve contact; inspect hard-bump/opening acquisition |
 | Asset import noise | Local source pools live under project root | Keep source pools untracked; add `.gdignore` where needed |
 
 ## Session Rule
