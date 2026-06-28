@@ -17,7 +17,7 @@
 |---|---|
 | Active slice | N2-PACE-31 manual read + opening pressure follow-up |
 | Latest verified gameplay slice | N2-PACE-30 initial non-pistol pool candidate |
-| Current branch note | Local `master` may have unpushed commits; check `git status -sb`. Push needs explicit approval |
+| Current branch note | Local `master` may have unrelated generated/doc files; check `git status -sb`. Push is approved unless the user revokes it |
 | Execution note | Use elevated shell commands when local sandbox fails with `CreateProcessAsUserW failed: 1312` |
 
 ## Product Direction
@@ -36,8 +36,8 @@
 | P2 | Design first-upgrade candidate | Done: N2-PACE-28 `playable_pacing_v3` role multiplier candidate passed, but is diagnostic only |
 | P3 | Isolate next upgrade source | Done: N2-PACE-29 source read is initial_loot 66.7% / stage_wave 33.3%, not bot drops |
 | P4 | Tune initial/wave non-pistol access | Done: `playable_pacing_v4` 3-run first upgrade 294.9s, missing 0, stage2/stage3 in band |
-| P5 | Run manual visual/playtest pass | Record qualitative read in `PLAYTEST.md` before promoting pacing candidates |
-| P6 | Follow opening pressure | Automated read still has first contact 14.1s and hard-bump acquisition 3/3 |
+| P5 | Run manual visual/playtest pass | Done: `visual_review` passed and `PLAYTEST.md` records v4 as needs-iteration for manual promotion |
+| P6 | Follow opening pressure | Automated read still has v4 3-run first contact 14.1s / hard-bump 3/3; 1-run visual first contact 10.1s / hard-bump 0/1 |
 
 ## Risk Board
 

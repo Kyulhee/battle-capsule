@@ -6,6 +6,15 @@ Do not load full snapshots by default. Use this file for the current state and o
 
 ---
 
+## N2-PACE-31 v4 Visual Review Read
+
+- Scope: ran the `visual_review` profile against the current v4 candidate and recorded the qualitative read in `PLAYTEST.md`.
+- Verification: `python tools\run_verify.py --profile visual_review --out-root C:\tmp\game_dev_N2_PACE_31_visual_review` passed, including docs diff check, night readability smoke, capture, 1-run sim, and analyzer.
+- Result: capture `C:\tmp\player_night_readability.png` keeps player silhouette and pickup labels/glow readable, but nearby bush/terrain silhouettes remain very dark. The 1-run visual sim had first contact 10.1s, first kill 23.4s, first upgrade none, and hard-bump acquisition 0/1.
+- Decision: keep `playable_pacing_v4` as the automated pacing candidate, but do not promote it as a manual baseline yet. Next opening-pressure work should target encounter/collision/objective-interrupt context while preserving the v4 duration gate.
+
+---
+
 ## N2-PACE-30 Initial Non-Pistol Pool Candidate
 
 - Scope: added `playable_pacing_v4`, candidate verification profile support, strict candidate first-upgrade gates, and runtime tuning for initial non-pistol weapon weight.
