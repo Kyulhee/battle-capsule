@@ -1,109 +1,89 @@
-# Battle Capsule — Agent Onboarding
+# Battle Capsule 에이전트 온보딩
 
-Godot 4.6.2 / GDScript quarter-view battle royale prototype.
+Godot 4.6.2 / GDScript 기반 quarter-view battle royale 프로토타입.
 
 Repository: `https://github.com/Kyulhee/battle-capsule`
 
-## Current State
+## 현재 상태
 
-| Item | Status |
+| 항목 | 상태 |
 |---|---|
-| Current development line | v2-dev — Night BR candidate, 99-player structural gates, playable pacing |
-| Current operating tracker | [CURRENT.md](docs/CURRENT.md) |
-| Latest verified gameplay slice | N2-PACE-27 first-upgrade context telemetry/report |
-| Current ops slice | N2-OPS-01 workflow tracker reset |
-| Release policy | Paused. Do not create GitHub releases unless explicitly requested. |
-| External source pools | `asset_generator/`, `plan_report/`, and local prompt scratch files stay untracked unless explicitly integrated. |
+| 개발 라인 | v2-dev: Night BR 후보, 99명 구조 gate, playable pacing |
+| 활성 트래커 | [CURRENT.md](docs/CURRENT.md) |
+| 최신 검증 gameplay slice | N2-PACE-32 4초 opening hard-bump brush |
+| 현재 운영 slice | N2-DOC-02 문서 라우팅 다이어트 |
+| 릴리즈 정책 | 명시 요청 전까지 릴리즈/빌드 금지 |
+| 외부 원본 풀 | `asset_generator/`, `plan_report/`는 통합 요청 전까지 커밋하지 않음 |
 
-The project is no longer in a small one-feature-at-a-time cleanup phase. Work from the milestone tracker first, then pick the smallest slice that advances the active milestone without losing sight of playability.
+이 프로젝트는 더 이상 작은 기능을 하나씩 붙이는 정리 단계가 아니다. 먼저 milestone tracker를 보고, 현재 마일스톤을 전진시키는 가장 작은 검증 가능한 작업 단위를 고른다.
 
-## Default Reading Path
+## 기본 읽기 경로
 
-Read only the documents needed for the task. Do not load archived long documents by default.
+모든 문서를 열지 않는다. 기본은 아래 3개다.
 
-| Order | Document | Read When |
+| 순서 | 문서 | 읽는 시점 |
 |---|---|---|
-| 1 | [CURRENT.md](docs/CURRENT.md) | Every session; use it as the active tracker |
-| 2 | [HANDOFF.md](docs/HANDOFF.md) | Context resume, git state, local execution notes |
-| 3 | [DECISIONS.md](docs/DECISIONS.md) | Before reopening blocked/default/pacing decisions |
-| 4 | [EXPERIMENTS.md](docs/EXPERIMENTS.md) | Before new tuning candidates, to avoid repeating rejected paths |
-| 5 | [DOCS_INDEX.md](docs/DOCS_INDEX.md) | To choose task-specific references |
-| 6 | [IMPACT_MAP.md](docs/IMPACT_MAP.md) | Before code changes that touch game state, entities, UI, map, or telemetry |
+| 1 | [CURRENT.md](docs/CURRENT.md) | 매 세션, 매 작업 시작 |
+| 2 | [DOCS_INDEX.md](docs/DOCS_INDEX.md) | 추가 문서가 필요할 때 |
+| 3 | [DECISIONS.md](docs/DECISIONS.md) / [EXPERIMENTS.md](docs/EXPERIMENTS.md) | 정책 변경 또는 새 튜닝 후보 전 |
 
-Task-specific documents:
+작업별 문서는 [DOCS_INDEX.md](docs/DOCS_INDEX.md)의 중요도 순서를 따른다.
 
-| Document | Use |
+## 제외 문서
+
+- `docs/HANDOFF.md`는 폐기했다. 재개 정보는 [CURRENT.md](docs/CURRENT.md)에 둔다.
+- `docs/archive/**`와 `docs/devlog/DEVLOG_full_*.md`는 역사 보존용이다. 기본으로 열지 않는다.
+- `asset_generator/**`, `plan_report/**`는 로컬 원본/참고 풀이다. 통합 요청 전까지 커밋하지 않는다.
+
+## 갱신 규칙
+
+| 상황 | 갱신 문서 |
 |---|---|
-| [PLAYTEST.md](docs/PLAYTEST.md) | Manual feel/readability notes; telemetry cannot replace this |
-| [MASTERPLAN.md](docs/MASTERPLAN.md) | Broader roadmap and historical context; do not treat it as the active tracker |
-| [DEVLOG.md](docs/DEVLOG.md) | Short active log only. Historical details are indexed under `docs/devlog/`. |
-| [TESTING.md](docs/TESTING.md) | Verification commands and gate interpretation |
-| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Structural refactors or module boundary changes |
-| [ASSET_BRIEF.md](docs/ASSET_BRIEF.md) | Stable style/file-format reference for assets |
-| [UI_DESIGN.md](docs/UI_DESIGN.md) | Screenshot-driven UI visual review guidance |
-| [RELEASE.md](docs/RELEASE.md) | Release work only |
+| 현재 작업, 다음 작업, 주요 리스크 | `docs/CURRENT.md` |
+| 안정 결정 변경 | `docs/DECISIONS.md` |
+| 채택/폐기 실험 | `docs/EXPERIMENTS.md` |
+| 수동 체감/가독성 결과 | `docs/PLAYTEST.md` |
+| 검증 완료 작업 | `docs/DEVLOG.md`에 짧게 |
+| 로드맵 변경 | `docs/MASTERPLAN.md` |
+| 구조 경계 변경 | `docs/ARCHITECTURE.md`, 필요 시 `docs/IMPACT_MAP.md` |
+| 검증 rule/profile 변경 | `docs/TESTING.md` |
+| 자산 기준/생성 요청 변경 | `docs/ASSET_BRIEF.md`, `docs/ASSET_GENERATION_PROMPTS.md` |
 
-Excluded from default context:
-
-- `docs/archive/**` — legacy plans and full historical documents.
-- `docs/devlog/DEVLOG_full_2026-05-13.md` — preserved full old devlog; open only for historical detail.
-- `docs/ASSET_GENERATION_PROMPTS.md` — local-only copy-ready prompt scratch file; intentionally not tracked unless requested.
-- `asset_generator/**` — external generator workspace; inspect only for asset tasks, do not commit unless requested.
-
-## Update Rules
-
-| Event | Update |
-|---|---|
-| Active tracker, next work, major risk changes | `docs/CURRENT.md` |
-| Stable project decision changes | `docs/DECISIONS.md` |
-| Accepted/rejected experiment outcome | `docs/EXPERIMENTS.md` |
-| Manual feel/readability result | `docs/PLAYTEST.md` |
-| Completed verified work | `docs/DEVLOG.md` as a short summary only |
-| Larger roadmap changes | `docs/MASTERPLAN.md` |
-| New/changed architecture boundary | `docs/ARCHITECTURE.md` and, if impact changes, `docs/IMPACT_MAP.md` |
-| New telemetry or validation rule | `docs/TESTING.md` |
-| External asset generation request changes | local `docs/ASSET_GENERATION_PROMPTS.md` scratch file and, if stable style/format changes, `docs/ASSET_BRIEF.md` |
-| Session handoff-sensitive context | `docs/HANDOFF.md` |
-
-## Key Files
+## 핵심 파일
 
 ```text
-src/Main.gd                         — orchestration, game loop, spawns, UI wiring
-src/entities/player/Player.gd       — player input, weapon slots, HUD
-src/entities/bot/Bot.gd             — AI state machine and combat execution
-src/entities/pickup/Pickup.gd       — pickup visibility, label, icon decal, collect logic
-src/entities/Entity.gd              — shared HP, shield, movement, perception
-src/systems/zone/ZoneController.gd  — zone lifecycle and damage
-src/systems/mission/MissionTracker.gd — bonus/pressure mission state
-src/core/Telemetry.gd               — match metrics; preserve JSON schema unless planned
-src/core/AssetCatalog.gd            — audio/icon/prop/cosmetic ID lookup and fallback
-src/systems/loot/LootSpawner.gd     — loot hotspot and position calculations
-src/systems/loot/SupplyDropController.gd — supply drop timing/position calculations
-src/ui/MenuIconFactory.gd           — procedural menu/records/help icons
+src/Main.gd                           orchestration, game loop, spawn, UI wiring
+src/entities/player/Player.gd         player input, weapon slots, HUD
+src/entities/bot/Bot.gd               AI state machine, perception, combat
+src/entities/pickup/Pickup.gd         pickup visibility/label/icon/collect
+src/entities/Entity.gd                shared HP/shield/movement/perception
+src/systems/zone/ZoneController.gd    zone lifecycle/damage
+src/systems/mission/MissionTracker.gd mission state
+src/core/Telemetry.gd                 match metrics and JSON schema
+src/core/AssetCatalog.gd              audio/icon/prop/cosmetic lookup
+src/systems/loot/LootSpawner.gd       loot hotspot/position calculation
 ```
 
-## Verification Rhythm
+## 검증 리듬
 
-For narrow docs/tooling changes, normally run:
+문서만 바꾸면 보통:
 
 ```powershell
-git diff --check
+python tools\run_verify.py --profile docs_only
 ```
 
-For gameplay, AI, map, telemetry, or pacing changes, select the relevant gate from [TESTING.md](docs/TESTING.md). Do not rely on a telemetry pass alone for major feel decisions; add a [PLAYTEST.md](docs/PLAYTEST.md) note when the user-facing experience changes.
+gameplay, AI, map, telemetry, pacing 변경은 [TESTING.md](docs/TESTING.md)에서 해당 profile을 고른다. 주요 체감 변경은 텔레메트리 PASS만으로 닫지 말고 [PLAYTEST.md](docs/PLAYTEST.md)에 기록한다.
 
-Expected warning while audio assets are missing:
+예상 가능한 asset warning:
 
 ```text
 AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 ```
 
-Repeated simulation batches are not required for small UI/catalog/pickup display changes unless gameplay paths change.
+## Godot 메모
 
-## Godot Notes
-
-- Control preset: `PRESET_CENTER_BOTTOM`, not `PRESET_BOTTOM_CENTER`.
-- Bottom-anchored Control nodes need `grow_vertical = GROW_DIRECTION_BEGIN`.
-- macOS export key: `application/bundle_identifier`.
-- Headless export requires `textures/vram_compression/import_etc2_astc=true` in `project.godot`.
-- For new `class_name` scripts created outside the editor, prefer `preload()` usage from `Main.gd` to avoid headless parse timing issues.
+- Control preset은 `PRESET_CENTER_BOTTOM`, `PRESET_BOTTOM_CENTER`가 아니다.
+- Bottom-anchored Control은 `grow_vertical = GROW_DIRECTION_BEGIN`이 필요하다.
+- macOS export key는 `application/bundle_identifier`.
+- Headless export에는 `project.godot`의 `textures/vram_compression/import_etc2_astc=true`가 필요하다.
+- editor 밖에서 새 `class_name` script를 만들면 headless parse timing을 피하기 위해 `Main.gd`에서는 `preload()` 사용을 선호한다.

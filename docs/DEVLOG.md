@@ -8,6 +8,12 @@
 - 이유: 기존 문서가 영어와 한글, 실험 원문, 오래된 handoff를 섞어 다음 행동을 흐리게 만들었다.
 - 원칙: active docs는 다음 판단에 필요한 정보만 남기고, 상세 히스토리는 archive/devlog에 둔다.
 
+## N2-DOC-02 문서 라우팅 다이어트
+
+- 범위: `HANDOFF.md`를 삭제하고, `DOCS_INDEX.md`를 중요도 순 문서 라우팅 표로 재작성.
+- 결정: 1회용 재개 정보는 별도 문서로 두지 않고 `CURRENT.md`에 흡수한다.
+- 목표: 새 세션 기본 읽기를 `CLAUDE.md`, `CURRENT.md`, `DOCS_INDEX.md` 중심으로 줄인다.
+
 ## N2-PACE-32 Opening Hard-Bump Brush
 
 - 범위: 스폰 직후 4초 동안 1m hard-bump가 즉시 idle reaction, idle-loot enemy interrupt, zone-escape counteraction으로 승격되지 않게 했다.

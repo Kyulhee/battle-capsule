@@ -15,10 +15,10 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | 문서 한글화 및 활성 문서 압축 |
+| 현재 단위 | N2-DOC-02 문서 라우팅 다이어트 |
 | 최신 검증 게임플레이 단위 | N2-PACE-32 4초 opening hard-bump brush |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
-| 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다 |
+| 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. `HANDOFF.md`는 폐기했고 재개 정보는 이 문서에 둔다 |
 | 실행 메모 | 샌드박스 읽기 실패 시 승격 실행 사용. 이전 증상: `CreateProcessAsUserW failed: 1312` |
 
 ## 제품 방향
@@ -32,7 +32,7 @@
 
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
-| P0 | 문서 라우팅 정리 | 진행 중: 활성 문서를 한글 기준으로 통일 |
+| P0 | 문서 라우팅 정리 | 완료: `HANDOFF.md` 제거, `DOCS_INDEX.md`를 중요도 순으로 재정렬 |
 | P1 | 검증 프로필 유지 | 완료: `tools/run_verify.py --profile ...` 사용 |
 | P2 | 첫 non-pistol 업그레이드 지연 | 완료: v4가 120-300초 창에 진입 |
 | P3 | 오프닝 hard-bump 압박 완화 | 완료: 4초 brush 후보가 v4 gate 통과 |
