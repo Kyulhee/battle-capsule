@@ -14,6 +14,12 @@
 - 결정: 1회용 재개 정보는 별도 문서로 두지 않고 `CURRENT.md`에 흡수한다.
 - 목표: 새 세션 기본 읽기를 `CLAUDE.md`, `CURRENT.md`, `DOCS_INDEX.md` 중심으로 줄인다.
 
+## N2-DOC-03 남은 작업 구조화
+
+- 범위: `MASTERPLAN.md`에 남은 작업을 T1-T6 트랙으로 정리하고, `CURRENT.md`의 큐를 실행 순서로 재정렬.
+- 결정: 다음 구현 우선순위는 T1 match duration margin 확보이며, opening pressure 추가 지연은 duration 여유 뒤에 진행한다.
+- 목표: 향후 작업을 문서/실험 맥락에 잡아먹히지 않고 제품 트랙 단위로 진행한다.
+
 ## N2-PACE-32 Opening Hard-Bump Brush
 
 - 범위: 스폰 직후 4초 동안 1m hard-bump가 즉시 idle reaction, idle-loot enemy interrupt, zone-escape counteraction으로 승격되지 않게 했다.

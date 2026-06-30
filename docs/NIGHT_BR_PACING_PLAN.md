@@ -42,3 +42,12 @@ N2-PACE-32 4초 opening hard-bump brush:
 1. late-zone/match-end 여유를 안전하게 확보한다.
 2. opening contact를 직접 더 지연하기 전 duration gate가 안정적으로 남는지 확인한다.
 3. 수동 visual/playtest로 야간 가독성과 첫 1분 체감을 확인한다.
+
+## 실행 순서
+
+| 순서 | 작업 | 판정 |
+|---|---|---|
+| 1 | match-end margin 후보 | avg duration >=600초, first upgrade/stage2/stage3 band 유지 |
+| 2 | v4+margin 수동/visual review | 첫 1분, route/cover, pickup read를 `PLAYTEST.md`에 기록 |
+| 3 | opening pressure 추가 후보 | duration margin을 보존할 때만 시도 |
+| 4 | map/visibility pass | first contact 수치보다 실제 판독과 선택지를 우선 확인 |
