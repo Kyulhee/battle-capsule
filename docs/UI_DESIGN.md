@@ -1,49 +1,43 @@
-# UI Visual Review Guide
+# UI 시각 리뷰 가이드
 
-> Last updated: 2026-05-13. This replaces the old ASCII/mockup approval process with a screenshot-driven review workflow.
+> 최종 업데이트: 2026-06-30. UI 변경은 코드 의도보다 실제 화면 캡처로 판단한다.
 
-Use this document when a change affects HUD, menus, pickup labels, minimap, result screens, settings, or any visible UI state.
+## 적용 범위
 
-## Goal
+HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면, 설정, 도움말, visible UI state를 바꾸는 작업에 사용한다.
 
-UI review should answer concrete visual questions:
+## 확인 질문
 
-- Is anything overlapping?
-- Is important information readable against the real game background?
-- Does text fit in its container?
-- Does dynamic state change layout size or position?
-- Does the UI still work at the project baseline viewport and likely smaller/wider viewports?
+- 텍스트, 아이콘, 패널, 미니맵, 라벨이 겹치지 않는가?
+- 실제 게임 배경 위에서 중요한 정보가 읽히는가?
+- 텍스트가 컨테이너 안에 들어가는가?
+- 동적 값이 layout 크기나 위치를 흔들지 않는가?
+- 1280x720 기준과 작은/넓은 화면에서도 유지되는가?
 
-Do not rely on intended layout from code alone. Review actual screenshots whenever the change is visual.
+## 현재 캡처 지원
 
-## Current Capture Support
-
-The game currently supports manual screenshot capture:
+수동 캡처:
 
 ```text
 F12 -> debug_screenshot_manual.png
 ```
 
-Implementation reference:
+구현 위치:
 
-- `src/Main.gd` handles `KEY_F12`.
-- `_take_screenshot("debug_screenshot_manual.png")` first saves to `res://`, then falls back to `user://` if project write fails.
+- `src/Main.gd`의 `KEY_F12`
+- `_take_screenshot("debug_screenshot_manual.png")`
 
-Current baseline viewport:
+기본 viewport:
 
 ```text
-project.godot
-window/size/viewport_width=1280
-window/size/viewport_height=720
+1280x720
 ```
 
-There is not yet a dedicated command-line screenshot capture mode. If a UI task needs repeatable visual verification, adding a small non-gameplay capture mode is preferred over temporary mockup branches.
+## 기본 리뷰 절차
 
-## Default Review Workflow
-
-1. Run the game normally and capture the relevant screen with `F12`.
-2. Inspect the screenshot directly, preferably with the image viewer available to the agent.
-3. Run the normal non-visual checks:
+1. 게임을 실행하고 관련 화면에서 F12 캡처.
+2. 이미지로 직접 확인.
+3. 비시각 검증 실행:
 
 ```powershell
 git diff --check
@@ -51,131 +45,53 @@ git diff --check
 python tools\simulate_matches.py 1
 ```
 
-For pure documentation or copy changes, screenshots and simulations are not required.
+문서/문구만 바뀐 경우 screenshot과 simulation은 생략할 수 있다.
 
-## Required Screenshots By Change Type
+## 변경 유형별 필요한 캡처
 
-| Change Type | Screenshots To Capture |
+| 변경 | 캡처 |
 |---|---|
-| HUD status, health, shield, missions | active match with normal state, damaged/low state if relevant |
-| Zone timer / warnings | normal `ZONE Ns`, `ZONE CLOSING` |
-| Pickup labels/icons/glow | sparse pickup area, dense pickup cluster, focused pickup candidate |
-| Weapon slot HUD | empty slots, full inventory, reload/low ammo if relevant |
-| Records/settings/help/menu | each changed panel at default viewport |
-| Minimap/full-map work | normal map, zone closing, supply/loot marker state if relevant |
-| Result screen | win and loss if the change touches result text/layout |
+| HUD 상태/체력/실드/미션 | 정상 상태, 낮은 HP/피해 상태 |
+| Zone timer/warning | `ZONE Ns`, `ZONE CLOSING` |
+| 픽업 라벨/아이콘/glow | sparse pickup, dense pickup, focus candidate |
+| 무기 슬롯 HUD | empty, full inventory, reload/low ammo |
+| 메뉴/설정/도움말/기록 | 변경 panel별 기본 viewport |
+| 미니맵/full map | normal, zone closing, supply/loot marker |
+| 결과 화면 | win/loss |
 
-Do not capture every possible state for small changes. Capture the states that could plausibly break.
-
-## Visual Review Checklist
+## 체크리스트
 
 ### Layout
 
-- No overlapping UI text, icons, panels, minimap, or labels.
-- Text stays inside buttons, panels, slot boxes, and labels.
-- Dynamic values do not resize the whole layout unexpectedly.
-- Top-left HUD, center zone text, killfeed, minimap, and bottom slot bar do not fight for the same screen space.
-- Pickup labels do not flood the center of the screen when loot is clustered.
+- UI 요소가 서로 겹치지 않는다.
+- 버튼/패널/슬롯/라벨 내부에 텍스트가 들어간다.
+- 동적 값이 layout을 밀지 않는다.
+- top-left HUD, center zone text, killfeed, minimap, bottom slot bar가 서로 싸우지 않는다.
+- loot cluster에서 pickup label이 화면 중앙을 덮지 않는다.
 
 ### Readability
 
-- HP, shield, alive count, zone state, active weapon, and focused pickup are readable first.
-- Secondary information is visibly lower priority.
-- Text outline/shadow is enough on dark terrain, buildings, zone overlay, and glow effects.
-- Icons remain recognizable at their actual in-game size, not just in source sheets.
-- Color is functional: danger, rare, armor, heal, ammo, and common loot are distinguishable.
+- HP, shield, alive count, zone, active weapon, focused pickup이 먼저 읽힌다.
+- 보조 정보는 낮은 우선순위로 보인다.
+- 어두운 지형/건물/zone overlay/glow 위에서 outline이나 shadow가 충분하다.
+- 아이콘은 실제 게임 크기에서도 알아볼 수 있다.
+- danger, rare, armor, heal, ammo, common loot 색이 구분된다.
 
-### Motion And State
+### State
 
-- `ZONE Ns` and `ZONE CLOSING` transitions do not jump or occlude other UI.
-- Killfeed accumulation does not spill into unrelated HUD areas.
-- Pickup focus changes are clear but not debug-like.
-- Reload/low ammo indicators update without layout jitter.
-- Pause, settings, help, records, and result panels return to the correct previous screen.
+- `ZONE Ns`와 `ZONE CLOSING` 전환이 튀지 않는다.
+- killfeed가 다른 HUD 영역으로 넘치지 않는다.
+- reload/low ammo 표시가 layout jitter 없이 갱신된다.
+- pause/settings/help/records/result에서 이전 화면으로 정상 복귀한다.
 
-### Asset-Specific Checks
+## 향후 자동 캡처 방향
 
-- Catalog icons render when present.
-- Fallback primitive/icon display still works when an asset is missing.
-- Common weapon/ammo glow does not overpower rare/purple, legendary/orange, armor/cyan, or zone warning cues.
-- New generated source files under `asset_generator/expected_output/` are not accidentally treated as runtime assets.
+반복 UI 리뷰가 필요하면 임시 mockup branch보다 deterministic capture path를 추가한다.
 
-## Automated Review Direction
-
-For future UI work, prefer adding a small deterministic capture path instead of temporary mockups.
-
-Recommended command shape:
+예시:
 
 ```powershell
 .\Godot_v4.6.2-stable_win64_console.exe --path . -- ui_capture=true ui_state=pickup_dense screenshot=ui_pickup_dense_1280x720.png
 ```
 
-Suggested capture states:
-
-| State ID | Purpose |
-|---|---|
-| `hud_normal` | baseline gameplay HUD |
-| `hud_zone_closing` | zone warning layout |
-| `pickup_sparse` | one or two visible pickups |
-| `pickup_dense` | clustered loot readability |
-| `inventory_full` | weapon slot stress state |
-| `menu_main` | main menu layout |
-| `panel_help` | How to Play panel |
-| `panel_records` | records list and difficulty tabs |
-| `panel_settings` | settings controls |
-| `result_win` | result screen layout |
-
-Suggested viewport matrix:
-
-```text
-1280x720   baseline
-1600x900   wider desktop
-960x540    small 16:9
-```
-
-This capture mode should:
-
-- Avoid changing gameplay simulation logic.
-- Build only the requested UI state or start a deterministic short match setup.
-- Save screenshots to a known path.
-- Exit automatically after capture.
-- Be excluded from release-facing UI unless explicitly enabled by command-line args.
-
-## Agent Review Expectations
-
-When screenshots are available, the agent should inspect them as images and report concrete findings:
-
-- file reviewed,
-- viewport/state,
-- visible overlaps,
-- unreadable text,
-- label/icon clutter,
-- container overflow,
-- suspicious regressions.
-
-Good review result:
-
-```text
-Reviewed ui_pickup_dense_1280x720.png.
-Findings:
-- Pickup labels overlap above the lower-left loot cluster.
-- Blue ammo glow is stronger than armor/cyan and should be reduced.
-- Focus candidate is not distinguishable from non-focused pickups.
-```
-
-Bad review result:
-
-```text
-Looks fine.
-```
-
-## When To Update This Document
-
-Update this document when:
-
-- a screenshot capture command is actually implemented,
-- a new recurring UI state needs review,
-- viewport support changes,
-- a visual issue repeats often enough to become a checklist item.
-
-Do not add large design proposals here. Put roadmap/scope in [MASTERPLAN.md](MASTERPLAN.md), completed work in [DEVLOG.md](DEVLOG.md), and stable asset style/format rules in [ASSET_BRIEF.md](ASSET_BRIEF.md).
+권장 state: `hud_normal`, `hud_zone_closing`, `pickup_sparse`, `pickup_dense`, `inventory_full`, `menu_main`, `panel_help`, `panel_records`, `panel_settings`, `result_win`.

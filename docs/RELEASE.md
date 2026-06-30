@@ -1,167 +1,90 @@
 # 릴리즈 가이드
 
-> 배틀캡슐 빌드 & GitHub 릴리즈 전체 절차
-> 현재 릴리즈: `v2.0.0-pre-expansion`
+> 최종 업데이트: 2026-06-30. 릴리즈는 사용자가 명시적으로 요청할 때만 진행한다.
 
----
+## 현재 기준
 
-## 릴리즈 이력 패턴
+- 현재 안정 태그: `v2.0.0-pre-expansion`
+- GitHub 저장소: `https://github.com/Kyulhee/battle-capsule`
+- 파일명 규칙:
+  - Windows: `BattleRoyalePrototype_${VER}_win64.zip`
+  - macOS: `BattleRoyalePrototype_${VER}_macos.zip`
 
-| 버전 | 태그 | Windows | macOS | 비고 |
-|---|---|---|---|---|
-| v0.1.0 | `v0.1.0` | `.exe` + `.pck` (별도) | — | 사전 릴리즈 |
-| v0.2.0~v0.2.1 | `v0.2.x` | `_vX.Y.Z_win64.zip` | — | zip 전환 |
-| v0.3.1 | `v0.3.1` | `_vX.Y.Z_win64.zip` | — | — |
-| v0.3.2~ | `v0.3.2` | `_vX.Y.Z_win64.zip` | `_mac.zip` | 한국어 릴리즈노트, 배지 방식 README |
-| v2.0.0-pre-expansion | `v2.0.0-pre-expansion` | `_v2.0.0-pre-expansion_win64.zip` | `_v2.0.0-pre-expansion_macos.zip` | 확장 전 안정 스냅샷 |
+## 릴리즈 전 조건
 
-**파일명 규칙**
-- Windows: `BattleRoyalePrototype_${VER}_win64.zip`
-- macOS: `BattleRoyalePrototype_${VER}_macos.zip`
+- 사용자가 릴리즈/빌드를 명시 요청했다.
+- `TESTING.md`의 관련 smoke와 simulation gate가 통과했다.
+- release note에 들어갈 변경 요약이 `DEVLOG.md` 또는 버전 로그에 있다.
+- default promotion, build target, tag 이름을 확인했다.
 
----
+## 절차
 
-## 릴리즈 절차
+### 1. 검증
 
-### 1. 빌드 전 체크
-
-```bash
-# 헤드리스 시뮬레이션으로 AI/밸런스 이상 없는지 확인
-./Godot_v4.6.2-stable_win64_console.exe --headless -- autostart=true
-python tools/simulate_matches.py 5
-python tools/analyze_results.py
-cat "$APPDATA/Godot/app_userdata/BattleRoyalePrototype/sim_result_latest.json"
+```powershell
+python tools\run_verify.py --profile unit_smoke
+python tools\simulate_matches.py 5
+python tools\analyze_results.py
 ```
 
-TESTING.md의 체크리스트를 통과했는지 확인한다.
+릴리즈 성격에 따라 `scale_99`, `visual_review`, 수동 실행을 추가한다.
 
-### 2. export_presets.cfg 버전 업데이트
+### 2. 버전 갱신
 
-```
-# preset.0.options (Windows)
-application/file_version="0.4.0.0"
-application/product_version="0.4.0.0"
+`export_presets.cfg`의 Windows/macOS 버전을 갱신한다.
 
-# preset.1.options (macOS)
-application/short_version="0.4.0"
-application/version="0.4.0"
-```
+### 3. 빌드
 
-### 3. Godot 헤드리스 빌드
+```powershell
+$VER="vX.Y.Z"
 
-```bash
-VER="v0.4.0"
-
-# Windows
-./Godot_v4.6.2-stable_win64.exe --headless \
-  --export-release "Windows Desktop" \
-  "builds/BattleRoyalePrototype_${VER}_win64.zip"
-
-# macOS (Universal)
-./Godot_v4.6.2-stable_win64.exe --headless \
-  --export-release "macOS" \
-  "builds/BattleRoyalePrototype_${VER}_macos.zip"
+.\Godot_v4.6.2-stable_win64.exe --headless --export-release "Windows Desktop" "builds/BattleRoyalePrototype_${VER}_win64.zip"
+.\Godot_v4.6.2-stable_win64.exe --headless --export-release "macOS" "builds/BattleRoyalePrototype_${VER}_macos.zip"
 ```
 
-> macOS 빌드 주의:
-> - `project.godot`에 `textures/vram_compression/import_etc2_astc=true` 필요
-> - `export_presets.cfg`의 macOS 키는 `application/bundle_identifier` (not `application/identifier`)
+macOS 주의:
 
-### 4. git 태그 & 푸시
+- `project.godot`에 `textures/vram_compression/import_etc2_astc=true` 필요.
+- `export_presets.cfg` key는 `application/bundle_identifier`.
 
-```bash
-VER="v0.4.0"
+### 4. 커밋, 태그, 푸쉬
 
-git add -A
-git commit -m "chore: bump version to $VER"
+```powershell
+$VER="vX.Y.Z"
+
+git add export_presets.cfg README.md docs\RELEASE.md
+git commit -m "chore: prepare release $VER"
 git tag $VER
 git push origin master
 git push origin $VER
 ```
 
-### 5. GitHub 릴리즈 생성
+### 5. GitHub 릴리즈
 
-```bash
-VER="v0.4.0"
-WIN_ZIP="builds/BattleRoyalePrototype_${VER}_win64.zip"
-MAC_ZIP="builds/BattleRoyalePrototype_${VER}_macos.zip"
-
-gh release create $VER \
-  --title "배틀캡슐 $VER — 봇 AI 개선" \
-  --notes "$(cat <<'EOF'
-## 주요 변경 사항
-
-변경 내용을 여기에 작성 (한국어).
-
-### 무기 밸런스 등 표가 있으면 추가
-
-**다운로드**: 위 Assets에서 Windows / macOS 선택
-EOF
-)" \
-  "$WIN_ZIP" \
-  "$MAC_ZIP"
+```powershell
+$VER="vX.Y.Z"
+gh release create $VER `
+  --title "배틀캡슐 $VER - 한줄 요약" `
+  --notes-file release_notes.md `
+  "builds/BattleRoyalePrototype_${VER}_win64.zip" `
+  "builds/BattleRoyalePrototype_${VER}_macos.zip"
 ```
 
-릴리즈 노트 작성 기준 (v0.3.2 이후 한국어):
-- 제목: `배틀캡슐 vX.Y.Z — 한줄요약`
-- 본문: 주요 변경 사항 위주, 표 필요 시 Markdown 테이블
+### 6. README 다운로드 링크 갱신
 
-### 6. README 배지 업데이트
+릴리즈 asset URL이 맞는지 확인하고 README 배지를 갱신한다.
 
-[README.md](../README.md) 상단 다운로드 섹션에서 버전 2곳 수정:
+## 체크리스트
 
-```markdown
-## 다운로드 (v0.4.0)
-
-[![Windows](https://img.shields.io/badge/Windows-0078D4?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.4.0/BattleRoyalePrototype_v0.4.0_win64.zip)
-[![macOS](https://img.shields.io/badge/macOS-000000?style=for-the-badge&logo=apple&logoColor=white)](https://github.com/Kyulhee/battle-capsule/releases/download/v0.4.0/BattleRoyalePrototype_v0.4.0_macos.zip)
-```
-
-수정 후 커밋·푸시:
-
-```bash
-git add README.md
-git commit -m "docs: update download links to vX.Y.Z"
-git push origin master
-```
-
-### 7. 문서 마무리
-
-릴리즈 완료 후 두 파일을 업데이트한다.
-
-**MASTERPLAN.md**
-- Compact History 테이블에 새 버전 행 추가
-- 현재 상태와 다음 개발 라인 갱신
-
-**CLAUDE.md**
-- 현재 상태 표의 릴리즈 기준점, 현재 개발 라인, 릴리즈 정책 갱신
-
----
-
-## 릴리즈 체크리스트
-
-```
-[ ] 헤드리스 시뮬레이션 통과 (TESTING.md 봇 AI 체크리스트)
-[ ] export_presets.cfg 버전 번호 업데이트
-[ ] Windows 빌드 생성 및 로컬 실행 확인
-[ ] macOS 빌드 생성 (bundle_identifier 키 확인)
+```text
+[ ] 릴리즈 요청 확인
+[ ] 검증 profile 통과
+[ ] export preset 버전 갱신
+[ ] Windows 빌드 생성/실행 확인
+[ ] macOS 빌드 생성
 [ ] git tag + push
-[ ] gh release create (Windows + macOS 첨부)
-[ ] README 배지 URL 업데이트 + push
-[ ] gh release view vX.Y.Z 로 에셋 업로드 확인
-[ ] MASTERPLAN.md Compact History + 현재 상태 갱신
-[ ] CLAUDE.md Current State 표 갱신
+[ ] GitHub release 생성
+[ ] asset 업로드 확인
+[ ] README 다운로드 링크 갱신
+[ ] DEVLOG/MASTERPLAN 상태 갱신
 ```
-
----
-
-## 참고: 릴리즈 노트 예시 (v0.3.2)
-
-```
-title: 배틀캡슐 v0.3.2 — 탄약 시스템 개편
-tag:   v0.3.2
-assets: BattleRoyalePrototype_v0.3.2_win64.zip
-        BattleRoyalePrototype_v0.3.2_macos.zip
-```
-
-릴리즈 본문은 DEVLOG.md의 active entry 또는 docs/devlog 버전 요약을 기반으로 작성한다.

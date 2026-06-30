@@ -1,27 +1,28 @@
-# Decisions
+# 결정 기록
 
-> Last updated: 2026-06-30. Stable project decisions live here. Do not turn this into a devlog.
+> 최종 업데이트: 2026-06-30. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
 
-## Locked Until Reopened
+## 재검토 전까지 유지
 
-| ID | Decision | Reason | Reopen Only If |
+| ID | 결정 | 이유 | 재검토 조건 |
 |---|---|---|---|
-| D-001 | Release work is paused | Current work is v2-dev prototype direction, not packaging | User explicitly requests release/build work |
-| D-002 | 99-player default promotion is blocked | Candidate map/pacing still uses non-default test surfaces | M1 First Playable Night BR gate passes |
-| D-003 | `target_99_probe` is a structural gate, not a game-feel target | It checks scale safety and regression sentinels | A replacement structural profile exists |
-| D-004 | `playable_pacing_v4` is the current automated pacing candidate; `playable_pacing_v2` remains the late-zone reference | v4 preserves stage2/stage3 and fixes first-upgrade timing in automated 3-run | Manual playtest rejects v4 or a new candidate preserves its gains |
-| D-005 | Simple global loot/hotspot/rare cuts are rejected as the next lever | N2-PACE-26 delayed upgrades but regressed duration/stage3 | A targeted first-upgrade design proves global economy is still the bottleneck |
-| D-006 | 1m hard-bump exception remains allowed after the 4s opening brush grace | N2-PACE-32 reduced hard-bump first acquisition without removing collision readability | A dedicated opening collision redesign replaces the brush rule |
-| D-007 | Generated source pools stay untracked | `asset_generator/` and `plan_report/` are input/reference pools, not runtime content | User asks to integrate selected assets |
-| D-008 | Active docs must optimize next action, not history | Long logs already slowed development | A historical audit explicitly needs full detail |
-| D-009 | Role-specific initial weapon multipliers are allowed only as non-default pacing experiments | N2-PACE-28 targeted first-upgrade context without repeating global economy cuts | A promoted candidate needs manual playtest and pacing evidence |
-| D-010 | First-upgrade telemetry is game-time, not wall-clock time | N2-PACE-29 found economy first_upgrade used real seconds while other pacing milestones used game seconds | A new canonical time basis is approved |
-| D-011 | First-upgrade timing is controlled through initial non-pistol pool weight, not broad weapon chance cuts | N2-PACE-30 showed initial non-pistol spikes and starvation are separate failure modes | A better delayed upgrade source replaces stage/supply pacing |
+| D-001 | 릴리즈 작업은 보류 | 현재는 v2-dev 프로토타입 방향 | 사용자가 릴리즈/빌드를 명시 요청 |
+| D-002 | 99명 기본값 승격 금지 | 후보 맵/페이싱은 아직 비기본 테스트 표면 | M1 첫 플레이 가능 Night BR gate 통과 |
+| D-003 | `target_99_probe`는 체감 목표가 아니라 구조 gate | 규모 안전성과 회귀 감시용 | 대체 구조 프로필이 생김 |
+| D-004 | `playable_pacing_v4`가 현재 자동 페이싱 기준 | stage2/stage3와 first-upgrade timing을 동시에 보존 | 수동 플레이가 거부하거나 더 나은 후보가 등장 |
+| D-005 | 단순 global loot/hotspot/rare 감소는 다음 lever가 아님 | N2-PACE-26에서 duration/stage3 회귀 | 글로벌 경제가 병목이라는 새 증거 |
+| D-006 | 1m hard-bump 예외는 4초 opening brush 뒤에는 허용 | 충돌 가독성은 유지하고 즉시 전투 승격만 줄임 | 별도 opening collision 설계가 들어감 |
+| D-007 | 생성 원본 풀은 untracked 유지 | `asset_generator/`, `plan_report/`는 런타임 콘텐츠가 아님 | 사용자가 특정 자산 통합 요청 |
+| D-008 | 활성 문서는 다음 행동을 빠르게 만드는 용도 | 장문 로그가 개발 속도를 늦춤 | 과거 감사가 명시적으로 필요 |
+| D-009 | role별 initial weapon multiplier는 비기본 실험만 허용 | v3는 진단용이고 승격 기준 미달 | 수동/자동 증거를 갖춘 승격 후보 |
+| D-010 | first-upgrade 시간 기준은 game-time | N2-PACE-29에서 wall-clock 혼입 발견 | 새 canonical time basis 승인 |
+| D-011 | first-upgrade는 broad weapon chance가 아니라 initial non-pistol pool로 제어 | broad cut은 spike 또는 starvation을 만들었음 | 더 나은 지연 소스 설계 |
+| D-012 | 기본 문서는 한글로 유지 | 사용자 확인과 1인 개발 속도를 높이기 위해 | 외부 협업자가 영어 문서를 요구 |
 
-## Current Design Bias
+## 현재 설계 편향
 
-- Prefer milestone-level decisions over endless micro-slices.
-- Prefer a playable vertical loop over more diagnostic fields unless the next decision cannot be made without data.
-- Prefer small targeted gameplay candidates over broad global tuning when previous broad tuning regressed another milestone.
-- Keep `playable_pacing_v4` as the automated pacing reference, but require manual play/readability notes before promotion.
-- Treat old first-upgrade seconds before N2-PACE-29 as suspect for timing, though their weapon/POI/route context can still inform diagnosis.
+- 끝없는 미세 조정보다 milestone 단위 판단을 우선한다.
+- 진단 필드 추가보다 플레이 가능한 루프를 우선한다.
+- 넓은 전역 튜닝보다, 이전 회귀를 피하는 좁은 후보를 선호한다.
+- `playable_pacing_v4`는 자동 기준일 뿐 수동 기준선은 아니다.
+- N2-PACE-29 이전 first-upgrade 초 단위는 의심하고, weapon/POI/route 맥락만 참고한다.

@@ -1,57 +1,56 @@
-# Current Tracker
+# 현재 트래커
 
-> Last updated: 2026-06-30. This is the default planning surface. Keep it short enough to read before every work slice.
+> 최종 업데이트: 2026-06-30. 작업 시작 전 이 문서를 먼저 읽는다.
 
-## Big Frame
+## 큰 틀
 
-| Track | State | Goal |
+| 트랙 | 상태 | 목표 |
 |---|---|---|
-| M0 Ops Reset | Supporting | Make the solo-dev workflow fast enough for larger feature decisions |
-| M1 First Playable Night BR | Active | A full match loop that feels readable, tense, and playable before final balance |
-| M2 Vertical Slice | Planned | One representative Night BR slice with map, night readability, loot, combat, zone, and UI working together |
-| M3 Content Stabilization | Later | Tune, polish, and expand after the core loop proves itself |
+| M0 운영 정리 | 지원 중 | 1인 개발에 맞게 문서와 검증 루틴을 가볍게 유지 |
+| M1 첫 플레이 가능한 Night BR | 진행 중 | 읽기 쉽고 긴장감 있는 10-15분 매치 루프 |
+| M2 버티컬 슬라이스 | 계획됨 | 맵, 야간 가독성, 루트, 전투, 존, UI가 연결된 대표 플레이 |
+| M3 콘텐츠 안정화 | 이후 | 코어 루프 검증 후 확장/폴리시/밸런스 |
 
-## Current Slice
+## 현재 작업면
 
-| Item | Value |
+| 항목 | 값 |
 |---|---|
-| Active slice | N2-PACE-32 opening hard-bump brush candidate |
-| Latest verified gameplay slice | N2-PACE-32 4s opening hard-bump brush |
-| Current branch note | Local `master` may have unrelated generated/doc files; check `git status -sb`. Push is approved unless the user revokes it |
-| Execution note | Use elevated shell commands when local sandbox fails with `CreateProcessAsUserW failed: 1312` |
+| 현재 단위 | 문서 한글화 및 활성 문서 압축 |
+| 최신 검증 게임플레이 단위 | N2-PACE-32 4초 opening hard-bump brush |
+| 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
+| 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다 |
+| 실행 메모 | 샌드박스 읽기 실패 시 승격 실행 사용. 이전 증상: `CreateProcessAsUserW failed: 1312` |
 
-## Product Direction
+## 제품 방향
 
-- Build toward a 10-15 minute Night BR prototype, not a pure telemetry exercise.
-- Candidate surface remains `data/mapSpec_night_forest_candidate.json` with non-default playable pacing presets.
-- Do not promote 99-player defaults, release builds, or full bot flashlight/fear/battery systems without an explicit milestone decision.
-- Treat telemetry as structural safety and diagnosis; manual play/readability still decides whether the slice feels like a game.
+- 텔레메트리만 통과하는 시뮬레이션이 아니라, 실제로 플레이 가능한 Night BR 프로토타입을 만든다.
+- 현재 후보 표면은 `data/mapSpec_night_forest_candidate.json`의 비기본 pacing preset이다.
+- 99명 기본값 승격, 릴리즈 빌드, 완전한 flashlight/fear/battery 시스템은 명시적 마일스톤 결정 전까지 보류한다.
+- 수치 검증은 구조 안전망이고, 주요 후보 승격에는 수동 플레이/가독성 기록이 필요하다.
 
-## Next Work Queue
+## 다음 작업 큐
 
-| Priority | Work | Exit |
+| 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
-| P0 | Finish N2-OPS-01 doc routing | Done: tracker docs are the default reading path |
-| P1 | Add verification profiles | Done: `tools/run_verify.py --profile ...` covers docs/tooling/unit/pacing/scale/visual gates |
-| P2 | Design first-upgrade candidate | Done: N2-PACE-28 `playable_pacing_v3` role multiplier candidate passed, but is diagnostic only |
-| P3 | Isolate next upgrade source | Done: N2-PACE-29 source read is initial_loot 66.7% / stage_wave 33.3%, not bot drops |
-| P4 | Tune initial/wave non-pistol access | Done: `playable_pacing_v4` 3-run first upgrade 294.9s, missing 0, stage2/stage3 in band |
-| P5 | Run manual visual/playtest pass | Done: `visual_review` passed and `PLAYTEST.md` records v4 as needs-iteration for manual promotion |
-| P6 | Follow opening pressure | Done: 4s hard-bump brush passed v4 gate; first contact 17.7s and hard-bump first acquisition 1/3 |
-| P7 | Protect match-length margin | Next: avg duration is 554.3s, above the 540 gate but still short of the 600s target floor |
+| P0 | 문서 라우팅 정리 | 진행 중: 활성 문서를 한글 기준으로 통일 |
+| P1 | 검증 프로필 유지 | 완료: `tools/run_verify.py --profile ...` 사용 |
+| P2 | 첫 non-pistol 업그레이드 지연 | 완료: v4가 120-300초 창에 진입 |
+| P3 | 오프닝 hard-bump 압박 완화 | 완료: 4초 brush 후보가 v4 gate 통과 |
+| P4 | 매치 길이 여유 확보 | 다음: avg duration 554.3초를 600초 이상으로 안정화 |
+| P5 | 수동 플레이 기준 승격 | 다음: v4/brush 후보를 실제 조작 기준으로 판단 |
 
-## Risk Board
+## 리스크 보드
 
-| Risk | Signal | Response |
+| 리스크 | 신호 | 대응 |
 |---|---|---|
-| Documentation drag | Active docs exceed their own budgets | Move detail to `EXPERIMENTS` or archive, keep `CURRENT` short |
-| Telemetry tunnel vision | Numeric PASS but unclear game feel | Add PLAYTEST notes before accepting major pacing decisions |
-| Large-file ownership | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd` remain large | Extract only when a slice touches that domain |
-| Experiment repetition | Rejected candidates reappear | Check `EXPERIMENTS.md` before new tuning |
-| Opening pressure | 4s brush improved hard-bump read, but first contact is still early at 17.7s | Do not widen brush to 5s; that collapsed duration/stage3 |
-| Match duration margin | N2-PACE-32 avg duration 554.3s, target floor 600s | Preserve v4 duration gate before adding more opening delays |
-| Asset import noise | Local source pools live under project root | Keep source pools untracked; add `.gdignore` where needed |
+| 문서 부채 | 활성 문서가 장문 로그처럼 커짐 | 한글 요약 문서로 유지하고 상세는 아카이브 |
+| 텔레메트리 터널 | 수치 PASS지만 체감이 불명확 | `PLAYTEST.md`에 수동 판단 기록 |
+| 큰 파일 집중 | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd`가 큼 | 해당 도메인을 건드릴 때만 추출 |
+| 실험 반복 | 폐기 후보가 다시 등장 | `EXPERIMENTS.md` 먼저 확인 |
+| 오프닝 압박 | first contact 17.7초로 아직 빠름 | 5초 brush 금지. 먼저 duration 여유 확보 |
+| 매치 길이 | N2-PACE-32 avg duration 554.3초 | 추가 지연 전에 v4 duration gate 보존 |
+| 자산 노이즈 | 생성 원본 풀이 프로젝트 루트에 있음 | 런타임 승격 전까지 untracked 유지 |
 
-## Session Rule
+## 세션 규칙
 
-Before starting a new implementation slice, restate this tracker in one or two lines: active milestone, current risk, next exit condition.
+새 구현 단위를 시작할 때는 현재 마일스톤, 현재 리스크, 종료 조건을 1-2문장으로 재진술한다.

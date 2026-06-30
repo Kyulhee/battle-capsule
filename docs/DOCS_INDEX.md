@@ -1,82 +1,63 @@
-# Documentation Index
+# 문서 인덱스
 
-> Last updated: 2026-06-24. This file defines the default reading path so agents and humans do not need to load every long document.
+> 최종 업데이트: 2026-06-30. 새 세션은 이 문서와 `CURRENT.md`부터 읽는다. 기본 문서는 한글로 유지한다.
 
-## Read First
+## 기본 읽기 순서
 
-| Document | Role | Default? |
+| 문서 | 용도 | 기본 읽기 |
 |---|---|---|
-| [../CLAUDE.md](../CLAUDE.md) | Session onboarding and current operating rules | Yes |
-| [CURRENT.md](CURRENT.md) | Active milestone tracker, risk board, and next queue | Yes |
-| [HANDOFF.md](HANDOFF.md) | Resume context, git state, local execution notes | Yes |
-| [DECISIONS.md](DECISIONS.md) | Stable decisions and reopen conditions | Yes, before reopening big decisions |
-| [EXPERIMENTS.md](EXPERIMENTS.md) | Accepted/rejected experiment ledger | Yes, before new tuning candidates |
-| [PLAYTEST.md](PLAYTEST.md) | Manual feel/readability checklist and notes | Before user-facing feel changes |
-| [DEVLOG.md](DEVLOG.md) | Recent verified work summary | Update after work; do not load full file for onboarding |
-| [MASTERPLAN.md](MASTERPLAN.md) | Broader roadmap and historical current-state detail | Reference only |
-| [IMPACT_MAP.md](IMPACT_MAP.md) | Ownership and change-impact map | Before code changes |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Module boundaries and dependency structure | Structural changes only |
-| [TESTING.md](TESTING.md) | Verification commands and interpretation | Verification only |
-| [ASSET_STATUS.md](ASSET_STATUS.md) | Integrated/generated/deferred asset state | Asset work only |
-| [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md) | 99-player map placement-group planning brief | Map/scale planning only |
-| [NIGHT_BR_PACING_PLAN.md](NIGHT_BR_PACING_PLAN.md) | 10-15 minute night BR pacing and test strategy | Night/99 pacing planning only |
+| [../CLAUDE.md](../CLAUDE.md) | 세션 운영 규칙과 협업 방식 | 예 |
+| [CURRENT.md](CURRENT.md) | 현재 마일스톤, 리스크, 다음 작업 | 예 |
+| [HANDOFF.md](HANDOFF.md) | 재개 맥락, 로컬 실행/깃 상태 | 예 |
+| [DECISIONS.md](DECISIONS.md) | 유지 중인 결정과 재검토 조건 | 큰 결정을 바꾸기 전 |
+| [EXPERIMENTS.md](EXPERIMENTS.md) | 채택/폐기 실험 기록 | 새 튜닝 전 |
+| [PLAYTEST.md](PLAYTEST.md) | 수동 체감/가독성 체크 | 체감 변경 전 |
+| [DEVLOG.md](DEVLOG.md) | 최근 검증된 작업 요약 | 작업 후 갱신 |
+| [MASTERPLAN.md](MASTERPLAN.md) | 큰 로드맵과 현재 제품 방향 | 참조용 |
+| [IMPACT_MAP.md](IMPACT_MAP.md) | 변경 영향과 소유 경계 | 코드 변경 전 |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | 모듈 경계와 의존 구조 | 구조 변경 시 |
+| [TESTING.md](TESTING.md) | 검증 프로필과 판정 기준 | 검증 시 |
 
-## Active Document Budgets
+## 자산 문서
 
-These are operating limits for default-session docs, not strict CI rules.
-
-| Document | Target |
+| 문서 | 용도 |
 |---|---|
-| [CURRENT.md](CURRENT.md) | 100 lines or less |
-| [DECISIONS.md](DECISIONS.md) | 120 lines or less |
-| [EXPERIMENTS.md](EXPERIMENTS.md) | 150 lines or less |
-| [PLAYTEST.md](PLAYTEST.md) | 150 lines or less |
-| [HANDOFF.md](HANDOFF.md) | 100 lines or less |
-| [MASTERPLAN.md](MASTERPLAN.md) | Reference doc; compress after tracker adoption |
-| [DEVLOG.md](DEVLOG.md) | 200 lines or less after N2-OPS adoption |
-| Per-version devlogs under `docs/devlog/` | 150 lines or less per active version |
-| [ARCHITECTURE.md](ARCHITECTURE.md) / [IMPACT_MAP.md](IMPACT_MAP.md) | Keep as reference docs; open only when relevant |
+| [ASSET_BRIEF.md](ASSET_BRIEF.md) | 자산 스타일, 포맷, 수용 기준 |
+| [ASSET_STATUS.md](ASSET_STATUS.md) | 통합/보류/미연결 자산 상태 |
+| [ASSET_GENERATION_PROMPTS.md](ASSET_GENERATION_PROMPTS.md) | 외부 생성기에 전달할 프롬프트 초안 |
 
-When a default-session document exceeds its budget, snapshot the full raw content under `docs/devlog/` or `docs/archive/`, then leave only compressed current status, rules, decisions, and next actions in the active file.
+`asset_generator/expected_output/`은 런타임 자산이 아니라 원본 풀이다. 실제 게임에 쓰는 파일만 `assets/`로 승격하고 `data/asset_catalog.json`에 등록한다.
 
-## Asset Work
+## 조건부 문서
 
-| Document | Role |
+| 문서 | 읽는 경우 |
 |---|---|
-| [ASSET_BRIEF.md](ASSET_BRIEF.md) | Stable visual/audio style and file-format reference |
-| [ASSET_STATUS.md](ASSET_STATUS.md) | Current integrated assets, generated-but-held pools, and deferred asset decisions |
+| [UI_DESIGN.md](UI_DESIGN.md) | UI 변경이나 스크린샷 기반 리뷰가 필요할 때 |
+| [RELEASE.md](RELEASE.md) | 릴리즈/빌드/GitHub 배포를 명시적으로 요청받았을 때 |
+| [MAP_TILE_GROUPS.md](MAP_TILE_GROUPS.md) | 99명 맵 배치 그룹을 다시 설계할 때 |
+| [NIGHT_BR_PACING_PLAN.md](NIGHT_BR_PACING_PLAN.md) | 10-15분 Night BR 페이싱을 큰 단위로 재설계할 때 |
 
-The generated workspace [../asset_generator/expected_output](../asset_generator/expected_output) is a source pool, not runtime content. Only selected files should be normalized into `assets/` and registered through `data/asset_catalog.json`.
+## 문서 예산
 
-`docs/ASSET_GENERATION_PROMPTS.md` may exist locally as a copy-ready prompt scratch file, but it is intentionally untracked unless the user asks to publish it.
-
-## Planning References
-
-| Path | Role |
+| 문서 | 목표 |
 |---|---|
-| [../plan_report](../plan_report) | Local external planning reference for Night Artificial Forest; keep untracked unless explicitly requested |
+| `CURRENT.md` | 100줄 이하 |
+| `DECISIONS.md` | 120줄 이하 |
+| `EXPERIMENTS.md` | 150줄 이하 |
+| `PLAYTEST.md` | 150줄 이하 |
+| `HANDOFF.md` | 100줄 이하 |
+| `DEVLOG.md` | 최근 작업만 유지, 상세 로그는 아카이브 |
+| `ARCHITECTURE.md`, `IMPACT_MAP.md`, `TESTING.md` | 필요한 판단을 빠르게 내릴 수 있는 참조 문서 |
 
-## Conditional Docs
+긴 원문이 필요하면 새 내용을 붙이지 말고 `docs/archive/` 또는 `docs/devlog/`에 스냅샷을 남긴 뒤 활성 문서는 압축한다.
 
-| Document | Use Only When |
+## 아카이브
+
+아래 문서는 기본 컨텍스트에서 제외한다. 현재 문서에 없는 과거 세부사항이 필요할 때만 연다.
+
+| 경로 | 내용 |
 |---|---|
-| [UI_DESIGN.md](UI_DESIGN.md) | A UI change needs screenshot-driven visual review |
-| [RELEASE.md](RELEASE.md) | A release/build/GitHub release is explicitly requested |
-
-## Archives
-
-These files are preserved for history but excluded from default context:
-
-| Path | Contents |
-|---|---|
-| [archive/MASTERPLAN_full_2026-05-13.md](archive/MASTERPLAN_full_2026-05-13.md) | Previous long-form master plan |
-| [archive/MASTERPLAN_full_2026-05-26.md](archive/MASTERPLAN_full_2026-05-26.md) | Full active roadmap before v1.11.35 compression |
-| [archive/MASTERPLAN_full_2026-06-08.md](archive/MASTERPLAN_full_2026-06-08.md) | Full active roadmap before Night Artificial Forest planning compression |
-| [archive/IDEA_PLAN_legacy.md](archive/IDEA_PLAN_legacy.md) | Old idea pool and roadmap draft |
-| [devlog/DEVLOG_full_2026-05-13.md](devlog/DEVLOG_full_2026-05-13.md) | Previous full devlog |
-| [devlog/DEVLOG_full_2026-05-26.md](devlog/DEVLOG_full_2026-05-26.md) | Full active devlog before v1.11.35 compression |
-| [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md) | Full active devlog before Night Artificial Forest compression |
-| [devlog/v1.11_full_2026-05-26.md](devlog/v1.11_full_2026-05-26.md) | Full v1.11 slice summary before v1.11.35 compression |
-| [devlog/INDEX.md](devlog/INDEX.md) | Compact version history index |
-
-Open archived documents only when a task requires historical detail that is not present in the active log or current roadmap.
+| `docs/archive/` | 이전 장문 마스터플랜과 레거시 아이디어 |
+| `docs/devlog/DEVLOG_full_*.md` | 과거 전체 개발 로그 |
+| `docs/devlog/v*.md` | 버전별 요약/원문 로그 |
+| `docs/devlog/INDEX.md` | 버전 로그 인덱스 |

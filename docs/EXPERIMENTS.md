@@ -1,39 +1,33 @@
-# Experiments
+# 실험 기록
 
-> Last updated: 2026-06-30. Use this as the repetition guard. Keep each row short.
+> 최종 업데이트: 2026-06-30. 같은 실패를 반복하지 않기 위한 짧은 장부다.
 
-## Active Reads
+## 활성 판단
 
-| ID | Question | Latest Evidence | Decision |
+| ID | 질문 | 최신 증거 | 판단 |
 |---|---|---|---|
-| E-001 | Can `playable_pacing_v2` support late-zone pacing? | N2-PACE-25: avg 533.3s, stage2 268.1s, stage3 638.4s, scale gate PASS | Keep v2 as current late-zone candidate |
-| E-002 | Can simple global economy cuts delay first upgrade safely? | N2-PACE-26: first upgrade 56.0s, but avg duration 454.1s and stage3 disappeared | Rejected as next lever |
-| E-003 | Where does first upgrade happen under v2? | N2-PACE-27: shotgun 100%, concealment_field 66.7% / loot_hub 33.3%, on-route 100% | Target shotgun/non-pistol access in context |
-| E-004 | Is hard-bump acquisition immediate combat pressure? | N2-PACE-23 policy: read contact gap, not acquisition alone | Keep exception unless redesigning opening collision |
-| E-005 | Can role-specific initial weapon access delay first upgrade safely? | N2-PACE-29 corrected game-time: avg 579.2s, first upgrade 97.4s, stage2 274.1s, stage3 642.0s; source initial_loot 66.7% / stage_wave 33.3% | Keep as diagnostic candidate, next target map/wave non-pistol access |
-| E-006 | Can initial non-pistol pool control delay first upgrade without starvation? | N2-PACE-30 `C:\tmp\game_dev_N2_PACE_30_v4_initial_pool_fix_3run`: avg duration 599.6s, first upgrade 294.9s, missing 0, stage2 284.3s, stage3 654.2s | Accepted as automated pacing candidate; manual/opening-pressure read next |
-| E-007 | Can a narrow opening hard-bump brush reduce immediate pressure while preserving v4 gates? | N2-PACE-32 `C:\tmp\game_dev_N2_PACE_32_hard_bump_brush_4s_3run`: avg duration 554.3s, first contact 17.7s, hard-bump first acquisition 1/3, first upgrade 293.9s, stage3 655.7s, gate PASS | Accepted as narrow automated candidate; do not widen without duration proof |
+| E-001 | `playable_pacing_v2`가 late-zone pacing을 지탱하는가? | N2-PACE-25: avg 533.3초, stage2 268.1초, stage3 638.4초, scale gate PASS | late-zone 참조로 유지 |
+| E-002 | 단순 global economy cut이 first upgrade를 안전하게 늦추는가? | N2-PACE-26: first upgrade 56.0초, avg duration 454.1초, stage3 없음 | 다음 lever로 폐기 |
+| E-003 | v2에서 첫 upgrade는 어디서 발생하는가? | N2-PACE-27: shotgun 100%, concealment/loot-hub, on-route | weapon/source 맥락을 직접 겨냥 |
+| E-004 | hard-bump acquisition은 즉시 전투 압박인가? | N2-PACE-23: acquisition만 보지 말고 contact gap으로 판단 | collision 재설계 전까지 예외 유지 |
+| E-005 | role-specific initial weapon access가 안전한가? | N2-PACE-29 corrected game-time: first upgrade 97.4초, source initial_loot/stage_wave | 진단 후보로 유지 |
+| E-006 | initial non-pistol pool 제어가 starvation 없이 동작하는가? | N2-PACE-30: avg 599.6초, first upgrade 294.9초, stage3 654.2초 | 자동 페이싱 후보로 채택 |
+| E-007 | 좁은 opening hard-bump brush가 v4 gate를 보존하는가? | N2-PACE-32 4초: avg 554.3초, first contact 17.7초, hard-bump 1/3, first upgrade 293.9초, stage3 655.7초 | 좁은 자동 후보로 채택 |
 
-## Rejected Patterns
+## 폐기 패턴
 
-| Pattern | Rejection Signal | Do Not Repeat Until |
+| 패턴 | 폐기 신호 | 다시 시도하려면 |
 |---|---|---|
-| Global loot_count/hotspot/rare reduction | Delayed first upgrade but regressed duration and stage3 | A targeted route/weapon-source reason proves global economy is still the bottleneck |
-| Treating concealment/loot-hub role multipliers as complete fix | N2-PACE-29 corrected read still has first upgrade at 97.4s before the 120s floor | Map/wave non-pistol source is addressed |
-| Lowering broad weapon chance to delay first upgrade | It either preserves 5-10s initial non-pistol spikes or starves upgrades entirely | Use `initial_non_pistol_weapon_weight_mult` plus stage/supply sources |
-| Hard-bump threshold-only opening fix | Local 0.75m probe only moved first contact to 18.2s and regressed avg duration/stage3 | Use a broader opening-pressure design and preserve v4 duration gates |
-| Opening hard-bump brush at 5s or wider | Local N2-PACE-32 5s probe moved first contact to 18.3s but collapsed avg duration to 326.9s and stage3 none | A late-duration redesign creates enough match-length margin |
-| Tuning bot weapon drops for first-upgrade timing | N2-PACE-29 source read did not implicate bot drops | Pickup source telemetry shows bot_drop first upgrades |
-| Spawn-spacing-only opening fix | Improved distance but did not solve contact and risked no-upgrade/stuck regressions | A map/nav reason is proven |
-| Moving stage2 earlier/later to solve match length | Stage2 is already inside the watch band in playable samples | Late-zone and match-end gap are isolated |
-| Lowering structural gates to pass | Gates caught real fallback/stuck/sentinel risks | A new gate definition is approved |
+| Global loot_count/hotspot/rare 감소 | upgrade는 늦췄지만 duration/stage3 회귀 | 글로벌 경제가 병목이라는 새 증거 |
+| concealment/loot-hub role multiplier를 완전한 해결책으로 취급 | corrected read에서도 first upgrade 97.4초 | map/wave non-pistol source 해결 후 |
+| broad weapon chance cut | spike가 남거나 upgrade starvation 발생 | initial non-pistol pool와 stage/supply source 사용 |
+| hard-bump threshold-only | 0.75m probe가 duration/stage3를 망침 | 더 넓은 opening 설계와 v4 duration gate 보존 |
+| 5초 이상 opening hard-bump brush | first contact는 18.3초였지만 avg duration 326.9초, stage3 없음 | late-duration 여유를 먼저 확보 |
+| bot weapon drop으로 first-upgrade timing 조정 | N2-PACE-29 source read가 bot_drop을 지목하지 않음 | source telemetry가 bot_drop first upgrade를 보여줌 |
+| spawn-spacing-only opening fix | contact 해결 부족, no-upgrade/stuck 위험 | map/nav 이유가 증명됨 |
+| stage2 이동으로 match length 해결 | stage2는 이미 watch band 안 | late-zone과 match-end gap을 분리 |
+| gate를 낮춰서 통과 | gate가 실제 fallback/stuck/sentinel 위험을 잡음 | 새 gate 정의가 승인됨 |
 
-## Experiment Format
+## 기록 규칙
 
-When adding a row, use this shape:
-
-```text
-E-XXX | question | output path + 3 key metrics | accepted/rejected/needs rerun
-```
-
-Do not paste analyzer output here. Keep raw outputs in `C:\tmp` or an archive only when they are intentionally preserved.
+새 행은 `E-XXX | 질문 | 출력 경로와 핵심 3지표 | 채택/폐기/재실행` 형태로 쓴다. analyzer 원문은 붙이지 않는다.

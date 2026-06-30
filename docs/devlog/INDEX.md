@@ -1,31 +1,35 @@
-# Devlog Index
+# 개발 로그 인덱스
 
-> Last updated: 2026-05-30. Use this index before opening historical logs.
+> 최종 업데이트: 2026-06-30. 과거 로그를 열기 전에 이 인덱스를 먼저 본다.
 
-## Active Log
+## 활성 로그
 
-- [../DEVLOG.md](../DEVLOG.md) — short recent work log.
+- [../DEVLOG.md](../DEVLOG.md): 최근 검증 작업 요약. 기본 세션에서는 이 파일만 읽는다.
 
-## Historical Preservation
+## 과거 원문 보존
 
-- [DEVLOG_full_2026-05-13.md](DEVLOG_full_2026-05-13.md) — full pre-reset devlog, preserved for exact history. Open only when a task needs details not covered by the summaries below.
-- [DEVLOG_full_2026-05-26.md](DEVLOG_full_2026-05-26.md) — full active devlog before v1.11.35 compression.
-- [v1.11_full_2026-05-26.md](v1.11_full_2026-05-26.md) — full v1.11 slice summary before v1.11.35 compression.
-- [../archive/MASTERPLAN_full_2026-05-26.md](../archive/MASTERPLAN_full_2026-05-26.md) — full active roadmap before v1.11.35 compression.
+| 경로 | 내용 |
+|---|---|
+| [DEVLOG_full_2026-05-13.md](DEVLOG_full_2026-05-13.md) | 초기 전체 devlog 원문 |
+| [DEVLOG_full_2026-05-26.md](DEVLOG_full_2026-05-26.md) | v1.11.35 압축 전 활성 devlog |
+| [DEVLOG_full_2026-06-08.md](DEVLOG_full_2026-06-08.md) | Night Artificial Forest 압축 전 활성 devlog |
+| [v1.11_full_2026-05-26.md](v1.11_full_2026-05-26.md) | v1.11 전체 slice 요약 원문 |
+| [../archive/MASTERPLAN_full_2026-05-26.md](../archive/MASTERPLAN_full_2026-05-26.md) | v1.11.35 압축 전 roadmap |
+| [../archive/MASTERPLAN_full_2026-06-08.md](../archive/MASTERPLAN_full_2026-06-08.md) | Night Artificial Forest 압축 전 roadmap |
 
-## Version Summaries
+이 파일들은 역사 보존용 원문이다. 현재 판단에 필요한 정보는 루트의 한글 활성 문서에 먼저 반영한다.
 
-| Version | Summary | Details |
+## 버전 요약
+
+| 버전 | 요약 | 세부 |
 |---|---|---|
-| v2.0-dev | MapDefinition, Full Map foundation, and player scale preparation | [v2.0.md](v2.0.md) |
-| v1.12-dev | Complex Artifacts, artifact visuals/icons, bush asset integration, v2.0 transition | [v1.12.md](v1.12.md) |
-| v1.11-dev | Subsystem directory and non-Main data-boundary pass | [v1.11.md](v1.11.md) |
-| v1.10-dev | Main slimdown, supply/loot/catalog/UI helper boundaries | [v1.10.md](v1.10.md) |
-| v1.9-dev | AssetCatalog hooks, debug logs, cosmetic/audio path hooks, scale CLI overrides | [v1.9.md](v1.9.md) |
-| v1.8-dev | GameConfig, DebugFlags, DebugOverlay, AssetCatalog, runtime icon pass, LootSpawner | [v1.8.md](v1.8.md) |
-| v1.7.x | AI doctrine, archetype readability, minimap/world footprint alignment, menu hotfix | Full legacy devlog |
-| v1.6.x and earlier | Bot archetypes, artifacts, missions, telemetry, release foundation, prototype milestones | Full legacy devlog |
+| v2.0-dev | MapDefinition, Full Map, scale/pacing 기반 | [v2.0.md](v2.0.md) |
+| v1.12-dev | Complex Artifacts, artifact visuals/icons, bush asset integration | [v1.12.md](v1.12.md) |
+| v1.11-dev | subsystem directory와 data-boundary pass | [v1.11.md](v1.11.md) |
+| v1.10-dev | Main slimdown, supply/loot/catalog/UI helper 경계 | [v1.10.md](v1.10.md) |
+| v1.9-dev | AssetCatalog hook, debug log, cosmetic/audio path hook | [v1.9.md](v1.9.md) |
+| v1.8-dev | GameConfig, DebugFlags, DebugOverlay, AssetCatalog, LootSpawner | [v1.8.md](v1.8.md) |
 
-## Operating Rule
+## 운영 규칙
 
-New completed work goes first into [../DEVLOG.md](../DEVLOG.md). When active docs exceed the budgets in [../DOCS_INDEX.md](../DOCS_INDEX.md), snapshot raw/full content here or under `docs/archive/`, then keep only compressed recent status in default-session docs.
+새 완료 작업은 먼저 [../DEVLOG.md](../DEVLOG.md)에 짧게 기록한다. 활성 문서가 길어지면 원문을 이 폴더나 `docs/archive/`에 보존하고, 기본 문서는 압축 상태로 유지한다.

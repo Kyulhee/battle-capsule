@@ -1,480 +1,91 @@
-# 배틀캡슐 아키텍처 보고서 (v1.11-dev)
+# 아키텍처 개요
 
-> 최종 업데이트: 2026-06-01
-> 이 문서는 v2.0-dev transition 기준이다. v1.11 subsystem boundaries 위에 MapDefinition compatibility layer가 추가되었고, runtime match orchestration은 아직 Main-owned이다.
-> `Main.gd`는 v2.0.5 기준 1078줄이며, match-global state/wiring orchestrator로 남긴다.
+> 최종 업데이트: 2026-06-30. 구조 변경 전 읽는 한글 요약 문서다. 세부 구현은 코드와 git history를 우선한다.
 
----
+## 전체 구조
 
-## 1. 전체 레이어 구조
+```text
+Main.gd
+  match orchestration, scene wiring, UI 연결, runtime controller 소유
 
-```
-┌─────────────────────────────────────────────────────┐
-│  Orchestrator        Main.gd                        │
-│  (Node3D, 씬 루트)   게임 루프 · 스폰 · UI · 이벤트 연결  │
-├──────────────────────┬──────────────────────────────┤
-│  Entity Layer        │  UI / World                  │
-│  Entity.gd (base)    │  Minimap.gd / FullMapOverlay │
-│  Player.gd           │  WorldBuilder.gd             │
-│  Bot.gd              │  Pickup.gd                   │
-│  BotDoctrine.gd      │                              │
-│                      │  MenuIconFactory.gd          │
-│                      │  MenuVisualBuilder.gd        │
-│                      │  WorldPresentationBuilder    │
-│                      │  DifficultySelectorBuilder   │
-│                      │  HelpPanelBuilder.gd         │
-│                      │  RecordsPanelBuilder.gd      │
-│                      │  SettingsPanelBuilder.gd     │
-│                      │  panels/ResultPanelBuilder   │
-│                      │  panels/PausePanelBuilder    │
-│                      │  panels/ArtifactSelection     │
-│                      │  panels/HellAnnouncement      │
-│                      │  overlays/EventTextBuilder   │
-│                      │  menu/MenuController          │
-├──────────────────────┴──────────────────────────────┤
-│  Core Modules / Runtime Controllers                  │
-│  WeaponSlotManager · MissionTracker                 │
-│  GameConfig · AssetCatalog · SettingsManager · Sfx  │
-│  Systems           match bootstrap/tuning/spawn/effects│
-│                    hell runtime · zone lifecycle    │
-│                    loot/supply helpers · missions   │
-├─────────────────────────────────────────────────────┤
-│  Data / Config  (Resource/JSON — 순수 데이터)          │
-│  StatsData · ItemData · MissionData · MapSpec/MapDefinition │
-│  ArtifactCatalog · DifficultyCatalog · HelpCatalog   │
-│  game_config.json · asset_catalog.json               │
-└─────────────────────────────────────────────────────┘
+Entity layer
+  Entity.gd
+  Player.gd
+  Bot.gd
+  BotDoctrine.gd
+  BotTuning.gd
+
+Runtime systems
+  systems/match
+  systems/zone
+  systems/loot
+  systems/mission
+  systems/hell
+
+Core data/helpers
+  StatsData.gd
+  ItemData.gd
+  GameConfig.gd
+  AssetCatalog.gd
+  MapDefinition.gd
+  WeaponSlotManager.gd
+
+Presentation/UI
+  WorldBuilder.gd
+  Minimap.gd
+  FullMapOverlay.gd
+  menu/panel builders
+
+Data
+  data/game_config.json
+  data/asset_catalog.json
+  data/mapSpec_*.json
 ```
 
----
+## 핵심 원칙
 
-## 2. 모듈 상세
+- `Main.gd`는 아직 match-global orchestrator다. 무리하게 한 번에 쪼개지 않는다.
+- `Bot.gd`, `Player.gd`, `Telemetry.gd`, `Main.gd`는 큰 파일이다. 해당 도메인을 실제로 만질 때만 추출한다.
+- data/config는 가능한 한 순수 데이터로 유지한다.
+- runtime controller는 명시적으로 받은 참조를 사용하고, 임의 scene lookup을 늘리지 않는다.
+- gameplay authority와 visual replacement를 분리한다.
+- generated asset은 catalog를 통해 점진 연결하고 fallback을 유지한다.
 
-### 2-A. Data / Config (최하위 — 의존성 없음)
+## 주요 소유 경계
 
-| 파일 | 역할 | 접근 패턴 |
+| 영역 | 소유 | 메모 |
 |---|---|---|
-| `src/core/StatsData.gd` | 무기·캐릭터 스탯 Resource | `@export var stats: StatsData`로 인스펙터 연결 |
-| `src/core/ItemData.gd` | 아이템 정의 (이름, 타입, 수량) | `src/items/*.tres` 파일로 인스턴스화 |
-| `src/core/MissionData.gd` | 보너스 미션 스펙 Resource | MissionCatalog가 보너스 미션 목록 생성에 사용 |
-| `src/core/MapSpec.gd` | 맵 POI·장애물·월드 크기 정의 | WorldBuilder, Minimap, FullMapOverlay가 읽기 전용으로 참조 |
-| `src/core/MapDefinition.gd` | v2.0 map/match-scale compatibility wrapper over existing MapSpec JSON | Main reads selected scale preset data; Minimap/FullMapOverlay prefer definition query data and keep MapSpec fallback |
-| `data/game_config.json` | 매치 수치, 난이도 파라미터, Hell 타이머 | `GameConfig.gd`가 로드, Main/시스템 컨트롤러가 적용 |
-| `data/asset_catalog.json` | audio/icon/prop/cosmetic ID와 fallback | `AssetCatalog.gd`가 로드, Sfx/UI/월드가 점진 참조 |
-| `src/core/ItemResourceCatalog.gd` | 기본 loot item templates, extra consumables, pickup scene, supply railgun 리소스 | Main이 런타임 참조를 로드하고 loot/supply state wiring은 유지 |
-| `src/core/ArtifactCatalog.gd` | 시작 아티팩트 선택지, modifier/visual id 정의, modifier 기반 설명 생성 | Main 메뉴가 읽고 선택 결과를 Player modifier/visual로 적용 |
-| `src/core/ItemDisplayFormatter.gd` | pickup detail 및 HUD ammo 문자열 포맷 | Pickup과 Player HUD가 실제 item/slot 값을 넘겨 사용 |
-| `src/core/WeaponSlotTuning.gd` | weapon reload times and reserve-ammo caps | WeaponSlotManager가 inventory/reload state와 algorithms를 유지하고 tuning values만 참조 |
-| `src/core/DifficultyCatalog.gd` | 난이도 label/description/color 정의 | Main 메뉴와 Records가 같은 UI 데이터를 참조 |
-| `src/core/HelpCatalog.gd` | How to Play 섹션/행 데이터 정의 | `HelpPanelBuilder.gd`가 읽어 key/icon/desc 행으로 렌더 |
-| `src/core/SettingsManager.gd` | settings file persistence, master volume, fullscreen state | Main settings callbacks delegate save/load/audio/display mutation |
-| `src/systems/mission/MissionBadgeStore.gd` | 미션 achievement badge JSON read/write | MissionTracker public badge wrappers가 사용 |
-| `src/systems/mission/MissionCatalog.gd` | 보너스 미션 목록과 hard/Hell 압박 미션 descriptor pool | MissionTracker public static wrappers가 읽고, 평가는 MissionTracker가 수행 |
-| `src/systems/mission/MissionTuning.gd` | 보너스/압박 미션이 공유하는 supply radius, detection threshold, detected bot count, low-HP, all-weapon target values, pressure feasibility cutoffs | Main, MissionTracker, MissionEvaluator, MissionHudFormatter, MissionDescriptionFormatter, PressureConditionEvaluator가 같은 값 참조 |
-| `src/systems/mission/MissionDescriptionFormatter.gd` | 보너스 미션 설명문과 weapon label 생성 | MissionCatalog가 MissionData target/weapon fields를 채운 뒤 description 생성에 사용 |
-| `src/systems/mission/PressureMissionDescriptionFormatter.gd` | 압박 미션 condition descriptor 설명문 생성 | MissionCatalog가 pressure descriptor `conditions[]`를 채운 뒤 description 생성에 사용 |
-| `src/systems/mission/MissionEvaluator.gd` | 보너스 미션 completion/early-fail 판정 | MissionTracker가 명시적 state context를 넘겨 사용 |
-| `src/systems/mission/MissionHudFormatter.gd` | 보너스/압박 미션 HUD 문자열 포맷 | MissionTracker가 mission/pressure state snapshot을 넘겨 사용 |
-| `src/systems/mission/PressureConditionEvaluator.gd` | 압박 미션 feasibility/completion 판정 | MissionTracker가 condition ids와 pressure counter snapshot을 넘겨 사용 |
-| `src/systems/loot/LootSpawner.gd` | POI 기반 루트 hotspot/위치/개수 계산 | Main이 Pickup 생성은 유지하고 계산만 위임 |
-| `src/systems/loot/SupplyDropController.gd` | 보급 캡슐 위치·타이머·클러스터 계산 | Main이 미니맵 상태와 실제 노드 생성은 유지 |
-| `src/systems/match/MatchTuning.gd` | GameConfig/CLI match-zone tuning 해석과 clamp | Main이 exported 상태를 소유하고 반환된 값만 적용 |
-| `src/systems/match/MatchRuntimeTuning.gd` | Main-owned spawn/navigation/stage-loot/supply-fallback runtime tuning 해석과 clamp | `data/game_config.json` `runtime` 섹션을 읽어 Main 알고리즘에 적용 |
-| `src/systems/hell/HellTuning.gd` | Hell timers/blackout/bombardment/barrage/marker visual tuning 해석과 clamp | `data/game_config.json` `hell` 섹션을 읽어 `HellEventController` 알고리즘에 적용 |
-| `src/systems/zone/ZoneController.gd` | zone lifecycle, shrink interpolation, outside damage, stage config application | Main이 `zone` 인스턴스를 소유하고 다른 런타임 객체는 `main.zone`을 읽음 |
-| `src/entities/player/PlayerArtifactRuntime.gd` | player artifact one-match trigger/timer state and trigger decisions | Player가 damage/movement/bush transition flow에서 명시적 context를 넘기고 반환된 player-state update만 적용 |
-| `src/entities/player/PlayerArtifactVisuals.gd` | player-attached artifact visual nodes and event presentation | Player가 weapon/shield/movement/zone/runtime-event context를 넘기고 gameplay mutation은 하지 않음 |
+| Match bootstrap | `Main.gd`, `systems/match/*` | config/preset 해석은 helper, orchestration은 Main |
+| Zone | `ZoneController.gd` | Main이 인스턴스를 소유, Bot/UI는 읽기 중심 |
+| Loot | `LootSpawner.gd`, `LootSpawnDirector.gd`, `Pickup.gd` | spawn 계산과 pickup runtime 분리 |
+| Combat AI | `Bot.gd`, `BotDoctrine.gd`, `BotTuning.gd` | opening guard와 doctrine 변경은 검증 필수 |
+| Player inventory | `Player.gd`, `WeaponSlotManager.gd` | 외부는 Player wrapper를 통해 접근 |
+| Mission | `MissionTracker.gd`, mission format/evaluator helpers | HUD 문자열과 판정 분리 |
+| Telemetry | `Telemetry.gd`, `tools/analyze_results.py` | gameplay 판단을 위한 구조화된 출력 |
+| Assets | `AssetCatalog.gd`, `data/asset_catalog.json` | missing path는 fallback으로 처리 |
+| UI | panel/menu builder들 | 실제 screenshot 기반 리뷰 필요 |
 
-수정 시 주의: Resource를 공유 참조로 쓰면 인스턴스 간 오염 발생 → 런타임에서 반드시 `.duplicate()` 호출 (Player.gd:88, receive_weapon 진입부 참조).
+## MapDefinition
 
----
+`MapDefinition.gd`는 기존 `MapSpec` JSON 위에 scale preset과 runtime query를 얹는 compatibility layer다.
 
-### 2-B. Core Modules / Runtime Controllers
+- `mapSpec_night_forest_candidate.json`은 현재 Night BR 후보 표면이다.
+- `target_99_probe`는 구조 gate다.
+- `playable_pacing_v4`는 현재 자동 페이싱 후보이며 default promotion이 아니다.
 
-대부분의 코어 모듈은 RefCounted이며 씬트리 독립을 목표로 한다. Runtime domain controllers under `src/systems/` may create runtime visuals only through explicit references provided by `Main.gd`; they should not discover `Main.gd` or other systems through scene lookup.
+## 자산 구조
 
-#### ZoneController (`src/systems/zone/ZoneController.gd`)
+런타임 lookup은 `AssetCatalog.gd`가 `data/asset_catalog.json`을 읽어 처리한다.
 
-```
-소유 상태
-  current_center / current_radius    ← 현재 자기장
-  next_center / next_radius          ← 예고 자기장
-  stage, timer, shrinking            ← 수축 상태 머신
-  _outside_time: Dict[uid → sec]    ← 개체별 외부 체류 시간 (private)
-  _damage_tick_timer                 ← 1초 간격 피해 누적
+- path가 있으면 실제 파일 사용.
+- path가 비면 fallback primitive/sound/silence 사용.
+- `asset_generator/expected_output/`은 원본 풀이고, 런타임 자산이 아니다.
 
-공개 API
-  generate_next()                    ← 다음 원 위치 계산
-  tick_lifecycle(delta)              ← 수축 상태 머신 진행
-  tick_damage(delta, actors, mission_tracker, player_ref)
-  is_outside(pos_2d) → bool         ← 위치 판정
-  get_outside_time(uid) → float     ← 외부 체류 조회
-  on_entity_died(uid)               ← 개체 사망 시 추적 정리
+Bush는 예외적으로 GLB visual replacement가 통합되어 있다. 단, concealment gameplay authority는 여전히 `Bush.tscn`의 Area3D가 가진다.
 
-시그널
-  stage_advanced(new_stage: int)
-  zone_warning()
-```
+## 변경 시 주의
 
-**접근 방법**: Main.gd가 `zone: ZoneController`를 소유. 외부에서 읽을 때는 `main.zone.current_center` 등 직접 필드 접근(Bot, Minimap). 쓰기는 Main만 허용.
-
-v1.11.3 기준 `ZoneController`는 `core`에서 `systems/zone`으로 이동했다. 이 이동은 path ownership 정리이며, `Main.gd` zone ownership과 runtime `main.zone` read pattern은 변경하지 않는다.
-
----
-
-#### WeaponSlotManager (`src/core/WeaponSlotManager.gd`)
-
-```
-소유 상태
-  weapon_slots[0..4]     ← 슬롯별 StatsData (0=칼, null=비어있음)
-  slot_ammo[0..4]        ← 슬롯별 장전 탄약
-  slot_reserve[0..4]     ← 슬롯별 예비 탄약
-  active_slot            ← 현재 활성 슬롯
-  reload_timer / reload_total_time / reload_ammo_* ← 재장전 진행
-
-공개 API
-  receive_weapon(wstats) → bool      ← 픽업 처리 (중복 거부)
-  receive_ammo(type, amount)
-  consume_ammo()                     ← 발사 1회 차감
-  try_auto_switch()                  ← 탄 소진 시 슬롯 탐색
-  start_reload() → bool             ← 재장전 시작 (bool: 실제 시작 여부)
-  tick(delta)                        ← 재장전 타이머 진행
-  fill_all_ammo() / clear_all_ammo() / clear_active_ammo()
-  static get_reserve_max(type) → int
-
-시그널
-  slot_switched(slot, wdata, ammo)
-  reload_started / reload_done
-  inventory_changed
-  gun_count_changed(count)
-```
-
-**접근 방법**: Player.gd가 `slots: WeaponSlotManager`를 소유. 외부(Pickup.gd)는 Player의 래퍼 메서드(`receive_weapon`, `receive_ammo`)를 통해 접근 — WeaponSlotManager를 직접 참조하지 않음.
-
-v1.11.26 기준 reload time과 reserve-ammo cap 값은 `src/core/WeaponSlotTuning.gd`가 소유한다. `WeaponSlotManager.gd`는 slot arrays, active slot, reload timers, reload transfer state, signals, public APIs, and inventory/reload algorithms를 유지한다.
-
----
-
-#### MissionTracker (`src/systems/mission/MissionTracker.gd`)
-
-```
-소유 상태
-  active_mission          ← 현재 보너스 미션
-  pressure_active         ← 압박 미션 진행 여부
-  _active_pressure        ← 현재 압박 미션 딕셔너리
-  pressure_deadline       ← 남은 시간
-  _p_* (10개 카운터)      ← 압박 미션 조건별 누적값
-
-공개 API
-  static get_all_missions() → Array                 ← MissionCatalog 위임
-  static get_hard_pool() / get_hell_pool() → Array  ← MissionCatalog 위임
-  static filter_feasible(pool, zone_stage, bot_alive) → Array
-  start_pressure(descriptor, deadline)
-  get_active_pressure_snapshot() → Dictionary
-  tick_pressure(delta, num_detecting) → String   ← "success"/"fail"/"" 반환
-  evaluate() → bool                              ← 보너스 미션 달성 판정
-  on_pressure_kill / on_pressure_damage / on_pressure_heal_used 등
-  get_hud_text() / get_pressure_hud_text()
-```
-
-**접근 방법**: Main.gd가 `mission_tracker: MissionTracker`로 소유. 이벤트 훅은 Main이 해당 게임 이벤트 발생 시 직접 호출. ZoneController가 `tick_damage` 안에서 duck-typed으로 `on_player_zone_tick` 호출.
-
-v1.11.5 기준 보너스 미션 목록과 hard/Hell 압박 미션 descriptor pool 생성은 `src/systems/mission/MissionCatalog.gd`가 소유한다. `MissionTracker`는 기존 public static wrapper를 유지하고, 조건 enum, feasibility filtering, progress/evaluation/HUD/badge state를 계속 소유한다.
-
-v1.11.6 기준 압박 미션 HUD 문자열 조립은 `src/systems/mission/MissionHudFormatter.gd`가 소유한다. `MissionTracker`는 pressure counters snapshot과 condition id mapping을 넘기며, 조건 평가와 public `get_pressure_hud_text()` API는 유지한다.
-
-v1.11.7 기준 보너스 미션 HUD 문자열 조립도 `MissionHudFormatter.gd`가 소유한다. `MissionTracker`는 Telemetry/player HP context를 명시적 dictionary로 만들어 넘기며, bonus mission evaluation과 public `get_hud_text()` API는 유지한다.
-
-v1.11.8 기준 보너스 미션 completion/early-fail 판정은 `src/systems/mission/MissionEvaluator.gd`가 소유한다. `MissionTracker`는 Telemetry/final-rank/player-HP/counter context를 명시적으로 넘기고, public `evaluate()` / `get_early_fail_status()` API는 유지한다. 압박 미션 runtime condition evaluation은 아직 `MissionTracker`에 남긴다.
-
-v1.11.9 기준 `MissionTracker.gd`는 `src/core/`에서 `src/systems/mission/`으로 이동했다. `class_name MissionTracker`, public API, Main-owned `mission_tracker` instance, and runtime hooks are unchanged.
-
-v1.11.10 기준 압박 미션 descriptor feasibility와 condition completion 판정은 `src/systems/mission/PressureConditionEvaluator.gd`가 소유한다. `MissionTracker`는 `PressureCondition` ids, active pressure state, counters, hooks, deadline, instant-fail flag를 계속 소유한다.
-
-v1.11.11 기준 achievement badge JSON read/write는 `src/systems/mission/MissionBadgeStore.gd`가 소유한다. `MissionTracker`는 public `save_badge()` / `has_badge()` / `load_achievements()` wrappers를 유지한다.
-
-v1.11.12 closure 기준 `MissionTracker.gd`는 257줄이며, intentionally retained responsibilities are active mission/pressure state, counters, hooks, public wrappers, pressure timing/instant-fail state, and context assembly for mission helper calls. Mission descriptors, HUD strings, bonus mission evaluation, pressure condition checks, and badge file I/O now have separate mission subsystem owners.
-
-v1.11.31 기준 bonus mission numeric descriptions use `MissionDescriptionFormatter.gd`, while shared mission thresholds live in `MissionTuning.gd`. `Main.gd` and `MissionTracker.gd` still own event hooks/counters, but supply proximity, perception completion, detected bot counts, low-HP kill ratio, all-weapon requirements, and one-slot/first-kill targets no longer duplicate literal values across description/HUD/evaluation paths.
-
-v1.11.32 기준 pressure mission descriptor descriptions use `PressureMissionDescriptionFormatter.gd` and are generated from the same `conditions[]` arrays that `PressureConditionEvaluator.gd` evaluates. Reward/penalty effect amounts stay in descriptor dictionaries and are still formatted by `PressureEffectCatalog.gd`.
-
-v1.11.33 기준 pressure mission feasibility cutoffs live in `MissionTuning.gd`; `PressureConditionEvaluator.gd` keeps only feasibility/evaluation algorithms and descriptor-target reads.
-
-v1.11.36 기준 `Main.gd`는 압박 미션 성공/실패 처리 시 `MissionTracker._active_pressure`를 직접 읽지 않고 `get_active_pressure_snapshot()`의 복사본을 읽는다. `MissionTracker`는 active pressure descriptor ownership을 유지하고, `Main.gd`는 reward/penalty effect execution과 player flash/Telemetry orchestration만 수행한다.
-
----
-
-#### HellEventController (`src/systems/hell/HellEventController.gd`)
-
-```
-소유 상태
-  modifier                    ← 이번 Hell match modifier
-  blackout/bomb timers         ← Hell 이벤트 주기
-  overlay reference            ← 정전/착탄 flash용 ColorRect
-
-공개 API
-  configure(game_config)
-  start_match(host, modifier, overlay_parent, telemetry)
-  tick(delta, match_timer, zone_controller)
-  clear()
-  static modifier_description(modifier) → Array
-
-시그널
-  event_text_requested(message, color)
-```
-
-**접근 방법**: Main.gd가 `hell_events`를 소유하고 `start_game()`에서 modifier, overlay parent, Telemetry를 넘긴다. `Main.gd`는 Hell modifier 선택과 announcement panel을 유지하고, 실제 blackout/bombardment runtime은 컨트롤러가 맡는다.
-
-v1.11.1 기준 `HellEventController`는 `core`에서 `systems/hell`로 이동했다. 이 이동은 path ownership 정리이며, tuning data 분리는 v1.11.2에서 다룬다.
-
-v1.11.2 기준 timer/blackout/bombardment/barrage/standard/disc 수치와 색상 기본값은 `HellTuning.gd`와 `data/game_config.json` `hell` 섹션이 소유한다. 컨트롤러는 sanitized tuning dictionary를 읽어 runtime 알고리즘만 실행한다.
-
----
-
-#### Autoloads (전역 싱글톤)
-
-| 이름 | 파일 | 사용법 |
-|---|---|---|
-| `Sfx` | `src/core/SoundManager.gd` | `Sfx.play("reload")` — fire-and-forget |
-| `Telemetry` | `src/core/Telemetry.gd` | `Telemetry.log_kill(...)` — 매치 통계 기록 |
-
-두 Autoload는 씬트리 어느 위치에서든 `if has_node("/root/Sfx")`로 안전하게 호출 가능. 코어 모듈(RefCounted)에서는 씬트리 접근이 없으므로 Sfx를 직접 호출하지 않음 — 대신 시그널로 알리고 호출자가 처리.
-
----
-
-### 2-C. Entity / UI Helper Layer
-
-#### UI Helpers
-
-| 파일 | 역할 | 접근 패턴 |
-|---|---|---|
-| `src/ui/MenuIconFactory.gd` | 메뉴/Records/Help에서 쓰는 절차적 픽셀 아이콘 생성 | Main UI 빌더가 `make_icon()` / `make_capsule_logo()` 호출 |
-| `src/ui/MenuVisualBuilder.gd` | 메인/보조 메뉴 배경, 로고 배치, 공통 버튼 스타일 | Main이 대상 패널/버튼만 넘기고 builder가 presentation 생성 |
-| `src/ui/WorldPresentationBuilder.gd` | zone ring mesh/material defaults, supply pillar drop visual update | Main이 zone/supply state를 유지하고 builder가 표시 노드 생성/동기화 |
-| `src/ui/player/PlayerHudBuilder.gd` | Player HUD node/style construction | Player가 CanvasLayer root를 넘기고 label/runtime values, slot state, and weapon icon updates를 계속 소유 |
-| `src/ui/player/PlayerSlotHudRenderer.gd` | Player slot panel/ammo display refresh | Player가 `WeaponSlotManager`와 weapon icon callback을 넘기고 inventory ownership을 유지 |
-| `src/ui/player/PlayerWeaponIconResolver.gd` | Player weapon HUD icon loading/cache/fallbacks | Player가 `asset_catalog`를 명시적으로 넘기고 resolver가 scene tree를 읽지 않음 |
-| `src/entities/player/PlayerTuning.gd` | Player movement/combat/heal/occluder numeric tuning constants | Player가 algorithms/runtime state를 유지하고 tuning constants만 참조 |
-| `src/entities/player/PlayerOccluderFader.gd` | Player occluder fade ray tracing/material restore helper | Player가 self/camera를 넘기고 fade state는 helper가 소유 |
-| `src/entities/bot/BotTuning.gd` | Bot melee/retreat/debug numeric tuning constants | Bot가 AI algorithms/runtime state를 유지하고 tuning constants만 참조 |
-| `src/entities/bot/BotDebugLabelBuilder.gd` | Bot state/archetype Label3D construction | Bot가 text/visibility/reveal behavior를 유지하고 label nodes만 builder가 생성 |
-| `src/entities/bot/BotMarkerFormatter.gd` | Bot state/archetype marker text/color/catalog id formatting | Bot가 marker visibility/reveal/catalog lookup을 유지하고 content mapping만 formatter가 생성 |
-| `src/entities/bot/BotVisualSkinController.gd` | Bot archetype skin root apply/sync/hide lifecycle | Bot가 AI/crouch body state와 AssetCatalog lookup을 유지하고 skin root state는 controller가 소유 |
-| `src/entities/pickup/PickupPresentation.gd` | Pickup color/glow/label/icon plane presentation values | Pickup이 runtime nodes, focus/LOS, icon loading, collection side effects를 유지하고 presentation values만 참조 |
-| `src/entities/pickup/PickupIconResolver.gd` | Pickup icon id mapping/cache/catalog texture loading | Pickup이 icon decal node placement, scene catalog lookup, and collection side effects를 유지 |
-| `src/ui/DifficultySelectorBuilder.gd` | 메인 메뉴 난이도 버튼, tooltip, 압박 미션 opt-in UI 생성 | Main이 선택 상태와 callback을 넘기고 builder가 노드 생성과 highlight 갱신 |
-| `src/ui/HelpPanelBuilder.gd` | How to Play scroll content 렌더링 | Main이 Help panel root를 넘기고, builder가 `HelpCatalog` + `MenuIconFactory`로 행 생성 |
-| `src/ui/RecordsPanelBuilder.gd` | Records 탭/clear/history row 렌더링 | Main이 selected difficulty와 콜백을 유지하고, builder가 Telemetry history를 행으로 렌더 |
-| `src/ui/SettingsPanelBuilder.gd` | Settings modal layout/control 생성 | Main이 volume/fullscreen/save 동작 callback을 유지하고, builder가 UI 생성 |
-| `src/ui/panels/ResultPanelBuilder.gd` | Result panel layout/buttons/label population | Main이 match finalization, mission evaluation, score calculation을 유지하고 결과 표시 데이터만 넘김 |
-| `src/ui/panels/PausePanelBuilder.gd` | Pause overlay/title/buttons 생성 | Main이 pause state와 resume/restart/menu callback을 유지 |
-| `src/ui/panels/ArtifactSelectionPanelBuilder.gd` | Artifact selection overlay/cards/buttons | Main이 catalog lookup, pending artifact, panel lifetime, start transition을 유지 |
-| `src/ui/panels/HellAnnouncementBuilder.gd` | Hell announcement overlay/card/rows/button | Main이 Hell modifier selection, pause/unpause, panel lifetime, dismiss fade를 유지 |
-| `src/ui/overlays/EventTextBuilder.gd` | Top-center transient event text label/fade 생성 | Main/HellEventController signal path가 message/color만 넘김 |
-| `src/ui/menu/MenuController.gd` | Panel visibility routing and menu button wiring | Main이 callbacks/settings/content builders를 유지하고 controller가 scene panel visibility와 button connect만 처리 |
-| `src/systems/match/MatchBootstrap.gd` | Match-start object/value initialization | Main이 match-global state ownership을 유지하고 bootstrap helper가 zone/mission/pressure/Hell modifier 초기값만 반환 |
-| `src/systems/match/MatchTuning.gd` | Match/zone config and CLI override interpretation | Main이 exported match fields, loot spawner wiring, and difficulty state ownership을 유지 |
-| `src/systems/match/BotSpawnPlanner.gd` | Weighted bot archetype plan 생성 | Main이 Bot scene instancing, position, signal, Telemetry spawn logging을 유지 |
-| `src/systems/loot/LootSpawnDirector.gd` | Loot/supply pickup 생성 절차와 supply pillar 생성 | Main이 supply state, parent nodes, pickup scene, templates, Telemetry hooks를 넘김 |
-| `src/systems/match/PressureEffectApplier.gd` | Pressure reward/penalty effect 실행 | Main이 player/zone/actors context를 넘기고 반환된 pressure state flags만 반영 |
-
-```
-Entity (CharacterBody3D)
-  시그널: health_changed, shield_changed, died
-  공통 상태: current_health, current_shield, is_dead
-             is_in_bush, stealth_modifier
-             perception_meters: Dict[target → 0.0~1.0]
-  공통 API: take_damage(), heal(), move_toward()
-       ↑
-       ├── Player.gd
-       │     소유: slots (WeaponSlotManager)
-       │     HUD: zone_timer_label, mission_hud_label, pressure_hud_label
-       │            _hp_bar, _sh_bar, slot_panels[] 등
-       │            HUD construction: PlayerHudBuilder
-       │     API: receive_weapon(), receive_ammo() (Pickup 래퍼)
-       │          show_pressure_flash()
-       │
-       └── Bot.gd
-             상태 머신: IDLE/CHASE/ATTACK/RECOVER/ZONE_ESCAPE/DISENGAGE
-             인식: perception_meters (Entity 공통)
-             개인 교전 수칙: 문자열 combat plan 실행
-             전술 파라미터: _awareness_level, _flee_hp_ratio,
-                           _disengage_threshold 등
-```
-
-v1.11.19 closure 기준 `Player.gd`는 832줄이며, intentionally retained responsibilities are movement/input/crouch/footstep execution, health/shield runtime updates, heal consumption/regeneration, combat firing/melee execution, artifact modifier application, pickup focus/interaction, kill feed population, zone warning update, and Sfx/Telemetry hooks. Player HUD construction, slot rendering, weapon HUD icon resolution, tuning constants, and occluder fade state now have separate owners.
-
-v1.12.2 기준 Emergency Shell 같은 one-match trigger artifact state는 `PlayerArtifactRuntime.gd`가 소유한다. `Player.gd`는 damage flow에서 helper에 explicit health/shield context를 넘기고, 반환된 shield update/HUD flash/Telemetry hook만 적용한다. Passive stat modifiers still apply in `Player.gd` from `ArtifactCatalog.gd` modifier data.
-
-v1.12.5 기준 artifact visual identity는 `PlayerArtifactVisuals.gd`가 소유한다. `ArtifactCatalog.gd`는 `visual_id`를 제공하고, `Player.gd`는 active weapon, shield ratio, movement speed, Zone Battery proximity, Ghost Grass active state, and artifact event context만 넘긴다. Visual helper는 mesh/light nodes and short event presentation만 만들며 gameplay state, Telemetry, or selection orchestration은 소유하지 않는다.
-
-**Bot이 Main을 참조하는 방법**: `get_tree().get_root().get_node("Main")`으로 런타임 조회. `main.zone`, `main.alive_count`, `main.zone.stage` 읽기만 함.
-
-v1.11.24 closure 기준 `Bot.gd`는 1908줄이며, intentionally retained responsibilities are AI state machine and runtime timers, navigation/stuck handling, objective/loot/supply decisions, recovery/disengage/zone escape behavior, perception/noise/ambient awareness checks, combat movement and firing/melee execution, damage/death/drop handling, crouch body mesh updates, Sfx/Telemetry hooks, and Main-owned zone/alive-count/AssetCatalog reads. Bot debug marker 노드 생성은 `BotDebugLabelBuilder.gd`, marker text/color/catalog id mapping은 `BotMarkerFormatter.gd`, archetype skin root lifecycle은 `BotVisualSkinController.gd`가 소유한다. `BotVisualKit.gd`는 primitive skin part construction을 유지한다.
-
-v1.11.29 closure 기준 `Pickup.gd`는 307줄이며, intentionally retained responsibilities are runtime mesh/light/label/focus/icon node creation, focus/LOS refresh, cluster-label comparison, AssetCatalog scene lookup, icon decal material placement, item collection side effects for weapon/ammo/heal/armor, Telemetry pickup logging, debug logging, and queue-free lifecycle. Pickup text formatting is owned by `ItemDisplayFormatter.gd`; base colors, glow/light tuning, label LOD distances/scales/colors, visibility refresh interval, and icon plane size/height values are owned by `PickupPresentation.gd`; pickup icon ids, texture cache, AssetCatalog path lookup, ResourceLoader texture loading, and image-file fallback loading are owned by `PickupIconResolver.gd`.
-
----
-
-### 2-D. Orchestrator — Main.gd
-
-Main.gd는 유일하게 모든 레이어를 연결하는 노드다.
-
-```
-소유
-  zone: ZoneController
-  mission_tracker: MissionTracker
-  player_ref: Entity (Player 인스턴스)
-  alive_count, difficulty, game_over
-  heal_pickup_banned, railgun_unlimited_until_stage
-
-담당 영역별 함수 그룹
-  ─ 게임 루프    start_game(), restart_game(), _process()
-  ─ 스폰        spawn_entities(), _get_safe_spawn_pos()
-  ─ 자기장      handle_zone_lifecycle(), handle_damage_tick()
-                _on_zone_stage_changed(), _on_zone_warning()
-  ─ 전리품      _categorize_templates(), _spawn_initial_loot(), spawn_loot()
-  ─ 보급 캡슐   telegraph_supply_zone(), activate_supply_zone()
-  ─ 압박 미션   _trigger_pressure_mission(), _process_pressure_mission()
-                _apply_pressure_effects()
-  ─ 결과 화면   _end_match(), _setup_result_panel()
-  ─ UI/메뉴     _setup_menu_visuals(), _setup_secondary_panels(), etc.
-  ─ Hell 이벤트 modifier 선택, announcement UI, HellEventController tick wiring
-```
-
-v1.8~v1.10 분리 기준:
-- v1.8은 `Main.gd` 전체 분해가 아니라 config/debug/asset catalog의 진입점을 만든다.
-- 수치와 리소스 ID는 `GameConfig`/`AssetCatalog` 쪽으로 이동시키고, Main은 로드된 값을 연결하는 역할만 맡긴다.
-- 메뉴 선택지처럼 순수 데이터에 가까운 목록은 `ArtifactCatalog`, `DifficultyCatalog`, `HelpCatalog`처럼 작은 catalog로 우선 분리한다.
-- 첫 분리 후보는 `LootSpawner`, `SupplyDropController`, `MenuController`, `MatchBootstrap` 순서다.
-- `zone`, `mission_tracker`, `player_ref`, `alive_count`, Telemetry hook의 single source는 유지한다.
-- 새 gameplay tuning 숫자는 `Main.gd` 지역 상수보다 data/config/catalog/controller spec에 먼저 둔다.
-
-v1.10.20 closure 기준:
-- `Main.gd`에 남은 exported count/zone defaults는 `GameConfig`/CLI 적용 전 merge points로 유지한다.
-- `current_state`, `difficulty`, pressure flags, supply minimap state, `game_over`, `match_timer`, scene callbacks, and Telemetry hook calls are intentionally Main-owned.
-- Hell start-state policy, mission/artifact feasibility glue, mission context thresholds, result text formatting, and debug snapshot aggregation are deferred to v1.11 domain slices.
-
----
-
-## 3. 의존성 맵
-
-```
-Main ──owns──► zone: ZoneController
-     ──owns──► mission_tracker: MissionTracker
-     ──owns──► hell_events: HellEventController
-     ──owns──► player_ref (Player)
-     ──owns──► Bot[] (alive_count 관리)
-     ──reads─► Sfx, Telemetry (Autoload)
-
-Player ──owns──► slots: WeaponSlotManager
-       ──reads─► main.zone.* (필요 시 Main 조회)
-       ──reads─► main.mission_tracker (간접)
-
-Bot ──reads──► main.zone.current_center/radius/stage
-    ──reads──► main.alive_count
-
-ZoneController ──calls──► entity.take_damage()      (duck-typed)
-               ──calls──► mission_tracker.on_*()    (duck-typed)
-
-MissionTracker ──uses──► MissionBadgeStore badge persistence
-               ──uses──► MissionCatalog descriptor pools + filter_feasible()
-               ──uses──► MissionEvaluator bonus mission rules
-               ──uses──► MissionHudFormatter mission/pressure HUD strings
-               ──uses──► MissionTuning shared thresholds
-               ──uses──► PressureConditionEvaluator pressure feasibility/completion
-               (runtime state/evaluation owner — RefCounted)
-
-MissionCatalog ──uses──► MissionDescriptionFormatter bonus description generation
-               ──uses──► PressureMissionDescriptionFormatter pressure description generation
-MissionDescriptionFormatter ──uses──► MissionData condition ids
-                            ──uses──► MissionTuning shared thresholds
-PressureMissionDescriptionFormatter ──uses──► MissionTuning shared thresholds
-MissionEvaluator ──uses──► MissionData condition ids
-                 ──uses──► MissionTuning shared thresholds
-MissionHudFormatter ──uses──► MissionData condition ids
-                    ──uses──► MissionDescriptionFormatter weapon labels
-                    ──uses──► MissionTuning shared thresholds
-                    ──uses──► PressureEffectCatalog effect labels
-PressureConditionEvaluator ──uses──► MissionTracker-provided pressure condition ids
-                           ──uses──► MissionTuning pressure feasibility cutoffs
-
-Minimap / FullMapOverlay ──reads──► main.zone.* (current/next center, radius)
-                         ──reads──► main.supply_pos, supply_telegraphed
-
-Pickup ──calls──► collector.receive_weapon() / receive_ammo()
-                 (has_method 검사, Player·Bot 동시 지원)
-```
-
----
-
-## 4. 시그널 흐름
-
-```
-ZoneController ──stage_advanced(stage)──► Main._on_zone_stage_changed()
-                                             → Telemetry.set_stage()
-                                             → spawn_loot()
-                                             → _trigger_pressure_mission()
-               ──zone_warning()─────────► Main._on_zone_warning()
-                                             → Sfx.play("zone_warning")
-
-WeaponSlotManager ──slot_switched(slot, wdata, ammo)──► Player._on_slot_switched()
-                  ──reload_started()─────────────────► Player: Sfx.play("reload")
-                  ──reload_done()──────────────────────► Player._on_reload_done()
-                  ──inventory_changed()────────────────► Player._refresh_slot_hud()
-                  ──gun_count_changed(count)───────────► Player._on_gun_count_changed()
-                                                            → mission_tracker.on_weapon_slot_used()
-
-Entity ──health_changed(cur, max)──► Player._on_health_changed() (자기 연결)
-                                ──► PressureEffectApplier: pressure HP effect 적용 시 emit
-       ──shield_changed(cur, max)──► Player._on_shield_changed()
-       ──died──────────────────────► Main._on_player_died() / _on_bot_died()
-```
-
----
-
-## 5. 수정 영향 범위 — 빠른 참조
-
-| 수정 목표 | 주요 파일 | 연쇄 영향 |
-|---|---|---|
-| 자기장 타이밍·피해 | `data/game_config.json` `zone` + `src/systems/zone/ZoneController.gd` | 수치 조정은 config, stage 전환 알고리즘은 controller |
-| 자기장/보급 월드 표시 | `WorldPresentationBuilder.gd` + `Main.gd` zone/supply wiring | 표시 색/크기/드롭 시각화는 builder, 실제 zone/supply state는 Main/ZoneController |
-| Main runtime spawn/navigation/loot fallback tuning | `data/game_config.json` `runtime` + `MatchRuntimeTuning.gd` | Main이 spawn/navigation/supply 알고리즘과 state wiring 유지 |
-| 새 무기 추가 | `StatsData`, `items/*.tres`, `WeaponSlotTuning.gd`, `WeaponSlotManager` public APIs | Pickup.gd 수정 불필요 |
-| Weapon slot tuning values | `src/core/WeaponSlotTuning.gd` | WeaponSlotManager reload/reserve behavior, Player HUD ammo display, pressure ammo effects |
-| 압박 미션 풀 확장 | `src/systems/mission/MissionCatalog.gd` + `PressureMissionDescriptionFormatter.gd` + `PressureEffectCatalog.gd` | 새 Condition/Effect 추가 시 condition 설명, effect id/표시, `PressureEffectApplier.gd` 실행 케이스, 필요 시 Main state update 확인 |
-| 새 PressureCondition | `MissionTracker` enum + `MissionCatalog` condition mapping + `PressureConditionEvaluator.gd` | progress HUD 케이스와 pressure counter hook 추가 |
-| 압박 미션 HUD 문구 | `MissionHudFormatter.gd` | `MissionTracker` pressure counter snapshot과 `PressureEffectCatalog.gd` effect labels 확인 |
-| 보너스 미션 설명/HUD 문구 | `MissionDescriptionFormatter.gd` + `MissionHudFormatter.gd` + `MissionTuning.gd` | `MissionCatalog.gd` target fields, `MissionTracker` bonus HUD context, `MissionData.gd` condition ids 확인 |
-| 보너스 미션 달성/early-fail 판정 | `MissionEvaluator.gd` + `MissionTuning.gd` | `MissionTracker` evaluation context, `MissionCatalog.gd` target fields, `MissionData.gd` condition ids, result/mission save flow 확인 |
-| Player HUD 레이아웃 | `src/ui/player/PlayerHudBuilder.gd` | Player가 label/bar/slot references를 보관하고 `_process()`/flash/kill feed/slot refresh에서 값만 갱신 |
-| Player slot display state | `src/ui/player/PlayerSlotHudRenderer.gd` + `src/ui/player/PlayerWeaponIconResolver.gd` | `WeaponSlotManager` state와 AssetCatalog icon lookup 확인 |
-| Player tuning constants | `src/entities/player/PlayerTuning.gd` | Player movement/combat/heal/occluder code paths and simulations |
-| Player occluder fade behavior | `src/entities/player/PlayerOccluderFader.gd` | Player camera lookup, occluder groups/materials, exit-tree restore path |
-| Bot tuning constants | `src/entities/bot/BotTuning.gd` | Bot melee/retreat/perception/debug paths and simulations |
-| Bot debug label nodes | `src/entities/bot/BotDebugLabelBuilder.gd` | Bot marker node layout, visibility/reveal checks |
-| Bot marker content mapping | `src/entities/bot/BotMarkerFormatter.gd` | Bot state label updates, archetype marker text/color, catalog tint ids |
-| Bot visual skin lifecycle | `src/entities/bot/BotVisualSkinController.gd` | Bot crouch/death visual sync, `BotVisualKit.gd` skin construction, catalog tint ids |
-| Pickup presentation values | `src/entities/pickup/PickupPresentation.gd` | Pickup visuals, label LOD/focus state, icon plane sizing |
-| Pickup icon catalog loading | `src/entities/pickup/PickupIconResolver.gd` | Pickup icon ids/cache, AssetCatalog icon paths, selected icon assets |
-| 봇 AI 튜닝 | `BotDoctrine.gd` profile/context + `Bot.gd` 실행부 + `GameConfig` difficulty params | profile merge 결과와 plan count를 Telemetry로 확인 |
-| 난이도 파라미터 | `data/game_config.json` + `GameConfig.difficulty_params()` | Bot 스폰 시 `Main._get_difficulty_params()`로 읽힘, 실행 중 변경 불가 |
-| Hell 정전/포격 튜닝 | `data/game_config.json` `hell` + `src/systems/hell/HellTuning.gd` + `src/systems/hell/HellEventController.gd` | Main modifier wiring, Player.gd SCARCITY reads, Telemetry hell event names |
-| 맵 구조 변경 | `MapDefinition.gd` + `MapSpec.gd` + `WorldBuilder.gd` | v2.0 compatibility layer validates map/match scale first; Minimap/FullMapOverlay consume presentation data only |
-| 사운드 추가 | `SoundManager.gd` + `Sfx.play("key")` 호출 위치 | 코어 모듈에서는 시그널로 위임 |
-| 보급 캡슐 로직 | `src/systems/loot/SupplyDropController.gd` + `src/systems/loot/LootSpawnDirector.gd` + Main supply state | Minimap/FullMapOverlay가 `supply_telegraphed` / `supply_pos` 읽음 |
-
----
-
-## 6. 설계 원칙 요약
-
-1. **RefCounted 코어 모듈**: ZoneController, WeaponSlotManager, MissionTracker는 씬트리에 속하지 않는다. `get_tree()`, `add_child()` 호출 없음 → 단위 테스트 가능, 씬 구조 변경에 무관.
-
-2. **시그널 소유권**: 시그널은 상태를 소유한 모듈이 정의하고 emit한다. 수신자가 connect한다. 역방향 없음.
-
-3. **duck-typed 외부 호출**: ZoneController가 `mission_tracker.on_player_zone_tick()`을 호출할 때 MissionTracker를 import하지 않고 duck-type으로 호출. 순환 의존 방지.
-
-4. **Main = 글루 레이어**: 다수 모듈을 동시에 건드리는 코드(`_apply_pressure_effects()` 등)는 Main에 남긴다. 이 코드를 별도 클래스로 추출하면 의존성이 좁아지지 않기 때문이다.
-
-5. **Pickup 인터페이스 보존**: Pickup.gd는 `has_method("receive_weapon")`으로 Player·Bot를 동일하게 처리. Player는 내부 구현이 WeaponSlotManager로 바뀌었어도 래퍼 메서드를 유지해 Pickup을 보호한다.
+- shared `Resource`는 런타임에서 오염될 수 있으므로 필요한 곳에서 `.duplicate()`를 사용한다.
+- Bot opening/loot/zone behavior 변경은 `verify_bot_opening_loot_rules.gd`와 pacing profile을 같이 본다.
+- UI 변경은 `UI_DESIGN.md` 체크리스트와 screenshot을 사용한다.
+- asset path 추가는 Godot headless quit과 최소 1-run sim으로 확인한다.

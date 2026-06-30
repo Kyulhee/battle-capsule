@@ -1,150 +1,122 @@
-# Battle Capsule — Asset Status
+# Battle Capsule 자산 상태
 
-> Created: 2026-05-30. Updated after artifact icon completion. For agent handoff. Describes the current state of all asset types,
-> what is integrated, what is generated but not yet integrated, and what decisions were deferred.
+> 최종 업데이트: 2026-06-30. 현재 통합/보류/미연결 자산 상태를 요약한다.
 
----
+## 연결 방식
 
-## How Assets Are Wired (Integration Pattern)
+런타임 자산 조회는 `src/core/AssetCatalog.gd`가 담당하고, 데이터는 `data/asset_catalog.json`에서 읽는다.
 
-All runtime asset lookup goes through `src/core/AssetCatalog.gd`, which reads `data/asset_catalog.json`.
-The JSON maps a stable string id to a `res://` path plus fallback id and tags.
-
-```
+```text
 data/asset_catalog.json
-  └── category (audio / icons / props / cosmetics)
-        └── id → { "path": "res://...", "fallback": "...", "tags": [...] }
+  category(audio/icons/props/cosmetics)
+    id -> { "path": "res://...", "fallback": "...", "tags": [...] }
 ```
 
-`AssetCatalog.get_path(category, id, fallback)` returns the path or empty string if missing.
-A missing path is not an error — it silently falls back to a procedural primitive or a default.
+`AssetCatalog.get_path(category, id, fallback)`은 경로를 반환하거나 없으면 빈 문자열을 반환한다. 빈 경로는 오류가 아니라 procedural fallback 또는 기본 표시로 이어진다.
 
-**Expected startup warning while asset paths remain empty:**
-```
+예상 가능한 시작 경고:
+
+```text
 AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 ```
-This is intentional and harmless. Do not suppress it.
 
----
+이 경고는 의도된 상태다. 숨기지 않는다.
 
-## Asset Catalog — Current Status
+## 현재 catalog 상태
 
-### Audio (`audio`)
+### 오디오
 
-| ID | Status | File |
+| ID | 상태 | 파일 |
 |---|---|---|
-| `shoot.pistol` | ✅ integrated | `res://assets/sfx/weapons/pistol_shoot.wav` |
-| `shoot.ar` | ✅ integrated | `res://assets/sfx/weapons/ar_shoot.wav` |
-| `shoot.shotgun` | ✅ integrated | `res://assets/sfx/weapons/shotgun_shoot.wav` |
-| `shoot.railgun` | ✅ integrated | `res://assets/sfx/weapons/railgun_shoot.wav` |
-| `footstep.grass` | ✅ integrated | `res://assets/sfx/footsteps/grass_01.wav` |
-| `footstep.dirt` | ✅ integrated | `res://assets/sfx/footsteps/dirt_01.wav` |
-| `footstep.stone` | ✅ integrated | `res://assets/sfx/footsteps/stone_01.wav` |
-| `reload`, `dry_fire`, `hit`, `impact_wall`, `hurt`, `death`, `pickup`, `heal`, `melee`, `zone_warning`, `footstep`, `shoot` | ❌ path empty | Falls back to procedural sound or silence |
+| `shoot.pistol` | 통합됨 | `res://assets/sfx/weapons/pistol_shoot.wav` |
+| `shoot.ar` | 통합됨 | `res://assets/sfx/weapons/ar_shoot.wav` |
+| `shoot.shotgun` | 통합됨 | `res://assets/sfx/weapons/shotgun_shoot.wav` |
+| `shoot.railgun` | 통합됨 | `res://assets/sfx/weapons/railgun_shoot.wav` |
+| `footstep.grass` | 통합됨 | `res://assets/sfx/footsteps/grass_01.wav` |
+| `footstep.dirt` | 통합됨 | `res://assets/sfx/footsteps/dirt_01.wav` |
+| `footstep.stone` | 통합됨 | `res://assets/sfx/footsteps/stone_01.wav` |
+| `reload`, `dry_fire`, `hit`, `impact_wall`, `hurt`, `death`, `pickup`, `heal`, `melee`, `zone_warning`, fallback IDs | path 비어 있음 | procedural sound 또는 silence fallback |
 
-Generated procedural WAVs exist in `asset_generator/expected_output/assets/sfx/` but have not been promoted to `res://assets/sfx/`. The Kenney CC0 pack fetcher (`scripts/fetch_kenney_audio.py`) also exists and produces higher quality replacements. Neither has been integrated.
+`asset_generator/expected_output/assets/sfx/`에 생성 WAV가 있고, `scripts/fetch_kenney_audio.py`도 더 나은 대체 음원을 만들 수 있다. 아직 런타임으로 승격하지 않았다.
 
----
+### 아이콘
 
-### Icons (`icons`)
-
-| ID | Status | Notes |
+| ID | 상태 | 메모 |
 |---|---|---|
-| `weapon.*` (knife, pistol, ar, shotgun, railgun) | ✅ integrated | `res://assets/icons/weapons/` |
-| `ammo.*` (pistol, ar, shotgun, railgun) | ✅ integrated | `res://assets/icons/ammo/` |
-| `item.heal`, `item.medkit`, `item.armor` | ✅ integrated | `res://assets/icons/items/` |
-| `artifact.red_trigger` | ✅ integrated | `res://assets/icons/artifacts/red_trigger.png` |
-| `artifact.armor_sponge` | ✅ integrated | `res://assets/icons/artifacts/armor_sponge.png` |
-| `artifact.silent_core` | ✅ integrated | `res://assets/icons/artifacts/silent_core.png` |
-| `artifact.zone_battery` | ✅ integrated | `res://assets/icons/artifacts/zone_battery.png` |
-| `artifact.emergency_shell` | ✅ integrated | `res://assets/icons/artifacts/emergency_shell.png` |
-| `artifact.ghost_grass` | ✅ integrated | `res://assets/icons/artifacts/ghost_grass.png` |
+| `weapon.*` | 통합됨 | `res://assets/icons/weapons/` |
+| `ammo.*` | 통합됨 | `res://assets/icons/ammo/` |
+| `item.heal`, `item.medkit`, `item.armor` | 통합됨 | `res://assets/icons/items/` |
+| 시작 artifact 6종 | 통합됨 | `red_trigger`, `armor_sponge`, `silent_core`, `zone_battery`, `emergency_shell`, `ghost_grass` |
 
-All six starting artifact icons now have runtime PNG paths in `data/asset_catalog.json`. `ArtifactIconResolver.gd` still handles missing import metadata via raw `Image.load()`, so no `.import` file is required.
+`ArtifactIconResolver.gd`는 import metadata가 없어도 raw `Image.load()` fallback을 처리하므로 `.import` 파일이 없어도 된다.
 
----
+### 3D prop
 
-### Props (`props`)
-
-| ID | Status | Notes |
+| ID | 상태 | 메모 |
 |---|---|---|
-| `forest.bush` | ✅ integrated | `res://assets/props/forest/bush_dense.glb` |
-| `forest.bush.low` | ✅ integrated | `res://assets/props/forest/bush_low.glb` |
-| `forest.bush.dense` | ✅ integrated | `res://assets/props/forest/bush_dense.glb` |
-| `forest.tree`, `forest.rock`, `landmark.cabin`, `landmark.wall` | ❌ path empty | Catalog entries exist, paths are empty |
+| `forest.bush`, `forest.bush.low`, `forest.bush.dense` | 통합됨 | `res://assets/props/forest/bush_*.glb` |
+| `forest.tree`, `forest.rock`, `landmark.cabin`, `landmark.wall` | path 비어 있음 | catalog entry만 있음 |
 
-**Remaining generated GLBs** (14 unintegrated out of 16 generated prop GLBs) exist only in `asset_generator/expected_output/assets/props/` and are not promoted to `res://assets/props/`. Full list:
+통합되지 않은 GLB는 `asset_generator/expected_output/assets/props/`에 남아 있다. 주요 목록:
 
-```
-forest/  tree_small.glb, tree_cluster.glb, rock_small.glb, rock_cluster.glb,
-         rock_large.glb, log_pile.glb, fallen_tree.glb
-         (bush_low.glb and bush_dense.glb already integrated)
-
-landmarks/  ruined_wall.glb, cabin.glb, camp_crate.glb, camp_tarp.glb,
-            watchtower.glb, barrel_cluster.glb, fire_pit.glb
+```text
+forest/tree_small.glb
+forest/tree_cluster.glb
+forest/rock_small.glb
+forest/rock_cluster.glb
+forest/rock_large.glb
+forest/log_pile.glb
+forest/fallen_tree.glb
+landmarks/ruined_wall.glb
+landmarks/cabin.glb
+landmarks/camp_crate.glb
+landmarks/camp_tarp.glb
+landmarks/watchtower.glb
+landmarks/barrel_cluster.glb
+landmarks/fire_pit.glb
 ```
 
----
+### 캐릭터 cosmetic
 
-### Cosmetics (`cosmetics`)
+`player.default`, `bot.*` 경로는 비어 있다. 현재 모든 캐릭터는 procedural geometry를 사용한다.
 
-All entries (`player.default`, `bot.*`) have empty paths. Procedural geometry is used for all characters. No generated cosmetic assets exist yet.
+## Bush 통합 방식
 
----
+Bush는 현재 prop 중 유일하게 전체 통합 흐름을 가진다.
 
-## Bush Integration Detail (v1.12.10)
+1. `WorldBuilder._build_bush_patch()`가 `Bush.tscn`을 만든다.
+2. `_apply_catalog_visual()`이 GLB를 `CatalogPropVisual`로 붙인다.
+3. `Bush.gd`가 GLB mesh chunk를 rustle 대상에 등록하고, gameplay boundary는 기존 `Area3D` cylinder가 계속 담당한다.
+4. 진입/이동 시 가까운 chunk만 sway/lift 애니메이션을 한다.
 
-Bush is the only prop category with a full integration pipeline. Understanding this is important before touching `WorldBuilder.gd` or `Bush.gd`.
+중요: GLB는 순수 시각 자산이다. 은신 판정은 `Bush.tscn`의 Area3D가 권한을 가진다.
 
-**How it works:**
+## 보류된 자산 결정
 
-1. `WorldBuilder._build_bush_patch()` instantiates `Bush.tscn` (Area3D + CylinderShape3D r=1.5).
-2. `_apply_catalog_visual()` loads the GLB via `GLTFDocument` (no Godot import metadata needed), names the root node `CatalogPropVisual`, disables imported collision nodes, and calls `bush.set_catalog_visual_active(true)`.
-3. `Bush.gd` detects `CatalogPropVisual`, registers each `MeshInstance3D` in the GLB as a `_rustle_chunk`, replaces the original cylinder mesh with a thin floor-tint disc, and overrides materials with a normalized olive-green semi-transparent `StandardMaterial3D`.
-4. On body enter/exit/movement, the nearest chunks animate with sway/lift + wave delay.
+| 항목 | 내용 | 재개 조건 |
+|---|---|---|
+| Bush B cell-based Area3D | bush patch를 개별 cell로 나누는 구조 | fire spread 또는 per-cell vision event 구현 시 |
+| GLB visual replacement pass | tree/rock/landmark GLB를 procedural collision 위에 붙임 | 시각 업그레이드가 우선순위가 될 때 |
+| Landmark collision redesign | cabin/watchtower/tarp/crate 정밀 collision | interior/climbable gameplay 결정 후 |
+| Dynamic event props | barrel/fire/log 등 event prop | fire/explosion 시스템과 함께 |
 
-**Gameplay authority stays in `Bush.tscn`**: the Area3D cylinder is the concealment boundary, not the GLB mesh. The GLB is purely visual.
+## 생성 워크스페이스
 
-The chunk-rustle follow-up is committed: GLB bush visuals animate only the nearest mesh clumps instead of swaying the whole catalog visual.
+`asset_generator/`는 의도적으로 untracked다. 명시 요청 없이 `git add`하지 않는다.
 
----
+포함 내용:
 
-## Deferred Asset Upgrade Decisions
+- `scripts/generate_prop.py`
+- `scripts/generate_icon.py`
+- `scripts/generate_audio.py`
+- `scripts/fetch_kenney_audio.py`
+- `scripts/render_prop_preview.py`
+- `expected_output/`
 
-The following were discussed and explicitly deferred. **Do not implement these without a dedicated plan.**
+런타임 승격 절차:
 
-### Bush B Direction — Cell-based Area3D
-- **What**: Replace single `bush_patch` (one Area3D) with arrays of individual bush cell positions. Each cell = its own `Bush.tscn` + single-clump `bush_cell.glb`. The composite `bush_dense/low.glb` would no longer be used.
-- **Why deferred**: Required by fire spread and per-cell vision events (flare/illumination). Those features are far from current priority.
-- **Trigger**: Implement when fire spread or per-cell vision events are being built.
-
-### GLB Visual Replacement Pass (Tier 2/0)
-- **What**: Attach generated rock, tree, fallen tree, log pile, and landmark GLBs as `CatalogPropVisual` over existing procedural collision shapes in `WorldBuilder`.
-- **Why deferred**: Purely cosmetic. No gameplay impact. Not blocking map/player scale work.
-- **Trigger**: When visual upgrade is prioritized; straightforward to implement.
-
-### Landmark Collision Redesign (Tier 3)
-- **What**: Cabin, watchtower, camp_tarp, camp_crate need hand-crafted `CollisionShape3D` to match their GLB geometry for enterable/climbable gameplay.
-- **Why deferred**: High implementation cost, requires design decisions about interior access.
-- **Trigger**: When interior entry or precise landmark interaction is planned.
-
-### Dynamic Event Props (Tier 1)
-- **What**: `barrel_cluster`, `fire_pit`, `log_pile` as event-capable objects (explosions, fire spread).
-- **Why deferred**: Depends on fire/explosion event system which does not exist yet.
-- **Trigger**: Implement alongside Bush B direction and the fire event system.
-
----
-
-## Asset Generator Workspace
-
-`asset_generator/` is **intentionally untracked**. Do not `git add` it unless explicitly asked.
-
-The workspace contains:
-- `scripts/generate_prop.py` — procedural GLB generator (trimesh). Generates all 16 props.
-- `scripts/generate_icon.py` — OpenAI image API icon generator. Requires `OPENAI_API_KEY`.
-- `scripts/generate_audio.py` — procedural WAV synthesizer (numpy/scipy).
-- `scripts/fetch_kenney_audio.py` — Kenney CC0 audio pack downloader + OGG→WAV converter.
-- `scripts/render_prop_preview.py` — software rasterizer for GLB contact sheets.
-- `expected_output/` — all generated files (GLBs, PNGs, WAVs, JSON manifests).
-
-To promote an asset to the game: copy the file to `res://assets/...`, add its path to `data/asset_catalog.json`, and verify via Godot headless quit (no new error beyond the known AssetCatalog warning).
+1. 생성 파일과 report를 확인한다.
+2. 필요한 파일만 `assets/`로 복사한다.
+3. `data/asset_catalog.json` path를 추가한다.
+4. fallback 동작을 유지한다.
+5. Godot headless와 1-run sim으로 확인한다.
