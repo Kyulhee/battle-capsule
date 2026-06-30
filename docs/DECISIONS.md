@@ -1,6 +1,6 @@
 # Decisions
 
-> Last updated: 2026-06-29. Stable project decisions live here. Do not turn this into a devlog.
+> Last updated: 2026-06-30. Stable project decisions live here. Do not turn this into a devlog.
 
 ## Locked Until Reopened
 
@@ -11,7 +11,7 @@
 | D-003 | `target_99_probe` is a structural gate, not a game-feel target | It checks scale safety and regression sentinels | A replacement structural profile exists |
 | D-004 | `playable_pacing_v4` is the current automated pacing candidate; `playable_pacing_v2` remains the late-zone reference | v4 preserves stage2/stage3 and fixes first-upgrade timing in automated 3-run | Manual playtest rejects v4 or a new candidate preserves its gains |
 | D-005 | Simple global loot/hotspot/rare cuts are rejected as the next lever | N2-PACE-26 delayed upgrades but regressed duration/stage3 | A targeted first-upgrade design proves global economy is still the bottleneck |
-| D-006 | 1m hard-bump exception remains allowed | It is treated as collision/readability, judged by contact gap | A dedicated opening collision redesign is planned |
+| D-006 | 1m hard-bump exception remains allowed after the 4s opening brush grace | N2-PACE-32 reduced hard-bump first acquisition without removing collision readability | A dedicated opening collision redesign replaces the brush rule |
 | D-007 | Generated source pools stay untracked | `asset_generator/` and `plan_report/` are input/reference pools, not runtime content | User asks to integrate selected assets |
 | D-008 | Active docs must optimize next action, not history | Long logs already slowed development | A historical audit explicitly needs full detail |
 | D-009 | Role-specific initial weapon multipliers are allowed only as non-default pacing experiments | N2-PACE-28 targeted first-upgrade context without repeating global economy cuts | A promoted candidate needs manual playtest and pacing evidence |

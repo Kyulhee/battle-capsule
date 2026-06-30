@@ -1,8 +1,18 @@
 # Battle Capsule Active Devlog
 
-> Last updated: 2026-06-29. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
+> Last updated: 2026-06-30. Compressed recent work log. Full raw detail is preserved in [devlog/DEVLOG_full_2026-06-08.md](devlog/DEVLOG_full_2026-06-08.md).
 
 Do not load full snapshots by default. Use this file for the current state and open archived logs only when exact slice detail is needed.
+
+---
+
+## N2-PACE-32 Opening Hard-Bump Brush
+
+- Scope: added a 4s opening hard-bump combat brush so 1m spawn-window contact can be perceived without immediately becoming idle reaction, idle-loot enemy interrupt, or zone-escape counteraction.
+- Rejected local probe: a 5s brush moved first contact to 18.3s and removed hard-bump first acquisition, but collapsed avg duration to 326.9s and stage3 none.
+- Verification: `unit_smoke` passed. `python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v4 --runs 3 --out-root C:\tmp\game_dev_N2_PACE_32_hard_bump_brush_4s_3run` passed.
+- Result: avg duration 554.3s, first contact 17.7s, first kill 24.4s, first upgrade 293.9s, missing first upgrade 0, stage2 285.8s, stage3 655.7s, hard-bump first acquisition 1/3, scale gate PASS.
+- Decision: keep the 4s brush as a narrow automated candidate. Do not widen it without first creating match-length margin; the next risk is preserving duration while first contact remains early.
 
 ---
 

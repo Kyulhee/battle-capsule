@@ -147,8 +147,12 @@ func _verify_opening_idle_reaction_grace() -> bool:
 			failure = "Opening idle reaction should defer near-bump enemies during the opening window."
 	if failure == "":
 		enemy.global_position = Vector3(0.8, 0.0, 0.0)
+		if not bot._should_defer_opening_idle_reaction(enemy):
+			failure = "Opening idle reaction should defer hard-bump enemies during the brush grace."
+	if failure == "":
+		bot.set("_spawn_age", 4.1)
 		if bot._should_defer_opening_idle_reaction(enemy):
-			failure = "Opening idle reaction should not defer hard-bump enemies."
+			failure = "Opening idle reaction should not defer hard-bump enemies after the brush grace."
 	if failure == "":
 		enemy.global_position = Vector3(3.0, 0.0, 0.0)
 		bot.set("_spawn_age", 3.1)
@@ -251,8 +255,12 @@ func _verify_opening_idle_loot_safety() -> bool:
 			failure = "Opening idle loot should defer near-bump objective interrupts."
 	if failure == "":
 		enemy.global_position = Vector3(0.8, 0.0, 0.0)
+		if not bot._should_defer_idle_loot_interrupt(enemy):
+			failure = "Opening idle loot should defer hard-bump objective interrupts during the brush grace."
+	if failure == "":
+		bot.set("_spawn_age", 4.1)
 		if bot._should_defer_idle_loot_interrupt(enemy):
-			failure = "Opening idle loot should not defer hard-bump objective interrupts."
+			failure = "Opening idle loot should not defer hard-bump objective interrupts after the brush grace."
 	if failure == "":
 		enemy.global_position = Vector3(4.8, 0.0, 0.0)
 		loot.global_position = Vector3(12.0, 0.0, 0.0)
@@ -292,6 +300,12 @@ func _verify_opening_zone_escape_counteraction_guard() -> bool:
 		failure = "Opening zone-edge escape should defer retreat counteraction while still inside the zone."
 	if failure == "":
 		enemy.global_position = Vector3(95.8, 0.0, 0.0)
+		bot.set("_spawn_age", 3.5)
+		if not bot._should_defer_opening_zone_escape_counteraction(enemy):
+			failure = "Opening zone-edge escape should defer hard-bump counteraction during the brush grace."
+	if failure == "":
+		enemy.global_position = Vector3(95.8, 0.0, 0.0)
+		bot.set("_spawn_age", 6.0)
 		if bot._should_defer_opening_zone_escape_counteraction(enemy):
 			failure = "Opening zone-edge escape should not defer hard-bump threats."
 	if failure == "":

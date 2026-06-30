@@ -23,6 +23,7 @@ const OPENING_IDLE_REACTION_GRACE_SECONDS := 10.0
 const OPENING_IDLE_REACTION_CLOSE_RANGE := 2.0
 const OPENING_CLOSE_RANGE_REVEAL_GRACE_SECONDS := 7.0
 const OPENING_CLOSE_RANGE_HARD_BUMP_RANGE := 1.0
+const OPENING_HARD_BUMP_COMBAT_GRACE_SECONDS := 4.0
 const OPENING_IDLE_LOOT_SAFETY_SECONDS := 3.0
 const OPENING_IDLE_LOOT_INTERRUPT_SAFETY_SECONDS := 7.0
 const OPENING_IDLE_LOOT_NEAR_ACTOR_RANGE := 5.0
@@ -1517,6 +1518,8 @@ func _should_defer_opening_idle_reaction(enemy: Entity) -> bool:
 	if current_state != State.IDLE or not is_instance_valid(enemy):
 		return false
 	var distance := global_position.distance_to(enemy.global_position)
+	if _should_defer_opening_hard_bump_combat(enemy, distance):
+		return true
 	if _spawn_age < OPENING_CLOSE_RANGE_REVEAL_GRACE_SECONDS:
 		if distance > OPENING_CLOSE_RANGE_HARD_BUMP_RANGE and distance <= OPENING_IDLE_REACTION_CLOSE_RANGE:
 			return true
@@ -1546,7 +1549,10 @@ func _should_defer_opening_idle_loot_objective(loot_target: Node3D) -> bool:
 func _should_defer_opening_idle_loot_interrupt(enemy: Entity) -> bool:
 	if _spawn_age >= OPENING_IDLE_LOOT_INTERRUPT_SAFETY_SECONDS:
 		return false
-	return global_position.distance_to(enemy.global_position) > OPENING_CLOSE_RANGE_HARD_BUMP_RANGE
+	var distance := global_position.distance_to(enemy.global_position)
+	if _should_defer_opening_hard_bump_combat(enemy, distance):
+		return true
+	return distance > OPENING_CLOSE_RANGE_HARD_BUMP_RANGE
 
 
 func _should_defer_opening_zone_escape_counteraction(threat: Entity) -> bool:
@@ -1555,6 +1561,8 @@ func _should_defer_opening_zone_escape_counteraction(threat: Entity) -> bool:
 	if _spawn_age >= OPENING_ZONE_ESCAPE_COUNTERACTION_GRACE_SECONDS:
 		return false
 	var distance := global_position.distance_to(threat.global_position)
+	if _should_defer_opening_hard_bump_combat(threat, distance):
+		return true
 	if distance <= OPENING_ZONE_ESCAPE_COUNTERACTION_HARD_BUMP_RANGE:
 		return false
 	var main = get_tree().root.get_node_or_null("Main")
@@ -1569,6 +1577,14 @@ func _should_defer_opening_zone_escape_counteraction(threat: Entity) -> bool:
 	var zone_center: Vector2 = zone.current_center
 	var zone_distance := Vector2(global_position.x, global_position.z).distance_to(zone_center)
 	return zone_distance <= zone_radius
+
+
+func _should_defer_opening_hard_bump_combat(actor: Entity, distance: float) -> bool:
+	if not is_instance_valid(actor):
+		return false
+	if _spawn_age >= OPENING_HARD_BUMP_COMBAT_GRACE_SECONDS:
+		return false
+	return distance <= OPENING_CLOSE_RANGE_HARD_BUMP_RANGE
 
 
 func _has_nearby_opening_actor(radius: float) -> bool:

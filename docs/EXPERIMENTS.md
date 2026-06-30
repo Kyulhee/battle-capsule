@@ -1,6 +1,6 @@
 # Experiments
 
-> Last updated: 2026-06-29. Use this as the repetition guard. Keep each row short.
+> Last updated: 2026-06-30. Use this as the repetition guard. Keep each row short.
 
 ## Active Reads
 
@@ -12,6 +12,7 @@
 | E-004 | Is hard-bump acquisition immediate combat pressure? | N2-PACE-23 policy: read contact gap, not acquisition alone | Keep exception unless redesigning opening collision |
 | E-005 | Can role-specific initial weapon access delay first upgrade safely? | N2-PACE-29 corrected game-time: avg 579.2s, first upgrade 97.4s, stage2 274.1s, stage3 642.0s; source initial_loot 66.7% / stage_wave 33.3% | Keep as diagnostic candidate, next target map/wave non-pistol access |
 | E-006 | Can initial non-pistol pool control delay first upgrade without starvation? | N2-PACE-30 `C:\tmp\game_dev_N2_PACE_30_v4_initial_pool_fix_3run`: avg duration 599.6s, first upgrade 294.9s, missing 0, stage2 284.3s, stage3 654.2s | Accepted as automated pacing candidate; manual/opening-pressure read next |
+| E-007 | Can a narrow opening hard-bump brush reduce immediate pressure while preserving v4 gates? | N2-PACE-32 `C:\tmp\game_dev_N2_PACE_32_hard_bump_brush_4s_3run`: avg duration 554.3s, first contact 17.7s, hard-bump first acquisition 1/3, first upgrade 293.9s, stage3 655.7s, gate PASS | Accepted as narrow automated candidate; do not widen without duration proof |
 
 ## Rejected Patterns
 
@@ -21,6 +22,7 @@
 | Treating concealment/loot-hub role multipliers as complete fix | N2-PACE-29 corrected read still has first upgrade at 97.4s before the 120s floor | Map/wave non-pistol source is addressed |
 | Lowering broad weapon chance to delay first upgrade | It either preserves 5-10s initial non-pistol spikes or starves upgrades entirely | Use `initial_non_pistol_weapon_weight_mult` plus stage/supply sources |
 | Hard-bump threshold-only opening fix | Local 0.75m probe only moved first contact to 18.2s and regressed avg duration/stage3 | Use a broader opening-pressure design and preserve v4 duration gates |
+| Opening hard-bump brush at 5s or wider | Local N2-PACE-32 5s probe moved first contact to 18.3s but collapsed avg duration to 326.9s and stage3 none | A late-duration redesign creates enough match-length margin |
 | Tuning bot weapon drops for first-upgrade timing | N2-PACE-29 source read did not implicate bot drops | Pickup source telemetry shows bot_drop first upgrades |
 | Spawn-spacing-only opening fix | Improved distance but did not solve contact and risked no-upgrade/stuck regressions | A map/nav reason is proven |
 | Moving stage2 earlier/later to solve match length | Stage2 is already inside the watch band in playable samples | Late-zone and match-end gap are isolated |

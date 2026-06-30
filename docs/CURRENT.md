@@ -1,6 +1,6 @@
 # Current Tracker
 
-> Last updated: 2026-06-29. This is the default planning surface. Keep it short enough to read before every work slice.
+> Last updated: 2026-06-30. This is the default planning surface. Keep it short enough to read before every work slice.
 
 ## Big Frame
 
@@ -15,8 +15,8 @@
 
 | Item | Value |
 |---|---|
-| Active slice | N2-PACE-31 manual read + opening pressure follow-up |
-| Latest verified gameplay slice | N2-PACE-30 initial non-pistol pool candidate |
+| Active slice | N2-PACE-32 opening hard-bump brush candidate |
+| Latest verified gameplay slice | N2-PACE-32 4s opening hard-bump brush |
 | Current branch note | Local `master` may have unrelated generated/doc files; check `git status -sb`. Push is approved unless the user revokes it |
 | Execution note | Use elevated shell commands when local sandbox fails with `CreateProcessAsUserW failed: 1312` |
 
@@ -37,7 +37,8 @@
 | P3 | Isolate next upgrade source | Done: N2-PACE-29 source read is initial_loot 66.7% / stage_wave 33.3%, not bot drops |
 | P4 | Tune initial/wave non-pistol access | Done: `playable_pacing_v4` 3-run first upgrade 294.9s, missing 0, stage2/stage3 in band |
 | P5 | Run manual visual/playtest pass | Done: `visual_review` passed and `PLAYTEST.md` records v4 as needs-iteration for manual promotion |
-| P6 | Follow opening pressure | Automated read still has v4 3-run first contact 14.1s / hard-bump 3/3; 1-run visual first contact 10.1s / hard-bump 0/1 |
+| P6 | Follow opening pressure | Done: 4s hard-bump brush passed v4 gate; first contact 17.7s and hard-bump first acquisition 1/3 |
+| P7 | Protect match-length margin | Next: avg duration is 554.3s, above the 540 gate but still short of the 600s target floor |
 
 ## Risk Board
 
@@ -47,7 +48,8 @@
 | Telemetry tunnel vision | Numeric PASS but unclear game feel | Add PLAYTEST notes before accepting major pacing decisions |
 | Large-file ownership | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd` remain large | Extract only when a slice touches that domain |
 | Experiment repetition | Rejected candidates reappear | Check `EXPERIMENTS.md` before new tuning |
-| Opening pressure | Pacing v4 fixed upgrade timing but first contact is still early | Do not move zone/economy to solve contact; inspect hard-bump/opening acquisition |
+| Opening pressure | 4s brush improved hard-bump read, but first contact is still early at 17.7s | Do not widen brush to 5s; that collapsed duration/stage3 |
+| Match duration margin | N2-PACE-32 avg duration 554.3s, target floor 600s | Preserve v4 duration gate before adding more opening delays |
 | Asset import noise | Local source pools live under project root | Keep source pools untracked; add `.gdignore` where needed |
 
 ## Session Rule
