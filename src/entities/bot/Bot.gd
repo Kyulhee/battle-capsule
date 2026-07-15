@@ -102,6 +102,7 @@ var _doctrine_profile: Dictionary = {}
 var _difficulty_params: Dictionary = {}
 var _base_attack_range: float = -1.0
 var _base_vision_range: float = -1.0
+var _bot_vs_bot_damage_mult: float = 1.0
 var _ai_update_telemetry_phase: int = 0
 
 # ─── ARCHETYPE ───────────────────────────────────────────────────────────────
@@ -1637,6 +1638,9 @@ func configure_ai(archetype_id: int, difficulty_params: Dictionary = {}):
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_doctrine_profile(BOT_DOCTRINE.explain_profile(_doctrine_profile))
 
+func configure_runtime_combat(combat_tuning: Dictionary):
+	_bot_vs_bot_damage_mult = clampf(float(combat_tuning.get("bot_vs_bot_damage_mult", 1.0)), 0.1, 1.0)
+
 func _apply_archetype(p: BotArchetype):
 	configure_ai(int(p), _difficulty_params)
 
@@ -2210,8 +2214,9 @@ func _bot_melee():
 	fire_cooldown = 0.65
 	if not _is_target_valid(target_actor): return
 	if global_position.distance_to(target_actor.global_position) > BOT_TUNING.MELEE_RANGE: return
-	target_actor.take_damage(BOT_TUNING.MELEE_DAMAGE, "melee", "knife", self)
-	_engagement_dmg_dealt += BOT_TUNING.MELEE_DAMAGE  # melee is guaranteed on hit
+	var damage := _outgoing_damage_for(target_actor, BOT_TUNING.MELEE_DAMAGE)
+	target_actor.take_damage(damage, "melee", "knife", self)
+	_engagement_dmg_dealt += damage
 	var impact = IMPACT_EFFECT_SCN.instantiate()
 	get_tree().root.add_child(impact)
 	impact.global_position = target_actor.global_position + Vector3(0, 0.8, 0)
@@ -2350,7 +2355,7 @@ func shoot():
 	# Estimate damage dealt (55% assumed hit rate — intentionally imprecise)
 	if current_state == State.ATTACK and is_instance_valid(target_actor) and target_actor is Entity:
 		var pellets = stats.pellet_count if stats.weapon_type == "shotgun" else 1
-		_engagement_dmg_dealt += stats.attack_damage * pellets * 0.55
+		_engagement_dmg_dealt += _outgoing_damage_for(target_actor, stats.attack_damage) * pellets * 0.55
 
 func _internal_single_shot():
 	stats.current_ammo -= 1
@@ -2409,11 +2414,16 @@ func _cast_and_visualize(local_target_pos: Vector3):
 		var hit = ray_cast.get_collider()
 		world_target = ray_cast.get_collision_point()
 		if hit.has_method("take_damage"):
-			hit.take_damage(stats.attack_damage, "gun", stats.weapon_type, self)
+			hit.take_damage(_outgoing_damage_for(hit, stats.attack_damage), "gun", stats.weapon_type, self)
 	if BULLET_TRAIL_SCN:
 		var trail = BULLET_TRAIL_SCN.instantiate()
 		get_tree().root.add_child(trail)
 		trail.init(global_position + Vector3(0, 0.5, 0), world_target)
+
+func _outgoing_damage_for(target, base_damage: float) -> float:
+	if target is Node and target.is_in_group("bots"):
+		return base_damage * _bot_vs_bot_damage_mult
+	return base_damage
 
 # ─── STATE MACHINE ───────────────────────────────────────────────────────────
 

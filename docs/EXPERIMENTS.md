@@ -1,6 +1,6 @@
 # 실험 기록
 
-> 최종 업데이트: 2026-06-30. 같은 실패를 반복하지 않기 위한 짧은 장부다.
+> 최종 업데이트: 2026-07-16. 같은 실패를 반복하지 않기 위한 짧은 장부다.
 
 ## 활성 판단
 
@@ -13,6 +13,7 @@
 | E-005 | role-specific initial weapon access가 안전한가? | N2-PACE-29 corrected game-time: first upgrade 97.4초, source initial_loot/stage_wave | 진단 후보로 유지 |
 | E-006 | initial non-pistol pool 제어가 starvation 없이 동작하는가? | N2-PACE-30: avg 599.6초, first upgrade 294.9초, stage3 654.2초 | 자동 페이싱 후보로 채택 |
 | E-007 | 좁은 opening hard-bump brush가 v4 gate를 보존하는가? | N2-PACE-32 4초: avg 554.3초, first contact 17.7초, hard-bump 1/3, first upgrade 293.9초, stage3 655.7초 | 좁은 자동 후보로 채택 |
+| E-008 | bot끼리의 damage만 낮추면 timing band를 유지하며 match 여유가 생기는가? | v4 control avg 350.6초; v5 0.55+initial 150초: avg 689.0초, 범위 336.2-1219.9초, first upgrade 285.5초, stage3 654.2초 | 자동 후보 채택, 분산 안정화 전 승격 보류 |
 
 ## 폐기 패턴
 
@@ -26,6 +27,7 @@
 | bot weapon drop으로 first-upgrade timing 조정 | N2-PACE-29 source read가 bot_drop을 지목하지 않음 | source telemetry가 bot_drop first upgrade를 보여줌 |
 | spawn-spacing-only opening fix | contact 해결 부족, no-upgrade/stuck 위험 | map/nav 이유가 증명됨 |
 | stage2 이동으로 match length 해결 | stage2는 이미 watch band 안 | late-zone과 match-end gap을 분리 |
+| zone damage를 match length 주 lever로 사용 | v4 control 5-run에서 zone death 0회, 사망 98/99가 stage1 combat | zone death가 종료 분포를 지배한다는 새 증거 |
 | gate를 낮춰서 통과 | gate가 실제 fallback/stuck/sentinel 위험을 잡음 | 새 gate 정의가 승인됨 |
 
 ## 기록 규칙

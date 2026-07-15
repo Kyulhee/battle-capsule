@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-PACE-33 Bot-vs-Bot Damage Pacing 후보
+
+- 진단: v4 control 5-run 평균은 350.6초였고 사망 98/99가 stage1 combat, zone death는 0회여서 zone보다 bot 교전 속도가 match length를 지배했다.
+- 구현: runtime combat tuning을 추가하고 `bot_vs_bot_damage_mult=0.55`를 bot끼리의 melee/gun/engagement estimate에만 적용했다. 플레이어 damage는 그대로다.
+- 후보: `playable_pacing_v5`는 v4 timing을 유지하되 initial zone timer를 150초로 두어 first upgrade band를 보존한다.
+- 검증: `pacing_candidate --pacing-preset playable_pacing_v5 --runs 3`와 scale gate 통과. avg 689.0초, first upgrade 285.5초, stage2 283.4초, stage3 654.2초, stuck/entity/min 0.11.
+- 판단: 평균 목표는 통과했지만 개별 run이 336.2-1219.9초라 기본 승격을 보류한다. 다음은 조기/장기 종료 원인을 분리해 분산을 줄인다.
+
 ## N2-DOC-05 문서 구조 축소
 
 - 범위: 활성 루트 문서를 7개로 줄이고 기술 자료는 `reference/`, 자산 자료는 `assets/`로 분리.

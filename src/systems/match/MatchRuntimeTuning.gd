@@ -28,6 +28,9 @@ const DEFAULTS := {
 		"role_weapon_chance_mult": {},
 		"role_wave_weapon_chance_mult": {},
 	},
+	"combat": {
+		"bot_vs_bot_damage_mult": 1.0,
+	},
 	"supply_fallback": {
 		"range": 25.0,
 		"height": 1.0,
@@ -57,6 +60,9 @@ static func stage_loot_wave(tuning: Dictionary, stage: int) -> Dictionary:
 static func loot(tuning: Dictionary) -> Dictionary:
 	return _sanitize_loot(_merge_dict(DEFAULTS["loot"].duplicate(true), _section(tuning, "loot")))
 
+static func combat(tuning: Dictionary) -> Dictionary:
+	return _sanitize_combat(_merge_dict(DEFAULTS["combat"].duplicate(true), _section(tuning, "combat")))
+
 static func supply_fallback(tuning: Dictionary) -> Dictionary:
 	return _sanitize_supply_fallback(_merge_dict(DEFAULTS["supply_fallback"].duplicate(true), _section(tuning, "supply_fallback")))
 
@@ -65,6 +71,7 @@ static func _sanitize(tuning: Dictionary) -> Dictionary:
 		"spawn": spawn(tuning),
 		"navigation": navigation(tuning),
 		"loot": loot(tuning),
+		"combat": combat(tuning),
 		"supply_fallback": supply_fallback(tuning),
 	}
 
@@ -110,6 +117,11 @@ static func _sanitize_role_float_dict(source) -> Dictionary:
 			continue
 		sanitized[role] = maxf(0.0, float(source[key]))
 	return sanitized
+
+static func _sanitize_combat(combat_tuning: Dictionary) -> Dictionary:
+	return {
+		"bot_vs_bot_damage_mult": clampf(float(combat_tuning.get("bot_vs_bot_damage_mult", 1.0)), 0.1, 1.0),
+	}
 
 static func _sanitize_supply_fallback(supply_tuning: Dictionary) -> Dictionary:
 	return {

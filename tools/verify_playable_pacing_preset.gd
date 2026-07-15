@@ -7,7 +7,8 @@ const PLAYABLE_BASELINE_PRESET := "playable_pacing_v1"
 const PLAYABLE_LATE_ZONE_PRESET := "playable_pacing_v2"
 const PLAYABLE_FIRST_UPGRADE_PRESET := "playable_pacing_v3"
 const PLAYABLE_MAP_WAVE_PRESET := "playable_pacing_v4"
-const PLAYABLE_PRESETS := [PLAYABLE_BASELINE_PRESET, PLAYABLE_LATE_ZONE_PRESET, PLAYABLE_FIRST_UPGRADE_PRESET, PLAYABLE_MAP_WAVE_PRESET]
+const PLAYABLE_DURATION_PRESET := "playable_pacing_v5"
+const PLAYABLE_PRESETS := [PLAYABLE_BASELINE_PRESET, PLAYABLE_LATE_ZONE_PRESET, PLAYABLE_FIRST_UPGRADE_PRESET, PLAYABLE_MAP_WAVE_PRESET, PLAYABLE_DURATION_PRESET]
 
 
 func _init():
@@ -47,6 +48,12 @@ func _init():
 	var late_zone_spawn: Dictionary = runtime_tuning_script.spawn(late_zone_runtime)
 	var late_zone_loot: Dictionary = runtime_tuning_script.loot(late_zone_runtime)
 	var late_zone_zone: Dictionary = candidate.get_zone_tuning(game_config, {}, PLAYABLE_LATE_ZONE_PRESET)
+	var map_wave_match: Dictionary = candidate.get_match_tuning(game_config, {}, PLAYABLE_MAP_WAVE_PRESET)
+	var map_wave_runtime: Dictionary = candidate.get_runtime_tuning(game_config, {}, PLAYABLE_MAP_WAVE_PRESET)
+	var map_wave_spawn: Dictionary = runtime_tuning_script.spawn(map_wave_runtime)
+	var map_wave_loot: Dictionary = runtime_tuning_script.loot(map_wave_runtime)
+	var map_wave_combat: Dictionary = runtime_tuning_script.combat(map_wave_runtime)
+	var map_wave_zone: Dictionary = candidate.get_zone_tuning(game_config, {}, PLAYABLE_MAP_WAVE_PRESET)
 
 	for preset_name in PLAYABLE_PRESETS:
 		var issues: Array = candidate.validate(game_config, preset_name)
@@ -58,6 +65,7 @@ func _init():
 		var playable_runtime: Dictionary = candidate.get_runtime_tuning(game_config, {}, preset_name)
 		var playable_spawn: Dictionary = runtime_tuning_script.spawn(playable_runtime)
 		var playable_loot: Dictionary = runtime_tuning_script.loot(playable_runtime)
+		var playable_combat: Dictionary = runtime_tuning_script.combat(playable_runtime)
 		var playable_zone: Dictionary = candidate.get_zone_tuning(game_config, {}, preset_name)
 
 		if not _verify_match(preset_name, playable_match, target_match):
@@ -87,7 +95,7 @@ func _init():
 			[]
 		):
 			return
-		if preset_name == PLAYABLE_MAP_WAVE_PRESET and not _verify_first_upgrade_candidate(
+		if preset_name in [PLAYABLE_MAP_WAVE_PRESET, PLAYABLE_DURATION_PRESET] and not _verify_first_upgrade_candidate(
 			preset_name,
 			playable_match,
 			playable_spawn,
@@ -100,17 +108,33 @@ func _init():
 			["concealment_field", "loot_hub"],
 			["transit_choke", "recovery_pocket"],
 			[],
-			true
+			true,
+			-10.0 if preset_name == PLAYABLE_DURATION_PRESET else 0.0
+		):
+			return
+		if preset_name == PLAYABLE_DURATION_PRESET and not _verify_duration_candidate(
+			preset_name,
+			playable_match,
+			playable_spawn,
+			playable_loot,
+			playable_combat,
+			playable_zone,
+			map_wave_match,
+			map_wave_spawn,
+			map_wave_loot,
+			map_wave_combat,
+			map_wave_zone
 		):
 			return
 
-		print("%s smoke passed: bots=%d loot=%d initial=%.1f stage2=%.1f/%.1f." % [
+		print("%s smoke passed: bots=%d loot=%d initial=%.1f stage2=%.1f/%.1f bot_vs_bot=%.2f." % [
 			preset_name,
 			int(playable_match.get("bot_count", 0)),
 			int(playable_match.get("loot_count", 0)),
 			float(playable_zone.get("initial_timer", 0.0)),
 			float(playable_zone.get("stages", {}).get("2", {}).get("wait_time", 0.0)),
 			float(playable_zone.get("stages", {}).get("2", {}).get("shrink_time", 0.0)),
+			float(playable_combat.get("bot_vs_bot_damage_mult", 1.0)),
 		])
 	quit(0)
 
@@ -229,7 +253,8 @@ func _verify_first_upgrade_candidate(
 	required_roles: Array,
 	blocked_roles: Array,
 	required_wave_roles: Array,
-	requires_initial_non_pistol_tuning: bool = false
+	requires_initial_non_pistol_tuning: bool = false,
+	initial_timer_delta: float = 0.0
 ) -> bool:
 	for key in ["bot_count", "loot_count", "spawn_radius"]:
 		if absf(float(playable_match.get(key, 0.0)) - float(late_zone_match.get(key, -1.0))) > 0.001:
@@ -241,7 +266,10 @@ func _verify_first_upgrade_candidate(
 		if absf(float(playable_loot.get(key, 0.0)) - float(late_zone_loot.get(key, -1.0))) > 0.001:
 			return _fail_bool("%s should keep loot.%s from %s." % [preset_name, key, PLAYABLE_LATE_ZONE_PRESET])
 	for key in ["initial_radius", "initial_timer", "wait_time", "shrink_time", "damage_per_second"]:
-		if absf(float(playable_zone.get(key, 0.0)) - float(late_zone_zone.get(key, -1.0))) > 0.001:
+		var expected := float(late_zone_zone.get(key, -1.0))
+		if key == "initial_timer":
+			expected += initial_timer_delta
+		if absf(float(playable_zone.get(key, 0.0)) - expected) > 0.001:
 			return _fail_bool("%s should keep zone.%s from %s." % [preset_name, key, PLAYABLE_LATE_ZONE_PRESET])
 	var playable_stages: Dictionary = playable_zone.get("stages", {})
 	var late_zone_stages: Dictionary = late_zone_zone.get("stages", {})
@@ -286,6 +314,37 @@ func _verify_first_upgrade_candidate(
 	else:
 		if absf(initial_non_pistol_mult - 1.0) > 0.001:
 			return _fail_bool("%s should not tune initial non-pistol weapon weights." % preset_name)
+	return true
+
+
+func _verify_duration_candidate(
+	preset_name: String,
+	playable_match: Dictionary,
+	playable_spawn: Dictionary,
+	playable_loot: Dictionary,
+	playable_combat: Dictionary,
+	playable_zone: Dictionary,
+	baseline_match: Dictionary,
+	baseline_spawn: Dictionary,
+	baseline_loot: Dictionary,
+	baseline_combat: Dictionary,
+	baseline_zone: Dictionary
+) -> bool:
+	if playable_match != baseline_match:
+		return _fail_bool("%s should keep match tuning from %s." % [preset_name, PLAYABLE_MAP_WAVE_PRESET])
+	if playable_spawn != baseline_spawn:
+		return _fail_bool("%s should keep spawn tuning from %s." % [preset_name, PLAYABLE_MAP_WAVE_PRESET])
+	if playable_loot != baseline_loot:
+		return _fail_bool("%s should keep loot tuning from %s." % [preset_name, PLAYABLE_MAP_WAVE_PRESET])
+	var expected_zone := baseline_zone.duplicate(true)
+	expected_zone["initial_timer"] = float(baseline_zone.get("initial_timer", 0.0)) - 10.0
+	if playable_zone != expected_zone:
+		return _fail_bool("%s should only reduce %s initial_timer by 10s." % [preset_name, PLAYABLE_MAP_WAVE_PRESET])
+	if absf(float(baseline_combat.get("bot_vs_bot_damage_mult", 0.0)) - 1.0) > 0.001:
+		return _fail_bool("%s should keep default bot-vs-bot damage." % PLAYABLE_MAP_WAVE_PRESET)
+	var damage_mult := float(playable_combat.get("bot_vs_bot_damage_mult", 1.0))
+	if damage_mult < 0.45 or damage_mult > 0.65:
+		return _fail_bool("%s bot-vs-bot damage %.2f should remain a bounded duration probe." % [preset_name, damage_mult])
 	return true
 
 

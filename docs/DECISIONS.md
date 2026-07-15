@@ -1,6 +1,6 @@
 # 결정 기록
 
-> 최종 업데이트: 2026-06-30. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
+> 최종 업데이트: 2026-07-16. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
 
 ## 재검토 전까지 유지
 
@@ -19,6 +19,7 @@
 | D-011 | first-upgrade는 broad weapon chance가 아니라 initial non-pistol pool로 제어 | broad cut은 spike 또는 starvation을 만들었음 | 더 나은 지연 소스 설계 |
 | D-012 | 기본 문서는 한글로 유지 | 사용자 확인과 1인 개발 속도를 높이기 위해 | 외부 협업자가 영어 문서를 요구 |
 | D-013 | `HANDOFF.md`는 폐기하고 재개 상태는 `CURRENT.md`에 둔다 | handoff는 1회용이라 금방 낡고 기본 문서 수를 늘림 | 장기 자동 재개에 필요한 구조화된 상태 파일이 새로 필요 |
+| D-014 | `playable_pacing_v5`는 비기본 duration 후보로만 유지 | 평균 689.0초는 통과했지만 336.2-1219.9초 분산이 커 기본 승격 근거가 부족 | 개별 run 분산 gate와 수동 플레이를 통과 |
 
 ## 현재 설계 편향
 
@@ -26,4 +27,5 @@
 - 진단 필드 추가보다 플레이 가능한 루프를 우선한다.
 - 넓은 전역 튜닝보다, 이전 회귀를 피하는 좁은 후보를 선호한다.
 - `playable_pacing_v4`는 자동 기준일 뿐 수동 기준선은 아니다.
+- `playable_pacing_v5`의 bot damage 조정은 bot끼리만 적용하고 플레이어가 주거나 받는 damage는 바꾸지 않는다.
 - N2-PACE-29 이전 first-upgrade 초 단위는 의심하고, weapon/POI/route 맥락만 참고한다.

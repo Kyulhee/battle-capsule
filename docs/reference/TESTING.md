@@ -1,6 +1,6 @@
 # 테스트와 검증 가이드
 
-> 최종 업데이트: 2026-06-30. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
+> 최종 업데이트: 2026-07-16. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
 
 ## 원칙
 
@@ -19,6 +19,7 @@ python tools\run_verify.py --profile unit_smoke
 python tools\run_verify.py --profile pacing_v2
 python tools\run_verify.py --profile pacing_v3
 python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v4 --runs 3 --out-root C:\tmp\run_name
+python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v5 --runs 3 --out-root C:\tmp\run_name
 python tools\run_verify.py --profile scale_99
 python tools\run_verify.py --profile visual_review
 ```
@@ -48,6 +49,11 @@ python tools\run_verify.py --profile visual_review
 
 - N2-PACE-30: avg duration 599.6초, first upgrade 294.9초, stage3 654.2초.
 - N2-PACE-32: avg duration 554.3초, first contact 17.7초, first upgrade 293.9초, stage3 655.7초.
+
+`playable_pacing_v5`는 N2-PACE-33의 비기본 duration 후보다. profile 최소 gate와 별도로 제품 판정은 평균 600-900초와 개별 run 분산을 함께 본다.
+
+- N2-PACE-33: avg duration 689.0초, 범위 336.2-1219.9초, first upgrade 285.5초, stage2 283.4초, stage3 654.2초.
+- 판정: 자동 gate PASS, 평균 목표 PASS, 분산 안정화 전 기본 승격 보류.
 
 ## 자주 쓰는 직접 검증
 

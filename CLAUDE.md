@@ -10,8 +10,8 @@ Repository: `https://github.com/Kyulhee/battle-capsule`
 |---|---|
 | 개발 라인 | v2-dev: Night BR 후보, 99명 구조 gate, playable pacing |
 | 활성 트래커 | [CURRENT.md](docs/CURRENT.md) |
-| 최신 검증 gameplay slice | N2-PACE-32 4초 opening hard-bump brush |
-| 현재 운영 slice | N2-PACE-33 매치 길이 여유 후보 설계 |
+| 최신 검증 gameplay slice | N2-PACE-33 bot-vs-bot damage pacing 후보 |
+| 현재 운영 slice | N2-PACE-34 매치 길이 분산 축소 |
 | 릴리즈 정책 | 명시 요청 전까지 릴리즈/빌드 금지 |
 | 외부 원본 풀 | `asset_generator/`, `plan_report/`는 통합 요청 전까지 커밋하지 않음 |
 

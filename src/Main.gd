@@ -732,6 +732,7 @@ func spawn_entities():
 		p.apply_health_capacity_lock(1.0)
 
 	var diff_params = _get_difficulty_params()
+	var runtime_combat = MatchRuntimeTuningScript.combat(match_runtime_tuning)
 	var archetype_plan = BotSpawnPlannerScript.archetype_plan(bot_count)
 	if difficulty == Difficulty.HELL and hell_modifier == HellModifier.ALL_AGGRESSIVE:
 		archetype_plan = BotSpawnPlannerScript.force_archetype(archetype_plan, "AGGRESSIVE")
@@ -744,6 +745,7 @@ func spawn_entities():
 		var archetype_name = archetype_plan[i] if i < archetype_plan.size() else BotSpawnPlannerScript.DEFAULT_ARCHETYPE
 		var atype = BotDoctrineScript.archetype_id(archetype_name)
 		b.configure_ai(atype, diff_params)
+		b.configure_runtime_combat(runtime_combat)
 		if has_node("/root/Telemetry"):
 			var aname = BotDoctrineScript.archetype_name(int(b.archetype))
 			get_node("/root/Telemetry").log_archetype_spawn(aname)

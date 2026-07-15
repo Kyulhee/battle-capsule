@@ -15,8 +15,8 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | N2-PACE-33 매치 길이 여유 후보 설계 |
-| 최신 검증 게임플레이 단위 | N2-PACE-32 4초 opening hard-bump brush |
+| 현재 단위 | N2-PACE-34 매치 길이 분산 축소 |
+| 최신 검증 게임플레이 단위 | N2-PACE-33 bot-vs-bot damage pacing 후보 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
 | 실행 메모 | 샌드박스 읽기 실패 시 승격 실행 사용. 이전 증상: `CreateProcessAsUserW failed: 1312` |
@@ -33,7 +33,7 @@
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
 | P0 | 문서 운영 축소 | 완료: 활성 루트 7개, 기술/자산 참조 분리, 장문 사본 제거 |
-| P1 | 매치 길이 여유 확보 | 다음: T1, avg duration 554.3초를 600초 이상으로 안정화 |
+| P1 | 매치 길이 안정화 | 진행: T1, v5 평균 689.0초는 통과했지만 336.2-1219.9초 분산 축소 필요 |
 | P2 | 수동 플레이 기준 승격 | 다음: T2/T3, v4/brush 후보를 실제 조작과 화면 기준으로 판단 |
 | P3 | 야간 가독성 개선 | 다음: T3, 수풀/지형/cover 윤곽을 `visual_review`로 확인 |
 | P4 | 맵/경로 체감 점검 | 다음: T4, route choice가 bot collision보다 강한지 확인 |
@@ -48,8 +48,8 @@
 | 텔레메트리 터널 | 수치 PASS지만 체감이 불명확 | `PLAYTEST.md`에 수동 판단 기록 |
 | 큰 파일 집중 | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd`가 큼 | 해당 도메인을 건드릴 때만 추출 |
 | 실험 반복 | 폐기 후보가 다시 등장 | `EXPERIMENTS.md` 먼저 확인 |
-| 오프닝 압박 | first contact 17.7초로 아직 빠름 | 5초 brush 금지. 먼저 duration 여유 확보 |
-| 매치 길이 | N2-PACE-32 avg duration 554.3초 | 추가 지연 전에 v4 duration gate 보존 |
+| 오프닝 압박 | v5 first contact 13.6초로 아직 빠름 | 5초 brush 금지. 먼저 duration 분산 안정화 |
+| 매치 길이 | v5 avg 689.0초지만 범위 336.2-1219.9초 | 평균 PASS로 닫지 않고 조기/장기 종료 원인을 분리 |
 | 자산 노이즈 | 생성 원본 풀이 프로젝트 루트에 있음 | 런타임 승격 전까지 untracked 유지 |
 
 ## 세션 규칙
