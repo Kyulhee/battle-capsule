@@ -1,6 +1,6 @@
 # 플레이테스트 노트
 
-> 최종 업데이트: 2026-06-30. 텔레메트리가 말하지 못하는 체감 판단을 짧게 기록한다.
+> 최종 업데이트: 2026-07-16. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
 
 ## 현재 수동 테스트 대상
 
@@ -19,6 +19,21 @@
 - stage2가 회전 압박을 만들면서 stage3 도달을 막지 않는가?
 - 죽음의 이유가 플레이어 관점에서 이해되는가?
 - `visual_review` preset에서 성능이 유지되는가?
+
+## 화면 리뷰 체크리스트
+
+HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 화면으로 확인한다.
+
+- 텍스트, 아이콘, 패널, 미니맵, 라벨이 서로 겹치지 않는가?
+- 동적 값이 컨테이너를 넘거나 layout을 흔들지 않는가?
+- HP, shield, alive count, zone, active weapon, focused pickup 순서가 분명한가?
+- 어두운 지형과 zone overlay 위에서도 outline과 색 구분이 충분한가?
+- `ZONE Ns`/`ZONE CLOSING`, reload/low ammo, killfeed 전환이 튀지 않는가?
+- 1280x720 기준과 작은/넓은 화면에서 핵심 정보가 유지되는가?
+
+수동 캡처는 게임 중 `F12`를 눌러 `debug_screenshot_manual.png`를 만든다. HUD 변경은 정상/낮은 HP, zone 변경은 대기/축소, inventory 변경은 빈 슬롯/가득 찬 슬롯처럼 동적 상태를 함께 확인한다.
+
+반복 캡처가 필요할 때만 deterministic capture path를 구현한다. 일회성 mockup이나 별도 UI 보고서는 만들지 않는다.
 
 ## 기록 양식
 

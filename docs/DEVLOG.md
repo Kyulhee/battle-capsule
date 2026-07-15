@@ -1,6 +1,13 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-06-30. 최근 검증된 작업만 유지한다. 과거 장문 원문은 `docs/devlog/`와 git history를 참조한다.
+> 최종 업데이트: 2026-07-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## N2-DOC-05 문서 구조 축소
+
+- 범위: 활성 루트 문서를 7개로 줄이고 기술 자료는 `reference/`, 자산 자료는 `assets/`로 분리.
+- 병합: 변경 영향은 `ARCHITECTURE`, UI 화면 리뷰는 `PLAYTEST`, Night BR 페이싱 기준은 `MASTERPLAN`에 흡수.
+- 폐기: 날짜별 전체 로그와 마스터플랜 사본은 저장소에서 제거하고 Git 이력으로 대체.
+- 규칙: 설명은 한글 우선, 새 루트 문서 금지, 문서별 줄 수 예산 적용.
 
 ## N2-DOC-04 구현 현황 정리
 
@@ -12,7 +19,7 @@
 
 - 범위: 기본 읽기 문서와 자산/구조/검증 문서를 한글 운영 문서로 압축.
 - 이유: 기존 문서가 영어와 한글, 실험 원문, 오래된 handoff를 섞어 다음 행동을 흐리게 만들었다.
-- 원칙: active docs는 다음 판단에 필요한 정보만 남기고, 상세 히스토리는 archive/devlog에 둔다.
+- 원칙: 활성 문서는 다음 판단에 필요한 정보만 남기고, 상세 이력은 Git에서 찾는다.
 
 ## N2-DOC-02 문서 라우팅 다이어트
 
@@ -60,11 +67,6 @@
 - profile: `docs_only`, `tooling`, `unit_smoke`, `pacing_v2`, `pacing_v3`, `pacing_candidate`, `scale_99`, `visual_review`.
 - 판단: 새 작업은 command 복붙보다 profile을 먼저 고른다.
 
-## 오래된 로그 위치
+## 기록 보존
 
-| 경로 | 내용 |
-|---|---|
-| `docs/devlog/DEVLOG_full_2026-06-08.md` | Night Artificial Forest 이전 전체 로그 |
-| `docs/devlog/DEVLOG_full_2026-05-26.md` | v1.11 압축 이전 로그 |
-| `docs/devlog/DEVLOG_full_2026-05-13.md` | 초기 전체 로그 |
-| `docs/archive/MASTERPLAN_full_*.md` | 이전 장문 계획 |
+이 문서는 최근 10개 작업 또는 120줄까지만 유지한다. 오래된 항목과 삭제된 전체 사본은 `git log -- docs/DEVLOG.md docs/MASTERPLAN.md`로 찾고, 필요한 커밋에서만 읽는다.

@@ -62,7 +62,7 @@
 3. 야간 가독성, 손전등, 배터리, 봇 야간 인지를 단계적으로 추가합니다.
 4. scale telemetry는 최종 밸런스 지표가 아니라 구조 안전성 게이트로 사용합니다.
 
-현재 로드맵은 [docs/MASTERPLAN.md](docs/MASTERPLAN.md), 야간 배틀로얄 페이싱 계획은 [docs/NIGHT_BR_PACING_PLAN.md](docs/NIGHT_BR_PACING_PLAN.md)에 정리되어 있습니다.
+현재 로드맵과 야간 배틀로얄 페이싱 기준은 [docs/MASTERPLAN.md](docs/MASTERPLAN.md)에 함께 정리되어 있습니다.
 
 ## 조작법
 
@@ -115,9 +115,9 @@
 | [docs/DOCS_INDEX.md](docs/DOCS_INDEX.md) | 처음 읽을 문서 안내 |
 | [docs/MASTERPLAN.md](docs/MASTERPLAN.md) | 현재 로드맵과 작업 범위 |
 | [docs/DEVLOG.md](docs/DEVLOG.md) | 최근 검증 작업 로그 |
-| [docs/TESTING.md](docs/TESTING.md) | 검증 명령과 telemetry 해석 |
-| [docs/ASSET_STATUS.md](docs/ASSET_STATUS.md) | 통합/보류 에셋 상태 |
-| [docs/RELEASE.md](docs/RELEASE.md) | 빌드와 릴리즈 절차 |
+| [docs/reference/TESTING.md](docs/reference/TESTING.md) | 검증 명령과 telemetry 해석 |
+| [docs/assets/ASSET_STATUS.md](docs/assets/ASSET_STATUS.md) | 통합/보류 에셋 상태 |
+| [docs/reference/RELEASE.md](docs/reference/RELEASE.md) | 빌드와 릴리즈 절차 |
 
 ## 개발
 

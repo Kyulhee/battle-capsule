@@ -11,7 +11,7 @@ Repository: `https://github.com/Kyulhee/battle-capsule`
 | 개발 라인 | v2-dev: Night BR 후보, 99명 구조 gate, playable pacing |
 | 활성 트래커 | [CURRENT.md](docs/CURRENT.md) |
 | 최신 검증 gameplay slice | N2-PACE-32 4초 opening hard-bump brush |
-| 현재 운영 slice | N2-DOC-02 문서 라우팅 다이어트 |
+| 현재 운영 slice | N2-PACE-33 매치 길이 여유 후보 설계 |
 | 릴리즈 정책 | 명시 요청 전까지 릴리즈/빌드 금지 |
 | 외부 원본 풀 | `asset_generator/`, `plan_report/`는 통합 요청 전까지 커밋하지 않음 |
 
@@ -31,8 +31,7 @@ Repository: `https://github.com/Kyulhee/battle-capsule`
 
 ## 제외 문서
 
-- `docs/HANDOFF.md`는 폐기했다. 재개 정보는 [CURRENT.md](docs/CURRENT.md)에 둔다.
-- `docs/archive/**`와 `docs/devlog/DEVLOG_full_*.md`는 역사 보존용이다. 기본으로 열지 않는다.
+- 날짜별 전체 문서 사본은 만들지 않는다. 과거 상태는 Git 이력에서 찾는다.
 - `asset_generator/**`, `plan_report/**`는 로컬 원본/참고 풀이다. 통합 요청 전까지 커밋하지 않는다.
 
 ## 갱신 규칙
@@ -45,9 +44,11 @@ Repository: `https://github.com/Kyulhee/battle-capsule`
 | 수동 체감/가독성 결과 | `docs/PLAYTEST.md` |
 | 검증 완료 작업 | `docs/DEVLOG.md`에 짧게 |
 | 로드맵 변경 | `docs/MASTERPLAN.md` |
-| 구조 경계 변경 | `docs/ARCHITECTURE.md`, 필요 시 `docs/IMPACT_MAP.md` |
-| 검증 rule/profile 변경 | `docs/TESTING.md` |
-| 자산 기준/생성 요청 변경 | `docs/ASSET_BRIEF.md`, `docs/ASSET_GENERATION_PROMPTS.md` |
+| 구조 경계/변경 영향 | `docs/reference/ARCHITECTURE.md` |
+| 검증 rule/profile 변경 | `docs/reference/TESTING.md` |
+| 자산 기준/생성 요청 변경 | `docs/assets/ASSET_BRIEF.md`, `docs/assets/ASSET_GENERATION_PROMPTS.md` |
+
+문서 설명은 한글로 쓴다. 영어는 코드 식별자, 명령, 원문 문자열, 생성기 프롬프트에만 사용한다. 새 루트 문서를 만들지 않고 기존 역할에 병합하며, 줄 수 예산은 [DOCS_INDEX.md](docs/DOCS_INDEX.md)를 따른다.
 
 ## 핵심 파일
 
@@ -72,7 +73,7 @@ src/systems/loot/LootSpawner.gd       loot hotspot/position calculation
 python tools\run_verify.py --profile docs_only
 ```
 
-gameplay, AI, map, telemetry, pacing 변경은 [TESTING.md](docs/TESTING.md)에서 해당 profile을 고른다. 주요 체감 변경은 텔레메트리 PASS만으로 닫지 말고 [PLAYTEST.md](docs/PLAYTEST.md)에 기록한다.
+gameplay, AI, map, telemetry, pacing 변경은 [TESTING.md](docs/reference/TESTING.md)에서 해당 profile을 고른다. 주요 체감 변경은 텔레메트리 PASS만으로 닫지 말고 [PLAYTEST.md](docs/PLAYTEST.md)에 기록한다.
 
 예상 가능한 asset warning:
 

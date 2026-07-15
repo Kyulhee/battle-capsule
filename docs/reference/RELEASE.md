@@ -52,7 +52,7 @@ macOS 주의:
 ```powershell
 $VER="vX.Y.Z"
 
-git add export_presets.cfg README.md docs\RELEASE.md
+git add export_presets.cfg README.md docs\reference\RELEASE.md
 git commit -m "chore: prepare release $VER"
 git tag $VER
 git push origin master

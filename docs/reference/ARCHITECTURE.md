@@ -1,6 +1,6 @@
 # 아키텍처 개요
 
-> 최종 업데이트: 2026-06-30. 구조 변경 전 읽는 한글 요약 문서다. 세부 구현은 코드와 git history를 우선한다.
+> 최종 업데이트: 2026-07-16. 구조 변경 전 읽는 한글 요약 문서다. 세부 구현은 코드와 Git 이력을 우선한다.
 
 ## 전체 구조
 
@@ -65,6 +65,20 @@ Data
 | Assets | `AssetCatalog.gd`, `data/asset_catalog.json` | missing path는 fallback으로 처리 |
 | UI | panel/menu builder들 | 실제 screenshot 기반 리뷰 필요 |
 
+## 빠른 변경 영향표
+
+| 바꾸는 것 | 같이 확인할 것 | 기본 검증 |
+|---|---|---|
+| `Bot.gd` opening/perception/combat | `BotDoctrine`, `BotTuning`, telemetry, opening tests | `unit_smoke`, 필요 시 `pacing_candidate` |
+| `Player.gd` 체력/무기/아티팩트 | `WeaponSlotManager`, artifact runtime/visuals, HUD | 관련 `verify_artifact_*`, 1-run |
+| `Main.gd` orchestration | match tuning, zone, loot, UI wiring | `unit_smoke`, 1-run 이상 |
+| `Telemetry.gd` | analyzer/summarizer/check scripts | `tooling`, `verify_pacing_telemetry` |
+| `data/mapSpec_*` | map verifiers, scale gates, minimap/full map | map verifier + simulation |
+| `data/game_config.json` | match/runtime/hell/mission tuning | 관련 smoke + simulation |
+| `data/asset_catalog.json` | `AssetCatalog`, UI/world fallback | Godot headless quit + 화면 확인 |
+| UI builder | screenshot state, text fit, panel flow | `docs_only` + UI screenshot |
+| 문서만 변경 | links, markdown whitespace | `docs_only` |
+
 ## MapDefinition
 
 `MapDefinition.gd`는 기존 `MapSpec` JSON 위에 scale preset과 runtime query를 얹는 compatibility layer다.
@@ -87,5 +101,7 @@ Bush는 예외적으로 GLB visual replacement가 통합되어 있다. 단, conc
 
 - shared `Resource`는 런타임에서 오염될 수 있으므로 필요한 곳에서 `.duplicate()`를 사용한다.
 - Bot opening/loot/zone behavior 변경은 `verify_bot_opening_loot_rules.gd`와 pacing profile을 같이 본다.
-- UI 변경은 `UI_DESIGN.md` 체크리스트와 screenshot을 사용한다.
+- UI 변경은 [PLAYTEST.md](../PLAYTEST.md)의 화면 리뷰 체크리스트와 screenshot을 사용한다.
 - asset path 추가는 Godot headless quit과 최소 1-run sim으로 확인한다.
+- smoke 하나로 gameplay 변경을 닫지 않는다. first contact, first kill, first upgrade, stage2, stage3, match end를 분리해서 읽는다.
+- duration이 짧아졌다면 opening 수치가 좋아 보여도 후보를 의심한다.
