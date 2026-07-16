@@ -13,11 +13,12 @@
 | E-005 | role-specific initial weapon access가 안전한가? | N2-PACE-29 corrected game-time: first upgrade 97.4초, source initial_loot/stage_wave | 진단 후보로 유지 |
 | E-006 | initial non-pistol pool 제어가 starvation 없이 동작하는가? | N2-PACE-30: avg 599.6초, first upgrade 294.9초, stage3 654.2초 | 자동 페이싱 후보로 채택 |
 | E-007 | 좁은 opening hard-bump brush가 v4 gate를 보존하는가? | N2-PACE-32 4초: avg 554.3초, first contact 17.7초, hard-bump 1/3, first upgrade 293.9초, stage3 655.7초 | 좁은 자동 후보로 채택 |
-| E-008 | bot끼리의 damage만 낮추면 timing band를 유지하며 match 여유가 생기는가? | canonical v5 평균 501.2초, nav 수정 뒤 486.3초. first upgrade 226.8초, stage3 590.1초 | timing 일부는 유지하지만 duration 실패. 비기본 가설 유지 |
+| E-008 | bot끼리의 damage만 낮추면 timing band를 유지하며 match 여유가 생기는가? | bot-only v5 평균 434.7초, first upgrade 222.8초, stage3 590.1초 | timing 일부는 유지하지만 duration 실패. 비기본 가설 유지 |
 | E-009 | 같은 seed의 소규모 쌍 비교로 분산 lever를 판정할 수 있는가? | nav bake 대기 뒤 seed 41001 반복이 525.4초와 909.6초로 갈림 | 폐기. seed 기록 + 최소 5-run 분포 사용 |
 | E-010 | bot-only 45초 opening target grace가 초반 소모를 줄이는가? | 평균 552.6초지만 normalized stuck 0.18. headless player 접촉이 섞여 first-contact 원인도 분리되지 않음 | 폐기. opponent 유형별 텔레메트리 전 재시도 금지 |
 | E-011 | hotspot 주변 obstacle 점 이동으로 stuck를 해결할 수 있는가? | 세 probe 모두 hotspot만 이동하고 normalized stuck 0.16-0.18, 한 후보는 평균 352.1초로 붕괴 | 주 해결책으로 폐기 |
-| E-012 | nav 이동이 stuck override를 적용하면 반복 이탈이 줄어드는가? | v5 5-run normalized stuck 0.14로 gate 통과. 평균 duration 486.3초는 별도 실패 | 구조 수정 채택, hotspot은 회귀 감시 |
+| E-012 | nav 이동이 stuck override를 적용하면 반복 이탈이 줄어드는가? | 직접 우회 결함은 수정. 이전 stuck 0.14는 player 참가 duration 오염이며 bot-only는 0.21 | 코드 수정 유지, pathing gate는 미해결 |
+| E-013 | headless player를 비참가 observer로 분리하면 bot pacing이 명확해지는가? | v5 5-run win=false, spawn 99/99, ATTACK max 16.0초, 평균 duration 434.7초 | 구조 수정 채택. 이전 duration/stuck 폐기 |
 
 ## 폐기 패턴
 
@@ -36,6 +37,7 @@
 | 고정 seed 3-run 쌍 비교 | 같은 seed도 physics/timer 실행 순서에 따라 결과가 크게 달라짐 | 결정적 실행기가 생기거나 최소 5-run 분포로 재설계 |
 | opponent 구분 없는 bot-only opening grace | headless player가 target에 남아 first-contact 해석이 오염됨 | 상대 유형별 접촉/target telemetry가 생김 |
 | obstacle 위치 반복 이동 | hotspot 이동과 duration 회귀만 만들고 이동 복구 결함을 가림 | nav 구조 또는 수동 route 증거가 특정 배치를 지목 |
+| idle headless player를 simulation 참가자로 유지 | 모든 run player win, 마지막 bot 전멸 대기, ATTACK 245.5초 이상치 | 행동 가능한 player 모델이 추가됨 |
 
 ## 기록 규칙
 

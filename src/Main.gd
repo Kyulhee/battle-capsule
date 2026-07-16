@@ -87,6 +87,7 @@ const MenuVisualBuilderScript = preload("res://src/ui/MenuVisualBuilder.gd")
 const MatchBootstrapScript = preload("res://src/systems/match/MatchBootstrap.gd")
 const MatchRuntimeTuningScript = preload("res://src/systems/match/MatchRuntimeTuning.gd")
 const MatchTuningScript = preload("res://src/systems/match/MatchTuning.gd")
+const SimulationParticipantsScript = preload("res://src/systems/match/SimulationParticipants.gd")
 const MissionTrackerScript = preload("res://src/systems/mission/MissionTracker.gd")
 const MissionTuningScript = preload("res://src/systems/mission/MissionTuning.gd")
 const PausePanelBuilderScript = preload("res://src/ui/panels/PausePanelBuilder.gd")
@@ -310,7 +311,7 @@ func start_game():
 		tel.set_stage(1)
 		tel.log_mission_start(mission_tracker.active_mission.id)  # start_match 이후에 호출
 		
-	alive_count = bot_count + 1
+	alive_count = SimulationParticipantsScript.initial_alive_count(bot_count, is_simulation)
 	_categorize_templates()
 	spawn_entities()
 	_spawn_initial_loot()
@@ -732,7 +733,10 @@ func spawn_entities():
 	$Entities.add_child(p)
 	p.display_name = "YOU"
 	p.add_to_group("players") # Ensure player is in correct group for telemetry
-	p.global_position = _get_safe_spawn_pos()
+	if is_simulation:
+		SimulationParticipantsScript.configure_observer(p)
+	else:
+		p.global_position = _get_safe_spawn_pos()
 	player_ref = p
 	p.died.connect(_on_player_died)
 	if difficulty == Difficulty.HELL and not is_simulation:
@@ -820,7 +824,7 @@ func _spawn_distribution_summary() -> Dictionary:
 	var annulus_area = maxf(1.0, PI * maxf(1.0, spawn_radius * spawn_radius - inner_radius * inner_radius))
 	var clearance_area = PI * clearance * clearance * count
 	return {
-		"requested_count": bot_count + 1,
+		"requested_count": SimulationParticipantsScript.initial_alive_count(bot_count, is_simulation),
 		"placed_count": count,
 		"spawn_radius": spawn_radius,
 		"inner_radius": inner_radius,
@@ -1053,9 +1057,9 @@ func _check_match_end():
 
 func _end_match(final_rank: int = 1):
 	current_state = GameState.RESULT
-	var is_victory = (final_rank == 1)
-	if is_instance_valid(player_ref) and not player_ref.is_dead:
-		is_victory = true
+	var player_survived = is_instance_valid(player_ref) and not player_ref.is_dead
+	var is_victory = player_survived and not is_simulation
+	if is_victory:
 		final_rank = 1
 	
 	if has_node("/root/Telemetry"):
@@ -1152,7 +1156,7 @@ func _trigger_pressure_mission():
 	else:
 		pool = MissionTrackerScript.get_hard_pool()
 	# Filter out missions that are impossible given current game state
-	var bot_alive = max(0, alive_count - 1)
+	var bot_alive = SimulationParticipantsScript.bot_alive_count(alive_count, is_simulation)
 	pool = MissionTrackerScript.filter_feasible(pool, zone.stage, bot_alive)
 	if pool.is_empty(): return
 	var descriptor = pool[randi() % pool.size()]

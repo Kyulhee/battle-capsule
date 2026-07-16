@@ -9,6 +9,7 @@
 - structural gate 실패는 gate를 낮추지 말고 원인을 고친다.
 - 모든 pacing 초 단위는 `Main.match_timer` 기준이다.
 - N2-PACE-34 이전 시뮬레이션의 초 단위 결과는 현재 기준선으로 사용하지 않는다.
+- headless player는 simulation 참가자가 아니라 observer다. alive/spawn/target 집계는 bot만 포함한다.
 - `target_99_probe`는 체감 목표가 아니라 구조 안전망이다.
 
 ## 검증 프로필 진입점
@@ -48,11 +49,10 @@ python tools\run_verify.py --profile visual_review
 
 현재 canonical 기준선:
 
-- v4 5-run: 평균 duration 426.5초, 범위 246.0-645.6초, first upgrade 233.9초, stage2 230.0초, stage3 600.1초.
-- v5 nav 수정 5-run: 평균 duration 486.3초, 범위 262.8-664.2초, first upgrade 226.8초, stage2 220.0초, stage3 590.1초.
-- v5 nav 수정은 normalized stuck 0.14로 구조 기준을 통과했지만 duration 기준은 실패했다.
+- v5 bot-only 5-run: 평균 duration 434.7초, 범위 271.0-655.5초, first upgrade 222.8초, stage2 220.1초, stage3 590.1초.
+- spawn 99/99와 ATTACK 최대 16.0초는 통과했지만 duration과 normalized stuck 0.21은 실패했다.
 
-N2-PACE-34 이전 결과는 weapon/source 맥락만 참고하고 현재 초 단위 기준선으로 사용하지 않는다.
+N2-PACE-34 이전 결과와 N2-PACE-35 player 참가 결과는 weapon/source 맥락만 참고하고 현재 duration/stuck 기준선으로 사용하지 않는다.
 
 `playable_pacing_v5`는 N2-PACE-33의 비기본 duration 가설이다. profile 최소 gate와 별도로 제품 판정은 평균 600-900초와 개별 run 분산을 함께 본다.
 

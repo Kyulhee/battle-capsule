@@ -56,6 +56,7 @@ Data
 | 영역 | 소유 | 메모 |
 |---|---|---|
 | Match bootstrap | `Main.gd`, `systems/match/*` | config/preset 해석은 helper, orchestration은 Main |
+| Simulation participants | `SimulationParticipants.gd` | headless player는 observer, alive/spawn/target participant는 bot만 계산 |
 | Zone | `ZoneController.gd` | Main이 인스턴스를 소유, Bot/UI는 읽기 중심 |
 | Loot | `LootSpawner.gd`, `LootSpawnDirector.gd`, `Pickup.gd` | spawn 계산과 pickup runtime 분리 |
 | Combat AI | `Bot.gd`, `BotDoctrine.gd`, `BotTuning.gd` | opening guard와 doctrine 변경은 검증 필수 |
@@ -72,6 +73,7 @@ Data
 | `Bot.gd` opening/perception/combat | `BotDoctrine`, `BotTuning`, telemetry, opening tests | `unit_smoke`, 필요 시 `pacing_candidate` |
 | `Player.gd` 체력/무기/아티팩트 | `WeaponSlotManager`, artifact runtime/visuals, HUD | 관련 `verify_artifact_*`, 1-run |
 | `Main.gd` orchestration | match tuning, zone, loot, UI wiring | `unit_smoke`, 1-run 이상 |
+| simulation participant | alive count, spawn requested/placed, session winner | `verify_simulation_participants`, 5-run pacing |
 | `Telemetry.gd` | analyzer/summarizer/check scripts | `tooling`, `verify_pacing_telemetry` |
 | `data/mapSpec_*` | map verifiers, scale gates, minimap/full map | map verifier + simulation |
 | `data/game_config.json` | match/runtime/hell/mission tuning | 관련 smoke + simulation |
@@ -86,6 +88,7 @@ Data
 - `mapSpec_night_forest_candidate.json`은 현재 Night BR 후보 표면이다.
 - `target_99_probe`는 구조 gate다.
 - `playable_pacing_v4`는 현재 자동 페이싱 후보이며 default promotion이 아니다.
+- headless simulation은 player 행동을 흉내 내지 않는다. player는 비참가 observer이고 99봇 중 1명이 남으면 종료한다.
 
 ## 자산 구조
 

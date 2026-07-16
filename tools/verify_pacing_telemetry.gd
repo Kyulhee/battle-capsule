@@ -285,6 +285,7 @@ func _verify_pacing_uses_game_seconds() -> bool:
 	var first_shot := float(tel.metrics.pacing.first_shot_time)
 	var stage2 := float(tel.metrics.pacing.stage_times.get("2", 0.0))
 	var duration := float(tel.metrics.core.duration)
+	var player_win := bool(tel.metrics.session.win)
 	tel.free()
 	main.free()
 
@@ -294,6 +295,8 @@ func _verify_pacing_uses_game_seconds() -> bool:
 		return _fail("Pacing stage time should use Main.match_timer, got %.2f." % stage2)
 	if not is_equal_approx(duration, 3.0):
 		return _fail("Core duration should use Main.match_timer, got %.2f." % duration)
+	if player_win:
+		return _fail("Bot winner should not be recorded as a player win.")
 	return true
 
 

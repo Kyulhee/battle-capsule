@@ -15,9 +15,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | N2-PACE-36 초반 소모와 최종 2인 교착 분리 진단 |
-| 최신 검증 개발 단위 | N2-PACE-35 canonical 기준선 재구축과 nav 이동 복구 적용 |
-| 최신 검증 게임플레이 단위 | N2-PACE-35 nav 경로에서도 stuck override를 적용. v5 duration은 여전히 미달 |
+| 현재 단위 | N2-PACE-37 초기 배치와 첫 타깃 획득 압력 분리 |
+| 최신 검증 개발 단위 | N2-PACE-36 headless player를 비참가 observer로 분리 |
+| 최신 검증 게임플레이 단위 | N2-PACE-36 bot-only v5 평균 434.7초. duration/stuck gate 실패 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
 | 실행 메모 | 샌드박스 읽기 실패 시 승격 실행 사용. 이전 증상: `CreateProcessAsUserW failed: 1312` |
@@ -34,7 +34,7 @@
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
 | P0 | 문서 운영 축소 | 완료: 활성 루트 7개, 기술/자산 참조 분리, 장문 사본 제거 |
-| P1 | 매치 길이 안정화 | 진행: T1, 초반 stage1 소모와 최종 2인 장기 교전의 영향을 분리 |
+| P1 | 매치 길이 안정화 | 진행: T1/T2, 7초 첫 교전과 stage1 사망 94-97명의 원인을 초기 배치/획득 경로로 분리 |
 | P2 | 수동 플레이 기준 승격 | 다음: T2/T3, v4/brush 후보를 실제 조작과 화면 기준으로 판단 |
 | P3 | 야간 가독성 개선 | 다음: T3, 수풀/지형/cover 윤곽을 `visual_review`로 확인 |
 | P4 | 맵/경로 체감 점검 | 다음: T4, route choice가 bot collision보다 강한지 확인 |
@@ -49,10 +49,10 @@
 | 텔레메트리 터널 | 수치 PASS지만 체감이 불명확 | `PLAYTEST.md`에 수동 판단 기록 |
 | 큰 파일 집중 | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd`가 큼 | 해당 도메인을 건드릴 때만 추출 |
 | 실험 반복 | 폐기 후보가 다시 등장 | `EXPERIMENTS.md` 먼저 확인 |
-| 오프닝 압박 | canonical v5 첫 접촉 7.1초, run당 stage1 사망 93-97명 | 초반 소모가 duration 분산을 지배하는지 먼저 분리 진단 |
-| 매치 길이 | canonical v4 평균 426.5초, nav 수정 v5 평균 486.3초로 모두 목표 미달 | damage 수치 추가 조정 전 초반/최종 2인 구간을 분리 |
-| 최종 2인 교착 | v5 한 run에서 연속 공격 245.5초, 나머지는 14-16초 | 상태 전환과 유효 damage를 함께 확인하고 단일 이상치에 맞춘 튜닝 금지 |
-| 경로 이탈 | nav 수정 뒤 normalized stuck 0.14로 gate 통과, hotspot은 잔존 | 장애물 점 이동을 반복하지 않고 회귀 감시 |
+| 오프닝 압박 | bot-only v5 첫 획득 6.3초, 첫 접촉 7.0초, stage1 사망 94-97명 | spawn density와 idle/objective acquisition을 먼저 비교 |
+| 매치 길이 | bot-only v5 평균 434.7초, 범위 271.0-655.5초 | first-upgrade는 유지하고 stage1 combat 소모를 좁게 완화 |
+| 최종 2인 교착 | observer 분리 뒤 ATTACK 최대 16.0초로 정상화 | 이전 245.5초는 하네스 오염으로 폐기 |
+| 경로 이탈 | bot-only normalized stuck 0.21로 gate 실패 | nav override 수정은 유지하되 장애물 점 이동 없이 별도 원인 진단 |
 | 시뮬레이션 재현성 | 같은 seed에서도 physics/timer 순서에 따라 525.4초와 909.6초로 갈림 | seed는 입력 추적용으로만 쓰고 후보 판정은 최소 5-run 분포로 수행 |
 | 자산 노이즈 | 생성 원본 풀이 프로젝트 루트에 있음 | 런타임 승격 전까지 untracked 유지 |
 

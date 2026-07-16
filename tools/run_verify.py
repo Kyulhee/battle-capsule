@@ -109,6 +109,7 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
             godot_script(godot, "verify_bot_opening_loot_rules.gd"),
             godot_script(godot, "verify_bot_runtime_combat.gd"),
             godot_script(godot, "verify_match_tuning_cli.gd"),
+            godot_script(godot, "verify_simulation_participants.gd"),
         ]
 
     if profile == "pacing_v2":

@@ -385,13 +385,13 @@ func set_stage(stage: int):
 		if not metrics.pacing.stage_times.has(key):
 			metrics.pacing.stage_times[key] = _elapsed_seconds()
 
-func end_match(rank: int, _winner_name: String, zone_stage: int):
+func end_match(rank: int, winner_name: String, zone_stage: int):
 	if not match_in_progress: return
 	metrics.core.duration = _elapsed_seconds()
 	match_in_progress = false
 	metrics.core.zone_stage_reached = zone_stage
 	metrics.session.rank = rank
-	metrics.session.win = (rank == 1)
+	metrics.session.win = winner_name == "Player"
 	_save_history()
 	call_deferred("_save_sim_result")
 	call_deferred("_print_report")

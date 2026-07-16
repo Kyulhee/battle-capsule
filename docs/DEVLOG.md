@@ -2,6 +2,15 @@
 
 > 최종 업데이트: 2026-07-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-PACE-36 Simulation Participant 정리
+
+- 문제: headless player가 `actors`, alive count, spawn 분포에 포함돼 아무 행동 없이 모든 run에서 승리했고, simulation이 봇 1명 생존이 아니라 봇 전멸까지 진행됐다.
+- 수정: simulation player를 충돌/타게팅/처리에서 빠진 observer로 두고 99봇 중 1명이 남을 때 종료한다. `session.win`은 rank가 아니라 실제 winner로 기록한다.
+- 구조: `SimulationParticipants.gd`로 participant count와 observer 설정을 분리하고 unit smoke를 추가했다.
+- 검증: `unit_smoke` 통과. v5 bot-only 5-run에서 win=false, spawn 99/99, ATTACK 최대 16.0초로 기존 245.5초 이상치가 사라졌다.
+- 기준선: 평균 434.7초, 범위 271.0-655.5초, first contact 7.0초, first upgrade 222.8초, stage2 220.1초, stage3 590.1초. duration/stuck 0.21 gate는 실패했다.
+- 다음: hard-bump 첫 획득은 0/5이므로 초기 배치 밀도와 idle/objective acquisition을 stage1 소모 원인으로 비교한다.
+
 ## N2-PACE-35 Canonical 기준선과 Nav Unstick
 
 - 기준선: v4 5-run 평균 426.5초, v5 평균 501.2초로 모두 duration gate에 실패했다. v5 first upgrade는 225.9초, stage2 220.0초, stage3 590.1초였다.
@@ -65,13 +74,6 @@
 - 검증: `unit_smoke` 통과. `pacing_candidate --pacing-preset playable_pacing_v4 --runs 3` 통과.
 - 결과: avg duration 554.3초, first contact 17.7초, first kill 24.4초, first upgrade 293.9초, stage2 285.8초, stage3 655.7초, hard-bump first acquisition 1/3.
 - 판단: 4초 brush는 좁은 자동 후보로 유지. 더 넓히기 전에 match duration 여유가 필요하다.
-
-## N2-PACE-31 v4 시각 리뷰
-
-- 범위: `visual_review` profile로 v4 후보의 실제 가독성 확인.
-- 검증: `visual_review` 통과.
-- 결과: 플레이어 실루엣과 픽업 라벨/glow는 읽히지만, 주변 수풀/지형 윤곽은 매우 어둡다.
-- 판단: v4는 자동 후보로 유지하되 수동 기준선 승격은 보류.
 
 ## 기록 보존
 
