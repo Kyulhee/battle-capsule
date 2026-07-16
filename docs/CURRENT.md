@@ -15,9 +15,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | N2-PACE-37 초기 배치와 첫 타깃 획득 압력 분리 |
+| 현재 단위 | N2-PACE-38 초반 `ZONE_ESCAPE` 수렴과 hard-bump 충돌 분리 |
 | 최신 검증 개발 단위 | N2-PACE-36 headless player를 비참가 observer로 분리 |
-| 최신 검증 게임플레이 단위 | N2-PACE-36 bot-only v5 평균 434.7초. duration/stuck gate 실패 |
+| 최신 검증 게임플레이 단위 | N2-PACE-37 비충돌 opening guard 6배 후보 폐기. 런타임 변경 미유지 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
 | 실행 메모 | 샌드박스 읽기 실패 시 승격 실행 사용. 이전 증상: `CreateProcessAsUserW failed: 1312` |
@@ -34,7 +34,7 @@
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
 | P0 | 문서 운영 축소 | 완료: 활성 루트 7개, 기술/자산 참조 분리, 장문 사본 제거 |
-| P1 | 매치 길이 안정화 | 진행: T1/T2, 7초 첫 교전과 stage1 사망 94-97명의 원인을 초기 배치/획득 경로로 분리 |
+| P1 | 매치 길이 안정화 | 진행: T1/T2, 초반 `ZONE_ESCAPE`의 안쪽 수렴과 hard-bump 충돌을 stage1 과소모 원인으로 분리 |
 | P2 | 수동 플레이 기준 승격 | 다음: T2/T3, v4/brush 후보를 실제 조작과 화면 기준으로 판단 |
 | P3 | 야간 가독성 개선 | 다음: T3, 수풀/지형/cover 윤곽을 `visual_review`로 확인 |
 | P4 | 맵/경로 체감 점검 | 다음: T4, route choice가 bot collision보다 강한지 확인 |
@@ -49,10 +49,11 @@
 | 텔레메트리 터널 | 수치 PASS지만 체감이 불명확 | `PLAYTEST.md`에 수동 판단 기록 |
 | 큰 파일 집중 | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd`가 큼 | 해당 도메인을 건드릴 때만 추출 |
 | 실험 반복 | 폐기 후보가 다시 등장 | `EXPERIMENTS.md` 먼저 확인 |
-| 오프닝 압박 | bot-only v5 첫 획득 6.3초, 첫 접촉 7.0초, stage1 사망 94-97명 | spawn density와 idle/objective acquisition을 먼저 비교 |
+| 오프닝 압박 | v5 첫 접촉 7.0초. guard 6배 후보도 hard-bump 5/5와 평균 401.3초로 회귀 | 유예 시간을 더 늘리지 않고 `ZONE_ESCAPE` 진입/복귀 경로를 분리 |
 | 매치 길이 | bot-only v5 평균 434.7초, 범위 271.0-655.5초 | first-upgrade는 유지하고 stage1 combat 소모를 좁게 완화 |
 | 최종 2인 교착 | observer 분리 뒤 ATTACK 최대 16.0초로 정상화 | 이전 245.5초는 하네스 오염으로 폐기 |
 | 경로 이탈 | bot-only normalized stuck 0.21로 gate 실패 | nav override 수정은 유지하되 장애물 점 이동 없이 별도 원인 진단 |
+| 초반 수렴 | 가장자리 봇이 반경 95%에서 `ZONE_ESCAPE`에 진입하고 75%까지 안쪽으로 이동 | 긴 복귀 구간이 충돌을 모으는지 상태 체류와 획득 소스로 검증 |
 | 시뮬레이션 재현성 | 같은 seed에서도 physics/timer 순서에 따라 525.4초와 909.6초로 갈림 | seed는 입력 추적용으로만 쓰고 후보 판정은 최소 5-run 분포로 수행 |
 | 자산 노이즈 | 생성 원본 풀이 프로젝트 루트에 있음 | 런타임 승격 전까지 untracked 유지 |
 

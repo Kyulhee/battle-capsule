@@ -19,6 +19,7 @@
 | E-011 | hotspot 주변 obstacle 점 이동으로 stuck를 해결할 수 있는가? | 세 probe 모두 hotspot만 이동하고 normalized stuck 0.16-0.18, 한 후보는 평균 352.1초로 붕괴 | 주 해결책으로 폐기 |
 | E-012 | nav 이동이 stuck override를 적용하면 반복 이탈이 줄어드는가? | 직접 우회 결함은 수정. 이전 stuck 0.14는 player 참가 duration 오염이며 bot-only는 0.21 | 코드 수정 유지, pathing gate는 미해결 |
 | E-013 | headless player를 비참가 observer로 분리하면 bot pacing이 명확해지는가? | v5 5-run win=false, spawn 99/99, ATTACK max 16.0초, 평균 duration 434.7초 | 구조 수정 채택. 이전 duration/stuck 폐기 |
+| E-014 | non-hard-bump opening guard를 6배로 늘리면 초반 소모가 안전하게 줄어드는가? | 5-run 평균 401.3초, first contact 18.0초, stuck 0.26, hard-bump first acquisition 5/5 | 폐기하고 코드 제거. 이동 수렴이 4초 hard-bump로 우회 |
 
 ## 폐기 패턴
 
@@ -38,6 +39,7 @@
 | opponent 구분 없는 bot-only opening grace | headless player가 target에 남아 first-contact 해석이 오염됨 | 상대 유형별 접촉/target telemetry가 생김 |
 | obstacle 위치 반복 이동 | hotspot 이동과 duration 회귀만 만들고 이동 복구 결함을 가림 | nav 구조 또는 수동 route 증거가 특정 배치를 지목 |
 | idle headless player를 simulation 참가자로 유지 | 모든 run player win, 마지막 bot 전멸 대기, ATTACK 245.5초 이상치 | 행동 가능한 player 모델이 추가됨 |
+| 이동 분리 없이 non-hard-bump opening guard만 연장 | 첫 접촉만 18.0초로 늦고 hard-bump 5/5, 평균 401.3초, stuck 0.26 | `ZONE_ESCAPE` 수렴 또는 초반 충돌 경로를 먼저 분리 |
 
 ## 기록 규칙
 

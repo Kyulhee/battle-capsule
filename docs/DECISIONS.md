@@ -35,3 +35,4 @@
 - N2-PACE-34 이전 초 단위는 현재 기준선에서 제외하고, weapon/POI/route/source 맥락만 참고한다.
 - 경로 hotspot 대응은 obstacle 점 이동보다 이동 파이프라인 결함을 먼저 고친다.
 - N2-PACE-36 이전 99봇 simulation duration/stuck은 player 참가 오염으로 기준선에서 제외한다.
+- 초반 전투는 유예 시간을 독립적으로 늘리지 않고 이동 수렴과 collision acquisition을 먼저 분리한다.

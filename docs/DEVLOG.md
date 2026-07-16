@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-PACE-37 Opening Guard 진단 폐기
+
+- 질문: idle/objective 계열 첫 획득을 늦추면 stage1 과소모가 줄어드는지 확인했다.
+- 진단 후보: non-hard-bump opening guard만 6배로 늘리고 damage, loot, zone, 4초 hard-bump는 유지했다.
+- 결과: 5-run 평균 401.3초, first contact 18.0초, first kill 37.8초, normalized stuck 0.26으로 v5보다 악화됐다.
+- 원인 신호: 첫 획득 5/5가 hard-bump였고 80%는 `retreat_counteraction`이었다. 유예 중 이동한 봇이 `ZONE_ESCAPE` 경로에서 모인 뒤 충돌 전투로 우회했다.
+- 결정: 후보 preset과 런타임 코드는 모두 제거했다. 다음은 유예 추가가 아니라 `ZONE_ESCAPE`의 95%-75% 복귀 구간을 분리한다.
+
 ## N2-PACE-36 Simulation Participant 정리
 
 - 문제: headless player가 `actors`, alive count, spawn 분포에 포함돼 아무 행동 없이 모든 run에서 승리했고, simulation이 봇 1명 생존이 아니라 봇 전멸까지 진행됐다.
@@ -66,14 +74,6 @@
 - 범위: `MASTERPLAN.md`에 남은 작업을 T1-T6 트랙으로 정리하고, `CURRENT.md`의 큐를 실행 순서로 재정렬.
 - 결정: 다음 구현 우선순위는 T1 match duration margin 확보이며, opening pressure 추가 지연은 duration 여유 뒤에 진행한다.
 - 목표: 향후 작업을 문서/실험 맥락에 잡아먹히지 않고 제품 트랙 단위로 진행한다.
-
-## N2-PACE-32 Opening Hard-Bump Brush
-
-- 범위: 스폰 직후 4초 동안 1m hard-bump가 즉시 idle reaction, idle-loot enemy interrupt, zone-escape counteraction으로 승격되지 않게 했다.
-- 폐기한 probe: 5초 brush는 first contact 18.3초로 좋아 보였지만 avg duration 326.9초, stage3 없음으로 실패.
-- 검증: `unit_smoke` 통과. `pacing_candidate --pacing-preset playable_pacing_v4 --runs 3` 통과.
-- 결과: avg duration 554.3초, first contact 17.7초, first kill 24.4초, first upgrade 293.9초, stage2 285.8초, stage3 655.7초, hard-bump first acquisition 1/3.
-- 판단: 4초 brush는 좁은 자동 후보로 유지. 더 넓히기 전에 match duration 여유가 필요하다.
 
 ## 기록 보존
 
