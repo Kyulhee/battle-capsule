@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-VIS-01 Night 월드 가독성 프로필
+
+- 문제: 기존 deterministic 캡처에서 플레이어와 픽업만 보이고 지면, 수풀, cover가 검은 배경에 묻혔다.
+- 수정: `NightWorldReadability`가 Night 맵에만 청색 주변광 0.38과 달빛 0.32를 적용한다. Main과 캡처가 같은 프로필을 사용하고 기본 맵은 원래 환경으로 복원한다.
+- 회귀 방지: 1280x720 캡처의 background/cover/bush 표본 대비를 자동 gate로 추가했다.
+- 검증: `unit_smoke`, `visual_review` 통과. cover blue 0.1765 vs background 0.0784, bush green 0.2235 vs 0.0627.
+- 다음: 가독성 미세조정이 아니라 v6 kill의 85.8%가 flank/off-route에 몰리는 맵 구조를 audit한다.
+
 ## N2-PACE-42 Post-Kill Reacquire Delay 폐기
 
 - 후보: v6의 피해·존·루팅을 유지하고 stage1에서만 post-kill 능동 재획득을 2초 늦췄다. 공격받을 때의 damage 반응은 유지했다.
@@ -72,13 +80,6 @@
 - 후보: `playable_pacing_v5`는 v4 timing을 유지하되 initial zone timer를 150초로 두어 first upgrade band를 보존한다.
 - 당시 검증: pre-canonical 3-run에서 avg 689.0초, 범위 336.2-1219.9초를 기록했다.
 - 현재 판단: bot-only damage 동작은 유지하지만 당시 초 단위는 현재 기준선에서 제외한다. canonical 5-run 재측정 전 기본 승격을 보류한다.
-
-## N2-DOC-05 문서 구조 축소
-
-- 범위: 활성 루트 문서를 7개로 줄이고 기술 자료는 `reference/`, 자산 자료는 `assets/`로 분리.
-- 병합: 변경 영향은 `ARCHITECTURE`, UI 화면 리뷰는 `PLAYTEST`, Night BR 페이싱 기준은 `MASTERPLAN`에 흡수.
-- 폐기: 날짜별 전체 로그와 마스터플랜 사본은 저장소에서 제거하고 Git 이력으로 대체.
-- 규칙: 설명은 한글 우선, 새 루트 문서 금지, 문서별 줄 수 예산 적용.
 
 ## 기록 보존
 

@@ -28,6 +28,9 @@ func _run() -> void:
 		push_error("Could not capture player night readability preview.")
 		quit(1)
 		return
+	if not _has_readable_scene_contrast(image):
+		quit(1)
+		return
 	var err := image.save_png(OUTPUT_PATH)
 	if err != OK:
 		var fallback := ProjectSettings.globalize_path("user://player_night_readability.png")
@@ -44,14 +47,28 @@ func _run() -> void:
 	quit(0)
 
 
+func _has_readable_scene_contrast(image: Image) -> bool:
+	var background := image.get_pixel(100, 200)
+	var cover := image.get_pixel(350, 300)
+	var bush := image.get_pixel(400, 540)
+	if cover.b < background.b + 0.05:
+		push_error("Night cover contrast is too low: background=%s cover=%s" % [background, cover])
+		return false
+	if bush.g < background.g + 0.08:
+		push_error("Night bush contrast is too low: background=%s bush=%s" % [background, bush])
+		return false
+	print("Night scene contrast passed: background=%s cover=%s bush=%s." % [background, cover, bush])
+	return true
+
+
 func _add_environment(scene_root: Node3D) -> void:
 	var world_env := WorldEnvironment.new()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_COLOR
-	env.background_color = Color(0.01, 0.012, 0.018)
+	env.background_color = Color(0.12, 0.14, 0.18)
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color(0.055, 0.065, 0.085)
-	env.ambient_light_energy = 0.22
+	env.ambient_light_color = Color.WHITE
+	env.ambient_light_energy = 0.1
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.glow_enabled = true
 	world_env.environment = env
@@ -60,20 +77,25 @@ func _add_environment(scene_root: Node3D) -> void:
 	var moon := DirectionalLight3D.new()
 	moon.name = "LowMoonLight"
 	moon.rotation_degrees = Vector3(-58.0, -35.0, 0.0)
-	moon.light_color = Color(0.52, 0.62, 0.78)
-	moon.light_energy = 0.08
+	moon.light_color = Color.WHITE
+	moon.light_energy = 0.2
 	moon.shadow_enabled = true
 	scene_root.add_child(moon)
+
+	var world_readability_script = load("res://src/environment/NightWorldReadability.gd")
+	var world_readability = world_readability_script.new()
+	world_readability.attach(world_env, moon)
+	world_readability.configure_for_metadata({"theme": "night_artificial_forest"})
 
 	var ground := MeshInstance3D.new()
 	var ground_mesh := PlaneMesh.new()
 	ground_mesh.size = Vector2(24.0, 16.0)
 	ground.mesh = ground_mesh
-	ground.material_override = _material(Color(0.025, 0.030, 0.026), 0.0, false)
+	ground.material_override = _material(Color(0.15, 0.12, 0.08), 0.0, false)
 	scene_root.add_child(ground)
 
-	_add_low_wall(scene_root, Vector3(-4.2, 0.35, -2.4), Vector3(2.6, 0.7, 0.75), Color(0.11, 0.12, 0.12))
-	_add_low_wall(scene_root, Vector3(5.0, 0.35, -1.1), Vector3(2.2, 0.7, 0.75), Color(0.10, 0.11, 0.12))
+	_add_low_wall(scene_root, Vector3(-4.2, 0.35, -2.4), Vector3(2.6, 0.7, 0.75), Color(0.22, 0.23, 0.24))
+	_add_low_wall(scene_root, Vector3(5.0, 0.35, -1.1), Vector3(2.2, 0.7, 0.75), Color(0.20, 0.21, 0.23))
 	_add_bush_preview(scene_root, Vector3(-3.2, 0.16, 2.8))
 	_add_bush_preview(scene_root, Vector3(2.9, 0.16, 3.0))
 	_add_pickup_preview(scene_root, Vector3(0.0, 0.16, -4.8), Color(0.95, 0.82, 0.25), "Ammo")
@@ -160,7 +182,7 @@ func _add_bush_preview(scene_root: Node3D, pos: Vector3) -> void:
 		node.mesh = mesh
 		node.position = pos + Vector3((i - 2) * 0.42, 0.0, sin(float(i)) * 0.34)
 		node.scale = Vector3(1.1, 0.42, 0.82)
-		node.material_override = _material(Color(0.11, 0.22, 0.09, 0.86), 0.0, true)
+		node.material_override = _material(Color(0.13, 0.44, 0.13, 0.55), 0.0, true)
 		scene_root.add_child(node)
 
 

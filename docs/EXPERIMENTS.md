@@ -25,6 +25,7 @@
 | E-017 | 첫 12초 비전투 이동에 근접 분산을 넣으면 opening attrition이 줄어드는가? | v7 평균 465.4초, first contact 7.0초, stage1 사망 95.6명, stuck 0.16 | 폐기하고 코드 제거. attrition 효과 없이 pathing만 악화 |
 | E-018 | stage1 bot-vs-bot 피해를 0.35로 낮추고 stage2부터 0.55로 복원하면 과소모가 줄어드는가? | v7 평균 551.3초, stage1 사망 92.4명, first upgrade 누락 1회, long-run stuck 0.19 | 폐기하고 코드 제거. 소폭 생존보다 DISENGAGE 장기화 회귀가 큼 |
 | E-019 | stage1 post-kill 능동 재획득을 2초 늦추면 킬 연쇄가 줄어드는가? | post-kill 획득 132.4→56.4회, stage1 사망 95.6명 유지, 평균 301.5초, stage3 없음 | 폐기하고 코드 제거. idle/damage 반응으로 우회하며 attrition 인과 없음 |
+| E-020 | Night 월드 환경을 공통 프로필로 올리면 darkness를 유지하며 route/cover가 읽히는가? | cover blue 0.1765 vs background 0.0784, bush green 0.2235 vs 0.0627. `visual_review` PASS | 채택. Main/캡처 공유와 deterministic 대비 gate 유지 |
 
 ## 폐기 패턴
 

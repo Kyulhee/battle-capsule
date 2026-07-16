@@ -90,6 +90,7 @@ const MatchTuningScript = preload("res://src/systems/match/MatchTuning.gd")
 const SimulationParticipantsScript = preload("res://src/systems/match/SimulationParticipants.gd")
 const MissionTrackerScript = preload("res://src/systems/mission/MissionTracker.gd")
 const MissionTuningScript = preload("res://src/systems/mission/MissionTuning.gd")
+const NightWorldReadabilityScript = preload("res://src/environment/NightWorldReadability.gd")
 const PausePanelBuilderScript = preload("res://src/ui/panels/PausePanelBuilder.gd")
 const PressureEffectApplierScript = preload("res://src/systems/match/PressureEffectApplier.gd")
 const RecordsPanelBuilderScript = preload("res://src/ui/RecordsPanelBuilder.gd")
@@ -120,6 +121,7 @@ var supply_controller = null
 var hell_events = null
 var menu_controller = null
 var settings_manager = null
+var night_world_readability = null
 
 # Dynamic Supply
 var supply_telegraphed: bool = false
@@ -131,6 +133,8 @@ var zone_ring: MeshInstance3D = null
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	night_world_readability = NightWorldReadabilityScript.new()
+	night_world_readability.attach($WorldEnvironment, $DirectionalLight3D)
 	loot_spawner = LootSpawnerScript.new()
 	supply_controller = SupplyDropControllerScript.new()
 	hell_events = HellEventControllerScript.new()
@@ -148,6 +152,7 @@ func _ready():
 	for arg in OS.get_cmdline_user_args():
 		_apply_pre_tuning_cmdline_arg(arg)
 	_load_map_spec()
+	_configure_night_world_readability()
 	_apply_map_definition_tuning()
 	debug_flags = DebugFlagsScript.new()
 	debug_flags.load_from_cmdline(OS.get_cmdline_user_args())
@@ -664,6 +669,18 @@ func _load_map_spec():
 			map_spec = MapSpecScript.from_json(json_text)
 	else:
 		push_error("Main: %s not found!" % source_path)
+
+func _configure_night_world_readability() -> void:
+	if night_world_readability == null:
+		return
+	var metadata: Dictionary = {}
+	if map_spec != null:
+		var raw_metadata = map_spec.get("metadata")
+		if typeof(raw_metadata) == TYPE_DICTIONARY:
+			metadata = raw_metadata
+	if metadata.is_empty():
+		metadata["id"] = map_spec_path
+	night_world_readability.configure_for_metadata(metadata)
 
 func _process(delta):
 	if get_tree().paused: return

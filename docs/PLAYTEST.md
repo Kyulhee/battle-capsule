@@ -1,6 +1,6 @@
 # 플레이테스트 노트
 
-> 최종 업데이트: 2026-07-16. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
+> 최종 업데이트: 2026-07-17. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
 
 ## 현재 수동 테스트 대상
 
@@ -47,6 +47,15 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 ```
 
 ## 최근 기록
+
+### 2026-07-17 - N2-VIS-01 Night 월드 가독성
+
+날짜: 2026-07-17
+표면: `tools/run_verify.py --profile visual_review --out-root C:\tmp\n2_vis_01_final`, 캡처 `C:\tmp\player_night_readability.png`.
+테스트 변경: Night 맵 전용 청색 주변광/달빛 프로필을 Main과 deterministic 캡처가 공유하고, cover·수풀 대비 gate를 추가했다.
+결과: 채택.
+체감: 플레이어/픽업 외에도 양쪽 cover, 수풀 덩어리, 지면 경계가 읽힌다. 어둠은 유지되며 화면 전체가 회색으로 뜨지 않는다.
+다음 행동: v6와 visual run에서 open/off-route 교전이 우세하므로 route 폭, cover, POI 연결을 구조적으로 audit한다.
 
 ### 2026-06-29 - N2-PACE-31 v4 시각 리뷰
 
