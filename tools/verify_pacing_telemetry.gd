@@ -1,6 +1,11 @@
 extends SceneTree
 
 
+class FakeMain:
+	extends Node
+	var match_timer: float = 0.0
+
+
 func _init():
 	call_deferred("_run")
 
@@ -265,25 +270,30 @@ func _verify_pacing_schema_and_hooks() -> bool:
 
 
 func _verify_pacing_uses_game_seconds() -> bool:
-	var previous_scale := Engine.time_scale
 	var telemetry_script = load("res://src/core/Telemetry.gd")
+	var main := FakeMain.new()
+	main.name = "Main"
+	root.add_child(main)
 	var tel = telemetry_script.new()
 	root.add_child(tel)
-	Engine.time_scale = 3.0
 	tel.start_match()
-	tel._start_tick = Time.get_ticks_msec() - 1000
+	main.match_timer = 3.0
 	tel.log_shot()
 	tel.set_stage(2)
+	tel.end_match(1, "Bot", 2)
 
 	var first_shot := float(tel.metrics.pacing.first_shot_time)
 	var stage2 := float(tel.metrics.pacing.stage_times.get("2", 0.0))
+	var duration := float(tel.metrics.core.duration)
 	tel.free()
-	Engine.time_scale = previous_scale
+	main.free()
 
-	if first_shot < 2.5:
-		return _fail("Pacing first-shot time should use game seconds, got %.2f." % first_shot)
-	if stage2 < 2.5:
-		return _fail("Pacing stage time should use game seconds, got %.2f." % stage2)
+	if not is_equal_approx(first_shot, 3.0):
+		return _fail("Pacing first-shot time should use Main.match_timer, got %.2f." % first_shot)
+	if not is_equal_approx(stage2, 3.0):
+		return _fail("Pacing stage time should use Main.match_timer, got %.2f." % stage2)
+	if not is_equal_approx(duration, 3.0):
+		return _fail("Core duration should use Main.match_timer, got %.2f." % duration)
 	return true
 
 

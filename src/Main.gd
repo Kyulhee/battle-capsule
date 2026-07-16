@@ -4,6 +4,7 @@ extends Node3D
 @export var bot_scene: PackedScene = preload("res://src/entities/bot/Bot.tscn")
 @export var bot_count: int = 11
 var is_simulation: bool = false
+var simulation_seed: int = -1
 
 enum GameState { MENU, PLAYING, RESULT }
 var current_state: GameState = GameState.MENU
@@ -168,7 +169,9 @@ func _ready():
 			if world_builder:
 				world_builder.generate_world(map_spec, asset_catalog)
 			_register_loot_hotspots()
-		_setup_navigation()
+			_setup_navigation()
+			if _nav_region and _nav_region.is_baking():
+				await _nav_region.bake_finished
 		start_game()
 		return
 
@@ -628,6 +631,10 @@ func _apply_cmdline_arg(arg: String):
 
 func _apply_pre_tuning_cmdline_arg(arg: String):
 	var parsed = MatchTuningScript.from_cmdline_arg(arg)
+	if parsed.has("simulation_seed"):
+		simulation_seed = int(parsed["simulation_seed"])
+		seed(simulation_seed)
+		print("[SIMULATION] seed=%d" % simulation_seed)
 	if parsed.has("map_spec_path"):
 		_set_map_spec_path(String(parsed["map_spec_path"]))
 	if parsed.has("scale_preset"):

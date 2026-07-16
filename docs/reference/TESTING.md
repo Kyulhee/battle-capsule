@@ -7,7 +7,8 @@
 - 가장 작은 검증 profile을 먼저 고른다.
 - gameplay 변경은 단발 smoke만으로 닫지 않는다.
 - structural gate 실패는 gate를 낮추지 말고 원인을 고친다.
-- `first_upgrade` threshold는 game-time 기준이다.
+- 모든 pacing 초 단위는 `Main.match_timer` 기준이다.
+- N2-PACE-34 이전 시뮬레이션의 초 단위 결과는 현재 기준선으로 사용하지 않는다.
 - `target_99_probe`는 체감 목표가 아니라 구조 안전망이다.
 
 ## 검증 프로필 진입점
@@ -18,8 +19,8 @@ python tools\run_verify.py --profile tooling
 python tools\run_verify.py --profile unit_smoke
 python tools\run_verify.py --profile pacing_v2
 python tools\run_verify.py --profile pacing_v3
-python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v4 --runs 3 --out-root C:\tmp\run_name
-python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v5 --runs 3 --out-root C:\tmp\run_name
+python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v4 --runs 5 --out-root C:\tmp\run_name
+python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v5 --runs 5 --out-root C:\tmp\run_name
 python tools\run_verify.py --profile scale_99
 python tools\run_verify.py --profile visual_review
 ```
@@ -31,7 +32,7 @@ python tools\run_verify.py --profile visual_review
 | `unit_smoke` | GDScript verifier 또는 작은 로직 변경 | 핵심 `tools/verify_*.gd` |
 | `pacing_v2` | v2 late-zone 기준 재확인 | 3-run + analyze/summarize + scale gate |
 | `pacing_v3` | v3 first-upgrade 진단 후보 | 3-run + gate |
-| `pacing_candidate` | 현재 후보 승격/회귀 판단 | unit smoke + 3-run + duration/upgrade gate |
+| `pacing_candidate` | 현재 후보 승격/회귀 판단 | unit smoke + 최소 5-run + duration/upgrade gate |
 | `scale_99` | 99명 구조 변경 | `target_99_probe` 3-run + scale gate |
 | `visual_review` | UI/가독성/체감 변경 | capture 또는 1-run + `PLAYTEST.md` 기록 |
 
@@ -39,21 +40,25 @@ python tools\run_verify.py --profile visual_review
 
 `pacing_candidate`는 다음을 요구한다.
 
-- 최소 run 수: 3
+- 최소 run 수: 5
 - avg duration: 540초 이상
 - avg first upgrade: 120초 이상
 - missing first-upgrade run: 0
 - scale sentinel PASS
 
-`playable_pacing_v4` 최신 기준:
+`playable_pacing_v4`의 이전 결과:
 
 - N2-PACE-30: avg duration 599.6초, first upgrade 294.9초, stage3 654.2초.
 - N2-PACE-32: avg duration 554.3초, first contact 17.7초, first upgrade 293.9초, stage3 655.7초.
 
-`playable_pacing_v5`는 N2-PACE-33의 비기본 duration 후보다. profile 최소 gate와 별도로 제품 판정은 평균 600-900초와 개별 run 분산을 함께 본다.
+위 값은 N2-PACE-34 이전 pre-canonical 기록이므로 weapon/source 맥락만 참고하고 현재 초 단위 기준선으로 사용하지 않는다.
+
+`playable_pacing_v5`는 N2-PACE-33의 비기본 duration 가설이다. profile 최소 gate와 별도로 제품 판정은 평균 600-900초와 개별 run 분산을 함께 본다.
 
 - N2-PACE-33: avg duration 689.0초, 범위 336.2-1219.9초, first upgrade 285.5초, stage2 283.4초, stage3 654.2초.
-- 판정: 자동 gate PASS, 평균 목표 PASS, 분산 안정화 전 기본 승격 보류.
+- 판정: 동작 가설만 유지. canonical 5-run 재측정 전 기본 승격 보류.
+
+고정 seed는 결과 재현 보장이 아니다. `simulate_matches.py`는 seed를 JSON에 남겨 입력을 추적하지만 physics/timer 순서가 달라질 수 있으므로 최소 5-run 분포로 판단한다. `seed_base=41000`처럼 실행 입력을 명시할 수 있다.
 
 ## 자주 쓰는 직접 검증
 
@@ -70,10 +75,10 @@ python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py
 ## 시뮬레이션 분석
 
 ```powershell
-python tools\simulate_matches.py 3 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v4 out_dir=C:\tmp\manual_run
+python tools\simulate_matches.py 5 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v4 seed_base=41000 out_dir=C:\tmp\manual_run
 python tools\analyze_results.py C:\tmp\manual_run
 python tools\summarize_pacing_baseline.py C:\tmp\manual_run
-python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 3 --min-avg-duration 540 --min-avg-first-upgrade 120 --max-missing-first-upgrade 0
+python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-duration 540 --min-run-duration 300 --max-run-duration 1200 --min-avg-first-upgrade 120 --max-missing-first-upgrade 0
 ```
 
 ## 회귀 신호
@@ -82,7 +87,7 @@ python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 3 --min-avg-d
 - spawn fallback 발생.
 - stuck/disengage per spawned entity/min 급증.
 - AI update budget 과도한 상승.
-- no first upgrade가 3-run에서 반복.
+- no first upgrade가 5-run에서 반복.
 - stage3가 사라지거나 avg duration이 gate 아래로 떨어짐.
 
 ## 시각 검증

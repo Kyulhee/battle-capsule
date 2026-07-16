@@ -51,6 +51,8 @@ def pacing_steps(
     runs: int,
     out_root: Path,
     min_avg_duration: float | None = None,
+    min_run_duration: float | None = None,
+    max_run_duration: float | None = None,
     min_avg_first_upgrade: float = 10.0,
     max_missing_first_upgrade: int | None = None,
 ) -> list[Step]:
@@ -66,6 +68,10 @@ def pacing_steps(
     ]
     if min_avg_duration is not None:
         scale_gate_args.extend(["--min-avg-duration", f"{min_avg_duration:.1f}"])
+    if min_run_duration is not None:
+        scale_gate_args.extend(["--min-run-duration", f"{min_run_duration:.1f}"])
+    if max_run_duration is not None:
+        scale_gate_args.extend(["--max-run-duration", f"{max_run_duration:.1f}"])
     if max_missing_first_upgrade is not None:
         scale_gate_args.extend(["--max-missing-first-upgrade", str(max_missing_first_upgrade)])
     return [
@@ -102,6 +108,7 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
             godot_script(godot, "verify_zone_initial_radius_tuning.gd"),
             godot_script(godot, "verify_bot_opening_loot_rules.gd"),
             godot_script(godot, "verify_bot_runtime_combat.gd"),
+            godot_script(godot, "verify_match_tuning_cli.gd"),
         ]
 
     if profile == "pacing_v2":
@@ -113,7 +120,9 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
     if profile == "pacing_candidate":
         if not pacing_preset:
             raise ValueError("--pacing-preset is required for pacing_candidate.")
-        return pacing_steps("pacing_candidate", pacing_preset, godot, runs, out_root, 540.0, 120.0, 0)
+        if runs < 5:
+            raise ValueError("pacing_candidate requires at least 5 runs because fixed RNG seeds are not physics-deterministic.")
+        return pacing_steps("pacing_candidate", pacing_preset, godot, runs, out_root, 540.0, None, None, 120.0, 0)
 
     if profile == "scale_99":
         out_dir = out_root / "game_dev_verify_scale_99"
@@ -161,14 +170,17 @@ def main() -> int:
         required=True,
     )
     parser.add_argument("--pacing-preset", default="", help="Scale preset for --profile pacing_candidate.")
-    parser.add_argument("--runs", type=int, default=3, help="Run count for simulation profiles.")
+    parser.add_argument("--runs", type=int, default=5, help="Run count for simulation profiles.")
     parser.add_argument("--out-root", default=str(DEFAULT_OUT_ROOT))
     parser.add_argument("--godot", default=str(DEFAULT_GODOT))
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--keep-going", action="store_true")
     args = parser.parse_args()
 
-    steps = profile_steps(args.profile, args.godot, max(1, args.runs), Path(args.out_root), args.pacing_preset)
+    try:
+        steps = profile_steps(args.profile, args.godot, max(1, args.runs), Path(args.out_root), args.pacing_preset)
+    except ValueError as exc:
+        parser.error(str(exc))
     failures = 0
     for step in steps:
         code = run_step(step, args.dry_run)

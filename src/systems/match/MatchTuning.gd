@@ -42,6 +42,8 @@ static func from_cmdline_arg(arg: String) -> Dictionary:
 			return {"tuning": {"zone_damage": maxf(0.0, float(value))}}
 		"zone_initial_timer", "zone_initial":
 			return {"tuning": {"zone_initial_timer": maxf(0.1, float(value))}}
+		"simulation_seed":
+			return {"simulation_seed": maxi(0, int(value))}
 		"scale_preset", "map_scale_preset":
 			return {"scale_preset": value}
 		"map_spec", "map_spec_path", "map_definition", "map_definition_path":

@@ -387,8 +387,8 @@ func set_stage(stage: int):
 
 func end_match(rank: int, _winner_name: String, zone_stage: int):
 	if not match_in_progress: return
+	metrics.core.duration = _elapsed_seconds()
 	match_in_progress = false
-	metrics.core.duration = (Time.get_ticks_msec() - _start_tick) / 1000.0 * Engine.time_scale
 	metrics.core.zone_stage_reached = zone_stage
 	metrics.session.rank = rank
 	metrics.session.win = (rank == 1)
@@ -1452,7 +1452,10 @@ func _ensure_combat_weapon(w: String):
 		metrics.combat.damage_by_weapon[w] = 0.0
 
 func _elapsed_seconds() -> float:
-	# Keep pacing milestones on the same game-second basis as core.duration.
+	var main = get_tree().root.get_node_or_null("Main")
+	if main != null:
+		return maxf(0.0, float(main.match_timer))
+	# Script-only verifiers do not instantiate Main.
 	return (Time.get_ticks_msec() - _start_tick) / 1000.0 * Engine.time_scale
 
 func _record_first_pacing_time(metric_name: String):

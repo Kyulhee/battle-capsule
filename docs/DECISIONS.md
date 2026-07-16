@@ -15,11 +15,13 @@
 | D-007 | 생성 원본 풀은 untracked 유지 | `asset_generator/`, `plan_report/`는 런타임 콘텐츠가 아님 | 사용자가 특정 자산 통합 요청 |
 | D-008 | 활성 문서는 다음 행동을 빠르게 만드는 용도 | 장문 로그가 개발 속도를 늦춤 | 과거 감사가 명시적으로 필요 |
 | D-009 | role별 initial weapon multiplier는 비기본 실험만 허용 | v3는 진단용이고 승격 기준 미달 | 수동/자동 증거를 갖춘 승격 후보 |
-| D-010 | first-upgrade 시간 기준은 game-time | N2-PACE-29에서 wall-clock 혼입 발견 | 새 canonical time basis 승인 |
+| D-010 | 모든 페이싱 시간의 canonical 기준은 `Main.match_timer` | N2-PACE-34에서 wall-clock에 동기 초기화 시간이 섞인 것을 확인 | game loop 외 별도 canonical clock이 필요해짐 |
 | D-011 | first-upgrade는 broad weapon chance가 아니라 initial non-pistol pool로 제어 | broad cut은 spike 또는 starvation을 만들었음 | 더 나은 지연 소스 설계 |
 | D-012 | 기본 문서는 한글로 유지 | 사용자 확인과 1인 개발 속도를 높이기 위해 | 외부 협업자가 영어 문서를 요구 |
 | D-013 | `HANDOFF.md`는 폐기하고 재개 상태는 `CURRENT.md`에 둔다 | handoff는 1회용이라 금방 낡고 기본 문서 수를 늘림 | 장기 자동 재개에 필요한 구조화된 상태 파일이 새로 필요 |
-| D-014 | `playable_pacing_v5`는 비기본 duration 후보로만 유지 | 평균 689.0초는 통과했지만 336.2-1219.9초 분산이 커 기본 승격 근거가 부족 | 개별 run 분산 gate와 수동 플레이를 통과 |
+| D-014 | `playable_pacing_v5`는 비기본 duration 가설로만 유지 | N2-PACE-33 동작은 유효하지만 당시 초 단위 결과는 canonical 기준선이 아님 | canonical 5-run 분산 gate와 수동 플레이를 통과 |
+| D-015 | 고정 RNG seed는 재현 보장이 아니라 입력 추적값으로만 사용 | nav bake 대기 뒤에도 같은 seed가 525.4초와 909.6초로 갈림 | physics/timer 순서를 결정적으로 고정하는 실행기가 생김 |
+| D-016 | `pacing_candidate` 판정은 최소 5-run으로 수행 | 비결정적 physics 결과를 3-run 또는 seed 쌍 비교로 판단하면 오판 위험이 큼 | 결정적 시뮬레이션 또는 통계 기준 재설계 |
 
 ## 현재 설계 편향
 
@@ -28,4 +30,4 @@
 - 넓은 전역 튜닝보다, 이전 회귀를 피하는 좁은 후보를 선호한다.
 - `playable_pacing_v4`는 자동 기준일 뿐 수동 기준선은 아니다.
 - `playable_pacing_v5`의 bot damage 조정은 bot끼리만 적용하고 플레이어가 주거나 받는 damage는 바꾸지 않는다.
-- N2-PACE-29 이전 first-upgrade 초 단위는 의심하고, weapon/POI/route 맥락만 참고한다.
+- N2-PACE-34 이전 초 단위는 현재 기준선에서 제외하고, weapon/POI/route/source 맥락만 참고한다.

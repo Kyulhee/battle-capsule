@@ -57,6 +57,8 @@ def main() -> int:
     parser.add_argument("run_dir", nargs="?", default="tools/sim_runs_current")
     parser.add_argument("--min-runs", type=int, default=5)
     parser.add_argument("--min-avg-duration", type=float, default=70.0)
+    parser.add_argument("--min-run-duration", type=float, default=-1.0)
+    parser.add_argument("--max-run-duration", type=float, default=-1.0)
     parser.add_argument("--max-runs-under-60", type=int, default=0)
     parser.add_argument("--min-avg-first-upgrade", type=float, default=10.0)
     parser.add_argument("--max-avg-first-upgrade", type=float, default=300.0)
@@ -102,6 +104,14 @@ def main() -> int:
     failures: list[str] = []
     if avg(durations) < args.min_avg_duration:
         failures.append(f"avg duration {avg(durations):.1f}s < {args.min_avg_duration:.1f}s")
+    if args.min_run_duration >= 0.0:
+        short_runs = [idx + 1 for idx, duration in enumerate(durations) if duration < args.min_run_duration]
+        if short_runs:
+            failures.append(f"duration below {args.min_run_duration:.1f}s in runs: {short_runs}")
+    if args.max_run_duration >= 0.0:
+        long_runs = [idx + 1 for idx, duration in enumerate(durations) if duration > args.max_run_duration]
+        if long_runs:
+            failures.append(f"duration above {args.max_run_duration:.1f}s in runs: {long_runs}")
     runs_under_60 = sum(1 for d in durations if d < 60.0)
     if runs_under_60 > args.max_runs_under_60:
         failures.append(f"runs under 60s {runs_under_60} > {args.max_runs_under_60}")
@@ -184,6 +194,7 @@ def main() -> int:
     print("--- Scale Telemetry Gate ---")
     print(f"Runs: {len(runs)}")
     print(f"Avg duration: {avg(durations):.1f}s")
+    print(f"Min/Max duration: {min(durations):.1f}s / {max(durations):.1f}s")
     print(f"Runs under 60s: {runs_under_60}")
     print(f"Avg first upgrade: {avg(first_upgrade) if first_upgrade else -1.0:.1f}s")
     print(f"Missing first upgrade runs: {missing_first_upgrade}")

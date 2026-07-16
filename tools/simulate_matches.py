@@ -1,6 +1,5 @@
 import json
 import os
-import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -12,9 +11,13 @@ NUM_MATCHES = int(sys.argv[1]) if len(sys.argv) > 1 else 20
 DIFFICULTY = ""
 EXTRA_ARGS = []
 OUT_DIR = Path("tools") / "sim_runs_current"
+seed_base_env = os.environ.get("GAME_DEV_SIM_SEED_BASE", "")
+SEED_BASE = int(seed_base_env) if seed_base_env else int.from_bytes(os.urandom(4), "little") & 0x7FFFFFFF
 for raw_arg in sys.argv[2:]:
     if raw_arg.startswith("out_dir=") or raw_arg.startswith("sim_out_dir="):
         OUT_DIR = Path(raw_arg.split("=", 1)[1])
+    elif raw_arg.startswith("seed_base="):
+        SEED_BASE = int(raw_arg.split("=", 1)[1])
     elif "=" in raw_arg:
         EXTRA_ARGS.append(raw_arg)
     elif not DIFFICULTY:
@@ -28,11 +31,16 @@ SIM_RESULT_PATH = APPDATA / "Godot" / "app_userdata" / "BattleRoyalePrototype" /
 
 
 def run_match(match_id: int) -> dict:
-    print(f"--- Running Match {match_id + 1}/{NUM_MATCHES} ---", flush=True)
+    simulation_seed = SEED_BASE + match_id
+    print(
+        f"--- Running Match {match_id + 1}/{NUM_MATCHES} (seed={simulation_seed}) ---",
+        flush=True,
+    )
     cmd = [GODOT_BIN, "--path", PROJECT_PATH, "--headless", "--", "autostart=true"]
     if DIFFICULTY:
         cmd.append(f"difficulty={DIFFICULTY}")
     cmd.extend(EXTRA_ARGS)
+    cmd.append(f"simulation_seed={simulation_seed}")
     proc = subprocess.run(
         cmd,
         stdout=subprocess.PIPE,
@@ -44,14 +52,19 @@ def run_match(match_id: int) -> dict:
     )
     if proc.returncode != 0:
         raise RuntimeError(f"Godot exited with code {proc.returncode}\n{proc.stdout[-4000:]}")
+    for line in proc.stdout.splitlines():
+        if line.startswith("[BOT_SNAPSHOT]"):
+            print(f"  {line}", flush=True)
     if not SIM_RESULT_PATH.exists():
         raise FileNotFoundError(f"Telemetry result not found: {SIM_RESULT_PATH}")
 
     with SIM_RESULT_PATH.open("r", encoding="utf-8") as f:
         data = json.load(f)
+    data["simulation_seed"] = simulation_seed
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(SIM_RESULT_PATH, OUT_DIR / f"run_{match_id + 1}.json")
+    with (OUT_DIR / f"run_{match_id + 1}.json").open("w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
 
     core = data.get("core", {})
     tactics = data.get("tactics", {})

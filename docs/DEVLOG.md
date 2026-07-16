@@ -2,13 +2,21 @@
 
 > 최종 업데이트: 2026-07-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-PACE-34 페이싱 검증 기반 정리
+
+- 문제: `Telemetry.start_match()`가 동기 bot/loot 초기화 전에 실행되어 wall-clock 기반 duration과 stage 시간이 75-118초가량 부풀 수 있었다.
+- 수정: 실제 match 진행 시간은 `Main.match_timer`를 canonical clock으로 사용하고, simulation autostart는 navigation bake 완료 뒤 시작한다.
+- 추적: 각 simulation에 seed를 기록하고 bot snapshot을 출력하며, 개별 duration 최소/최대 gate를 추가했다.
+- 판정: nav bake 대기 뒤에도 같은 seed가 525.4초와 909.6초로 갈려 고정 seed를 결정적 재현으로 사용할 수 없다. `pacing_candidate` 최소 run을 5로 올렸다.
+- 정리: 이 과정에서 시험한 v6와 stage damage 후보는 증거 부족으로 제거했다. 다음은 canonical v4/v5 5-run 기준선 재구축이다.
+
 ## N2-PACE-33 Bot-vs-Bot Damage Pacing 후보
 
 - 진단: v4 control 5-run 평균은 350.6초였고 사망 98/99가 stage1 combat, zone death는 0회여서 zone보다 bot 교전 속도가 match length를 지배했다.
 - 구현: runtime combat tuning을 추가하고 `bot_vs_bot_damage_mult=0.55`를 bot끼리의 melee/gun/engagement estimate에만 적용했다. 플레이어 damage는 그대로다.
 - 후보: `playable_pacing_v5`는 v4 timing을 유지하되 initial zone timer를 150초로 두어 first upgrade band를 보존한다.
-- 검증: `pacing_candidate --pacing-preset playable_pacing_v5 --runs 3`와 scale gate 통과. avg 689.0초, first upgrade 285.5초, stage2 283.4초, stage3 654.2초, stuck/entity/min 0.11.
-- 판단: 평균 목표는 통과했지만 개별 run이 336.2-1219.9초라 기본 승격을 보류한다. 다음은 조기/장기 종료 원인을 분리해 분산을 줄인다.
+- 당시 검증: pre-canonical 3-run에서 avg 689.0초, 범위 336.2-1219.9초를 기록했다.
+- 현재 판단: bot-only damage 동작은 유지하지만 당시 초 단위는 현재 기준선에서 제외한다. canonical 5-run 재측정 전 기본 승격을 보류한다.
 
 ## N2-DOC-05 문서 구조 축소
 
@@ -62,18 +70,6 @@
 - 검증: `pacing_candidate --pacing-preset playable_pacing_v4 --runs 3` 통과.
 - 결과: avg duration 599.6초, first contact 14.1초, first kill 23.2초, first upgrade 294.9초, stage2 284.3초, stage3 654.2초.
 - 판단: first-upgrade timing은 band 안에 들어왔다. opening pressure는 별도 문제로 남았다.
-
-## N2-PACE-29 First-Upgrade Source Telemetry
-
-- 범위: first upgrade source/context telemetry 추가, wall-clock 혼입 수정.
-- 결과: v3 corrected read는 first upgrade 97.4초, source initial_loot 66.7% / stage_wave 33.3%.
-- 판단: bot drop이 아니라 map/wave non-pistol access를 다뤄야 한다.
-
-## N2-OPS-02 검증 프로필 실행기
-
-- 범위: `tools/run_verify.py`를 검증 진입점으로 추가.
-- profile: `docs_only`, `tooling`, `unit_smoke`, `pacing_v2`, `pacing_v3`, `pacing_candidate`, `scale_99`, `visual_review`.
-- 판단: 새 작업은 command 복붙보다 profile을 먼저 고른다.
 
 ## 기록 보존
 
