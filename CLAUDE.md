@@ -10,9 +10,9 @@ Repository: `https://github.com/Kyulhee/battle-capsule`
 |---|---|
 | 개발 라인 | v2-dev: Night BR 후보, 99명 구조 gate, playable pacing |
 | 활성 트래커 | [CURRENT.md](docs/CURRENT.md) |
-| 최신 검증 gameplay slice | N2-PACE-40 v7 근접 분산 폐기. stage1 사망 유지, stuck 악화 |
+| 최신 검증 gameplay slice | N2-PACE-41 v7 stage1 피해 감소 폐기. 사망 92.4명, long-run stuck 0.19 |
 | 최신 검증 운영 slice | N2-PACE-38 존 안쪽 선제 복귀와 실제 존 밖 탈출 분리 |
-| 현재 운영 slice | N2-PACE-41 stage1 bot-vs-bot attrition 제한 |
+| 현재 운영 slice | N2-PACE-42 stage1 post-kill 재획득 연쇄 제한 |
 | 릴리즈 정책 | 명시 요청 전까지 릴리즈/빌드 금지 |
 | 외부 원본 풀 | `asset_generator/`, `plan_report/`는 통합 요청 전까지 커밋하지 않음 |
 
