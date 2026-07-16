@@ -2,6 +2,13 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-PACE-42 Post-Kill Reacquire Delay 폐기
+
+- 후보: v6의 피해·존·루팅을 유지하고 stage1에서만 post-kill 능동 재획득을 2초 늦췄다. 공격받을 때의 damage 반응은 유지했다.
+- 검증: `unit_smoke` 통과. canonical 5-run 평균 301.5초, 범위 237.3-373.0초, first upgrade 225.5초, stage1 사망 95.6명.
+- 실패: `post_kill_scan` 획득은 v6 평균 132.4→56.4회로 줄었지만 생존자는 평균 3.4명뿐이었다. idle/damage 획득으로 우회했고 stage3는 0/5였다.
+- 결정: runtime 필드, v7 preset, 테스트를 모두 제거했다. AI 미세 예외를 멈추고 `visual_review`에서 route/encounter 구조를 확인한다.
+
 ## N2-PACE-41 Stage1 Bot Damage 폐기
 
 - 후보: v6의 bot-vs-bot 피해 0.55는 유지하고 stage1에서만 0.35를 적용한 뒤 stage2부터 복원했다.
@@ -72,12 +79,6 @@
 - 병합: 변경 영향은 `ARCHITECTURE`, UI 화면 리뷰는 `PLAYTEST`, Night BR 페이싱 기준은 `MASTERPLAN`에 흡수.
 - 폐기: 날짜별 전체 로그와 마스터플랜 사본은 저장소에서 제거하고 Git 이력으로 대체.
 - 규칙: 설명은 한글 우선, 새 루트 문서 금지, 문서별 줄 수 예산 적용.
-
-## N2-DOC-04 구현 현황 정리
-
-- 범위: `MASTERPLAN.md`에 현재 구현됨, 후보/검증 신호, 아직 아닌 것, 다음 판단을 영역별로 추가.
-- 이유: 남은 작업 트랙만 있으면 실제 구현 상태와 계획의 거리가 불분명해져 다음 slice 범위가 흔들린다.
-- 결정: 현재 상태는 별도 장문 보고서가 아니라 마스터플랜의 압축 표로 유지한다.
 
 ## 기록 보존
 

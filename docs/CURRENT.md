@@ -15,9 +15,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | N2-PACE-42 stage1 post-kill 재획득 연쇄 제한 |
+| 현재 단위 | N2-VIS-01 야간 route/cover 가독성 및 초반 흐름 캡처 |
 | 최신 검증 개발 단위 | N2-PACE-38 존 안쪽 선제 복귀와 실제 존 밖 탈출 분리 |
-| 최신 검증 게임플레이 단위 | N2-PACE-41 v7 stage1 피해 0.35 폐기. 사망 92.4명, 평균 551.3초, long-run stuck 0.19 |
+| 최신 검증 게임플레이 단위 | N2-PACE-42 v7 post-kill 2초 지연 폐기. 사망 95.6명 유지, 평균 301.5초 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
 | 실행 메모 | 샌드박스 읽기 실패 시 승격 실행 사용. 이전 증상: `CreateProcessAsUserW failed: 1312` |
@@ -34,10 +34,10 @@
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
 | P0 | 문서 운영 축소 | 완료: 활성 루트 7개, 기술/자산 참조 분리, 장문 사본 제거 |
-| P1 | 매치 길이 안정화 | 진행: T1, stage1 피해 감소는 생존 +3.2명보다 DISENGAGE 고착 회귀가 커서 post-kill 즉시 재획득 연쇄를 제한 |
+| P1 | 매치 길이 안정화 | 대기: T1 미세 AI lever를 더 쌓지 않고 N2-VIS-01에서 구조적 route/encounter 흐름 증거를 확보한 뒤 재개 |
 | P2 | 수동 플레이 기준 승격 | 다음: T2/T3, v4/brush 후보를 실제 조작과 화면 기준으로 판단 |
-| P3 | 야간 가독성 개선 | 다음: T3, 수풀/지형/cover 윤곽을 `visual_review`로 확인 |
-| P4 | 맵/경로 체감 점검 | 다음: T4, route choice가 bot collision보다 강한지 확인 |
+| P3 | 야간 가독성 개선 | 진행: T3, 수풀/지형/cover 윤곽을 `visual_review`로 확인 |
+| P4 | 맵/경로 체감 점검 | 진행: T4, route choice와 초반 collision 흐름을 화면·텔레메트리로 함께 확인 |
 | P5 | 자산 승격 | 이후: T5, gameplay 가독성을 돕는 prop/audio만 선택 승격 |
 | P6 | 기술 부채 정리 | 상시: T6, 닿는 도메인만 작은 추출 |
 
@@ -50,10 +50,10 @@
 | 큰 파일 집중 | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd`가 큼 | 해당 도메인을 건드릴 때만 추출 |
 | 실험 반복 | 폐기 후보가 다시 등장 | `EXPERIMENTS.md` 먼저 확인 |
 | 오프닝 압박 | guard, zone 복귀, 근접 분산 모두 stage1 사망 95명대를 바꾸지 못함 | opening 전용 구조를 더 쌓지 않고 first-minute 체감은 후속 수동 검증으로 분리 |
-| 매치 길이 | v6 평균 465.1초. v7 피해 감소는 551.3초까지 늘었지만 stuck 0.19와 upgrade 누락 1회로 실패 | first-upgrade는 유지하고 교전 연쇄와 개별 run 분산을 함께 완화 |
-| stage1 과소모 | v6 95.6명, 피해 0.35 v7도 평균 92.4명 사망 | broad damage 감소를 반복하지 않고 사망 뒤 즉시 표적 재획득이 만드는 연쇄를 짧게 끊음 |
+| 매치 길이 | v6 평균 465.1초. 피해 감소와 post-kill 지연 모두 gate 실패 | 미세 AI 수치 조정을 멈추고 route/encounter 구조 증거 뒤 페이싱 설계를 재개 |
+| stage1 과소모 | post-kill 획득은 132.4→56.4회로 줄었지만 사망은 95.6명 유지 | acquisition source가 아니라 구조적 encounter density를 화면·맵 흐름에서 확인 |
 | 최종 2인 교착 | observer 분리 뒤 ATTACK 최대 16.0초로 정상화 | 이전 245.5초는 하네스 오염으로 폐기 |
-| 경로 이탈 | v6 normalized stuck 0.14 통과. v7 피해 감소는 long-run 0.19, 그중 DISENGAGE 62.3% | 전투를 길게 늘이는 수치 변경을 피하고 IDLE post-kill lull이 stuck을 늘리지 않는지 확인 |
+| 경로 이탈 | v6 normalized stuck 0.14 통과. 실패 후보들은 DISENGAGE와 duration 분포를 불안정하게 만듦 | `visual_review`와 route hotspot을 대조해 구조 변경 후보를 고름 |
 | 초반 수렴 | v6가 ZONE_ESCAPE 체류/stuck을 절반 이하로 줄였지만 stage1 사망은 그대로 | zone 수렴을 attrition lever로 다시 쓰지 않고 loot/IDLE 이동을 조사 |
 | 시뮬레이션 재현성 | 같은 seed에서도 physics/timer 순서에 따라 525.4초와 909.6초로 갈림 | seed는 입력 추적용으로만 쓰고 후보 판정은 최소 5-run 분포로 수행 |
 | 자산 노이즈 | 생성 원본 풀이 프로젝트 루트에 있음 | 런타임 승격 전까지 untracked 유지 |

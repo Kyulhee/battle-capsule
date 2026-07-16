@@ -24,6 +24,7 @@
 | E-016 | 여러 IDLE 봇이 같은 pickup을 목표로 삼는 것이 첫 교전의 주 원인인가? | v6 1-run에서 idle_loot 기존 claim 48/583(8.2%), 첫 획득은 6.7초 idle_reaction | 주 원인으로 기각. 예약 코드와 진단 계측 미유지 |
 | E-017 | 첫 12초 비전투 이동에 근접 분산을 넣으면 opening attrition이 줄어드는가? | v7 평균 465.4초, first contact 7.0초, stage1 사망 95.6명, stuck 0.16 | 폐기하고 코드 제거. attrition 효과 없이 pathing만 악화 |
 | E-018 | stage1 bot-vs-bot 피해를 0.35로 낮추고 stage2부터 0.55로 복원하면 과소모가 줄어드는가? | v7 평균 551.3초, stage1 사망 92.4명, first upgrade 누락 1회, long-run stuck 0.19 | 폐기하고 코드 제거. 소폭 생존보다 DISENGAGE 장기화 회귀가 큼 |
+| E-019 | stage1 post-kill 능동 재획득을 2초 늦추면 킬 연쇄가 줄어드는가? | post-kill 획득 132.4→56.4회, stage1 사망 95.6명 유지, 평균 301.5초, stage3 없음 | 폐기하고 코드 제거. idle/damage 반응으로 우회하며 attrition 인과 없음 |
 
 ## 폐기 패턴
 
@@ -48,6 +49,7 @@
 | pickup 예약을 opening 주 해결책으로 사용 | idle_loot 공유 목표가 8.2%이고 첫 획득은 idle_reaction | 공유 목표가 first acquisition을 지배한다는 새 증거 |
 | 짧은 비전투 근접 분산을 opening 해결책으로 사용 | first contact/stage1 사망은 그대로이고 stuck 0.14→0.16 | 실제 이동 충돌이 사망 분포를 지배한다는 새 증거 |
 | stage1 broad damage 감소 | 사망 감소가 작고 DISENGAGE/stuck 장기화 | 피해량이 아닌 교전 시작·종료 연쇄를 제한하는 증거 필요 |
+| post-kill 재획득 지연 | 해당 source는 줄지만 idle/damage acquisition으로 우회하고 사망 유지 | 구조적 encounter density가 줄어든다는 맵/화면 증거 필요 |
 
 ## 기록 규칙
 
