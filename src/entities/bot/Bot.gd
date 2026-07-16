@@ -332,7 +332,7 @@ func _nav_move_toward(target_pos: Vector3, delta: float, should_rotate: bool = t
 			var nav_dir = next_pos - global_position
 			nav_dir.y = 0
 			if nav_dir.length() > 0.05:
-				handle_movement(nav_dir.normalized(), delta, should_rotate)
+				_move_or_unstick(nav_dir.normalized(), delta, should_rotate)
 				return
 	_move_or_unstick(fallback.normalized(), delta, should_rotate)
 

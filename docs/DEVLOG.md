@@ -2,6 +2,15 @@
 
 > 최종 업데이트: 2026-07-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-PACE-35 Canonical 기준선과 Nav Unstick
+
+- 기준선: v4 5-run 평균 426.5초, v5 평균 501.2초로 모두 duration gate에 실패했다. v5 first upgrade는 225.9초, stage2 220.0초, stage3 590.1초였다.
+- 진단: stage1 사망이 run당 95-98명이고 첫 접촉은 약 7초였다. 45초 opening grace와 obstacle 점 이동은 stuck 또는 duration 회귀로 폐기하고 코드를 제거했다.
+- 원인: nav 경로가 유효하면 `handle_movement()`를 직접 호출해 `_stuck_override_dir`을 무시하고 같은 코너에서 DISENGAGE 이탈을 반복했다.
+- 수정: nav 이동도 `_move_or_unstick()`을 거치게 해 생성된 이탈 방향을 실제 이동에 반영했다.
+- 검증: `unit_smoke` 통과. 수정 후 v5 5-run normalized stuck 0.14로 구조 gate를 통과했지만 평균 duration 486.3초로 페이싱 후보는 미승격이다.
+- 다음: 한 run의 연속 공격 245.5초 이상치와 stage1 과소모를 분리해 duration 분산의 다음 lever를 고른다.
+
 ## N2-PACE-34 페이싱 검증 기반 정리
 
 - 문제: `Telemetry.start_match()`가 동기 bot/loot 초기화 전에 실행되어 wall-clock 기반 duration과 stage 시간이 75-118초가량 부풀 수 있었다.
@@ -63,13 +72,6 @@
 - 검증: `visual_review` 통과.
 - 결과: 플레이어 실루엣과 픽업 라벨/glow는 읽히지만, 주변 수풀/지형 윤곽은 매우 어둡다.
 - 판단: v4는 자동 후보로 유지하되 수동 기준선 승격은 보류.
-
-## N2-PACE-30 Initial Non-Pistol Pool Candidate
-
-- 범위: `playable_pacing_v4` 추가. initial loot에서 non-pistol weapon weight를 0으로 낮추고 stage/supply source가 첫 upgrade를 담당하게 했다.
-- 검증: `pacing_candidate --pacing-preset playable_pacing_v4 --runs 3` 통과.
-- 결과: avg duration 599.6초, first contact 14.1초, first kill 23.2초, first upgrade 294.9초, stage2 284.3초, stage3 654.2초.
-- 판단: first-upgrade timing은 band 안에 들어왔다. opening pressure는 별도 문제로 남았다.
 
 ## 기록 보존
 

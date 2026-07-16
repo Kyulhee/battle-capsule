@@ -46,17 +46,19 @@ python tools\run_verify.py --profile visual_review
 - missing first-upgrade run: 0
 - scale sentinel PASS
 
-`playable_pacing_v4`의 이전 결과:
+현재 canonical 기준선:
 
-- N2-PACE-30: avg duration 599.6초, first upgrade 294.9초, stage3 654.2초.
-- N2-PACE-32: avg duration 554.3초, first contact 17.7초, first upgrade 293.9초, stage3 655.7초.
+- v4 5-run: 평균 duration 426.5초, 범위 246.0-645.6초, first upgrade 233.9초, stage2 230.0초, stage3 600.1초.
+- v5 nav 수정 5-run: 평균 duration 486.3초, 범위 262.8-664.2초, first upgrade 226.8초, stage2 220.0초, stage3 590.1초.
+- v5 nav 수정은 normalized stuck 0.14로 구조 기준을 통과했지만 duration 기준은 실패했다.
 
-위 값은 N2-PACE-34 이전 pre-canonical 기록이므로 weapon/source 맥락만 참고하고 현재 초 단위 기준선으로 사용하지 않는다.
+N2-PACE-34 이전 결과는 weapon/source 맥락만 참고하고 현재 초 단위 기준선으로 사용하지 않는다.
 
 `playable_pacing_v5`는 N2-PACE-33의 비기본 duration 가설이다. profile 최소 gate와 별도로 제품 판정은 평균 600-900초와 개별 run 분산을 함께 본다.
 
-- N2-PACE-33: avg duration 689.0초, 범위 336.2-1219.9초, first upgrade 285.5초, stage2 283.4초, stage3 654.2초.
-- 판정: 동작 가설만 유지. canonical 5-run 재측정 전 기본 승격 보류.
+- 판정: bot-only damage 동작 가설은 유지하지만 canonical duration gate 실패로 기본 승격을 보류한다.
+
+좁은 구조 수정은 해당 구조 gate가 개선되고 회귀 검증을 통과하면 채택할 수 있다. 이때 unrelated pacing gate 실패를 숨기지 않으며 전체 후보는 승격하지 않는다.
 
 고정 seed는 결과 재현 보장이 아니다. `simulate_matches.py`는 seed를 JSON에 남겨 입력을 추적하지만 physics/timer 순서가 달라질 수 있으므로 최소 5-run 분포로 판단한다. `seed_base=41000`처럼 실행 입력을 명시할 수 있다.
 
@@ -89,6 +91,8 @@ python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-d
 - AI update budget 과도한 상승.
 - no first upgrade가 5-run에서 반복.
 - stage3가 사라지거나 avg duration이 gate 아래로 떨어짐.
+- `attack_max_continuous` 단일 run 이상치와 최종 생존 수 정체.
+- `deaths_by_stage`가 stage1에 과도하게 집중.
 
 ## 시각 검증
 
