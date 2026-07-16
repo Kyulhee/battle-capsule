@@ -29,6 +29,7 @@ const OPENING_IDLE_LOOT_INTERRUPT_SAFETY_SECONDS := 7.0
 const OPENING_IDLE_LOOT_NEAR_ACTOR_RANGE := 5.0
 const OPENING_ZONE_ESCAPE_COUNTERACTION_GRACE_SECONDS := 10.0
 const OPENING_ZONE_ESCAPE_COUNTERACTION_HARD_BUMP_RANGE := 1.0
+const ZONE_ESCAPE_DEEP_RELEASE_RATIO := 0.75
 const LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT := 2.0
 const HEALTHY_HEAL_PICKUP_RATIO := 0.82
 
@@ -103,6 +104,8 @@ var _difficulty_params: Dictionary = {}
 var _base_attack_range: float = -1.0
 var _base_vision_range: float = -1.0
 var _bot_vs_bot_damage_mult: float = 1.0
+var _stage1_inside_zone_escape_release_ratio: float = ZONE_ESCAPE_DEEP_RELEASE_RATIO
+var _zone_escape_requires_deep_recovery: bool = false
 var _ai_update_telemetry_phase: int = 0
 
 # ─── ARCHETYPE ───────────────────────────────────────────────────────────────
@@ -779,7 +782,10 @@ func handle_zone_escape_state(delta):
 	if not main: change_state(State.IDLE); return
 	var zone_c = main.zone.current_center
 	var self_2d = Vector2(global_position.x, global_position.z)
-	if self_2d.distance_to(zone_c) < main.zone.current_radius * 0.75:
+	var zone_distance := self_2d.distance_to(zone_c)
+	if zone_distance > main.zone.current_radius:
+		_zone_escape_requires_deep_recovery = true
+	if zone_distance < main.zone.current_radius * _zone_escape_release_ratio(main.zone):
 		change_state(State.IDLE); return
 	var zone_center_3d = Vector3(zone_c.x, global_position.y, zone_c.y)
 	var threat = _find_retreat_threat(BOT_TUNING.RETREAT_THREAT_SCAN_RANGE)
@@ -1641,6 +1647,13 @@ func configure_ai(archetype_id: int, difficulty_params: Dictionary = {}):
 func configure_runtime_combat(combat_tuning: Dictionary):
 	_bot_vs_bot_damage_mult = clampf(float(combat_tuning.get("bot_vs_bot_damage_mult", 1.0)), 0.1, 1.0)
 
+func configure_runtime_bot(bot_tuning: Dictionary):
+	_stage1_inside_zone_escape_release_ratio = clampf(
+		float(bot_tuning.get("stage1_inside_zone_escape_release_ratio", ZONE_ESCAPE_DEEP_RELEASE_RATIO)),
+		ZONE_ESCAPE_DEEP_RELEASE_RATIO,
+		0.94
+	)
+
 func _apply_archetype(p: BotArchetype):
 	configure_ai(int(p), _difficulty_params)
 
@@ -2433,6 +2446,10 @@ func _log_disengage_entry(reason: String):
 
 func change_state(new_state: State):
 	if current_state == new_state: return
+	if new_state == State.ZONE_ESCAPE:
+		_zone_escape_requires_deep_recovery = _is_outside_current_zone()
+	elif current_state == State.ZONE_ESCAPE:
+		_zone_escape_requires_deep_recovery = false
 	if current_state == State.CHASE and is_targeting_loot and new_state != State.CHASE:
 		var loot_exit_outcome := "state_exit"
 		match new_state:
@@ -2482,3 +2499,16 @@ func change_state(new_state: State):
 		_recover_cover = Vector3.ZERO
 	if new_state == State.DISENGAGE:
 		_disengage_cover = Vector3.ZERO
+
+func _zone_escape_release_ratio(zone) -> float:
+	if int(zone.stage) == 1 and not _zone_escape_requires_deep_recovery:
+		return _stage1_inside_zone_escape_release_ratio
+	return ZONE_ESCAPE_DEEP_RELEASE_RATIO
+
+func _is_outside_current_zone() -> bool:
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main or main.zone == null:
+		return false
+	var zone_center: Vector2 = main.zone.current_center
+	var zone_distance := Vector2(global_position.x, global_position.z).distance_to(zone_center)
+	return zone_distance > float(main.zone.current_radius)

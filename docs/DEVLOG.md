@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-PACE-38 Inside-Edge Zone Return 분리
+
+- 문제: 봇이 실제 존 안에서도 반경 95%에서 `ZONE_ESCAPE`에 진입해 75%까지 중앙으로 이동했다.
+- 수정: runtime bot tuning을 추가하고 v6에서 stage1 안쪽 선제 복귀만 0.90에서 해제한다. 실제 존 밖에서 진입하거나 이동 중 밖이 된 봇은 기존 0.75 복귀를 유지한다.
+- 검증: `unit_smoke` 통과. canonical 5-run 평균 465.1초, 범위 236.3-1132.7초, first upgrade 224.4초, stage2 220.1초, stage3 590.1초다.
+- 구조 효과: normalized stuck 0.14 통과, ZONE_ESCAPE 체류 345.2→174.0초, 해당 stuck 51.2→10.4회.
+- 남은 문제: first contact 6.7초와 stage1 사망 95.6명은 개선되지 않았다. v6는 비기본 pathing 후보로 유지하고 IDLE loot 수렴을 다음에 본다.
+
 ## N2-PACE-37 Opening Guard 진단 폐기
 
 - 질문: idle/objective 계열 첫 획득을 늦추면 stage1 과소모가 줄어드는지 확인했다.
@@ -68,12 +76,6 @@
 - 범위: `HANDOFF.md`를 삭제하고, `DOCS_INDEX.md`를 중요도 순 문서 라우팅 표로 재작성.
 - 결정: 1회용 재개 정보는 별도 문서로 두지 않고 `CURRENT.md`에 흡수한다.
 - 목표: 새 세션 기본 읽기를 `CLAUDE.md`, `CURRENT.md`, `DOCS_INDEX.md` 중심으로 줄인다.
-
-## N2-DOC-03 남은 작업 구조화
-
-- 범위: `MASTERPLAN.md`에 남은 작업을 T1-T6 트랙으로 정리하고, `CURRENT.md`의 큐를 실행 순서로 재정렬.
-- 결정: 다음 구현 우선순위는 T1 match duration margin 확보이며, opening pressure 추가 지연은 duration 여유 뒤에 진행한다.
-- 목표: 향후 작업을 문서/실험 맥락에 잡아먹히지 않고 제품 트랙 단위로 진행한다.
 
 ## 기록 보존
 

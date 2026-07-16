@@ -8,7 +8,8 @@ const PLAYABLE_LATE_ZONE_PRESET := "playable_pacing_v2"
 const PLAYABLE_FIRST_UPGRADE_PRESET := "playable_pacing_v3"
 const PLAYABLE_MAP_WAVE_PRESET := "playable_pacing_v4"
 const PLAYABLE_DURATION_PRESET := "playable_pacing_v5"
-const PLAYABLE_PRESETS := [PLAYABLE_BASELINE_PRESET, PLAYABLE_LATE_ZONE_PRESET, PLAYABLE_FIRST_UPGRADE_PRESET, PLAYABLE_MAP_WAVE_PRESET, PLAYABLE_DURATION_PRESET]
+const PLAYABLE_EDGE_RETURN_PRESET := "playable_pacing_v6"
+const PLAYABLE_PRESETS := [PLAYABLE_BASELINE_PRESET, PLAYABLE_LATE_ZONE_PRESET, PLAYABLE_FIRST_UPGRADE_PRESET, PLAYABLE_MAP_WAVE_PRESET, PLAYABLE_DURATION_PRESET, PLAYABLE_EDGE_RETURN_PRESET]
 
 
 func _init():
@@ -54,6 +55,13 @@ func _init():
 	var map_wave_loot: Dictionary = runtime_tuning_script.loot(map_wave_runtime)
 	var map_wave_combat: Dictionary = runtime_tuning_script.combat(map_wave_runtime)
 	var map_wave_zone: Dictionary = candidate.get_zone_tuning(game_config, {}, PLAYABLE_MAP_WAVE_PRESET)
+	var duration_match: Dictionary = candidate.get_match_tuning(game_config, {}, PLAYABLE_DURATION_PRESET)
+	var duration_runtime: Dictionary = candidate.get_runtime_tuning(game_config, {}, PLAYABLE_DURATION_PRESET)
+	var duration_spawn: Dictionary = runtime_tuning_script.spawn(duration_runtime)
+	var duration_loot: Dictionary = runtime_tuning_script.loot(duration_runtime)
+	var duration_combat: Dictionary = runtime_tuning_script.combat(duration_runtime)
+	var duration_bot: Dictionary = runtime_tuning_script.bot(duration_runtime)
+	var duration_zone: Dictionary = candidate.get_zone_tuning(game_config, {}, PLAYABLE_DURATION_PRESET)
 
 	for preset_name in PLAYABLE_PRESETS:
 		var issues: Array = candidate.validate(game_config, preset_name)
@@ -66,6 +74,7 @@ func _init():
 		var playable_spawn: Dictionary = runtime_tuning_script.spawn(playable_runtime)
 		var playable_loot: Dictionary = runtime_tuning_script.loot(playable_runtime)
 		var playable_combat: Dictionary = runtime_tuning_script.combat(playable_runtime)
+		var playable_bot: Dictionary = runtime_tuning_script.bot(playable_runtime)
 		var playable_zone: Dictionary = candidate.get_zone_tuning(game_config, {}, preset_name)
 
 		if not _verify_match(preset_name, playable_match, target_match):
@@ -95,7 +104,7 @@ func _init():
 			[]
 		):
 			return
-		if preset_name in [PLAYABLE_MAP_WAVE_PRESET, PLAYABLE_DURATION_PRESET] and not _verify_first_upgrade_candidate(
+		if preset_name in [PLAYABLE_MAP_WAVE_PRESET, PLAYABLE_DURATION_PRESET, PLAYABLE_EDGE_RETURN_PRESET] and not _verify_first_upgrade_candidate(
 			preset_name,
 			playable_match,
 			playable_spawn,
@@ -109,7 +118,7 @@ func _init():
 			["transit_choke", "recovery_pocket"],
 			[],
 			true,
-			-10.0 if preset_name == PLAYABLE_DURATION_PRESET else 0.0
+			-10.0 if preset_name in [PLAYABLE_DURATION_PRESET, PLAYABLE_EDGE_RETURN_PRESET] else 0.0
 		):
 			return
 		if preset_name == PLAYABLE_DURATION_PRESET and not _verify_duration_candidate(
@@ -126,8 +135,24 @@ func _init():
 			map_wave_zone
 		):
 			return
+		if preset_name == PLAYABLE_EDGE_RETURN_PRESET and not _verify_edge_return_candidate(
+			preset_name,
+			playable_match,
+			playable_spawn,
+			playable_loot,
+			playable_combat,
+			playable_bot,
+			playable_zone,
+			duration_match,
+			duration_spawn,
+			duration_loot,
+			duration_combat,
+			duration_bot,
+			duration_zone
+		):
+			return
 
-		print("%s smoke passed: bots=%d loot=%d initial=%.1f stage2=%.1f/%.1f bot_vs_bot=%.2f." % [
+		print("%s smoke passed: bots=%d loot=%d initial=%.1f stage2=%.1f/%.1f bot_vs_bot=%.2f edge_release=%.2f." % [
 			preset_name,
 			int(playable_match.get("bot_count", 0)),
 			int(playable_match.get("loot_count", 0)),
@@ -135,6 +160,7 @@ func _init():
 			float(playable_zone.get("stages", {}).get("2", {}).get("wait_time", 0.0)),
 			float(playable_zone.get("stages", {}).get("2", {}).get("shrink_time", 0.0)),
 			float(playable_combat.get("bot_vs_bot_damage_mult", 1.0)),
+			float(playable_bot.get("stage1_inside_zone_escape_release_ratio", 0.75)),
 		])
 	quit(0)
 
@@ -345,6 +371,34 @@ func _verify_duration_candidate(
 	var damage_mult := float(playable_combat.get("bot_vs_bot_damage_mult", 1.0))
 	if damage_mult < 0.45 or damage_mult > 0.65:
 		return _fail_bool("%s bot-vs-bot damage %.2f should remain a bounded duration probe." % [preset_name, damage_mult])
+	return true
+
+
+func _verify_edge_return_candidate(
+	preset_name: String,
+	playable_match: Dictionary,
+	playable_spawn: Dictionary,
+	playable_loot: Dictionary,
+	playable_combat: Dictionary,
+	playable_bot: Dictionary,
+	playable_zone: Dictionary,
+	baseline_match: Dictionary,
+	baseline_spawn: Dictionary,
+	baseline_loot: Dictionary,
+	baseline_combat: Dictionary,
+	baseline_bot: Dictionary,
+	baseline_zone: Dictionary
+) -> bool:
+	if playable_match != baseline_match or playable_spawn != baseline_spawn:
+		return _fail_bool("%s should keep match and spawn tuning from %s." % [preset_name, PLAYABLE_DURATION_PRESET])
+	if playable_loot != baseline_loot or playable_combat != baseline_combat or playable_zone != baseline_zone:
+		return _fail_bool("%s should keep loot, combat, and zone tuning from %s." % [preset_name, PLAYABLE_DURATION_PRESET])
+	var baseline_release := float(baseline_bot.get("stage1_inside_zone_escape_release_ratio", 0.0))
+	if not is_equal_approx(baseline_release, 0.75):
+		return _fail_bool("%s should preserve the existing 0.75 inside-zone release ratio." % PLAYABLE_DURATION_PRESET)
+	var candidate_release := float(playable_bot.get("stage1_inside_zone_escape_release_ratio", 0.0))
+	if candidate_release < 0.88 or candidate_release > 0.92:
+		return _fail_bool("%s inside-zone release ratio %.2f should remain near the stage 1 entry band." % [preset_name, candidate_release])
 	return true
 
 

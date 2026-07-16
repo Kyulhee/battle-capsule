@@ -24,6 +24,7 @@
 | D-016 | `pacing_candidate` 판정은 최소 5-run으로 수행 | 비결정적 physics 결과를 3-run 또는 seed 쌍 비교로 판단하면 오판 위험이 큼 | 결정적 시뮬레이션 또는 통계 기준 재설계 |
 | D-017 | nav 경로 이동도 항상 `_move_or_unstick()`을 거친다 | 유효 경로가 있을 때 stuck override를 우회해 같은 코너에서 이탈이 반복됨 | 이동/회피 파이프라인을 대체하는 구조 변경 |
 | D-018 | headless simulation player는 비참가 observer로 둔다 | idle player가 actor/alive/spawn에 포함돼 봇 전멸까지 duration을 늘리고 ATTACK 245.5초 이상치를 만듦 | player 행동 모델을 가진 시뮬레이터가 도입됨 |
+| D-019 | stage1 존 안쪽 선제 복귀와 실제 존 밖 탈출의 해제 깊이를 분리한다 | v6가 실제 탈출 0.75를 유지하면서 zone stuck를 51.2→10.4회로 줄임 | zone damage/경계 AI 구조를 교체 |
 
 ## 현재 설계 편향
 
@@ -36,3 +37,4 @@
 - 경로 hotspot 대응은 obstacle 점 이동보다 이동 파이프라인 결함을 먼저 고친다.
 - N2-PACE-36 이전 99봇 simulation duration/stuck은 player 참가 오염으로 기준선에서 제외한다.
 - 초반 전투는 유예 시간을 독립적으로 늘리지 않고 이동 수렴과 collision acquisition을 먼저 분리한다.
+- `playable_pacing_v6`는 pathing 후보이며 duration 또는 기본 preset 승격으로 보지 않는다.

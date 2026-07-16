@@ -31,6 +31,9 @@ const DEFAULTS := {
 	"combat": {
 		"bot_vs_bot_damage_mult": 1.0,
 	},
+	"bot": {
+		"stage1_inside_zone_escape_release_ratio": 0.75,
+	},
 	"supply_fallback": {
 		"range": 25.0,
 		"height": 1.0,
@@ -63,6 +66,9 @@ static func loot(tuning: Dictionary) -> Dictionary:
 static func combat(tuning: Dictionary) -> Dictionary:
 	return _sanitize_combat(_merge_dict(DEFAULTS["combat"].duplicate(true), _section(tuning, "combat")))
 
+static func bot(tuning: Dictionary) -> Dictionary:
+	return _sanitize_bot(_merge_dict(DEFAULTS["bot"].duplicate(true), _section(tuning, "bot")))
+
 static func supply_fallback(tuning: Dictionary) -> Dictionary:
 	return _sanitize_supply_fallback(_merge_dict(DEFAULTS["supply_fallback"].duplicate(true), _section(tuning, "supply_fallback")))
 
@@ -72,6 +78,7 @@ static func _sanitize(tuning: Dictionary) -> Dictionary:
 		"navigation": navigation(tuning),
 		"loot": loot(tuning),
 		"combat": combat(tuning),
+		"bot": bot(tuning),
 		"supply_fallback": supply_fallback(tuning),
 	}
 
@@ -121,6 +128,15 @@ static func _sanitize_role_float_dict(source) -> Dictionary:
 static func _sanitize_combat(combat_tuning: Dictionary) -> Dictionary:
 	return {
 		"bot_vs_bot_damage_mult": clampf(float(combat_tuning.get("bot_vs_bot_damage_mult", 1.0)), 0.1, 1.0),
+	}
+
+static func _sanitize_bot(bot_tuning: Dictionary) -> Dictionary:
+	return {
+		"stage1_inside_zone_escape_release_ratio": clampf(
+			float(bot_tuning.get("stage1_inside_zone_escape_release_ratio", 0.75)),
+			0.75,
+			0.94
+		),
 	}
 
 static func _sanitize_supply_fallback(supply_tuning: Dictionary) -> Dictionary:
