@@ -2,6 +2,13 @@
 
 > 최종 업데이트: 2026-07-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-PACE-40 Opening Noncombat Separation 폐기
+
+- 후보: v6에 첫 12초 동안 loot `CHASE`와 `ZONE_ESCAPE` 주변 봇 분산을 0.2초 간격으로 추가했다. 전투와 플레이어 회피에는 적용하지 않았다.
+- 검증: `unit_smoke` 통과. canonical 5-run 평균 465.4초, 범위 245.0-637.2초, first contact 7.0초, first upgrade 223.4초.
+- 실패: stage1 사망은 v6와 같은 95.6명이고 normalized stuck는 0.14→0.16으로 악화했다.
+- 결정: runtime 필드, v7 preset, 테스트를 모두 제거했다. 다음은 opening 예외가 아니라 stage1 bot damage를 직접 제한한다.
+
 ## N2-PACE-38 Inside-Edge Zone Return 분리
 
 - 문제: 봇이 실제 존 안에서도 반경 95%에서 `ZONE_ESCAPE`에 진입해 75%까지 중앙으로 이동했다.
@@ -70,12 +77,6 @@
 - 범위: 기본 읽기 문서와 자산/구조/검증 문서를 한글 운영 문서로 압축.
 - 이유: 기존 문서가 영어와 한글, 실험 원문, 오래된 handoff를 섞어 다음 행동을 흐리게 만들었다.
 - 원칙: 활성 문서는 다음 판단에 필요한 정보만 남기고, 상세 이력은 Git에서 찾는다.
-
-## N2-DOC-02 문서 라우팅 다이어트
-
-- 범위: `HANDOFF.md`를 삭제하고, `DOCS_INDEX.md`를 중요도 순 문서 라우팅 표로 재작성.
-- 결정: 1회용 재개 정보는 별도 문서로 두지 않고 `CURRENT.md`에 흡수한다.
-- 목표: 새 세션 기본 읽기를 `CLAUDE.md`, `CURRENT.md`, `DOCS_INDEX.md` 중심으로 줄인다.
 
 ## 기록 보존
 

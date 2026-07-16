@@ -15,9 +15,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | N2-PACE-40 초반 비전투 이동의 근접 분산 |
+| 현재 단위 | N2-PACE-41 stage1 bot-vs-bot attrition 제한 |
 | 최신 검증 개발 단위 | N2-PACE-38 존 안쪽 선제 복귀와 실제 존 밖 탈출 분리 |
-| 최신 검증 게임플레이 단위 | N2-PACE-38 v6 평균 465.1초, normalized stuck 0.14. duration gate 실패 |
+| 최신 검증 게임플레이 단위 | N2-PACE-40 v7 근접 분산 폐기. stage1 사망 95.6명 유지, stuck 0.16 악화 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
 | 실행 메모 | 샌드박스 읽기 실패 시 승격 실행 사용. 이전 증상: `CreateProcessAsUserW failed: 1312` |
@@ -34,7 +34,7 @@
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
 | P0 | 문서 운영 축소 | 완료: 활성 루트 7개, 기술/자산 참조 분리, 장문 사본 제거 |
-| P1 | 매치 길이 안정화 | 진행: T1/T2, loot 목표 공유가 주 원인이 아님을 확인하고 초반 비전투 이동 충돌을 분리 |
+| P1 | 매치 길이 안정화 | 진행: T1, opening 구조 후보가 stage1 사망을 바꾸지 못해 구간별 bot damage로 attrition을 직접 제한 |
 | P2 | 수동 플레이 기준 승격 | 다음: T2/T3, v4/brush 후보를 실제 조작과 화면 기준으로 판단 |
 | P3 | 야간 가독성 개선 | 다음: T3, 수풀/지형/cover 윤곽을 `visual_review`로 확인 |
 | P4 | 맵/경로 체감 점검 | 다음: T4, route choice가 bot collision보다 강한지 확인 |
@@ -49,8 +49,9 @@
 | 텔레메트리 터널 | 수치 PASS지만 체감이 불명확 | `PLAYTEST.md`에 수동 판단 기록 |
 | 큰 파일 집중 | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd`가 큼 | 해당 도메인을 건드릴 때만 추출 |
 | 실험 반복 | 폐기 후보가 다시 등장 | `EXPERIMENTS.md` 먼저 확인 |
-| 오프닝 압박 | v6 첫 접촉 6.7초. idle loot 목표 공유는 1-run 8.2%로 주 원인 아님 | 유예 추가 없이 IDLE/loot/zone 비전투 이동에 짧은 근접 분산 후보 검토 |
+| 오프닝 압박 | guard, zone 복귀, 근접 분산 모두 stage1 사망 95명대를 바꾸지 못함 | opening 전용 구조를 더 쌓지 않고 first-minute 체감은 후속 수동 검증으로 분리 |
 | 매치 길이 | v6 평균 465.1초, 범위 236.3-1132.7초 | first-upgrade는 유지하고 stage1 combat 소모와 개별 run 분산을 함께 완화 |
+| stage1 과소모 | v6/v7 모두 220초 전 평균 95.6명 사망 | stage1 bot끼리 damage만 낮추고 stage2 이후 v6 damage를 복원하는 후보 검증 |
 | 최종 2인 교착 | observer 분리 뒤 ATTACK 최대 16.0초로 정상화 | 이전 245.5초는 하네스 오염으로 폐기 |
 | 경로 이탈 | v6 normalized stuck 0.14로 gate 통과. DISENGAGE가 남은 stuck의 73.3% | v6 경로 분리는 유지하고 다음 이동 도메인에서 DISENGAGE를 별도 추적 |
 | 초반 수렴 | v6가 ZONE_ESCAPE 체류/stuck을 절반 이하로 줄였지만 stage1 사망은 그대로 | zone 수렴을 attrition lever로 다시 쓰지 않고 loot/IDLE 이동을 조사 |

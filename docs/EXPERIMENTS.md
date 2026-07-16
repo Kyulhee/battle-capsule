@@ -22,6 +22,7 @@
 | E-014 | non-hard-bump opening guard를 6배로 늘리면 초반 소모가 안전하게 줄어드는가? | 5-run 평균 401.3초, first contact 18.0초, stuck 0.26, hard-bump first acquisition 5/5 | 폐기하고 코드 제거. 이동 수렴이 4초 hard-bump로 우회 |
 | E-015 | stage1 존 안쪽 선제 복귀를 0.90에서 끝내면 실제 탈출을 해치지 않고 수렴이 줄어드는가? | v6 평균 465.1초, stuck 0.14, ZONE_ESCAPE 체류 174.0초, 해당 stuck 10.4회 | 구조 후보 채택. duration/stage1 attrition 승격은 보류 |
 | E-016 | 여러 IDLE 봇이 같은 pickup을 목표로 삼는 것이 첫 교전의 주 원인인가? | v6 1-run에서 idle_loot 기존 claim 48/583(8.2%), 첫 획득은 6.7초 idle_reaction | 주 원인으로 기각. 예약 코드와 진단 계측 미유지 |
+| E-017 | 첫 12초 비전투 이동에 근접 분산을 넣으면 opening attrition이 줄어드는가? | v7 평균 465.4초, first contact 7.0초, stage1 사망 95.6명, stuck 0.16 | 폐기하고 코드 제거. attrition 효과 없이 pathing만 악화 |
 
 ## 폐기 패턴
 
@@ -44,6 +45,7 @@
 | 이동 분리 없이 non-hard-bump opening guard만 연장 | 첫 접촉만 18.0초로 늦고 hard-bump 5/5, 평균 401.3초, stuck 0.26 | `ZONE_ESCAPE` 수렴 또는 초반 충돌 경로를 먼저 분리 |
 | `ZONE_ESCAPE` 수렴을 stage1 attrition 주 lever로 취급 | v6에서 zone 체류/stuck은 감소했지만 stage1 사망은 95.6명으로 유지 | IDLE loot 이동과 acquisition 증거를 먼저 확인 |
 | pickup 예약을 opening 주 해결책으로 사용 | idle_loot 공유 목표가 8.2%이고 첫 획득은 idle_reaction | 공유 목표가 first acquisition을 지배한다는 새 증거 |
+| 짧은 비전투 근접 분산을 opening 해결책으로 사용 | first contact/stage1 사망은 그대로이고 stuck 0.14→0.16 | 실제 이동 충돌이 사망 분포를 지배한다는 새 증거 |
 
 ## 기록 규칙
 
