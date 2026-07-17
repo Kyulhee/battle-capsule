@@ -11,6 +11,8 @@ const DEATH_EFFECT = preload("res://src/fx/DeathEffect.tscn")
 const ITEM_LOS_MASK: int = 1 | 8
 const PERCEPTION_UPDATE_INTERVAL_DEFAULT := 0.08
 const PERCEPTION_UPDATE_INTERVAL_PLAYER := 0.05
+const UPDATE_PHASE_SLOT_COUNT := 16
+const UPDATE_PHASE_CHANNEL_STEP := 0.38196601125
 const NEARBY_ACTOR_CACHE_RANGE := 3.0
 const NIGHT_AWARENESS_THEME_PREFIX := "night_artificial_forest"
 const NIGHT_AWARENESS_DARK_RANGE_MULT := 0.86
@@ -43,14 +45,20 @@ var perception_meters: Dictionary = {}
 var _nearby_actors: Array = []
 var _perception_timer: float = 0.0
 var _perception_accumulated_delta: float = 0.0
+var _update_phase_ratio: float = 0.0
 var _night_awareness_checked: bool = false
 var _night_awareness_active: bool = false
+static var _update_phase_cursor: int = 0
 
 # Assist tracking: attacker node -> last hit timestamp
 var damage_history: Dictionary = {}
 const ASSIST_WINDOW_MS = 5000 # 5 seconds
 
 func _ready():
+	_update_phase_ratio = float(_update_phase_cursor % UPDATE_PHASE_SLOT_COUNT) \
+		/ float(UPDATE_PHASE_SLOT_COUNT)
+	_update_phase_cursor += 1
+	_perception_timer = _staggered_update_delay(_perception_update_interval())
 	if stats:
 		stats = stats.duplicate()
 		current_health = stats.max_health
@@ -88,6 +96,15 @@ func _perception_update_interval() -> float:
 	if is_in_group("players"):
 		return PERCEPTION_UPDATE_INTERVAL_PLAYER
 	return PERCEPTION_UPDATE_INTERVAL_DEFAULT
+
+
+func _staggered_update_delay(interval: float, channel: int = 0) -> float:
+	var phase := fposmod(
+		_update_phase_ratio + float(channel) * UPDATE_PHASE_CHANNEL_STEP,
+		1.0
+	)
+	return maxf(0.0, interval) * phase
+
 
 func _update_perception(delta):
 	var actors = get_tree().get_nodes_in_group("actors")

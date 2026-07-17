@@ -97,6 +97,9 @@ Data
 - `BotDecisionPolicy.gd`는 scene tree를 조회하지 않는다. 위협·표적·위치 후보의 context를 받아 판단하며 `Bot.gd`가 관측 수집과 실제 이동·상태 전이를 맡는다.
 - `Entity.gd`는 하위 타입이 요청할 때만 기존 perception 갱신에서 LOS가 있는 3m 근접 actor 캐시를 만든다. `BotMovementPolicy.gd`는 위치 offset만 받아 분리 방향을 계산하며 scene tree를 조회하지 않는다.
 - 봇의 캐시와 분리는 player-target ATTACK과 비loot CHASE에만 적용한다. bot-only 교전, loot CHASE, 현재 표적은 제외해 기존 시뮬레이션 흐름과 직접 교전 거리를 보존한다.
+- perception/sensory와 비즉시 AI 검색은 봇별 위상을 분산한다. 표적·후퇴 위협·압력 문맥은 0.10초, 픽업은 0.25초만 재사용하며 피격·상태·장비/체력 변화와 이미 완전 공개된 첫 표적은 즉시 다시 계산한다.
+- `NavigationAgent3D.target_position`은 요청점이 0.35m 이상 이동하거나 상태/stuck 복구가 바뀔 때만 갱신한다. `get_next_path_position()`은 이동 중 매 physics frame 소비한다.
+- 교리 상태 시간은 매 frame의 delta를 0.25초씩 누적해 Telemetry에 기록한다. 상태 전환과 사망 시 남은 누적값을 먼저 기록한다.
 - headless simulation은 player 행동을 흉내 내지 않는다. player는 비참가 observer이고 99봇 중 1명이 남으면 종료한다.
 
 ## 자산 구조

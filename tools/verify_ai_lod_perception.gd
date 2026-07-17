@@ -28,6 +28,12 @@ func _verify_entity_perception_lod() -> bool:
 	if absf(viewer._perception_update_interval() - 0.08) > 0.001:
 		_free_nodes([viewer, target])
 		return _fail("Default entity perception interval changed unexpectedly.")
+	if viewer._perception_timer < 0.0 or viewer._perception_timer >= 0.08:
+		_free_nodes([viewer, target])
+		return _fail("Perception phase must stay inside the configured update interval.")
+	if is_equal_approx(viewer._perception_timer, target._perception_timer):
+		_free_nodes([viewer, target])
+		return _fail("Sequential entities must not synchronize their first perception update.")
 
 	for _i in range(5):
 		viewer._update_perception_lod(0.01)

@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` 비기본 whitebox |
 | 권장 preset | `xlarge_60` 임시 대표 수동 표면. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 초점 | 5m 근거리 반응, 다중 교전 간격, 대인 교전 지속·이탈, 외곽 픽업 이동, 장애물 가림 |
+| 현재 초점 | N2-PERF-01 뒤 프레임 버벅임, 외곽 픽업 이동, 장애물 가림 |
 
 ## 수동 체크리스트
 
@@ -18,7 +18,7 @@
 - 맵이 단순 충돌이 아니라 경로 선택을 만드는가?
 - stage2가 회전 압박을 만들면서 stage3 도달을 막지 않는가?
 - 죽음의 이유가 플레이어 관점에서 이해되는가?
-- `visual_review` preset에서 성능이 유지되는가?
+- `xlarge_60`에서 이동과 다중 전투 중 프레임 끊김이 반복되는가?
 
 ```powershell
 .\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=xlarge_60
@@ -71,6 +71,16 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 ```
 
 ## 최근 기록
+
+### 2026-07-18 - 확장 Night AI 체감과 성능 문제
+
+날짜: 2026-07-18
+표면: `mapSpec_night_forest_expanded_candidate.json`, `xlarge_60`, 사용자 직접 플레이.
+테스트 변경: 플레이어 근접 감지, 5초 표적 기억, player-target 국소 분산까지 반영한 AI.
+결과: AI 교전 체감 채택, 성능 반복 필요.
+체감: 조우 빈도는 적절했고 봇은 겹치지 않은 채 공격했다. 추적은 자연스럽고 플레이어도 과도하게 오래 생존하지 않았다. 다만 전투와 이동 중 버벅임이 심했다.
+자동 후속: N2-PERF-01에서 60봇 프레임 p95 45.5→13.5ms, 33ms 초과 12.8→0.04%로 감소했다. 이 수치는 수동 체감 통과를 대신하지 않는다.
+다음 행동: 같은 `xlarge_60`에서 이동·다중 전투를 다시 플레이해 끊김이 해소됐는지 확인한다.
 
 ### 2026-07-17 - Night 후보 실제 조작 1차
 

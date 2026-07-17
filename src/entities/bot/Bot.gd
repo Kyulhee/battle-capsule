@@ -19,6 +19,11 @@ const PERCEPTION_LOD_IDLE_INTERVAL := 0.12
 const SENSORY_CLOSE_RANGE_INTERVAL := 0.05
 const SENSORY_GUNSHOT_INTERVAL := 0.10
 const SENSORY_FOOTSTEP_INTERVAL := 0.15
+const TARGET_SEARCH_INTERVAL := 0.10
+const RETREAT_THREAT_SEARCH_INTERVAL := 0.10
+const THREAT_PRESSURE_INTERVAL := 0.10
+const PICKUP_SEARCH_INTERVAL := 0.25
+const DOCTRINE_STATE_TELEMETRY_INTERVAL := 0.25
 const IDLE_LOOT_INTERRUPT_GRACE_SECONDS := 2.0
 const IDLE_LOOT_INTERRUPT_CLOSE_RANGE := 5.0
 const OPENING_IDLE_REACTION_GRACE_SECONDS := 10.0
@@ -88,6 +93,26 @@ var _objective_scan_offset: float = 0.0
 var _close_range_check_timer: float = 0.0
 var _gunshot_check_timer: float = 0.0
 var _footstep_check_timer: float = 0.0
+var _target_search_timer: float = 0.0
+var _cached_nearest_target: Entity = null
+var _retreat_threat_search_timer: float = 0.0
+var _cached_retreat_threat: Entity = null
+var _threat_pressure_timer: float = 0.0
+var _cached_threat_pressure_context: Dictionary = {}
+var _pickup_search_timer: float = 0.0
+var _cached_pickup: Node3D = null
+var _cached_pickup_radius: float = -1.0
+var _cached_pickup_prefer_immediate_value: bool = false
+var _cached_pickup_health: float = -1.0
+var _cached_pickup_max_health: float = -1.0
+var _cached_pickup_shield: float = -1.0
+var _cached_pickup_max_shield: float = -1.0
+var _cached_pickup_weapon_type: String = ""
+var _cached_pickup_current_ammo: int = -1
+var _cached_pickup_max_ammo: int = -1
+var _cached_pickup_reserve_ammo: int = -1
+var _doctrine_state_telemetry_timer: float = 0.0
+var _doctrine_state_telemetry_delta: float = 0.0
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -135,6 +160,8 @@ var is_crouching: bool = false
 var _mesh_origin_y: float = 0.0
 var _combat_jump_timer: float = 0.0
 var _nav_agent: NavigationAgent3D = null
+var _nav_target_position: Vector3 = Vector3.ZERO
+var _has_nav_target: bool = false
 
 # Post-kill scan & opportunistic looting
 var _post_kill_scan_timer: float = 0.0
@@ -153,6 +180,18 @@ var _late_game_applied: bool = false
 func _ready():
 	process_mode = Node.PROCESS_MODE_PAUSABLE
 	super._ready()
+	_close_range_check_timer = _staggered_update_delay(SENSORY_CLOSE_RANGE_INTERVAL, 1)
+	_gunshot_check_timer = _staggered_update_delay(SENSORY_GUNSHOT_INTERVAL, 2)
+	_footstep_check_timer = _staggered_update_delay(SENSORY_FOOTSTEP_INTERVAL, 3)
+	_ambient_scan_timer = _staggered_update_delay(1.5, 4)
+	_target_search_timer = _staggered_update_delay(TARGET_SEARCH_INTERVAL, 5)
+	_retreat_threat_search_timer = _staggered_update_delay(RETREAT_THREAT_SEARCH_INTERVAL, 6)
+	_threat_pressure_timer = _staggered_update_delay(THREAT_PRESSURE_INTERVAL, 7)
+	_pickup_search_timer = _staggered_update_delay(PICKUP_SEARCH_INTERVAL, 8)
+	_doctrine_state_telemetry_timer = _staggered_update_delay(
+		DOCTRINE_STATE_TELEMETRY_INTERVAL,
+		9
+	)
 	_capture_base_stats()
 	add_to_group("bots")
 	# 아키타입은 Main.gd에서 스폰 후 배정. 여기서는 기본값만 유지.
@@ -198,9 +237,13 @@ func _physics_process(delta):
 	if _disengage_cooldown > 0: _disengage_cooldown -= delta
 	if _reaction_timer > 0: _reaction_timer -= delta
 	if _zone_thrash_cooldown > 0: _zone_thrash_cooldown -= delta
+	_target_search_timer -= delta
+	_retreat_threat_search_timer -= delta
+	_threat_pressure_timer -= delta
+	_pickup_search_timer -= delta
 	_spawn_age += delta
 	state_timer += delta
-	_log_doctrine_state_time(delta)
+	_update_doctrine_state_telemetry(delta)
 
 	if current_state == State.ATTACK:
 		attack_bout_timer += delta
@@ -287,6 +330,8 @@ func _try_reload():
 func _update_stuck(delta):
 	if _stuck_override_timer > 0:
 		_stuck_override_timer -= delta
+		if _stuck_override_timer <= 0.0:
+			_has_nav_target = false
 		return
 
 	var is_moving_state = current_state in [State.CHASE, State.RECOVER, State.ZONE_ESCAPE, State.DISENGAGE]
@@ -363,10 +408,23 @@ func _local_bot_neighbor_offsets() -> Array:
 func _nav_move_toward(target_pos: Vector3, delta: float, should_rotate: bool = true):
 	var fallback = target_pos - global_position
 	fallback.y = 0
-	if fallback.length() < 0.05: return
+	if fallback.length() < 0.05:
+		return
 	if _nav_agent:
-		_nav_agent.set_target_position(target_pos)
-		if not _nav_agent.is_navigation_finished():
+		var navigation_finished := _nav_agent.is_navigation_finished()
+		if BOT_MOVEMENT_POLICY.should_refresh_navigation_target(
+			_has_nav_target,
+			_nav_target_position,
+			target_pos,
+			navigation_finished,
+			fallback.length(),
+			_nav_agent.target_desired_distance
+		):
+			_nav_agent.set_target_position(target_pos)
+			_nav_target_position = target_pos
+			_has_nav_target = true
+			navigation_finished = false
+		if not navigation_finished:
 			var next_pos = _nav_agent.get_next_path_position()
 			var nav_dir = next_pos - global_position
 			nav_dir.y = 0
@@ -898,6 +956,14 @@ func _pick_stuck_escape_dir(threat: Entity = null) -> Vector3:
 	return dir.normalized()
 
 func _find_retreat_threat(max_range: float) -> Entity:
+	if _retreat_threat_search_timer > 0.0:
+		if _cached_retreat_threat == null:
+			return null
+		if is_instance_valid(_cached_retreat_threat) \
+				and not _cached_retreat_threat.is_dead \
+				and global_position.distance_to(_cached_retreat_threat.global_position) <= max_range:
+			return _cached_retreat_threat
+
 	var best: Entity = null
 	var best_score = INF
 	for actor in get_tree().get_nodes_in_group("actors"):
@@ -916,6 +982,8 @@ func _find_retreat_threat(max_range: float) -> Entity:
 		if score < best_score:
 			best_score = score
 			best = actor
+	_cached_retreat_threat = best
+	_retreat_threat_search_timer = RETREAT_THREAT_SEARCH_INTERVAL
 	return best
 
 func _try_retreat_counteraction(threat: Entity, delta: float, gun_event: String) -> bool:
@@ -1300,6 +1368,20 @@ func _asset_catalog():
 	if not main:
 		return null
 	return main.get("asset_catalog")
+
+func _update_doctrine_state_telemetry(delta: float) -> void:
+	_doctrine_state_telemetry_delta += delta
+	_doctrine_state_telemetry_timer -= delta
+	if _doctrine_state_telemetry_timer > 0.0:
+		return
+	_flush_doctrine_state_telemetry()
+
+func _flush_doctrine_state_telemetry() -> void:
+	if _doctrine_state_telemetry_delta <= 0.0:
+		return
+	_log_doctrine_state_time(_doctrine_state_telemetry_delta)
+	_doctrine_state_telemetry_delta = 0.0
+	_doctrine_state_telemetry_timer = DOCTRINE_STATE_TELEMETRY_INTERVAL
 
 func _log_doctrine_state_time(delta: float):
 	if not has_node("/root/Telemetry"):
@@ -1918,6 +2000,22 @@ func _check_ambient_awareness(delta: float):
 # Lower score = higher priority.
 
 func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = false) -> Node3D:
+	var matching_query := is_equal_approx(search_radius, _cached_pickup_radius) \
+		and prefer_immediate_value == _cached_pickup_prefer_immediate_value \
+		and is_equal_approx(current_health, _cached_pickup_health) \
+		and is_equal_approx(stats.max_health, _cached_pickup_max_health) \
+		and is_equal_approx(current_shield, _cached_pickup_shield) \
+		and is_equal_approx(stats.max_shield, _cached_pickup_max_shield) \
+		and stats.weapon_type == _cached_pickup_weapon_type \
+		and stats.current_ammo == _cached_pickup_current_ammo \
+		and stats.max_ammo == _cached_pickup_max_ammo \
+		and reserve_ammo == _cached_pickup_reserve_ammo
+	if _pickup_search_timer > 0.0 and matching_query:
+		if _cached_pickup == null:
+			return null
+		if is_instance_valid(_cached_pickup) and not _cached_pickup.is_queued_for_deletion():
+			return _cached_pickup
+
 	var pickups = get_tree().get_nodes_in_group("pickups")
 	var best: Node3D = null
 	var best_score: float = INF
@@ -1959,6 +2057,18 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 		if score < best_score:
 			best_score = score
 			best = p
+	_cached_pickup = best
+	_cached_pickup_radius = search_radius
+	_cached_pickup_prefer_immediate_value = prefer_immediate_value
+	_cached_pickup_health = current_health
+	_cached_pickup_max_health = stats.max_health
+	_cached_pickup_shield = current_shield
+	_cached_pickup_max_shield = stats.max_shield
+	_cached_pickup_weapon_type = stats.weapon_type
+	_cached_pickup_current_ammo = stats.current_ammo
+	_cached_pickup_max_ammo = stats.max_ammo
+	_cached_pickup_reserve_ammo = reserve_ammo
+	_pickup_search_timer = PICKUP_SEARCH_INTERVAL
 	return best
 
 func _immediate_value_pickup_score_mult(item) -> float:
@@ -2017,12 +2127,16 @@ func _is_targeting_player() -> bool:
 	return is_instance_valid(target_actor) and target_actor.is_in_group("players")
 
 func _threat_pressure_context() -> Dictionary:
-	return {
+	if _threat_pressure_timer > 0.0 and not _cached_threat_pressure_context.is_empty():
+		return _cached_threat_pressure_context
+	_cached_threat_pressure_context = {
 		"targeting_player": _is_targeting_player(),
 		"additional_threats": _count_visible_additional_threats(),
 		"visible_enemies": _count_visible_enemies(),
 		"disengage_threshold": _disengage_threshold,
 	}
+	_threat_pressure_timer = THREAT_PRESSURE_INTERVAL
+	return _cached_threat_pressure_context
 
 func _count_visible_additional_threats() -> int:
 	var count := 0
@@ -2062,6 +2176,13 @@ func _is_actively_pressuring(candidate: Entity) -> bool:
 
 func _find_cover_point(threat_pos: Vector3) -> Vector3:
 	var obstacles = get_tree().get_nodes_in_group("obstacles")
+	var allied_cover_targets: Array[Vector3] = []
+	for bot in get_tree().get_nodes_in_group("bots"):
+		if bot == self or not is_instance_valid(bot):
+			continue
+		var claimed_cover: Vector3 = bot.get("_disengage_cover")
+		if claimed_cover != Vector3.ZERO:
+			allied_cover_targets.append(claimed_cover)
 	var best_pos = Vector3.ZERO
 	var best_utility = -INF
 	# Per-bot angular sector so multiple bots spread around the same obstacle
@@ -2085,10 +2206,9 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 
 		# Penalise cover spots already targeted by allied bots
 		var crowding = 0.0
-		for b in get_tree().get_nodes_in_group("bots"):
-			if b != self and is_instance_valid(b) and b.get("_disengage_cover") != Vector3.ZERO:
-				if (b._disengage_cover as Vector3).distance_to(cover) < 4.0:
-					crowding += 10.0
+		for claimed_cover in allied_cover_targets:
+			if claimed_cover.distance_to(cover) < 4.0:
+				crowding += 10.0
 
 		var utility := BOT_DECISION_POLICY.position_utility({
 			"travel_distance": dist_to_obs,
@@ -2217,6 +2337,7 @@ func _peripheral_check():
 func acquire_enemy_target(enemy: Entity, source_name: String) -> bool:
 	if not is_instance_valid(enemy) or enemy.is_dead:
 		return false
+	_threat_pressure_timer = 0.0
 	if is_targeting_loot:
 		_finish_loot_objective("enemy_acquired")
 	target_actor = enemy
@@ -2349,6 +2470,24 @@ func _find_nearest_hotspot() -> Vector3:
 	return best
 
 func _find_nearest_target() -> Entity:
+	if _target_search_timer > 0.0:
+		if _cached_nearest_target == null:
+			var has_revealed_candidate := false
+			for candidate in perception_meters:
+				if is_instance_valid(candidate) \
+					and candidate is Entity \
+					and not candidate.is_dead \
+					and float(perception_meters.get(candidate, 0.0)) >= 1.0:
+					has_revealed_candidate = true
+					break
+			if not has_revealed_candidate:
+				return null
+		if is_instance_valid(_cached_nearest_target) \
+				and not _cached_nearest_target.is_dead \
+				and _cached_nearest_target.is_revealed_to(self) \
+				and global_position.distance_to(_cached_nearest_target.global_position) < stats.vision_range:
+			return _cached_nearest_target
+
 	_ensure_doctrine_profile()
 	var actors = get_tree().get_nodes_in_group("actors")
 	var candidates: Array = []
@@ -2363,10 +2502,13 @@ func _find_nearest_target() -> Entity:
 				"distance": d,
 				"hp_ratio": hp_ratio,
 			})
-	return BOT_DECISION_POLICY.choose_target(
+	var result := BOT_DECISION_POLICY.choose_target(
 		candidates,
 		_doctrine_profile.get("target", {})
 	) as Entity
+	_cached_nearest_target = result
+	_target_search_timer = TARGET_SEARCH_INTERVAL
+	return result
 
 func _is_target_valid(t: Variant) -> bool:
 	return is_instance_valid(t) and (not t is Entity or not t.is_dead)
@@ -2389,6 +2531,7 @@ func _bot_melee():
 # ─── DEATH & WEAPON DROP ─────────────────────────────────────────────────────
 
 func die(killer: Node3D = null):
+	_flush_doctrine_state_telemetry()
 	if _state_label: _state_label.visible = false
 	if _archetype_marker: _archetype_marker.visible = false
 	_visual_skin.hide()
@@ -2464,6 +2607,8 @@ func _drop_heals():
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
 	super.take_damage(amount, source, weapon_type, source_node)
 	if is_dead: return
+	_threat_pressure_timer = 0.0
+	_retreat_threat_search_timer = 0.0
 
 	# Track incoming damage for fight-or-flight estimation
 	_engagement_dmg_taken += amount
@@ -2596,6 +2741,9 @@ func _log_disengage_entry(reason: String):
 
 func change_state(new_state: State):
 	if current_state == new_state: return
+	_flush_doctrine_state_telemetry()
+	_threat_pressure_timer = 0.0
+	_has_nav_target = false
 	if new_state == State.ZONE_ESCAPE:
 		_zone_escape_requires_deep_recovery = _is_outside_current_zone()
 	elif current_state == State.ZONE_ESCAPE:

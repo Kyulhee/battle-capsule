@@ -17,6 +17,56 @@ func _init() -> void:
 	if POLICY.should_separate(true, false, false):
 		_fail("Player-target movement outside combat states must not separate.")
 		return
+	if not POLICY.should_refresh_navigation_target(
+		false,
+		Vector3.ZERO,
+		Vector3(10.0, 0.0, 0.0),
+		true,
+		10.0,
+		1.5
+	):
+		_fail("A navigation agent without a target must request its first path.")
+		return
+	if POLICY.should_refresh_navigation_target(
+		true,
+		Vector3(10.0, 0.0, 0.0),
+		Vector3(10.2, 0.0, 0.0),
+		false,
+		5.0,
+		1.5
+	):
+		_fail("Small target movement must reuse the active navigation path.")
+		return
+	if not POLICY.should_refresh_navigation_target(
+		true,
+		Vector3(10.0, 0.0, 0.0),
+		Vector3(10.4, 0.0, 0.0),
+		false,
+		5.0,
+		1.5
+	):
+		_fail("Material target movement must request a fresh navigation path.")
+		return
+	if not POLICY.should_refresh_navigation_target(
+		true,
+		Vector3(10.0, 0.0, 0.0),
+		Vector3(10.0, 0.0, 0.0),
+		true,
+		3.0,
+		1.5
+	):
+		_fail("A finished path must restart when the actor is pushed away.")
+		return
+	if POLICY.should_refresh_navigation_target(
+		true,
+		Vector3(10.0, 0.0, 0.0),
+		Vector3(10.0, 0.0, 0.0),
+		true,
+		1.0,
+		1.5
+	):
+		_fail("A finished path inside target tolerance must stay complete.")
+		return
 
 	var desired := Vector3(0.0, 0.0, -1.0)
 	if POLICY.separated_direction(desired, []) != desired:
