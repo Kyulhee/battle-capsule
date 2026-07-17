@@ -6,17 +6,19 @@ func _init():
 	var map_definition_script = load("res://src/core/MapDefinition.gd")
 	var world_builder_script = load("res://src/maps/WorldBuilder.gd")
 	var overlay_script = load("res://src/ui/FullMapOverlay.gd")
+	var minimap_script = load("res://src/ui/Minimap.gd")
+	var route_presentation_script = load("res://src/ui/MapRoutePresentation.gd")
 
 	var game_config = game_config_script.new()
 	game_config.load_or_default()
 
-	var file = FileAccess.open("res://data/mapSpec_example.json", FileAccess.READ)
+	var file = FileAccess.open("res://data/mapSpec_night_forest_candidate.json", FileAccess.READ)
 	if not file:
-		_fail("mapSpec_example.json not found.")
+		_fail("mapSpec_night_forest_candidate.json not found.")
 		return
 
 	var definition = map_definition_script.new()
-	if not definition.load_from_json(file.get_as_text(), "res://data/mapSpec_example.json", game_config):
+	if not definition.load_from_json(file.get_as_text(), "res://data/mapSpec_night_forest_candidate.json", game_config):
 		_fail("MapDefinition failed to load.")
 		return
 	var spec = definition.map_spec
@@ -76,10 +78,49 @@ func _init():
 	if not overlay.is_open():
 		_fail("FullMapOverlay did not report open after show_map().")
 		return
+
+	var routes: Array[Dictionary] = route_presentation_script.sorted_routes(definition, spec)
+	if routes.size() != 6:
+		_fail("Night full map needs 6 strategic routes; got %d." % routes.size())
+		return
+	var role_counts := {}
+	for route in routes:
+		var role := String(route.get("role", ""))
+		role_counts[role] = int(role_counts.get(role, 0)) + 1
+		var points: Array[Vector2] = route_presentation_script.route_points(route)
+		if points.size() < 2:
+			_fail("Route %s has fewer than 2 drawable points." % String(route.get("id", "")))
+			return
+		for point in points:
+			if not map_rect.has_point(overlay.world_to_full_map(point, map_rect)):
+				_fail("Route %s projects outside the full map." % String(route.get("id", "")))
+				return
+
+	var primary_style: Dictionary = route_presentation_script.style_for("primary_choke")
+	var flank_style: Dictionary = route_presentation_script.style_for("flank")
+	if float(primary_style.get("dash", -1.0)) != 0.0:
+		_fail("Primary route must use a continuous line.")
+		return
+	if float(flank_style.get("dash", 0.0)) <= 0.0:
+		_fail("Flank route must use a dashed line.")
+		return
+
+	var minimap = minimap_script.new()
+	minimap.minimap_size = Vector2(240.0, 240.0)
+	minimap.set_map_spec(spec, features, definition)
+	var minimap_bounds := Rect2(Vector2.ZERO, minimap.minimap_size)
+	for route in routes:
+		for point in route_presentation_script.route_points(route):
+			if not minimap_bounds.has_point(minimap.world_to_minimap(point)):
+				_fail("Route %s projects outside the minimap." % String(route.get("id", "")))
+				return
+	minimap.free()
 	overlay.free()
 
-	print("FullMapOverlay smoke passed: features=%d rect=%s center=%s." % [
+	print("FullMapOverlay route smoke passed: features=%d routes=%d roles=%s rect=%s center=%s." % [
 		features.size(),
+		routes.size(),
+		str(role_counts),
 		map_rect,
 		center,
 	])

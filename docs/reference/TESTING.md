@@ -35,7 +35,7 @@ python tools\run_verify.py --profile visual_review
 | `pacing_v3` | v3 first-upgrade 진단 후보 | 3-run + gate |
 | `pacing_candidate` | 현재 후보 승격/회귀 판단 | unit smoke + 최소 5-run + duration/upgrade gate |
 | `scale_99` | 99명 구조 변경 | `target_99_probe` 3-run + scale gate |
-| `visual_review` | UI/가독성/체감 변경 | capture 또는 1-run + `PLAYTEST.md` 기록 |
+| `visual_review` | UI/가독성/체감 변경 | Night/player 및 fullmap/minimap capture + 1-run + `PLAYTEST.md` 기록 |
 
 ## 현재 pacing candidate gate
 
@@ -102,4 +102,4 @@ python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-d
 python tools\run_verify.py --profile visual_review --out-root C:\tmp\visual_review_run
 ```
 
-캡처는 보통 `C:\tmp\player_night_readability.png`에 생성된다. 결과는 `PLAYTEST.md`에 짧게 남긴다.
+캡처는 `C:\tmp\player_night_readability.png`, `C:\tmp\full_map_routes.png`, `C:\tmp\minimap_routes.png`에 생성된다. 결과는 `PLAYTEST.md`에 짧게 남긴다.

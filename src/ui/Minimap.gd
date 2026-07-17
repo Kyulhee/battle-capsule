@@ -1,5 +1,7 @@
 extends Control
 
+const MapRoutePresentationScript = preload("res://src/ui/MapRoutePresentation.gd")
+
 func _init():
 	print("[MINIMAP] Script initialized.")
 
@@ -81,7 +83,10 @@ func _draw():
 		draw_string(ThemeDB.fallback_font, Vector2(10, 20), "MAP DATA MISSING", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.RED)
 		return
 	
-	# 2. Draw POI Areas
+	# 2. Draw strategic routes below POIs and physical cover.
+	_draw_routes()
+
+	# 3. Draw POI Areas
 	for poi in _poi_source():
 		var pos = _descriptor_pos_2d(poi)
 		var mini_pos = world_to_minimap(pos)
@@ -94,7 +99,7 @@ func _draw():
 			"recovery_pocket": role_color = Color(0.2, 0.2, 1.0, 0.08)
 		draw_circle(mini_pos, mini_rad, role_color)
 
-	# 3. Draw final generated footprints from bottom to top.
+	# 4. Draw final generated footprints from bottom to top.
 	var features = minimap_features.duplicate(true)
 	if features.is_empty():
 		features = _build_fallback_features()
@@ -102,7 +107,7 @@ func _draw():
 	for feature in features:
 		_draw_minimap_feature(feature)
 
-	# 4. Draw Supply Zones (Telegraphing/Active)
+	# 5. Draw Supply Zones (Telegraphing/Active)
 	if supply_state != "none":
 		var mini_s_pos = world_to_minimap(supply_pos)
 		var s_color = Color(1.0, 0.8, 0.1)
@@ -117,7 +122,7 @@ func _draw():
 			draw_circle(mini_s_pos, 5.0, s_color)
 			draw_arc(mini_s_pos, 10.0, 0, TAU, 32, s_color, 2.0)
 
-	# 5. Draw Zones
+	# 6. Draw Zones
 	# Next Zone (Dashed/Translucent)
 	var nxt_pos = world_to_minimap(next_zone_center)
 	var nxt_rad = world_size_to_minimap(next_zone_radius)
@@ -130,7 +135,7 @@ func _draw():
 	var cur_rad = world_size_to_minimap(current_zone_radius)
 	draw_arc(cur_pos, cur_rad, 0, TAU, 64, Color(0.2, 0.6, 1.0, 0.8), 3.0)
 	
-	# 6. Draw Player & View Frustum
+	# 7. Draw Player & View Frustum
 	if player:
 		var p_pos_2d = Vector2(player.global_position.x, player.global_position.z)
 		var p_mini = world_to_minimap(p_pos_2d)
@@ -153,6 +158,48 @@ func _draw():
 		])
 		draw_colored_polygon(arrow_pts, Color.GREEN)
 		draw_circle(p_mini, 3.5, Color.GREEN)
+
+func _draw_routes() -> void:
+	for route in MapRoutePresentationScript.sorted_routes(map_definition, map_spec):
+		var world_points := MapRoutePresentationScript.route_points(route)
+		if world_points.size() < 2:
+			continue
+		var screen_points := PackedVector2Array()
+		for point in world_points:
+			screen_points.append(world_to_minimap(point))
+		_draw_route_path(
+			screen_points,
+			MapRoutePresentationScript.style_for(String(route.get("role", "")), true)
+		)
+
+func _draw_route_path(points: PackedVector2Array, style: Dictionary) -> void:
+	var dash := float(style.get("dash", 0.0))
+	var gap := float(style.get("gap", 0.0))
+	_draw_route_segments(points, style["halo"], float(style["halo_width"]), dash, gap)
+	_draw_route_segments(points, style["color"], float(style["width"]), dash, gap)
+
+func _draw_route_segments(
+	points: PackedVector2Array,
+	color: Color,
+	width: float,
+	dash: float,
+	gap: float
+) -> void:
+	for i in range(points.size() - 1):
+		var start := points[i]
+		var end := points[i + 1]
+		if dash <= 0.0:
+			draw_line(start, end, color, width, true)
+			continue
+		var length := start.distance_to(end)
+		if length <= 0.001:
+			continue
+		var direction := (end - start) / length
+		var cursor := 0.0
+		while cursor < length:
+			var dash_end := minf(cursor + dash, length)
+			draw_line(start + direction * cursor, start + direction * dash_end, color, width, true)
+			cursor += dash + gap
 
 func world_to_minimap(world_pos: Vector2) -> Vector2:
 	var rotated = world_pos.rotated(PI/4)

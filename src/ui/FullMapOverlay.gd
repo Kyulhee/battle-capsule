@@ -1,6 +1,7 @@
 class_name FullMapOverlay
 extends Control
 
+const MapRoutePresentationScript = preload("res://src/ui/MapRoutePresentation.gd")
 
 const BACKDROP_COLOR := Color(0.0, 0.0, 0.0, 0.68)
 const PANEL_COLOR := Color(0.035, 0.04, 0.045, 0.96)
@@ -179,6 +180,7 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, map_rect.position + Vector2(18.0, 30.0), "MAP DATA MISSING", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.RED)
 		return
 
+	_draw_routes(map_rect)
 	_draw_pois(map_rect)
 	_draw_features(map_rect)
 	_draw_supply(map_rect)
@@ -235,6 +237,51 @@ func _draw_grid(map_rect: Rect2) -> void:
 	var center := world_to_full_map(Vector2.ZERO, map_rect)
 	draw_line(Vector2(center.x, map_rect.position.y), Vector2(center.x, map_rect.position.y + map_rect.size.y), major_color, 1.0)
 	draw_line(Vector2(map_rect.position.x, center.y), Vector2(map_rect.position.x + map_rect.size.x, center.y), major_color, 1.0)
+
+
+func _draw_routes(map_rect: Rect2) -> void:
+	for route in MapRoutePresentationScript.sorted_routes(map_definition, map_spec):
+		var world_points := MapRoutePresentationScript.route_points(route)
+		if world_points.size() < 2:
+			continue
+		var screen_points := PackedVector2Array()
+		for point in world_points:
+			screen_points.append(world_to_full_map(point, map_rect))
+		_draw_route_path(
+			screen_points,
+			MapRoutePresentationScript.style_for(String(route.get("role", "")))
+		)
+
+
+func _draw_route_path(points: PackedVector2Array, style: Dictionary) -> void:
+	var dash := float(style.get("dash", 0.0))
+	var gap := float(style.get("gap", 0.0))
+	_draw_route_segments(points, style["halo"], float(style["halo_width"]), dash, gap)
+	_draw_route_segments(points, style["color"], float(style["width"]), dash, gap)
+
+
+func _draw_route_segments(
+	points: PackedVector2Array,
+	color: Color,
+	width: float,
+	dash: float,
+	gap: float
+) -> void:
+	for i in range(points.size() - 1):
+		var start := points[i]
+		var end := points[i + 1]
+		if dash <= 0.0:
+			draw_line(start, end, color, width, true)
+			continue
+		var length := start.distance_to(end)
+		if length <= 0.001:
+			continue
+		var direction := (end - start) / length
+		var cursor := 0.0
+		while cursor < length:
+			var dash_end := minf(cursor + dash, length)
+			draw_line(start + direction * cursor, start + direction * dash_end, color, width, true)
+			cursor += dash + gap
 
 
 func _draw_pois(map_rect: Rect2) -> void:

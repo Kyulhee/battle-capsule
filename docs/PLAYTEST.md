@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_candidate.json` |
 | 권장 preset | 수동 체감: `visual_review`, 자동 페이싱: `playable_pacing_v4` |
-| 현재 초점 | 야간 가독성, 오프닝 압박, v4 non-pistol 업그레이드 창, stage2-stage3 전환 |
+| 현재 초점 | map/world route 연결, 야간 가독성, 오프닝 압박, v4 non-pistol 업그레이드 창 |
 
 ## 수동 체크리스트
 
@@ -47,6 +47,15 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 ```
 
 ## 최근 기록
+
+### 2026-07-17 - N2-MAP-02 Map Route 가시화
+
+날짜: 2026-07-17
+표면: `tools/run_verify.py --profile visual_review --out-root C:\tmp\n2_map_02_visual`, 캡처 `C:\tmp\full_map_routes.png`, `C:\tmp\minimap_routes.png`.
+테스트 변경: primary, flank, loot, recovery route를 공유 색·선형으로 minimap/fullmap의 POI·cover 아래에 표시했다.
+결과: 채택.
+체감: 1280x720 fullmap과 240x240 minimap에서 primary 실선, flank 점선, loot 녹색, recovery 보라 점선이 zone·POI와 구분된다. 중앙 교차부는 조밀하지만 경로 연속성은 유지된다.
+다음 행동: map UI만 보고 끝내지 않고 collider 없는 world route cue로 실제 이동 화면과 연결한다.
 
 ### 2026-07-17 - N2-VIS-01 Night 월드 가독성
 

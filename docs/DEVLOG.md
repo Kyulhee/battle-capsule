@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-MAP-02 Map Route 가시화
+
+- 문제: map spec의 6개 route는 텔레메트리 분류에만 쓰이고 minimap/fullmap에는 표시되지 않았다.
+- 수정: `MapRoutePresentation`이 역할별 색, 굵기, 점선, 겹침 순서를 공유하고 두 map UI가 grid 위·POI/cover 아래에 route를 그린다.
+- 회귀 방지: Night 후보의 6개 route와 역할 수, 양쪽 화면 경계 투영, primary 실선/flank 점선을 smoke로 검사한다. `visual_review`가 fullmap과 240x240 minimap 캡처를 생성한다.
+- 검증: `unit_smoke`, `visual_review` 통과. 두 캡처에서 route 역할이 zone·POI·obstacle과 겹쳐도 구분된다.
+- 다음: 물리 collider를 추가하지 않고 map route와 world 동선을 연결하는 지면/landmark cue를 설계한다.
+
 ## N2-MAP-01 Route/Cover 구조 audit
 
 - audit: canonical v6의 `idle_loot` 목표 97.3%는 route 안이지만 킬은 flank 46.5%, off-route 33.4%였다. `routes`는 이동 유도가 아니라 위치 분류에만 쓰이고, 고엄폐 11개 중 primary route에는 1개뿐이었다.
@@ -71,14 +79,6 @@
 - 수정: nav 이동도 `_move_or_unstick()`을 거치게 해 생성된 이탈 방향을 실제 이동에 반영했다.
 - 검증: `unit_smoke` 통과. 수정 후 v5 5-run normalized stuck 0.14로 구조 gate를 통과했지만 평균 duration 486.3초로 페이싱 후보는 미승격이다.
 - 다음: 한 run의 연속 공격 245.5초 이상치와 stage1 과소모를 분리해 duration 분산의 다음 lever를 고른다.
-
-## N2-PACE-34 페이싱 검증 기반 정리
-
-- 문제: `Telemetry.start_match()`가 동기 bot/loot 초기화 전에 실행되어 wall-clock 기반 duration과 stage 시간이 75-118초가량 부풀 수 있었다.
-- 수정: 실제 match 진행 시간은 `Main.match_timer`를 canonical clock으로 사용하고, simulation autostart는 navigation bake 완료 뒤 시작한다.
-- 추적: 각 simulation에 seed를 기록하고 bot snapshot을 출력하며, 개별 duration 최소/최대 gate를 추가했다.
-- 판정: nav bake 대기 뒤에도 같은 seed가 525.4초와 909.6초로 갈려 고정 seed를 결정적 재현으로 사용할 수 없다. `pacing_candidate` 최소 run을 5로 올렸다.
-- 정리: 이 과정에서 시험한 v6와 stage damage 후보는 증거 부족으로 제거했다. 다음은 canonical v4/v5 5-run 기준선 재구축이다.
 
 ## 기록 보존
 

@@ -26,6 +26,7 @@
 | D-018 | headless simulation player는 비참가 observer로 둔다 | idle player가 actor/alive/spawn에 포함돼 봇 전멸까지 duration을 늘리고 ATTACK 245.5초 이상치를 만듦 | player 행동 모델을 가진 시뮬레이터가 도입됨 |
 | D-019 | stage1 존 안쪽 선제 복귀와 실제 존 밖 탈출의 해제 깊이를 분리한다 | v6가 실제 탈출 0.75를 유지하면서 zone stuck를 51.2→10.4회로 줄임 | zone damage/경계 AI 구조를 교체 |
 | D-020 | 현재 `routes`는 분류·표시 데이터이며 이동 유도로 간주하지 않는다 | 봇 이동은 POI loot, zone, cover가 만들고 route 폭 변경은 행동을 바꾸지 않음 | route graph를 소비하는 이동/목표 시스템이 도입됨 |
+| D-021 | minimap/fullmap route 역할은 공유 style 계약을 사용한다 | primary 실선, flank 점선 등 동일한 색·선형이 두 화면에서 선택 정보를 유지 | map UI 체계 또는 route 역할 모델 교체 |
 
 ## 현재 설계 편향
 

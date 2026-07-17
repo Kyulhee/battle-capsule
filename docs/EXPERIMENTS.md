@@ -27,6 +27,7 @@
 | E-019 | stage1 post-kill 능동 재획득을 2초 늦추면 킬 연쇄가 줄어드는가? | post-kill 획득 132.4→56.4회, stage1 사망 95.6명 유지, 평균 301.5초, stage3 없음 | 폐기하고 코드 제거. idle/damage 반응으로 우회하며 attrition 인과 없음 |
 | E-020 | Night 월드 환경을 공통 프로필로 올리면 darkness를 유지하며 route/cover가 읽히는가? | cover blue 0.1765 vs background 0.0784, bush green 0.2235 vs 0.0627. `visual_review` PASS | 채택. Main/캡처 공유와 deterministic 대비 gate 유지 |
 | E-021 | primary route에 고엄폐 2개를 추가하면 off-route 교전을 안전하게 되돌리는가? | primary 킬 14.3→23.1%, stage1 사망 95.6→94.0명. stuck 78.6→104.4회, 신규 두 셀 26.7%, 평균 431.2초 | 폐기하고 맵/테스트 제거. route 표시·이동 계약 없이 물리 cover를 추가하지 않음 |
+| E-022 | route 역할을 minimap/fullmap에 표시하면 충돌물 없이 선택 정보를 만들 수 있는가? | 6개 route 투영 smoke, 1280x720 fullmap과 240x240 minimap 캡처, `unit_smoke`·`visual_review` PASS | 채택. 공유 style helper와 두 deterministic 캡처 유지 |
 
 ## 폐기 패턴
 
