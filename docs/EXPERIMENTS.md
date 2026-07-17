@@ -28,6 +28,7 @@
 | E-020 | Night 월드 환경을 공통 프로필로 올리면 darkness를 유지하며 route/cover가 읽히는가? | cover blue 0.1765 vs background 0.0784, bush green 0.2235 vs 0.0627. `visual_review` PASS | 채택. Main/캡처 공유와 deterministic 대비 gate 유지 |
 | E-021 | primary route에 고엄폐 2개를 추가하면 off-route 교전을 안전하게 되돌리는가? | primary 킬 14.3→23.1%, stage1 사망 95.6→94.0명. stuck 78.6→104.4회, 신규 두 셀 26.7%, 평균 431.2초 | 폐기하고 맵/테스트 제거. route 표시·이동 계약 없이 물리 cover를 추가하지 않음 |
 | E-022 | route 역할을 minimap/fullmap에 표시하면 충돌물 없이 선택 정보를 만들 수 있는가? | 6개 route 투영 smoke, 1280x720 fullmap과 240x240 minimap 캡처, `unit_smoke`·`visual_review` PASS | 채택. 공유 style helper와 두 deterministic 캡처 유지 |
+| E-023 | map route를 이동에 간섭하지 않는 world cue로 연결할 수 있는가? | 6개 route를 폭 0.26-0.36m의 127개 strip, 역할별 4개 MultiMesh로 배치. 방향/폭/충돌 smoke와 조감·플레이 시점 캡처, `unit_smoke`·`visual_review` PASS | 구현 채택. nav/충돌 권한은 주지 않고 실제 첫 1분 체감은 수동 gate로 분리 |
 
 ## 폐기 패턴
 

@@ -5,17 +5,23 @@ class_name WorldBuilder
 @export var bush_scene: PackedScene = preload("res://src/environment/Bush.tscn")
 
 const BUSH_PROP_ID := "forest.bush"
+const WorldRouteCueBuilderScript = preload("res://src/maps/WorldRouteCueBuilder.gd")
 
 var minimap_features: Array[Dictionary] = []
+var route_cue_descriptors: Array[Dictionary] = []
 
 func generate_world(spec: Resource, asset_catalog = null):
 	# 1. Clear existing generated content if any
 	for child in get_children():
 		child.queue_free()
 	minimap_features.clear()
+	route_cue_descriptors.clear()
 		
 	# 2. Build Floor and Boundaries
 	_build_base(spec)
+
+	# Route cues are visual-only meshes. Navigation parses static colliders only.
+	route_cue_descriptors = WorldRouteCueBuilderScript.build(self, spec)
 	
 	# 3. Build Obstacles
 	var obs_container = Node3D.new()
@@ -85,6 +91,9 @@ func generate_world(spec: Resource, asset_catalog = null):
 
 func get_minimap_features() -> Array[Dictionary]:
 	return minimap_features.duplicate(true)
+
+func get_route_cue_descriptors() -> Array[Dictionary]:
+	return route_cue_descriptors.duplicate(true)
 
 func _build_bush_patch(parent: Node3D, pos: Array, scale_vec: Array, rot_deg: float, asset_catalog) -> void:
 	var bush = bush_scene.instantiate()

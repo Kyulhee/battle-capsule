@@ -48,6 +48,15 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 
 ## 최근 기록
 
+### 2026-07-17 - N2-MAP-03 World Route Cue 자동 화면 리뷰
+
+날짜: 2026-07-17
+표면: `tools/run_verify.py --profile visual_review`, 캡처 `C:\tmp\world_route_cues_overview.png`, `C:\tmp\world_route_cues_player_view.png`.
+테스트 변경: map UI의 route 역할을 폭 0.26-0.36m의 비충돌 ground strip으로 world에 연결하고 역할별 4개 MultiMesh로 배치했다.
+결과: 자동 화면 채택, 실제 조작 반복 필요.
+체감: 조감에서 6개 route가 좌표대로 이어지고 Wire Maze 플레이 시점에서 primary/flank가 낮은 strip으로 구분되며 통나무 아래에서 가려진다. 실제 첫 1분의 시선 우선순위와 전투 중 강도는 아직 미확정이다.
+다음 행동: 실제 조작으로 첫 1분을 플레이하며 route/cover 판독, cue 과표시, 첫 교전 이해도를 기록한다.
+
 ### 2026-07-17 - N2-MAP-02 Map Route 가시화
 
 날짜: 2026-07-17

@@ -112,6 +112,7 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
             godot_script(godot, "verify_match_tuning_cli.gd"),
             godot_script(godot, "verify_night_world_readability.gd"),
             godot_script(godot, "verify_full_map_overlay.gd"),
+            godot_script(godot, "verify_world_route_cues.gd"),
             godot_script(godot, "verify_simulation_participants.gd"),
         ]
 
@@ -153,6 +154,10 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
             Step(
                 "capture full map routes",
                 [godot, "--path", str(ROOT), "--script", "res://tools/capture_full_map_routes.gd"],
+            ),
+            Step(
+                "capture world route cues",
+                [godot, "--path", str(ROOT), "--script", "res://tools/capture_world_route_cues.gd"],
             ),
             simulate_step(1, "visual_review", out_dir),
             Step("analyze visual_review", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),

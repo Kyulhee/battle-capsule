@@ -15,8 +15,8 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | N2-MAP-03 비충돌 world route cue 설계 |
-| 최신 검증 개발 단위 | N2-MAP-02 minimap/fullmap route 가시화와 deterministic 캡처 |
+| 현재 단위 | N2-PLAY-01 첫 1분 route/cover 판독 수동 gate |
+| 최신 검증 개발 단위 | N2-MAP-03 비충돌 world route cue와 역할별 MultiMesh 배치 |
 | 최신 검증 게임플레이 단위 | N2-MAP-01 primary route 고엄폐 2개 폐기. route 킬은 늘었지만 stuck 78.6→104.4회 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
@@ -35,9 +35,9 @@
 |---|---|---|
 | P0 | 문서 운영 축소 | 완료: 활성 루트 7개, 기술/자산 참조 분리, 장문 사본 제거 |
 | P1 | 매치 길이 안정화 | 대기: route 라벨/엄폐물 추가를 페이싱 lever로 쓰지 않고 실제 route 선택 표면을 만든 뒤 재개 |
-| P2 | 수동 플레이 기준 승격 | 다음: world route cue 뒤 T2/T3 첫 1분을 실제 조작과 화면 기준으로 판단 |
+| P2 | 수동 플레이 기준 승격 | 다음: T2/T3 첫 1분을 실제 조작과 화면 기준으로 판단 |
 | P3 | 야간 가독성 개선 | 완료: T3 1차, Night 전용 주변광/달빛과 deterministic 대비 gate 적용 |
-| P4 | 맵/경로 체감 점검 | 진행: T4, map UI route와 실제 world 동선을 비충돌 시각 cue로 연결 |
+| P4 | 맵/경로 체감 점검 | 1차 완료: map UI와 world에 같은 역할의 비충돌 route cue 연결 |
 | P5 | 자산 승격 | 이후: T5, gameplay 가독성을 돕는 prop/audio만 선택 승격 |
 | P6 | 기술 부채 정리 | 상시: T6, 닿는 도메인만 작은 추출 |
 
@@ -56,7 +56,8 @@
 | 최종 2인 교착 | observer 분리 뒤 ATTACK 최대 16.0초로 정상화 | 이전 245.5초는 하네스 오염으로 폐기 |
 | 경로 이탈 | v6 normalized stuck 0.14 통과. 중앙 cover 후보는 새 셀 두 곳에 stuck 26.7%를 만들고 0.15로 악화 | route 위 물리 충돌물 추가를 중단하고 표시·선택 표면부터 만든다 |
 | 초반 수렴 | v6가 ZONE_ESCAPE 체류/stuck을 절반 이하로 줄였지만 stage1 사망은 그대로 | zone 수렴을 attrition lever로 다시 쓰지 않고 loot/IDLE 이동을 조사 |
-| 구조적 교전 밀도 | map UI에서는 6개 route가 역할별로 읽히지만 world에는 같은 동선 cue가 없음 | collider 없는 ground/landmark cue로 map과 world를 연결한 뒤 수동 판단 |
+| 구조적 교전 밀도 | map/world의 6개 route 표시는 연결됐지만 실제 선택과 첫 교전 체감은 미확정 | 첫 1분 수동 기록으로 route 선택, cover 판독, cue 과표시를 함께 판단 |
+| world cue 과표시 | 자동 플레이 시점에서는 폭 0.26-0.36m가 낮은 strip으로 보임 | 실제 조작에서 전투·loot보다 강하면 색/폭만 낮추고 이동 데이터는 건드리지 않음 |
 | 시뮬레이션 재현성 | 같은 seed에서도 physics/timer 순서에 따라 525.4초와 909.6초로 갈림 | seed는 입력 추적용으로만 쓰고 후보 판정은 최소 5-run 분포로 수행 |
 | 자산 노이즈 | 생성 원본 풀이 프로젝트 루트에 있음 | 런타임 승격 전까지 untracked 유지 |
 

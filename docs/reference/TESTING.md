@@ -1,6 +1,6 @@
 # 테스트와 검증 가이드
 
-> 최종 업데이트: 2026-07-16. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
+> 최종 업데이트: 2026-07-17. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
 
 ## 원칙
 
@@ -30,12 +30,12 @@ python tools\run_verify.py --profile visual_review
 |---|---|---|
 | `docs_only` | 문서/계획만 변경 | `git diff --check` |
 | `tooling` | Python 분석/검증 도구 변경 | diff check + `py_compile` |
-| `unit_smoke` | GDScript verifier 또는 작은 로직 변경 | 핵심 `tools/verify_*.gd` |
+| `unit_smoke` | GDScript verifier 또는 작은 로직 변경 | 핵심 `tools/verify_*.gd`, map/world route 구조 |
 | `pacing_v2` | v2 late-zone 기준 재확인 | 3-run + analyze/summarize + scale gate |
 | `pacing_v3` | v3 first-upgrade 진단 후보 | 3-run + gate |
 | `pacing_candidate` | 현재 후보 승격/회귀 판단 | unit smoke + 최소 5-run + duration/upgrade gate |
 | `scale_99` | 99명 구조 변경 | `target_99_probe` 3-run + scale gate |
-| `visual_review` | UI/가독성/체감 변경 | Night/player 및 fullmap/minimap capture + 1-run + `PLAYTEST.md` 기록 |
+| `visual_review` | UI/가독성/체감 변경 | Night/player, map route, world route capture + 1-run + `PLAYTEST.md` 기록 |
 
 ## 현재 pacing candidate gate
 
@@ -72,6 +72,7 @@ python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_mission_health_rules.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_world_route_cues.gd
 ```
 
 ## 시뮬레이션 분석
@@ -102,4 +103,4 @@ python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-d
 python tools\run_verify.py --profile visual_review --out-root C:\tmp\visual_review_run
 ```
 
-캡처는 `C:\tmp\player_night_readability.png`, `C:\tmp\full_map_routes.png`, `C:\tmp\minimap_routes.png`에 생성된다. 결과는 `PLAYTEST.md`에 짧게 남긴다.
+캡처는 `C:\tmp\player_night_readability.png`, `C:\tmp\full_map_routes.png`, `C:\tmp\minimap_routes.png`, `C:\tmp\world_route_cues_overview.png`, `C:\tmp\world_route_cues_player_view.png`에 생성된다. 결과는 `PLAYTEST.md`에 짧게 남긴다.

@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-MAP-03 비충돌 World Route Cue
+
+- 문제: minimap/fullmap의 6개 route 역할이 실제 월드 지면과 연결되지 않아 플레이 화면에서 같은 동선을 찾을 수 없었다.
+- 수정: 폭 0.26-0.36m의 낮은 strip을 primary/loot 실선, flank/recovery 점선으로 생성했다. 127개 cue는 역할별 4개 `MultiMeshInstance3D`로 묶고 collision/occluder/nav 권한을 주지 않았다.
+- 회귀 방지: 6개 route와 역할 수, 최대 4개 batch, 폭, segment 방향·길이, collision 부재를 headless smoke로 검사한다.
+- 검증: 조감·실제 카메라 시점 캡처에서 route 연결과 장애물 가림을 확인했고 `unit_smoke`, `visual_review`가 통과했다.
+- 다음: 실제 첫 1분 조작에서 route/cover가 읽히는지, cue가 전투·loot보다 강하지 않은지 수동 기록한다.
+
 ## N2-MAP-02 Map Route 가시화
 
 - 문제: map spec의 6개 route는 텔레메트리 분류에만 쓰이고 minimap/fullmap에는 표시되지 않았다.
@@ -70,15 +78,6 @@
 - 검증: `unit_smoke` 통과. v5 bot-only 5-run에서 win=false, spawn 99/99, ATTACK 최대 16.0초로 기존 245.5초 이상치가 사라졌다.
 - 기준선: 평균 434.7초, 범위 271.0-655.5초, first contact 7.0초, first upgrade 222.8초, stage2 220.1초, stage3 590.1초. duration/stuck 0.21 gate는 실패했다.
 - 다음: hard-bump 첫 획득은 0/5이므로 초기 배치 밀도와 idle/objective acquisition을 stage1 소모 원인으로 비교한다.
-
-## N2-PACE-35 Canonical 기준선과 Nav Unstick
-
-- 기준선: v4 5-run 평균 426.5초, v5 평균 501.2초로 모두 duration gate에 실패했다. v5 first upgrade는 225.9초, stage2 220.0초, stage3 590.1초였다.
-- 진단: stage1 사망이 run당 95-98명이고 첫 접촉은 약 7초였다. 45초 opening grace와 obstacle 점 이동은 stuck 또는 duration 회귀로 폐기하고 코드를 제거했다.
-- 원인: nav 경로가 유효하면 `handle_movement()`를 직접 호출해 `_stuck_override_dir`을 무시하고 같은 코너에서 DISENGAGE 이탈을 반복했다.
-- 수정: nav 이동도 `_move_or_unstick()`을 거치게 해 생성된 이탈 방향을 실제 이동에 반영했다.
-- 검증: `unit_smoke` 통과. 수정 후 v5 5-run normalized stuck 0.14로 구조 gate를 통과했지만 평균 duration 486.3초로 페이싱 후보는 미승격이다.
-- 다음: 한 run의 연속 공격 245.5초 이상치와 stage1 과소모를 분리해 duration 분산의 다음 lever를 고른다.
 
 ## 기록 보존
 
