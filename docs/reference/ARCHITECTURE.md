@@ -64,7 +64,7 @@ Data
 | Mission | `MissionTracker.gd`, mission format/evaluator helpers | HUD 문자열과 판정 분리 |
 | Telemetry | `Telemetry.gd`, `tools/analyze_results.py` | gameplay 판단을 위한 구조화된 출력 |
 | Assets | `AssetCatalog.gd`, `data/asset_catalog.json` | missing path는 fallback으로 처리 |
-| UI/route 표현 | panel/menu builder들, `MapRoutePresentation.gd`, `WorldRouteCueBuilder.gd` | 실제 screenshot 기반 리뷰, 이동 권한과 분리 |
+| 지도 UI | `Minimap.gd`, `FullMapOverlay.gd` | 같은 45도 투영 사용, route 분류는 표시하지 않음 |
 
 ## 빠른 변경 영향표
 
@@ -75,7 +75,7 @@ Data
 | `Main.gd` orchestration | match tuning, zone, loot, UI wiring | `unit_smoke`, 1-run 이상 |
 | simulation participant | alive count, spawn requested/placed, session winner | `verify_simulation_participants`, 5-run pacing |
 | `Telemetry.gd` | analyzer/summarizer/check scripts | `tooling`, `verify_pacing_telemetry` |
-| `data/mapSpec_*` | map verifiers, scale gates, minimap/full map, world route cue | map verifier + simulation + route capture |
+| `data/mapSpec_*` | map verifiers, scale gates, minimap/full map | map verifier + simulation + map capture |
 | `data/game_config.json` | match/runtime/hell/mission tuning | 관련 smoke + simulation |
 | `data/asset_catalog.json` | `AssetCatalog`, UI/world fallback | Godot headless quit + 화면 확인 |
 | UI builder | screenshot state, text fit, panel flow | `docs_only` + UI screenshot |
@@ -88,9 +88,8 @@ Data
 - `mapSpec_night_forest_candidate.json`은 현재 Night BR 후보 표면이다.
 - `target_99_probe`는 구조 gate다.
 - `playable_pacing_v4`는 현재 자동 페이싱 후보이며 default promotion이 아니다.
-- `routes`는 현재 위치 분류와 map/world 표시용 데이터다. bot 이동은 POI loot, zone, cover가 결정하며 route graph를 직접 소비하지 않는다.
-- `MapRoutePresentation.gd`가 minimap/fullmap의 route 역할 색, 선형, 겹침 순서를 공유한다.
-- `WorldRouteCueBuilder.gd`는 collision 없는 ground strip을 역할별 `MultiMeshInstance3D`로 묶는다. navigation bake는 static collider만 수집하므로 cue는 이동 가능 영역을 바꾸지 않는다.
+- `routes`는 현재 텔레메트리 위치 분류 전용 데이터다. bot 이동은 POI loot, zone, cover가 결정하며 route graph를 직접 소비하지 않으므로 플레이어 지도와 월드에는 표시하지 않는다.
+- minimap과 fullmap은 월드 좌표를 45도 회전해 게임 카메라 방향과 맞춘다.
 - headless simulation은 player 행동을 흉내 내지 않는다. player는 비참가 observer이고 99봇 중 1명이 남으면 종료한다.
 
 ## 자산 구조

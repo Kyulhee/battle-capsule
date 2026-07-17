@@ -9,21 +9,13 @@
 - 실패: 첫 획득은 5/5 모두 6.7초 `idle_reaction`, 1.0-1.3m였고 stage1 사망 96.0명, 평균 434.5초, stuck 106.0회/normalized 0.15 초과였다.
 - 결정: runtime 필드, v7 preset, 배치 코드, 전용 smoke를 모두 제거했다. 수동 첫 1분 gate를 유지하고 다음 비차단 작업은 route/POI landmark 자산 audit로 전환한다.
 
-## N2-MAP-03 비충돌 World Route Cue
+## N2-MAP-04 Route 표현 철회와 지도 정렬
 
-- 문제: minimap/fullmap의 6개 route 역할이 실제 월드 지면과 연결되지 않아 플레이 화면에서 같은 동선을 찾을 수 없었다.
-- 수정: 폭 0.26-0.36m의 낮은 strip을 primary/loot 실선, flank/recovery 점선으로 생성했다. 127개 cue는 역할별 4개 `MultiMeshInstance3D`로 묶고 collision/occluder/nav 권한을 주지 않았다.
-- 회귀 방지: 6개 route와 역할 수, 최대 4개 batch, 폭, segment 방향·길이, collision 부재를 headless smoke로 검사한다.
-- 검증: 조감·실제 카메라 시점 캡처에서 route 연결과 장애물 가림을 확인했고 `unit_smoke`, `visual_review`가 통과했다.
-- 다음: 실제 첫 1분 조작에서 route/cover가 읽히는지, cue가 전투·loot보다 강하지 않은지 수동 기록한다.
-
-## N2-MAP-02 Map Route 가시화
-
-- 문제: map spec의 6개 route는 텔레메트리 분류에만 쓰이고 minimap/fullmap에는 표시되지 않았다.
-- 수정: `MapRoutePresentation`이 역할별 색, 굵기, 점선, 겹침 순서를 공유하고 두 map UI가 grid 위·POI/cover 아래에 route를 그린다.
-- 회귀 방지: Night 후보의 6개 route와 역할 수, 양쪽 화면 경계 투영, primary 실선/flank 점선을 smoke로 검사한다. `visual_review`가 fullmap과 240x240 minimap 캡처를 생성한다.
-- 검증: `unit_smoke`, `visual_review` 통과. 두 캡처에서 route 역할이 zone·POI·obstacle과 겹쳐도 구분된다.
-- 다음: 물리 collider를 추가하지 않고 map route와 world 동선을 연결하는 지면/landmark cue를 설계한다.
+- 수동 판정: 자동 캡처를 통과한 map/world route 선이 실제 플레이에서는 과도하고 이질적이었으며, 봇이 소비하지 않는 분류를 전략 경로처럼 오해하게 만들었다.
+- 철회: minimap/fullmap route 선, world의 127개 strip·4개 MultiMesh, 공유 style helper와 전용 smoke·캡처를 제거했다.
+- 수정: 전체 지도를 미니맵과 같은 45도 좌표계로 회전하고 배경 경계, POI, cover, zone, 플레이어 방향이 한 투영을 공유하게 했다.
+- 검증: `unit_smoke` 통과. `full_map_orientation.png`와 `minimap_orientation.png`에서 선 제거, 다이아몬드 경계와 방향 일치를 확인했다.
+- 다음: 4봇이 플레이어를 견제 후 이탈한 원인과 맵의 이동 시간·시야·pickup·장애물 밀도를 분리해 audit한다.
 
 ## N2-MAP-01 Route/Cover 구조 audit
 

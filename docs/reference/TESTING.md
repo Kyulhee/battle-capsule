@@ -72,7 +72,6 @@ python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_mission_health_rules.gd
-.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_world_route_cues.gd
 ```
 
 ## 시뮬레이션 분석
@@ -103,4 +102,4 @@ python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-d
 python tools\run_verify.py --profile visual_review --out-root C:\tmp\visual_review_run
 ```
 
-캡처는 `C:\tmp\player_night_readability.png`, `C:\tmp\full_map_routes.png`, `C:\tmp\minimap_routes.png`, `C:\tmp\world_route_cues_overview.png`, `C:\tmp\world_route_cues_player_view.png`에 생성된다. 결과는 `PLAYTEST.md`에 짧게 남긴다.
+캡처는 `C:\tmp\player_night_readability.png`, `C:\tmp\full_map_orientation.png`, `C:\tmp\minimap_orientation.png`에 생성된다. 결과는 `PLAYTEST.md`에 짧게 남긴다.

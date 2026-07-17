@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_candidate.json` |
 | 권장 preset | 수동 체감: `visual_review`, 자동 페이싱: `playable_pacing_v4` |
-| 현재 초점 | map/world route 연결, 야간 가독성, 오프닝 압박, v4 non-pistol 업그레이드 창 |
+| 현재 초점 | 대인 교전 지속·이탈, 플레이어 압박, 맵 체감 규모·지형 밀도 |
 
 ## 수동 체크리스트
 
@@ -48,12 +48,21 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 
 ## 최근 기록
 
+### 2026-07-17 - Night 후보 실제 조작 1차
+
+날짜: 2026-07-17
+표면: `mapSpec_night_forest_candidate.json`, 사용자 직접 플레이와 `debug_screenshot_manual.png`.
+테스트 변경: map/world route 표현, Night 가독성, 현재 AI와 맵 구조를 함께 체감 확인했다.
+결과: route 표현 폐기, AI와 맵 구조 반복 필요.
+체감: 정지하면 접촉이 적고 4봇이 플레이어를 견제하다 처리하지 않고 이탈했다. 플레이어는 원인을 이해할 수 있게 피해를 받았지만 너무 덜 죽었다. route 선은 과도하고 이질적이며 AI가 따르는 경로도 아니었다. cover는 읽혔지만 맵은 예상보다 좁고 평지가 많아 비어 보였다. 전체 지도는 게임 방향과 45도 어긋나 있었다.
+다음 행동: route 표현을 전부 제거하고 전체 지도를 45도 정렬한다. 이후 대인 target 이탈 원인과 실제 이동 시간·시야·pickup·장애물 밀도를 분리해 audit한다.
+
 ### 2026-07-17 - N2-MAP-03 World Route Cue 자동 화면 리뷰
 
 날짜: 2026-07-17
 표면: `tools/run_verify.py --profile visual_review`, 캡처 `C:\tmp\world_route_cues_overview.png`, `C:\tmp\world_route_cues_player_view.png`.
 테스트 변경: map UI의 route 역할을 폭 0.26-0.36m의 비충돌 ground strip으로 world에 연결하고 역할별 4개 MultiMesh로 배치했다.
-결과: 자동 화면 채택, 실제 조작 반복 필요.
+결과: 자동 화면 PASS였으나 이후 수동 플레이에서 폐기.
 체감: 조감에서 6개 route가 좌표대로 이어지고 Wire Maze 플레이 시점에서 primary/flank가 낮은 strip으로 구분되며 통나무 아래에서 가려진다. 실제 첫 1분의 시선 우선순위와 전투 중 강도는 아직 미확정이다.
 다음 행동: 실제 조작으로 첫 1분을 플레이하며 route/cover 판독, cue 과표시, 첫 교전 이해도를 기록한다.
 
@@ -62,7 +71,7 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 날짜: 2026-07-17
 표면: `tools/run_verify.py --profile visual_review --out-root C:\tmp\n2_map_02_visual`, 캡처 `C:\tmp\full_map_routes.png`, `C:\tmp\minimap_routes.png`.
 테스트 변경: primary, flank, loot, recovery route를 공유 색·선형으로 minimap/fullmap의 POI·cover 아래에 표시했다.
-결과: 채택.
+결과: 자동 화면 PASS였으나 이후 수동 플레이에서 폐기.
 체감: 1280x720 fullmap과 240x240 minimap에서 primary 실선, flank 점선, loot 녹색, recovery 보라 점선이 zone·POI와 구분된다. 중앙 교차부는 조밀하지만 경로 연속성은 유지된다.
 다음 행동: map UI만 보고 끝내지 않고 collider 없는 world route cue로 실제 이동 화면과 연결한다.
 

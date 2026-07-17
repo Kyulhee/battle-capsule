@@ -7,7 +7,6 @@ func _init():
 	var world_builder_script = load("res://src/maps/WorldBuilder.gd")
 	var overlay_script = load("res://src/ui/FullMapOverlay.gd")
 	var minimap_script = load("res://src/ui/Minimap.gd")
-	var route_presentation_script = load("res://src/ui/MapRoutePresentation.gd")
 
 	var game_config = game_config_script.new()
 	game_config.load_or_default()
@@ -68,61 +67,51 @@ func _init():
 
 	var half_size := float(spec.get_world_size()) * 0.5
 	var top_left: Vector2 = overlay.world_to_full_map(Vector2(-half_size, -half_size), map_rect)
+	var top_right: Vector2 = overlay.world_to_full_map(Vector2(half_size, -half_size), map_rect)
 	var bottom_right: Vector2 = overlay.world_to_full_map(Vector2(half_size, half_size), map_rect)
-	if top_left.distance_to(map_rect.position) > 0.001:
-		_fail("World top-left does not map to full-map top-left.")
+	var bottom_left: Vector2 = overlay.world_to_full_map(Vector2(-half_size, half_size), map_rect)
+	if top_left.distance_to(Vector2(map_rect.get_center().x, map_rect.position.y)) > 0.001:
+		_fail("World top-left does not map to the full-map top vertex.")
 		return
-	if bottom_right.distance_to(map_rect.position + map_rect.size) > 0.001:
-		_fail("World bottom-right does not map to full-map bottom-right.")
+	if top_right.distance_to(Vector2(map_rect.end.x, map_rect.get_center().y)) > 0.001:
+		_fail("World top-right does not map to the full-map right vertex.")
+		return
+	if bottom_right.distance_to(Vector2(map_rect.get_center().x, map_rect.end.y)) > 0.001:
+		_fail("World bottom-right does not map to the full-map bottom vertex.")
+		return
+	if bottom_left.distance_to(Vector2(map_rect.position.x, map_rect.get_center().y)) > 0.001:
+		_fail("World bottom-left does not map to the full-map left vertex.")
 		return
 	if not overlay.is_open():
 		_fail("FullMapOverlay did not report open after show_map().")
 		return
 
-	var routes: Array[Dictionary] = route_presentation_script.sorted_routes(definition, spec)
-	if routes.size() != 6:
-		_fail("Night full map needs 6 strategic routes; got %d." % routes.size())
-		return
-	var role_counts := {}
-	for route in routes:
-		var role := String(route.get("role", ""))
-		role_counts[role] = int(role_counts.get(role, 0)) + 1
-		var points: Array[Vector2] = route_presentation_script.route_points(route)
-		if points.size() < 2:
-			_fail("Route %s has fewer than 2 drawable points." % String(route.get("id", "")))
-			return
-		for point in points:
-			if not map_rect.has_point(overlay.world_to_full_map(point, map_rect)):
-				_fail("Route %s projects outside the full map." % String(route.get("id", "")))
-				return
-
-	var primary_style: Dictionary = route_presentation_script.style_for("primary_choke")
-	var flank_style: Dictionary = route_presentation_script.style_for("flank")
-	if float(primary_style.get("dash", -1.0)) != 0.0:
-		_fail("Primary route must use a continuous line.")
-		return
-	if float(flank_style.get("dash", 0.0)) <= 0.0:
-		_fail("Flank route must use a dashed line.")
+	var projected_north: Vector2 = overlay.world_direction_to_full_map(Vector2(0.0, -1.0))
+	if projected_north.distance_to(Vector2(1.0, -1.0).normalized()) > 0.001:
+		_fail("Full-map north is not aligned to the upper-right gameplay direction.")
 		return
 
 	var minimap = minimap_script.new()
 	minimap.minimap_size = Vector2(240.0, 240.0)
 	minimap.set_map_spec(spec, features, definition)
-	var minimap_bounds := Rect2(Vector2.ZERO, minimap.minimap_size)
-	for route in routes:
-		for point in route_presentation_script.route_points(route):
-			if not minimap_bounds.has_point(minimap.world_to_minimap(point)):
-				_fail("Route %s projects outside the minimap." % String(route.get("id", "")))
-				return
+	var sample_world := Vector2(18.0, -12.0)
+	var full_direction: Vector2 = (
+		overlay.world_to_full_map(sample_world, map_rect) - map_rect.get_center()
+	).normalized()
+	var minimap_direction: Vector2 = (
+		minimap.world_to_minimap(sample_world) - minimap.minimap_size * 0.5
+	).normalized()
+	if full_direction.distance_to(minimap_direction) > 0.001:
+		_fail("Full map and minimap do not share the same rotated orientation.")
+		return
 	minimap.free()
 	overlay.free()
 
-	print("FullMapOverlay route smoke passed: features=%d routes=%d roles=%s rect=%s center=%s." % [
+	print("FullMapOverlay orientation smoke passed: features=%d rect=%s center=%s north=%s." % [
 		features.size(),
-		routes.size(),
-		str(role_counts),
 		map_rect,
 		center,
+		projected_north,
 	])
 	quit(0)
 
