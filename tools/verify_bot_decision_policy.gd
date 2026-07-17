@@ -52,6 +52,10 @@ func _verify_threat_policy() -> bool:
 
 
 func _verify_target_policy() -> bool:
+	if not is_equal_approx(POLICY.target_memory_seconds(false), 2.5):
+		return _fail_bool("Bot target memory must preserve the existing 2.5 second contract.")
+	if not is_equal_approx(POLICY.target_memory_seconds(true), 5.0):
+		return _fail_bool("Player target memory must survive a brief five second LOS break.")
 	var near_healthy := RefCounted.new()
 	var far_wounded := RefCounted.new()
 	var candidates := [

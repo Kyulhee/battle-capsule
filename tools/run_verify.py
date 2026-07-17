@@ -146,6 +146,14 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
                     "scale_preset=duel_1",
                 ],
             ),
+            godot_script_args(
+                godot,
+                "verify_ai_arena_squad_runtime.gd",
+                [
+                    "map_spec_path=res://data/mapSpec_ai_test_arena.json",
+                    "scale_preset=squad_4",
+                ],
+            ),
         ]
 
     if profile == "ai_test_arena":
@@ -159,6 +167,14 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
                 [
                     "map_spec_path=res://data/mapSpec_ai_test_arena.json",
                     "scale_preset=duel_1",
+                ],
+            ),
+            godot_script_args(
+                godot,
+                "verify_ai_arena_squad_runtime.gd",
+                [
+                    "map_spec_path=res://data/mapSpec_ai_test_arena.json",
+                    "scale_preset=squad_4",
                 ],
             ),
         ]

@@ -2,6 +2,13 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-AI-04 플레이어 표적 기억
+
+- 원인: `squad_4`에서 네 봇 모두 공격해도 짧은 LOS 상실이 2.5초를 넘으면 player 표적을 지우고 IDLE/loot로 복귀했다.
+- 수정: 일반 bot 표적 기억은 2.5초로 보존하고 player 표적만 5초로 연장했다. 결정값은 `BotDecisionPolicy`가 소유한다.
+- 검증: 실제 Main의 자연 행동 2초 뒤 교차 피해·combat-loot·sniper 최소 사거리를 격리한 3초 commitment gate를 추가했다. 유지율 100%, 동시 표적 4명, 공격 참여 4명, 표적 이탈 0으로 `ai_test_arena`와 `unit_smoke` 통과.
+- 잔여: 격리 전 자연 다자전은 표적 전환 분산이 있고 봇 간 최소 거리가 약 1m까지 줄었다. 다음은 전역 봇 순회 없는 국소 분산이다.
+
 ## N2-TOOLS-02 Arena 실제 Duel Smoke
 
 - 구현: `verify_ai_arena_runtime.gd`가 실제 `Main.tscn`과 `duel_1`을 시작해 player/bot 고정 스폰과 초기 loot 0개를 확인한다.
@@ -69,14 +76,6 @@
 - 후보: Sluice Crossing 양쪽에 고엄폐 rock 2개를 두어 primary 고엄폐를 3개로 늘렸다.
 - 결과: primary 킬 14.3→23.1%, stage1 사망 95.6→94.0명. 반면 평균 stuck 78.6→104.4회, normalized 0.14→0.15, 새 cover 셀 두 곳이 stuck의 26.7%를 차지했고 평균 duration은 431.2초였다.
 - 결정: 후보 맵과 전용 gate를 제거했다. 다음은 물리 cover 추가가 아니라 minimap/fullmap에서 route를 실제 선택 정보로 보이게 한다.
-
-## N2-VIS-01 Night 월드 가독성 프로필
-
-- 문제: 기존 deterministic 캡처에서 플레이어와 픽업만 보이고 지면, 수풀, cover가 검은 배경에 묻혔다.
-- 수정: `NightWorldReadability`가 Night 맵에만 청색 주변광 0.38과 달빛 0.32를 적용한다. Main과 캡처가 같은 프로필을 사용하고 기본 맵은 원래 환경으로 복원한다.
-- 회귀 방지: 1280x720 캡처의 background/cover/bush 표본 대비를 자동 gate로 추가했다.
-- 검증: `unit_smoke`, `visual_review` 통과. cover blue 0.1765 vs background 0.0784, bush green 0.2235 vs 0.0627.
-- 다음: 가독성 미세조정이 아니라 v6 kill의 85.8%가 flank/off-route에 몰리는 맵 구조를 audit한다.
 
 ## 기록 보존
 

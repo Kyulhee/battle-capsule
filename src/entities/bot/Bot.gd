@@ -639,7 +639,7 @@ func handle_attack_state(delta):
 		last_known_target_pos = target_actor.global_position
 		if state_timer > 0.1: state_timer = 0.0
 
-	if not can_see and state_timer > 2.5:
+	if not can_see and state_timer > BOT_DECISION_POLICY.target_memory_seconds(_is_targeting_player()):
 		target_actor = null
 		change_state(State.IDLE)
 		return

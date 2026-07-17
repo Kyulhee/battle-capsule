@@ -1,6 +1,14 @@
 extends RefCounted
 
 
+const TARGET_MEMORY_SECONDS := 2.5
+const PLAYER_TARGET_MEMORY_SECONDS := 5.0
+
+
+static func target_memory_seconds(targeting_player: bool) -> float:
+	return PLAYER_TARGET_MEMORY_SECONDS if targeting_player else TARGET_MEMORY_SECONDS
+
+
 static func is_additional_threat(context: Dictionary) -> bool:
 	if bool(context.get("is_current_target", false)):
 		return false
