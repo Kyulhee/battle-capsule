@@ -111,7 +111,7 @@ var _ai_update_telemetry_phase: int = 0
 # ─── ARCHETYPE ───────────────────────────────────────────────────────────────
 enum BotArchetype { AGGRESSIVE, DEFENSIVE, SNIPER, OPPORTUNIST }
 var archetype: BotArchetype = BotArchetype.AGGRESSIVE
-var _disengage_threshold: int = 2  # visible enemies needed to trigger DISENGAGE
+var _disengage_threshold: int = 2  # additional active threats needed to trigger DISENGAGE
 var _fire_rate_mult: float = 1.0   # multiplier applied to fire_cooldown post-shot when allies attack same target
 var _footstep_range: float = 12.0  # radius to hear running actors
 var _loot_radius: float = 70.0     # pickup search radius in RECOVER
@@ -579,8 +579,9 @@ func handle_attack_state(delta):
 			_bot_melee()
 		return
 
-	# Outnumbered: too many visible enemies → retreat to cover (threshold varies by personality)
-	if not _knife_mode and _disengage_cooldown <= 0 and _count_visible_enemies() >= _disengage_threshold:
+	# Keep pressure on a human target unless third parties actively threaten this bot.
+	# Bot-only combat keeps its established visible-enemy pacing contract.
+	if not _knife_mode and _disengage_cooldown <= 0 and _should_disengage_outnumbered():
 		_log_disengage_entry("outnumbered")
 		change_state(State.DISENGAGE)
 		return
@@ -975,8 +976,8 @@ func handle_disengage_state(delta):
 			change_state(State.IDLE)
 			return
 
-	# Return to action if threat count drops
-	if _count_visible_enemies() <= 1 and state_timer > 2.0:
+	# Return to action once pressure drops below the engagement-specific limit.
+	if _can_reengage_after_pressure() and state_timer > 2.0:
 		var still_fragile = current_health / stats.max_health < _flee_hp_ratio + 0.12 and state_timer < 4.5
 		if not still_fragile:
 			var reengage_enemy = _find_nearest_target()
@@ -1008,8 +1009,8 @@ func handle_disengage_state(delta):
 		counter_threat = nearest_threat
 	var countering = counter_threat != null and global_position.distance_to(counter_threat.global_position) <= BOT_TUNING.RETREAT_THREAT_SCAN_RANGE
 
-	# Heavily outnumbered (4+): scatter in unique directions rather than pile onto one cover spot
-	if _count_visible_enemies() >= 4:
+	# Four relevant threats: scatter instead of sharing cover.
+	if _is_heavily_outnumbered():
 		_move_or_unstick(_scatter_dir_from(nearest_threat.global_position), delta, not countering)
 		if countering:
 			_try_retreat_counteraction(counter_threat, delta, "retreat_counterfire")
@@ -1052,7 +1053,7 @@ func _update_combat_plan(delta: float, can_see: bool, dist: float, pref_range: f
 	var ammo_ratio = 1.0
 	if stats.max_ammo > 0:
 		ammo_ratio = float(stats.current_ammo) / float(stats.max_ammo)
-	var visible_enemies = _count_visible_enemies()
+	var relevant_threats := _count_relevant_combat_threats()
 	var target_pos = target_actor.global_position if is_instance_valid(target_actor) else last_known_target_pos
 	var losing_trade = _engagement_dmg_taken > _engagement_dmg_dealt + 15.0
 	var candidate_cover = _find_cover_point(target_pos)
@@ -1061,7 +1062,7 @@ func _update_combat_plan(delta: float, can_see: bool, dist: float, pref_range: f
 		"has_last_known": last_known_target_pos != Vector3.ZERO,
 		"hp_ratio": hp_ratio,
 		"ammo_ratio": ammo_ratio,
-		"visible_enemies": visible_enemies,
+		"visible_enemies": relevant_threats,
 		"losing_trade": losing_trade,
 		"weapon_type": stats.weapon_type,
 		"distance": dist,
@@ -1919,6 +1920,58 @@ func _count_visible_enemies() -> int:
 			count += 1
 	return count
 
+func _should_disengage_outnumbered() -> bool:
+	if _is_targeting_player():
+		return _count_visible_additional_threats() >= _disengage_threshold
+	return _count_visible_enemies() >= _disengage_threshold
+
+func _can_reengage_after_pressure() -> bool:
+	if _is_targeting_player():
+		return _count_visible_additional_threats() == 0
+	return _count_visible_enemies() <= 1
+
+func _is_heavily_outnumbered() -> bool:
+	if _is_targeting_player():
+		return _count_visible_additional_threats() >= 3
+	return _count_visible_enemies() >= 4
+
+func _count_relevant_combat_threats() -> int:
+	if not _is_targeting_player():
+		return _count_visible_enemies()
+	var count := _count_visible_additional_threats()
+	if is_instance_valid(target_actor):
+		count += 1
+	return count
+
+func _is_targeting_player() -> bool:
+	return is_instance_valid(target_actor) and target_actor.is_in_group("players")
+
+func _count_visible_additional_threats() -> int:
+	var count := 0
+	for candidate in perception_meters:
+		if candidate == target_actor or not _is_visible_living_entity(candidate):
+			continue
+		if _is_active_combat_threat(candidate):
+			count += 1
+	return count
+
+func _is_visible_living_entity(candidate: Variant) -> bool:
+	return is_instance_valid(candidate) \
+		and candidate is Entity \
+		and not candidate.is_dead \
+		and float(perception_meters.get(candidate, 0.0)) >= 1.0
+
+func _is_active_combat_threat(candidate: Entity) -> bool:
+	var last_hit_ms := int(damage_history.get(candidate, -ASSIST_WINDOW_MS - 1))
+	if Time.get_ticks_msec() - last_hit_ms <= ASSIST_WINDOW_MS:
+		return true
+	return candidate.has_method("_is_actively_pressuring") \
+		and candidate._is_actively_pressuring(self)
+
+func _is_actively_pressuring(candidate: Entity) -> bool:
+	return target_actor == candidate \
+		and current_state in [State.CHASE, State.ATTACK, State.DISENGAGE]
+
 func _find_cover_point(threat_pos: Vector3) -> Vector3:
 	var obstacles = get_tree().get_nodes_in_group("obstacles")
 	var best_pos = Vector3.ZERO
@@ -2340,7 +2393,7 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 			change_state(State.CHASE)
 		elif current_state == State.DISENGAGE:
 			acquire_enemy_target(source_node as Entity, "damage_disengage")
-			if current_health / stats.max_health > 0.55 and _count_visible_enemies() <= 1:
+			if current_health / stats.max_health > 0.55 and _can_reengage_after_pressure():
 				change_state(State.CHASE)
 		# HARD+: switch targets mid-combat when hit by a third party
 		elif _awareness_level >= 2 and current_state == State.ATTACK \

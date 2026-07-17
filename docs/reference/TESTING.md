@@ -96,10 +96,12 @@ python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-d
 
 ## 시각 검증
 
-`visual_review`는 수동 체감 후보를 위한 profile이다.
+`visual_review`는 화면 상태 후보를 위한 profile이다.
 
 ```powershell
 python tools\run_verify.py --profile visual_review --out-root C:\tmp\visual_review_run
 ```
 
 캡처는 `C:\tmp\player_night_readability.png`, `C:\tmp\full_map_orientation.png`, `C:\tmp\minimap_orientation.png`에 생성된다. 결과는 `PLAYTEST.md`에 짧게 남긴다.
+
+이 profile의 8봇 simulation은 화면 상태 확인용이며 encounter 빈도나 99봇 gameplay 판정에 사용하지 않는다.

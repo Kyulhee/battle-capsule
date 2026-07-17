@@ -7,7 +7,7 @@
 | 항목 | 값 |
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_candidate.json` |
-| 권장 preset | 수동 체감: `visual_review`, 자동 페이싱: `playable_pacing_v4` |
+| 권장 preset | `visual_review`는 화면 전용. 현행 gameplay 대표 수동 preset은 없음 |
 | 현재 초점 | 대인 교전 지속·이탈, 플레이어 압박, 맵 체감 규모·지형 밀도 |
 
 ## 수동 체크리스트
@@ -19,6 +19,8 @@
 - stage2가 회전 압박을 만들면서 stage3 도달을 막지 않는가?
 - 죽음의 이유가 플레이어 관점에서 이해되는가?
 - `visual_review` preset에서 성능이 유지되는가?
+
+`visual_review`의 8봇 결과로 encounter 빈도나 매치 페이싱을 판정하지 않는다. 다음 대표 수동 preset은 맵 규모와 목표 참가자 밀도를 함께 확정한 뒤 추가한다.
 
 ## 화면 리뷰 체크리스트
 

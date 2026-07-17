@@ -30,6 +30,7 @@
 | E-022 | route 역할을 minimap/fullmap에 표시하면 충돌물 없이 선택 정보를 만들 수 있는가? | 자동 캡처는 PASS했지만 수동 플레이에서 의미가 불명확하고 화면과 분위기에 이질적이었음 | 폐기하고 표현 코드 제거. AI가 소비하지 않는 분류선을 선택 정보로 보여 주지 않음 |
 | E-023 | map route를 이동에 간섭하지 않는 world cue로 연결할 수 있는가? | 자동 캡처는 PASS했지만 실제 플레이에서 과도하게 눈에 띄고 AI 행동과도 연결되지 않았음 | 폐기하고 127개 strip·4개 MultiMesh·전용 검증 제거 |
 | E-024 | 초기 pickup끼리 3.5m 간격을 두면 opening 미시 수렴이 줄어드는가? | v7 5-run first acquisition 6.7초/1.0-1.3m, stage1 사망 96.0명, 평균 434.5초, stuck 106.0회/normalized 0.15 초과 | 폐기하고 runtime/preset/test 제거. pickup 간격은 같은 POI·route 수렴을 바꾸지 못함 |
+| E-025 | outnumbered를 단순 가시 적 수가 아니라 실제 압박 위협으로 계산해야 하는가? | 전역 적용 5-run 평균 516.9초였지만 2개 run 300초 미만, first upgrade 1회 누락, stuck 0.17. 수동 증거는 플레이어 표적에서만 확인됨 | 전역 적용 폐기. player-target commitment로 범위를 좁히고 bot-only 기존 판정 유지 |
 
 ## 폐기 패턴
 
@@ -58,6 +59,7 @@
 | route 위 고엄폐 직접 추가 | route 킬 비중은 오르지만 새 cover 셀이 stuck hotspot이 되고 duration이 짧아짐 | route가 실제 이동/선택 표면으로 구현되고 수동 동선이 특정 엄폐를 요구 |
 | 초기 pickup 간격만으로 opening 수렴 해결 | 3.5m 간격에도 첫 획득 5/5가 6.7초 idle reaction, stage1 사망 96.0명 | 개별 pickup이 아니라 POI 단위 목적지 분포가 원인이라는 새 설계 필요 |
 | AI가 소비하지 않는 route 분류를 플레이어에게 표시 | 자동 캡처는 읽혀도 실제 플레이에서 인공적이고 전략 의미를 오해시킴 | pickup·장애물·AI 목표가 같은 경로 구조를 실제로 소비한다는 계약 필요 |
+| 수동 `visual_review` 결과를 99봇 페이싱과 동일시 | 8봇은 참가자당 약 1,018㎡, 99봇 v6는 약 191㎡로 encounter 밀도가 다름 | 화면 검증과 gameplay 대표 preset을 분리 |
 
 ## 기록 규칙
 

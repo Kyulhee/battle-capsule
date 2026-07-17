@@ -26,6 +26,7 @@
 | D-018 | headless simulation player는 비참가 observer로 둔다 | idle player가 actor/alive/spawn에 포함돼 봇 전멸까지 duration을 늘리고 ATTACK 245.5초 이상치를 만듦 | player 행동 모델을 가진 시뮬레이터가 도입됨 |
 | D-019 | stage1 존 안쪽 선제 복귀와 실제 존 밖 탈출의 해제 깊이를 분리한다 | v6가 실제 탈출 0.75를 유지하면서 zone stuck를 51.2→10.4회로 줄임 | zone damage/경계 AI 구조를 교체 |
 | D-020 | 현재 `routes`는 텔레메트리 위치 분류에만 쓰고 플레이어에게 표시하지 않는다 | 봇이 소비하지 않는 선을 전략 경로처럼 보여 준 결과 실제 플레이에서 오해와 몰입 저하를 만들었음 | route graph를 AI 목표·이동과 맵 물리 구조가 함께 소비하게 됨 |
+| D-021 | 플레이어를 현재 표적으로 둔 봇은 실제로 자신을 압박하는 제3자만 outnumbered 위협으로 센다 | 주변 봇을 모두 위협으로 세면 여러 봇이 플레이어를 공격하는 장면에서 동시에 흩어짐 | 위협 점수/commitment를 포함한 전투 의사결정 계층으로 교체 |
 
 ## 현재 설계 편향
 
@@ -39,4 +40,5 @@
 - N2-PACE-36 이전 99봇 simulation duration/stuck은 player 참가 오염으로 기준선에서 제외한다.
 - 초반 전투는 유예 시간을 독립적으로 늘리지 않고 이동 수렴과 collision acquisition을 먼저 분리한다.
 - `playable_pacing_v6`는 pathing 후보이며 duration 또는 기본 preset 승격으로 보지 않는다.
+- `visual_review`는 화면 캡처용 8봇 표면이며 gameplay 대표 preset으로 사용하지 않는다.
 - route 교전 비중만 올리려고 물리 cover를 추가하지 않는다. route 선택 표면과 이동 계약을 먼저 만든다.

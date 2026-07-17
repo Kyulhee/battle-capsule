@@ -90,6 +90,7 @@ Data
 - `playable_pacing_v4`는 현재 자동 페이싱 후보이며 default promotion이 아니다.
 - `routes`는 현재 텔레메트리 위치 분류 전용 데이터다. bot 이동은 POI loot, zone, cover가 결정하며 route graph를 직접 소비하지 않으므로 플레이어 지도와 월드에는 표시하지 않는다.
 - minimap과 fullmap은 월드 좌표를 45도 회전해 게임 카메라 방향과 맞춘다.
+- player-target outnumbered 판정은 현재 표적을 제외하고 자신을 추적 중이거나 최근 5초 안에 공격한 제3자만 센다. bot-only 판정은 기존 페이싱 계약을 유지한다.
 - headless simulation은 player 행동을 흉내 내지 않는다. player는 비참가 observer이고 99봇 중 1명이 남으면 종료한다.
 
 ## 자산 구조
