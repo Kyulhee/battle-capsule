@@ -1,0 +1,274 @@
+{
+  "metadata": {
+    "id": "night_forest_expanded_whitebox",
+    "name": "Night Forest Expanded Whitebox",
+    "theme": "night_artificial_forest",
+    "version": "0.1-whitebox",
+    "world_size": 260,
+    "layout": "pickup_clusters_with_physical_channels_and_concealment_transitions"
+  },
+  "match": {
+    "bot_count": 24,
+    "loot_count": 100,
+    "spawn_radius": 90.0
+  },
+  "runtime": {
+    "spawn": {
+      "safe_spawn_attempts": 120,
+      "inner_radius": 8.0,
+      "entity_clearance": 3.5,
+      "obstacle_clearance_margin": 2.0
+    },
+    "loot": {
+      "hotspot_density_mult": 1.0
+    }
+  },
+  "zone": {
+    "initial_radius": 124.0,
+    "wait_time": 48.0,
+    "shrink_time": 38.0,
+    "damage_per_second": 2.0,
+    "initial_timer": 52.0,
+    "stages": {
+      "2": {
+        "wait_time": 42.0,
+        "shrink_time": 32.0,
+        "damage_per_second": 4.0
+      },
+      "3": {
+        "wait_time": 30.0,
+        "shrink_time": 24.0,
+        "damage_per_second": 8.0
+      },
+      "4": {
+        "wait_time": 18.0,
+        "shrink_time": 16.0,
+        "damage_per_second": 12.0
+      },
+      "5": {
+        "wait_time": 12.0,
+        "shrink_time": 10.0,
+        "damage_per_second": 16.0
+      }
+    }
+  },
+  "scale_presets": {
+    "baseline": {
+      "match": {
+        "bot_count": 24,
+        "loot_count": 100,
+        "spawn_radius": 90.0
+      }
+    },
+    "xlarge_60": {
+      "match": {
+        "bot_count": 60,
+        "loot_count": 200,
+        "spawn_radius": 90.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 180,
+          "inner_radius": 8.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.08,
+          "stage_wave_prob_per_stage": 0.08,
+          "stage_wave_count_mult": 8,
+          "hotspot_density_mult": 1.10
+        }
+      }
+    },
+    "target_99_probe": {
+      "match": {
+        "bot_count": 99,
+        "loot_count": 280,
+        "spawn_radius": 100.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 240,
+          "inner_radius": 8.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.08,
+          "stage_wave_prob_per_stage": 0.08,
+          "stage_wave_count_mult": 10,
+          "hotspot_density_mult": 1.18,
+          "rare_bias_mult": 1.45
+        }
+      }
+    }
+  },
+  "scale_envelopes": {
+    "target_99": {
+      "status": "whitebox_probe",
+      "source_preset": "xlarge_60",
+      "bot_count": 99,
+      "total_entities": 100,
+      "world_size_min": 240.0,
+      "world_size_preferred": 260.0,
+      "spawn_radius_min": 90.0,
+      "spawn_radius_preferred": 100.0,
+      "inner_radius": 8.0,
+      "entity_clearance": 3.5,
+      "boundary_margin_min": 4.0,
+      "max_annulus_saturation": 0.15,
+      "preferred_annulus_saturation": 0.13,
+      "requires": [
+        "manual_encounter_validation",
+        "obstacle_navigation_validation",
+        "pickup_cluster_validation",
+        "zone_profile_validation",
+        "bot_strategy_validation"
+      ]
+    }
+  },
+  "pois": [
+    { "name": "Central Meadow", "pos": [0, 0], "radius": 20, "role": "loot_hub", "item_density": 0.48, "rare_bias": 0.12 },
+    { "name": "North Clearing", "pos": [0, 96], "radius": 20, "role": "loot_hub", "item_density": 0.88, "rare_bias": 0.24 },
+    { "name": "South Creek Bend", "pos": [20, -98], "radius": 20, "role": "loot_hub", "item_density": 0.86, "rare_bias": 0.22 },
+    { "name": "West Ridge Gap", "pos": [-104, -16], "radius": 18, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.18 },
+    { "name": "West Ridge Overlook", "pos": [-54, 28], "radius": 16, "role": "transit_choke", "item_density": 0.60, "rare_bias": 0.18 },
+    { "name": "East Pine Lane", "pos": [104, 32], "radius": 18, "role": "recovery_pocket", "item_density": 0.44, "rare_bias": 0.10 },
+    { "name": "East Pine Gate", "pos": [66, -10], "radius": 16, "role": "transit_choke", "item_density": 0.64, "rare_bias": 0.18 },
+    { "name": "Northwest Slope", "pos": [-80, 82], "radius": 18, "role": "recovery_pocket", "item_density": 0.44, "rare_bias": 0.10 },
+    { "name": "Northeast Slope", "pos": [82, 90], "radius": 18, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.18 },
+    { "name": "Southwest Brush", "pos": [-88, -84], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
+    { "name": "Southeast Brush", "pos": [92, -80], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
+    { "name": "Inner Brush North", "pos": [-34, 38], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
+    { "name": "Inner Brush South", "pos": [40, -40], "radius": 18, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.06 }
+  ],
+  "obstacles": [
+    { "type": "canyon_wall", "pos": [-118, 82], "scale": [12.0, 3.2, 2.5], "rot": 28 },
+    { "type": "canyon_wall", "pos": [-116, 28], "scale": [10.0, 3.0, 2.5], "rot": 76 },
+    { "type": "canyon_wall", "pos": [-112, -38], "scale": [12.0, 3.2, 2.5], "rot": 70 },
+    { "type": "canyon_wall", "pos": [-104, -96], "scale": [14.0, 3.2, 2.8], "rot": -28 },
+    { "type": "canyon_wall", "pos": [118, 86], "scale": [12.0, 3.2, 2.5], "rot": -30 },
+    { "type": "canyon_wall", "pos": [116, 30], "scale": [10.0, 3.0, 2.5], "rot": -76 },
+    { "type": "canyon_wall", "pos": [112, -34], "scale": [12.0, 3.2, 2.5], "rot": -70 },
+    { "type": "canyon_wall", "pos": [106, -98], "scale": [14.0, 3.2, 2.8], "rot": 30 },
+    { "type": "canyon_wall", "pos": [-70, 118], "scale": [13.0, 3.0, 2.6], "rot": 8 },
+    { "type": "canyon_wall", "pos": [4, 120], "scale": [12.0, 3.0, 2.6], "rot": -4 },
+    { "type": "canyon_wall", "pos": [74, 118], "scale": [13.0, 3.0, 2.6], "rot": -10 },
+    { "type": "canyon_wall", "pos": [-72, -118], "scale": [13.0, 3.0, 2.6], "rot": -8 },
+    { "type": "canyon_wall", "pos": [0, -120], "scale": [12.0, 3.0, 2.6], "rot": 4 },
+    { "type": "canyon_wall", "pos": [74, -116], "scale": [13.0, 3.0, 2.6], "rot": 10 },
+
+    { "type": "tree_cluster", "pos": [-86, 66], "scale": [6.4, 5.0, 5.6], "rot": 18, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-92, 14], "scale": [6.0, 5.0, 5.4], "rot": -10, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-82, -66], "scale": [6.4, 5.0, 5.8], "rot": 16, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-60, 102], "scale": [5.8, 5.0, 5.2], "rot": -8, "jitter": [1.3, 1.3], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-48, 54], "scale": [6.2, 5.0, 5.4], "rot": 20, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-46, -18], "scale": [5.8, 5.0, 5.2], "rot": -16, "jitter": [1.3, 1.3], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-56, -104], "scale": [6.2, 5.0, 5.6], "rot": 12, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-20, -72], "scale": [5.8, 5.0, 5.2], "rot": -18, "jitter": [1.3, 1.3], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [88, 76], "scale": [6.4, 5.0, 5.6], "rot": -18, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [98, 16], "scale": [6.0, 5.0, 5.4], "rot": 10, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [84, -62], "scale": [6.4, 5.0, 5.8], "rot": -16, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [62, 106], "scale": [5.8, 5.0, 5.2], "rot": 8, "jitter": [1.3, 1.3], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [52, 50], "scale": [6.2, 5.0, 5.4], "rot": -20, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [46, -20], "scale": [5.8, 5.0, 5.2], "rot": 16, "jitter": [1.3, 1.3], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [58, -104], "scale": [6.2, 5.0, 5.6], "rot": -12, "jitter": [1.4, 1.4], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [22, 72], "scale": [5.8, 5.0, 5.2], "rot": 18, "jitter": [1.3, 1.3], "rot_jitter": 12 },
+
+    { "type": "bush_patch", "pos": [-34, 38], "scale": [4.8, 1.0, 4.4], "rot": -14 },
+    { "type": "bush_patch", "pos": [40, -40], "scale": [4.8, 1.0, 4.4], "rot": 16 },
+    { "type": "bush_patch", "pos": [-92, -84], "scale": [4.6, 1.0, 4.2], "rot": 12 },
+    { "type": "bush_patch", "pos": [92, -80], "scale": [4.6, 1.0, 4.2], "rot": -12 },
+    { "type": "bush_patch", "pos": [-72, 88], "scale": [4.4, 1.0, 4.0], "rot": -20 },
+    { "type": "bush_patch", "pos": [82, 90], "scale": [4.4, 1.0, 4.0], "rot": 20 },
+    { "type": "bush_patch", "pos": [-18, 14], "scale": [4.4, 1.0, 4.0], "rot": 8 },
+    { "type": "bush_patch", "pos": [22, 20], "scale": [4.4, 1.0, 4.0], "rot": -8 },
+    { "type": "bush_patch", "pos": [-14, -28], "scale": [4.6, 1.0, 3.8], "rot": -18 },
+    { "type": "bush_patch", "pos": [34, -12], "scale": [4.2, 1.0, 3.8], "rot": 18 },
+    { "type": "bush_patch", "pos": [-66, 0], "scale": [4.4, 1.0, 4.2], "rot": 24 },
+    { "type": "bush_patch", "pos": [68, 6], "scale": [4.4, 1.0, 4.2], "rot": -24 },
+    { "type": "bush_patch", "pos": [-10, 70], "scale": [4.2, 1.0, 4.0], "rot": 10 },
+    { "type": "bush_patch", "pos": [12, -76], "scale": [4.2, 1.0, 4.0], "rot": -10 },
+
+    { "type": "rock_cluster", "pos": [-104, -16], "scale": [4.0, 3.4, 3.6], "rot": 34, "jitter": [1.0, 1.0], "rot_jitter": 18 },
+    { "type": "rock_cluster", "pos": [104, 32], "scale": [4.0, 3.4, 3.6], "rot": -34, "jitter": [1.0, 1.0], "rot_jitter": 18 },
+    { "type": "rock_cluster", "pos": [-54, 28], "scale": [3.8, 3.2, 3.5], "rot": -18, "jitter": [0.8, 0.8], "rot_jitter": 14 },
+    { "type": "rock_cluster", "pos": [66, -10], "scale": [3.8, 3.2, 3.5], "rot": 18, "jitter": [0.8, 0.8], "rot_jitter": 14 },
+    { "type": "rock_cluster", "pos": [-28, 92], "scale": [3.6, 3.0, 3.4], "rot": 12, "jitter": [0.8, 0.8], "rot_jitter": 14 },
+    { "type": "rock_cluster", "pos": [30, -98], "scale": [3.6, 3.0, 3.4], "rot": -12, "jitter": [0.8, 0.8], "rot_jitter": 14 },
+    { "type": "rock_cluster", "pos": [-72, -46], "scale": [3.8, 3.2, 3.4], "rot": 28, "jitter": [0.8, 0.8], "rot_jitter": 14 },
+    { "type": "rock_cluster", "pos": [78, 58], "scale": [3.8, 3.2, 3.4], "rot": -28, "jitter": [0.8, 0.8], "rot_jitter": 14 },
+    { "type": "rock_cluster", "pos": [-6, -48], "scale": [3.5, 3.0, 3.2], "rot": -8, "jitter": [0.8, 0.8], "rot_jitter": 14 },
+    { "type": "rock_cluster", "pos": [8, 46], "scale": [3.5, 3.0, 3.2], "rot": 8, "jitter": [0.8, 0.8], "rot_jitter": 14 },
+
+    { "type": "log_pile", "pos": [0, 84], "scale": [5.2, 1.4, 1.6], "rot": 22 },
+    { "type": "log_pile", "pos": [20, 104], "scale": [4.8, 1.4, 1.6], "rot": -34 },
+    { "type": "log_pile", "pos": [-18, -100], "scale": [5.2, 1.4, 1.6], "rot": 30 },
+    { "type": "log_pile", "pos": [38, -90], "scale": [4.8, 1.4, 1.6], "rot": -28 },
+    { "type": "log_pile", "pos": [-24, 8], "scale": [5.0, 1.4, 1.6], "rot": 12 },
+    { "type": "log_pile", "pos": [28, -2], "scale": [5.0, 1.4, 1.6], "rot": -12 },
+    { "type": "log_pile", "pos": [-78, 30], "scale": [4.8, 1.4, 1.6], "rot": 58 },
+    { "type": "log_pile", "pos": [82, 28], "scale": [4.8, 1.4, 1.6], "rot": -58 },
+    { "type": "log_pile", "pos": [-42, -52], "scale": [4.8, 1.4, 1.6], "rot": 36 },
+    { "type": "log_pile", "pos": [46, 54], "scale": [4.8, 1.4, 1.6], "rot": -36 }
+  ],
+  "routes": [
+    {
+      "id": "west_ridge_choke",
+      "name": "West Ridge Choke",
+      "role": "primary_choke",
+      "points": [[-104, -96], [-104, -16], [-72, 8], [-54, 28], [-68, 64], [-80, 82]],
+      "width": 13.0,
+      "connects": ["Southwest Brush", "West Ridge Gap", "West Ridge Overlook", "Northwest Slope"],
+      "alternate_route_id": "north_slope_flank",
+      "strategic_value": "pickup_gate_between_outer_cover"
+    },
+    {
+      "id": "east_pine_choke",
+      "name": "East Pine Choke",
+      "role": "primary_choke",
+      "points": [[106, -98], [92, -80], [66, -10], [84, 24], [104, 32], [82, 90]],
+      "width": 13.0,
+      "connects": ["Southeast Brush", "East Pine Gate", "East Pine Lane", "Northeast Slope"],
+      "alternate_route_id": "south_creek_flank",
+      "strategic_value": "pickup_gate_between_outer_cover"
+    },
+    {
+      "id": "central_meadow_cross",
+      "name": "Central Meadow Cross",
+      "role": "loot_flow",
+      "points": [[20, -98], [8, -56], [0, 0], [-4, 52], [0, 96]],
+      "width": 14.0,
+      "connects": ["South Creek Bend", "Central Meadow", "North Clearing"],
+      "alternate_route_id": "north_slope_flank",
+      "strategic_value": "low_density_center_between_outer_loot"
+    },
+    {
+      "id": "north_slope_flank",
+      "name": "North Slope Flank",
+      "role": "flank",
+      "points": [[-80, 82], [-42, 104], [0, 96], [42, 108], [82, 90]],
+      "width": 12.5,
+      "connects": ["Northwest Slope", "North Clearing", "Northeast Slope"],
+      "alternate_route_id": "west_ridge_choke",
+      "strategic_value": "outer_cover_flank"
+    },
+    {
+      "id": "south_creek_flank",
+      "name": "South Creek Flank",
+      "role": "flank",
+      "points": [[-88, -84], [-38, -106], [20, -98], [58, -106], [92, -80]],
+      "width": 12.5,
+      "connects": ["Southwest Brush", "South Creek Bend", "Southeast Brush"],
+      "alternate_route_id": "east_pine_choke",
+      "strategic_value": "outer_cover_flank"
+    },
+    {
+      "id": "inner_brush_recovery_exit",
+      "name": "Inner Brush Recovery Exit",
+      "role": "recovery_exit",
+      "points": [[-34, 38], [-16, 18], [0, 0], [20, -18], [40, -40], [66, -10], [104, 32]],
+      "width": 10.0,
+      "connects": ["Inner Brush North", "Central Meadow", "Inner Brush South", "East Pine Gate", "East Pine Lane"],
+      "alternate_route_id": "central_meadow_cross",
+      "strategic_value": "concealment_to_pickup_reentry"
+    }
+  ]
+}

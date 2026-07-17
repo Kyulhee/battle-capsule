@@ -2,7 +2,7 @@ extends SceneTree
 
 
 const DEFAULT_PATH := "res://data/mapSpec_example.json"
-const CANDIDATE_PATH := "res://data/mapSpec_large_candidate.json"
+const CANDIDATE_PATH := "res://data/mapSpec_night_forest_expanded_candidate.json"
 const PROBE_PRESET := "target_99_probe"
 const TARGET_ENVELOPE := "target_99"
 

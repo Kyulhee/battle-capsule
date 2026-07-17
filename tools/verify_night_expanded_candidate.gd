@@ -1,8 +1,8 @@
 extends SceneTree
 
 
-const CANDIDATE_PATH := "res://data/mapSpec_large_candidate.json"
-const CANDIDATE_ID := "mountain_forest_alpha_large_candidate"
+const CANDIDATE_PATH := "res://data/mapSpec_night_forest_expanded_candidate.json"
+const CANDIDATE_ID := "night_forest_expanded_whitebox"
 const SOURCE_PRESET := "xlarge_60"
 const TARGET_ENVELOPE := "target_99"
 
@@ -25,10 +25,10 @@ func _init():
 		return
 	var issues: Array = definition.validate(game_config, SOURCE_PRESET)
 	if not issues.is_empty():
-		_fail("Large map candidate validation failed: %s" % _join_issues(issues))
+		_fail("Expanded Night candidate validation failed: %s" % _join_issues(issues))
 		return
 	if definition.id != CANDIDATE_ID:
-		_fail("Large map candidate id mismatch: %s." % definition.id)
+		_fail("Expanded Night candidate id mismatch: %s." % definition.id)
 		return
 	if definition.has_scale_preset(TARGET_ENVELOPE):
 		_fail("%s must remain a scale envelope, not a runtime scale preset." % TARGET_ENVELOPE)
@@ -43,7 +43,7 @@ func _init():
 	if not _verify_candidate(summary, source, envelope):
 		return
 
-	print("Large map candidate smoke passed: %s world=%.0fm spawn=%.0fm margin=%.1fm target_99 preferred saturation=%.2f." % [
+	print("Expanded Night candidate smoke passed: %s world=%.0fm spawn=%.0fm margin=%.1fm target_99 preferred saturation=%.2f." % [
 		SOURCE_PRESET,
 		float(source["world_size"]),
 		float(source["spawn_radius"]),
@@ -82,18 +82,19 @@ func _verify_candidate(summary: Dictionary, source: Dictionary, envelope: Dictio
 	var clearance := float(source.get("entity_clearance", 0.0))
 	var boundary_margin := float(source.get("boundary_margin", 0.0))
 	var world_size_preferred := float(envelope.get("world_size_preferred", 0.0))
+	var spawn_radius_min := float(envelope.get("spawn_radius_min", 0.0))
 	var spawn_radius_preferred := float(envelope.get("spawn_radius_preferred", 0.0))
 	var boundary_margin_min := float(envelope.get("boundary_margin_min", 0.0))
 	var target_entities := int(envelope.get("total_entities", 0))
 	var target_saturation_limit := float(envelope.get("preferred_annulus_saturation", 0.0))
-	var target_saturation := _annulus_saturation(target_entities, clearance, spawn_radius, inner_radius)
+	var target_saturation := _annulus_saturation(target_entities, clearance, spawn_radius_preferred, inner_radius)
 	source["target_saturation"] = target_saturation
 
 	if bot_count != 60:
 		_fail("%s must remain the 60-bot candidate smoke preset." % SOURCE_PRESET)
 		return false
-	if int(source.get("loot_count", 0)) < 140:
-		_fail("%s loot_count is too low for large candidate density checks." % SOURCE_PRESET)
+	if int(source.get("loot_count", 0)) < 180:
+		_fail("%s loot_count is too low for expanded candidate density checks." % SOURCE_PRESET)
 		return false
 	if int(source.get("safe_spawn_attempts", 0)) < 120:
 		_fail("%s safe_spawn_attempts must be at least 120." % SOURCE_PRESET)
@@ -101,8 +102,8 @@ func _verify_candidate(summary: Dictionary, source: Dictionary, envelope: Dictio
 	if world_size < world_size_preferred:
 		_fail("Candidate world size %.1f is below %s preferred %.1f." % [world_size, TARGET_ENVELOPE, world_size_preferred])
 		return false
-	if spawn_radius < spawn_radius_preferred:
-		_fail("Candidate spawn radius %.1f is below %s preferred %.1f." % [spawn_radius, TARGET_ENVELOPE, spawn_radius_preferred])
+	if spawn_radius < spawn_radius_min:
+		_fail("Candidate spawn radius %.1f is below %s minimum %.1f." % [spawn_radius, TARGET_ENVELOPE, spawn_radius_min])
 		return false
 	if boundary_margin < boundary_margin_min:
 		_fail("Candidate boundary margin %.1f is below %.1f." % [boundary_margin, boundary_margin_min])
@@ -113,8 +114,8 @@ func _verify_candidate(summary: Dictionary, source: Dictionary, envelope: Dictio
 	if int(summary.get("poi_count", 0)) < 10:
 		_fail("Candidate needs at least 10 POIs.")
 		return false
-	if int(summary.get("obstacle_count", 0)) < 30:
-		_fail("Candidate needs at least 30 obstacles.")
+	if int(summary.get("obstacle_count", 0)) < 55:
+		_fail("Candidate needs at least 55 obstacles.")
 		return false
 	if int(summary.get("route_count", 0)) < 6:
 		_fail("Candidate needs at least 6 strategic route descriptors.")

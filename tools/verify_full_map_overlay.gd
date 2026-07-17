@@ -85,6 +85,15 @@ func _init():
 	if not overlay.is_open():
 		_fail("FullMapOverlay did not report open after show_map().")
 		return
+	if String(overlay._poi_label({"name": "North Clearing", "role": "loot_hub"})) != "North Clearing":
+		_fail("Full map should label player-facing loot hubs.")
+		return
+	if String(overlay._poi_label({"name": "East Pine Lane", "role": "recovery_pocket"})) != "East Pine Lane":
+		_fail("Full map should label player-facing recovery pockets.")
+		return
+	if not String(overlay._poi_label({"name": "East Pine Gate", "role": "transit_choke"})).is_empty():
+		_fail("Full map should not expose telemetry-only transit labels.")
+		return
 
 	var projected_north: Vector2 = overlay.world_direction_to_full_map(Vector2(0.0, -1.0))
 	if projected_north.distance_to(Vector2(1.0, -1.0).normalized()) > 0.001:

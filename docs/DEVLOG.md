@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-MAP-05 260m 확장 Night whitebox
+
+- 구현: 기존 이름뿐인 180m large 후보를 `mapSpec_night_forest_expanded_candidate.json`으로 교체했다. 260m, 환경 요소 64개, POI 13개, `xlarge_60`/`target_99_probe`를 분리했다.
+- 공간 신호: 직선 횡단 30.0→43.3초, 환경 점유 4.6→10.6%, 카메라 반폭보다 장애물이 먼 grid 55.9→30.8%. 전체맵은 landmark 라벨만 남겼다.
+- 런타임 수정: 실제 60봇 캡처에서 외곽 spawn 가림을 발견해 spawn을 90m/100m로 줄이고 벽 높이와 수풀 크기를 낮췄다. 사망한 chase target 참조 오류도 수명 방어와 smoke로 수정했다.
+- 실패 신호: 99봇 5-run 평균 196.6초, 범위 180.2-217.8초, 첫 조우 7.1초, 이탈 152.4회, stuck 49회, open 피해 66.7%. `scale_99` gate 실패.
+- 결정: 크기·시각 밀도 실험으로는 유지하되 기본 맵으로 승격하지 않는다. 다음은 obstacle 추가가 아니라 위협·목표·위치 효용을 분리하는 AI 결정 계층이다.
+
 ## N2-AI-01 플레이어 표적 위협 판정
 
 - 원인: outnumbered 판정이 현재 표적과 단순 방관자까지 모두 세어 `DEFENSIVE`/`SNIPER`는 1대1에서도 즉시 이탈하고, 여러 봇이 플레이어를 공격하면 서로를 보고 흩어졌다.
@@ -68,14 +76,6 @@
 - 검증: `unit_smoke` 통과. canonical 5-run 평균 465.1초, 범위 236.3-1132.7초, first upgrade 224.4초, stage2 220.1초, stage3 590.1초다.
 - 구조 효과: normalized stuck 0.14 통과, ZONE_ESCAPE 체류 345.2→174.0초, 해당 stuck 51.2→10.4회.
 - 남은 문제: first contact 6.7초와 stage1 사망 95.6명은 개선되지 않았다. v6는 비기본 pathing 후보로 유지하고 IDLE loot 수렴을 다음에 본다.
-
-## N2-PACE-37 Opening Guard 진단 폐기
-
-- 질문: idle/objective 계열 첫 획득을 늦추면 stage1 과소모가 줄어드는지 확인했다.
-- 진단 후보: non-hard-bump opening guard만 6배로 늘리고 damage, loot, zone, 4초 hard-bump는 유지했다.
-- 결과: 5-run 평균 401.3초, first contact 18.0초, first kill 37.8초, normalized stuck 0.26으로 v5보다 악화됐다.
-- 원인 신호: 첫 획득 5/5가 hard-bump였고 80%는 `retreat_counteraction`이었다. 유예 중 이동한 봇이 `ZONE_ESCAPE` 경로에서 모인 뒤 충돌 전투로 우회했다.
-- 결정: 후보 preset과 런타임 코드는 모두 제거했다. 다음은 유예 추가가 아니라 `ZONE_ESCAPE`의 95%-75% 복귀 구간을 분리한다.
 
 ## 기록 보존
 

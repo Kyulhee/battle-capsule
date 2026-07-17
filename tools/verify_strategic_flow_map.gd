@@ -1,7 +1,7 @@
 extends SceneTree
 
 
-const CANDIDATE_PATH := "res://data/mapSpec_large_candidate.json"
+const CANDIDATE_PATH := "res://data/mapSpec_night_forest_expanded_candidate.json"
 const PRESET := "target_99_probe"
 
 const REQUIRED_POI_ROLES := {
@@ -133,7 +133,7 @@ func _verify_routes(routes: Array[Dictionary], pois: Array[Dictionary]) -> bool:
 
 
 func _verify_position_classification(definition) -> bool:
-	var west_choke: Dictionary = definition.describe_strategic_position(Vector2(-66.0, -10.0))
+	var west_choke: Dictionary = definition.describe_strategic_position(Vector2(-104.0, -16.0))
 	if String(west_choke.get("poi_role", "")) != "transit_choke":
 		_fail("West ridge choke should classify as transit_choke POI, got %s." % west_choke.get("poi_role", ""))
 		return false
@@ -141,7 +141,7 @@ func _verify_position_classification(definition) -> bool:
 		_fail("West ridge choke should classify as primary_choke route, got %s." % west_choke.get("route_role", ""))
 		return false
 
-	var west_gate: Dictionary = definition.describe_strategic_position(Vector2(-34.0, 16.0))
+	var west_gate: Dictionary = definition.describe_strategic_position(Vector2(-54.0, 28.0))
 	if String(west_gate.get("poi_name", "")) != "West Ridge Overlook":
 		_fail("West pressure gate should classify as West Ridge Overlook, got %s." % west_gate.get("poi_name", ""))
 		return false
@@ -149,7 +149,7 @@ func _verify_position_classification(definition) -> bool:
 		_fail("West pressure gate should classify as primary_choke route, got %s." % west_gate.get("route_role", ""))
 		return false
 
-	var east_gate: Dictionary = definition.describe_strategic_position(Vector2(42.0, -6.0))
+	var east_gate: Dictionary = definition.describe_strategic_position(Vector2(66.0, -10.0))
 	if String(east_gate.get("poi_name", "")) != "East Pine Gate":
 		_fail("East pressure gate should classify as East Pine Gate, got %s." % east_gate.get("poi_name", ""))
 		return false

@@ -232,7 +232,7 @@ func _draw_pois(map_rect: Rect2) -> void:
 		var colors := _poi_colors(String(poi.get("role", "")))
 		draw_circle(screen_pos, radius, colors["fill"])
 		draw_arc(screen_pos, radius, 0.0, TAU, 48, colors["border"], 1.2)
-		var label := String(poi.get("name", ""))
+		var label := _poi_label(poi)
 		if not label.is_empty():
 			var label_width := minf(180.0, map_rect.size.x * 0.34)
 			var label_pos := screen_pos + Vector2(6.0, -4.0)
@@ -249,6 +249,13 @@ func _draw_pois(map_rect: Rect2) -> void:
 				11,
 				Color(0.78, 0.82, 0.78, 0.85)
 			)
+
+
+func _poi_label(poi: Dictionary) -> String:
+	var role := String(poi.get("role", ""))
+	if role not in ["loot_hub", "recovery_pocket"]:
+		return ""
+	return String(poi.get("name", ""))
 
 
 func _draw_features(map_rect: Rect2) -> void:

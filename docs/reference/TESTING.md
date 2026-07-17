@@ -22,7 +22,7 @@ python tools\run_verify.py --profile pacing_v2
 python tools\run_verify.py --profile pacing_v3
 python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v4 --runs 5 --out-root C:\tmp\run_name
 python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v5 --runs 5 --out-root C:\tmp\run_name
-python tools\run_verify.py --profile scale_99
+python tools\run_verify.py --profile scale_99 --runs 5
 python tools\run_verify.py --profile visual_review
 ```
 
@@ -30,12 +30,12 @@ python tools\run_verify.py --profile visual_review
 |---|---|---|
 | `docs_only` | 문서/계획만 변경 | `git diff --check` |
 | `tooling` | Python 분석/검증 도구 변경 | diff check + `py_compile` |
-| `unit_smoke` | GDScript verifier 또는 작은 로직 변경 | 핵심 `tools/verify_*.gd`, map/world route 구조 |
+| `unit_smoke` | GDScript verifier 또는 작은 로직 변경 | 핵심 `tools/verify_*.gd`, Night/확장 map 구조 |
 | `pacing_v2` | v2 late-zone 기준 재확인 | 3-run + analyze/summarize + scale gate |
 | `pacing_v3` | v3 first-upgrade 진단 후보 | 3-run + gate |
 | `pacing_candidate` | 현재 후보 승격/회귀 판단 | unit smoke + 최소 5-run + duration/upgrade gate |
-| `scale_99` | 99명 구조 변경 | `target_99_probe` 3-run + scale gate |
-| `visual_review` | UI/가독성/체감 변경 | Night/player, map route, world route capture + 1-run + `PLAYTEST.md` 기록 |
+| `scale_99` | 99명 구조 변경 | 확장 Night 후보 `target_99_probe` 최소 5-run + scale gate |
+| `visual_review` | UI/가독성/체감 변경 | Night/player, 전체맵/미니맵 capture + 1-run + `PLAYTEST.md` 기록 |
 
 ## 현재 pacing candidate gate
 
@@ -79,6 +79,8 @@ python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py
 ```powershell
 python tools\simulate_matches.py 5 map_spec_path=res://data/mapSpec_night_forest_candidate.json scale_preset=playable_pacing_v4 seed_base=41000 out_dir=C:\tmp\manual_run
 python tools\analyze_results.py C:\tmp\manual_run
+python tools\analyze_map_structure.py data\mapSpec_night_forest_candidate.json --preset visual_review
+python tools\analyze_map_structure.py data\mapSpec_night_forest_expanded_candidate.json --preset target_99_probe
 python tools\summarize_pacing_baseline.py C:\tmp\manual_run
 python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-duration 540 --min-run-duration 300 --max-run-duration 1200 --min-avg-first-upgrade 120 --max-missing-first-upgrade 0
 ```
@@ -105,3 +107,10 @@ python tools\run_verify.py --profile visual_review --out-root C:\tmp\visual_revi
 캡처는 `C:\tmp\player_night_readability.png`, `C:\tmp\full_map_orientation.png`, `C:\tmp\minimap_orientation.png`에 생성된다. 결과는 `PLAYTEST.md`에 짧게 남긴다.
 
 이 profile의 8봇 simulation은 화면 상태 확인용이며 encounter 빈도나 99봇 gameplay 판정에 사용하지 않는다.
+
+확장 후보의 지도와 실제 런타임 화면은 별도로 캡처할 수 있다.
+
+```powershell
+.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_map_orientation.gd -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=xlarge_60 output_tag=expanded_candidate
+.\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/capture_runtime_candidate.gd -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=xlarge_60 capture_output=C:/tmp/runtime_expanded_candidate.png
+```

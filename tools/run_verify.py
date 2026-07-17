@@ -9,7 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GODOT = ROOT / "Godot_v4.6.2-stable_win64_console.exe"
 DEFAULT_OUT_ROOT = Path(os.environ.get("GAME_DEV_VERIFY_OUT", r"C:\tmp"))
-MAP_SPEC = "res://data/mapSpec_night_forest_candidate.json"
+NIGHT_MAP_SPEC = "res://data/mapSpec_night_forest_candidate.json"
+EXPANDED_MAP_SPEC = "res://data/mapSpec_night_forest_expanded_candidate.json"
 
 
 @dataclass(frozen=True)
@@ -30,14 +31,14 @@ def py_compile(paths: list[str]) -> Step:
     return Step("python py_compile", [sys.executable, "-m", "py_compile", *[rel(path) for path in paths]])
 
 
-def simulate_step(runs: int, preset: str, out_dir: Path) -> Step:
+def simulate_step(runs: int, preset: str, out_dir: Path, map_spec: str = NIGHT_MAP_SPEC) -> Step:
     return Step(
         f"simulate {preset} x{runs}",
         [
             sys.executable,
             rel("tools/simulate_matches.py"),
             str(runs),
-            f"map_spec_path={MAP_SPEC}",
+            f"map_spec_path={map_spec}",
             f"scale_preset={preset}",
             f"out_dir={out_dir}",
         ],
@@ -89,6 +90,7 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
         "tools/analyze_results.py",
         "tools/summarize_pacing_baseline.py",
         "tools/check_scale_telemetry.py",
+        "tools/analyze_map_structure.py",
         "tools/simulate_matches.py",
         "tools/run_verify.py",
     ]
@@ -108,12 +110,16 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
             godot_script(godot, "verify_zone_initial_radius_tuning.gd"),
             godot_script(godot, "verify_bot_opening_loot_rules.gd"),
             godot_script(godot, "verify_bot_runtime_combat.gd"),
+            godot_script(godot, "verify_bot_target_lifetime.gd"),
             godot_script(godot, "verify_bot_threat_pressure.gd"),
             godot_script(godot, "verify_bot_zone_escape_runtime.gd"),
             godot_script(godot, "verify_match_tuning_cli.gd"),
             godot_script(godot, "verify_night_world_readability.gd"),
             godot_script(godot, "verify_full_map_overlay.gd"),
             godot_script(godot, "verify_simulation_participants.gd"),
+            godot_script(godot, "verify_night_expanded_candidate.gd"),
+            godot_script(godot, "verify_strategic_flow_map.gd"),
+            godot_script(godot, "verify_map_runtime_path.gd"),
         ]
 
     if profile == "pacing_v2":
@@ -134,7 +140,7 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
         return [
             *docs_only,
             godot_script(godot, "verify_candidate_99_probe.gd"),
-            simulate_step(runs, "target_99_probe", out_dir),
+            simulate_step(runs, "target_99_probe", out_dir, EXPANDED_MAP_SPEC),
             Step("analyze scale_99", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
             Step(
                 "scale gate scale_99",

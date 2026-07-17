@@ -6,9 +6,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 빌드 표면 | `mapSpec_night_forest_candidate.json` |
-| 권장 preset | `visual_review`는 화면 전용. 현행 gameplay 대표 수동 preset은 없음 |
-| 현재 초점 | 대인 교전 지속·이탈, 플레이어 압박, 맵 체감 규모·지형 밀도 |
+| 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` 비기본 whitebox |
+| 권장 preset | `xlarge_60` 임시 대표 수동 표면. `target_99_probe`는 자동 부하 검증 전용 |
+| 현재 초점 | 대인 교전 지속·이탈, 외곽 픽업 이동, 장애물 가림, 병목 체감 |
 
 ## 수동 체크리스트
 
@@ -20,7 +20,11 @@
 - 죽음의 이유가 플레이어 관점에서 이해되는가?
 - `visual_review` preset에서 성능이 유지되는가?
 
-`visual_review`의 8봇 결과로 encounter 빈도나 매치 페이싱을 판정하지 않는다. 다음 대표 수동 preset은 맵 규모와 목표 참가자 밀도를 함께 확정한 뒤 추가한다.
+```powershell
+.\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=xlarge_60
+```
+
+`visual_review`의 8봇 결과로 encounter 빈도나 매치 페이싱을 판정하지 않는다. `xlarge_60`도 승격된 기준선이 아니라 260m 구조의 수동 비교 표면이다.
 
 ## 화면 리뷰 체크리스트
 
@@ -97,7 +101,7 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 
 ## 메모
 
-- `xlarge_60`, `target_99_probe`는 구조 부하 테스트다. 체감 리뷰에 쓰지 않는다.
+- `xlarge_60`은 수동 비교용, `target_99_probe`는 자동 구조 부하용이다.
 - 텔레메트리 PASS는 플레이테스트 PASS가 아니다.
 - `playable_pacing_v4`는 자동 기준 후보이지 수동 승격 기준선이 아니다.
 - 명확하게 체감이 나쁘면 수동 기록 하나가 수치 후보를 뒤집을 수 있다.

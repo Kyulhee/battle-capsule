@@ -1272,6 +1272,8 @@ func _log_doctrine_state_time(delta: float):
 			)
 
 func _chase_context_name() -> String:
+	if not is_instance_valid(target_actor):
+		return "unknown"
 	if is_targeting_loot:
 		return "recover_loot" if _recovering else "loot"
 	if target_actor is Entity:
@@ -1289,11 +1291,15 @@ func _chase_target_position_context() -> Dictionary:
 	}
 
 func _chase_target_kind() -> String:
+	if not is_instance_valid(target_actor):
+		return "none"
 	if target_actor is Entity:
 		return "entity"
 	return _pickup_kind_for(target_actor)
 
 func _pickup_kind_for(candidate) -> String:
+	if not is_instance_valid(candidate):
+		return "pickup_unknown"
 	if candidate is Pickup:
 		var pickup := candidate as Pickup
 		if pickup.item == null:
