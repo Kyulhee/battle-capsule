@@ -27,6 +27,22 @@ def godot_script(godot: str, script: str) -> Step:
     return Step(script, [godot, "--headless", "--path", str(ROOT), "--script", f"res://tools/{script}"])
 
 
+def godot_script_args(godot: str, script: str, args: list[str]) -> Step:
+    return Step(
+        script,
+        [
+            godot,
+            "--headless",
+            "--path",
+            str(ROOT),
+            "--script",
+            f"res://tools/{script}",
+            "--",
+            *args,
+        ],
+    )
+
+
 def py_compile(paths: list[str]) -> Step:
     return Step("python py_compile", [sys.executable, "-m", "py_compile", *[rel(path) for path in paths]])
 
@@ -122,6 +138,14 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
             godot_script(godot, "verify_strategic_flow_map.gd"),
             godot_script(godot, "verify_map_runtime_path.gd"),
             godot_script(godot, "verify_ai_test_arena.gd"),
+            godot_script_args(
+                godot,
+                "verify_ai_arena_runtime.gd",
+                [
+                    "map_spec_path=res://data/mapSpec_ai_test_arena.json",
+                    "scale_preset=duel_1",
+                ],
+            ),
         ]
 
     if profile == "ai_test_arena":
@@ -129,6 +153,14 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
             *docs_only,
             godot_script(godot, "verify_bot_decision_policy.gd"),
             godot_script(godot, "verify_ai_test_arena.gd"),
+            godot_script_args(
+                godot,
+                "verify_ai_arena_runtime.gd",
+                [
+                    "map_spec_path=res://data/mapSpec_ai_test_arena.json",
+                    "scale_preset=duel_1",
+                ],
+            ),
         ]
 
     if profile == "pacing_v2":

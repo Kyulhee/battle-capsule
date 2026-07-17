@@ -2,6 +2,13 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-TOOLS-02 Arena 실제 Duel Smoke
+
+- 구현: `verify_ai_arena_runtime.gd`가 실제 `Main.tscn`과 `duel_1`을 시작해 player/bot 고정 스폰과 초기 loot 0개를 확인한다.
+- 행동 gate: 4.5m 인접 봇이 3초 안에 플레이어를 표적으로 획득하고 실제 피해를 주어야 통과한다. 현재 결과는 HP 100→90이다.
+- 연결: `run_verify.py`에 Godot script 인자 전달 helper를 추가하고 `ai_test_arena`, `unit_smoke` 양쪽에 runtime smoke를 포함했다.
+- 검증: 두 profile 통과. 기존 AssetCatalog 7개 fallback과 ObjectDB 종료 경고는 유지된다.
+
 ## N2-AI-02 AI 결정 정책 분리
 
 - 구조: `BotDecisionPolicy`를 추가해 추가 위협 판정, archetype 표적 점수, 엄폐 위치 효용을 scene tree 조회와 상태 실행에서 분리했다.
@@ -70,13 +77,6 @@
 - 회귀 방지: 1280x720 캡처의 background/cover/bush 표본 대비를 자동 gate로 추가했다.
 - 검증: `unit_smoke`, `visual_review` 통과. cover blue 0.1765 vs background 0.0784, bush green 0.2235 vs 0.0627.
 - 다음: 가독성 미세조정이 아니라 v6 kill의 85.8%가 flank/off-route에 몰리는 맵 구조를 audit한다.
-
-## N2-PACE-42 Post-Kill Reacquire Delay 폐기
-
-- 후보: v6의 피해·존·루팅을 유지하고 stage1에서만 post-kill 능동 재획득을 2초 늦췄다. 공격받을 때의 damage 반응은 유지했다.
-- 검증: `unit_smoke` 통과. canonical 5-run 평균 301.5초, 범위 237.3-373.0초, first upgrade 225.5초, stage1 사망 95.6명.
-- 실패: `post_kill_scan` 획득은 v6 평균 132.4→56.4회로 줄었지만 생존자는 평균 3.4명뿐이었다. idle/damage 획득으로 우회했고 stage3는 0/5였다.
-- 결정: runtime 필드, v7 preset, 테스트를 모두 제거했다. AI 미세 예외를 멈추고 `visual_review`에서 route/encounter 구조를 확인한다.
 
 ## 기록 보존
 
