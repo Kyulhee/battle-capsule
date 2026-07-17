@@ -1,6 +1,6 @@
 # 아키텍처 개요
 
-> 최종 업데이트: 2026-07-17. 구조 변경 전 읽는 한글 요약 문서다. 세부 구현은 코드와 Git 이력을 우선한다.
+> 최종 업데이트: 2026-07-18. 구조 변경 전 읽는 한글 요약 문서다. 세부 구현은 코드와 Git 이력을 우선한다.
 
 ## 전체 구조
 
@@ -13,6 +13,7 @@ Entity layer
   Player.gd
   Bot.gd
   BotDecisionPolicy.gd
+  BotMovementPolicy.gd
   BotDoctrine.gd
   BotTuning.gd
 
@@ -60,7 +61,7 @@ Data
 | Simulation participants | `SimulationParticipants.gd` | headless player는 observer, alive/spawn/target participant는 bot만 계산 |
 | Zone | `ZoneController.gd` | Main이 인스턴스를 소유, Bot/UI는 읽기 중심 |
 | Loot | `LootSpawner.gd`, `LootSpawnDirector.gd`, `Pickup.gd` | spawn 계산과 pickup runtime 분리 |
-| Combat AI | `Bot.gd`, `BotDecisionPolicy.gd`, `BotDoctrine.gd`, `BotTuning.gd` | 정책은 순수 판단, Bot은 관측 수집과 상태 실행 |
+| Combat AI | `Bot.gd`, `BotDecisionPolicy.gd`, `BotMovementPolicy.gd`, `BotDoctrine.gd`, `BotTuning.gd` | 정책은 순수 판단·조향, Bot은 관측 수집과 상태 실행 |
 | Player inventory | `Player.gd`, `WeaponSlotManager.gd` | 외부는 Player wrapper를 통해 접근 |
 | Mission | `MissionTracker.gd`, mission format/evaluator helpers | HUD 문자열과 판정 분리 |
 | Telemetry | `Telemetry.gd`, `tools/analyze_results.py` | gameplay 판단을 위한 구조화된 출력 |
@@ -94,6 +95,8 @@ Data
 - player-target outnumbered 판정은 현재 표적을 제외하고 자신을 추적 중이거나 최근 5초 안에 공격한 제3자만 센다. bot-only 판정은 기존 페이싱 계약을 유지한다.
 - 짧은 LOS 상실 기억은 player 표적 5초, 일반 표적 2.5초다. 이 값은 `BotDecisionPolicy.gd`가 소유하고 `Bot.gd`가 ATTACK 해제 시 소비한다.
 - `BotDecisionPolicy.gd`는 scene tree를 조회하지 않는다. 위협·표적·위치 후보의 context를 받아 판단하며 `Bot.gd`가 관측 수집과 실제 이동·상태 전이를 맡는다.
+- `Entity.gd`는 기존 perception 갱신에서 LOS가 있는 3m 근접 actor 캐시를 만든다. `BotMovementPolicy.gd`는 위치 offset만 받아 분리 방향을 계산하며 scene tree를 조회하지 않는다.
+- 봇 분리는 ATTACK과 전투 CHASE에만 적용한다. loot CHASE와 현재 표적은 제외해 opening 수렴과 직접 교전 거리를 바꾸지 않는다.
 - headless simulation은 player 행동을 흉내 내지 않는다. player는 비참가 observer이고 99봇 중 1명이 남으면 종료한다.
 
 ## 자산 구조

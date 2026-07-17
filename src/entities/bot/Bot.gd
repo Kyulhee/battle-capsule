@@ -7,6 +7,7 @@ const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
 const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const BOT_DOCTRINE       = preload("res://src/entities/bot/BotDoctrine.gd")
 const BOT_DECISION_POLICY = preload("res://src/entities/bot/BotDecisionPolicy.gd")
+const BOT_MOVEMENT_POLICY = preload("res://src/entities/bot/BotMovementPolicy.gd")
 const BOT_TUNING         = preload("res://src/entities/bot/BotTuning.gd")
 const BOT_DEBUG_LABEL_BUILDER = preload("res://src/entities/bot/BotDebugLabelBuilder.gd")
 const BOT_MARKER_FORMATTER = preload("res://src/entities/bot/BotMarkerFormatter.gd")
@@ -323,6 +324,33 @@ func _move_or_unstick(desired_dir: Vector3, delta: float, should_rotate: bool = 
 		handle_movement(_stuck_override_dir, delta, should_rotate)
 	else:
 		handle_movement(desired_dir, delta, should_rotate)
+
+
+func handle_movement(direction: Vector3, delta: float, should_rotate: bool = true):
+	var adjusted_direction := direction
+	if current_state == State.ATTACK \
+			or (current_state == State.CHASE and not is_targeting_loot):
+		adjusted_direction = BOT_MOVEMENT_POLICY.separated_direction(
+			direction,
+			_local_bot_neighbor_offsets()
+		)
+	super.handle_movement(adjusted_direction, delta, should_rotate)
+
+
+func _local_bot_neighbor_offsets() -> Array:
+	var offsets: Array = []
+	for actor in _nearby_actors:
+		if not is_instance_valid(actor) or actor == target_actor:
+			continue
+		if not actor.is_in_group("bots") or actor.is_dead:
+			continue
+		var offset: Vector3 = global_position - actor.global_position
+		offset.y = 0.0
+		if offset.length_squared() <= 0.000001:
+			offset.x = 1.0 if get_instance_id() < actor.get_instance_id() else -1.0
+		offsets.append(offset)
+	return offsets
+
 
 # Navigate to target_pos via navmesh. Falls back to direct _move_or_unstick if no path.
 func _nav_move_toward(target_pos: Vector3, delta: float, should_rotate: bool = true):

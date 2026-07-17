@@ -9,6 +9,15 @@ const MIN_RETENTION_RATIO := 0.98
 const MIN_CONCURRENT_PLAYER_TARGETS := 4
 const MIN_ATTACKING_BOTS := 3
 const MIN_DAMAGE := 20.0
+const CLOSE_SPACING_DISTANCE := 1.5
+const MAX_CLOSE_PAIR_RATIO := 0.02
+const SPACING_RELEASE_LIMIT_SECONDS := 0.75
+const COMMIT_FORMATION := [
+	Vector3(-0.55, 0.0, 6.0),
+	Vector3(0.55, 0.0, 6.0),
+	Vector3(-4.0, 0.0, 6.0),
+	Vector3(4.0, 0.0, 6.0),
+]
 
 
 func _init() -> void:
@@ -70,11 +79,16 @@ func _run() -> void:
 				if other_bot != bot:
 					bot_ray.add_exception(other_bot)
 
-	for bot in bots:
+	var arena_center := Vector3(0.0, player.global_position.y, 0.0)
+	player.global_position = arena_center
+	for i in range(bots.size()):
+		var bot = bots[i]
 		if not is_instance_valid(bot):
 			await _cleanup(main)
 			_fail("A squad bot died before the commitment probe.")
 			return
+		bot.global_position = arena_center + COMMIT_FORMATION[i]
+		bot.velocity = Vector3.ZERO
 		bot.stats.max_health = PLAYER_PROBE_HEALTH
 		bot.current_health = PLAYER_PROBE_HEALTH
 		bot.stats.current_ammo = bot.stats.max_ammo
@@ -90,7 +104,10 @@ func _run() -> void:
 			await _cleanup(main)
 			_fail("A squad bot rejected the forced player target.")
 			return
-		bot.change_state(bot.State.CHASE)
+		bot.change_state(bot.State.ATTACK)
+		bot.set("_combat_plan", "strafe")
+		bot.set("_combat_plan_timer", COMMIT_OBSERVE_SECONDS + 1.0)
+		bot.set("_strafe_dir", 1.0)
 
 	var target_samples := 0
 	var total_samples := 0
@@ -103,6 +120,11 @@ func _run() -> void:
 	var disengage_ids: Dictionary = {}
 	var state_samples: Dictionary = {}
 	var minimum_pairwise_distance := INF
+	var close_pair_samples := 0
+	var total_pair_samples := 0
+	var maximum_concurrent_close_pairs := 0
+	var initial_probe_pair_distance: float = bots[0].global_position.distance_to(bots[1].global_position)
+	var probe_pair_release_seconds := -1.0
 	var commit_elapsed := 0.0
 	while commit_elapsed < COMMIT_OBSERVE_SECONDS:
 		await create_timer(SAMPLE_INTERVAL_SECONDS).timeout
@@ -133,12 +155,24 @@ func _run() -> void:
 			if bot.current_state == bot.State.DISENGAGE:
 				disengage_ids[bot.get_instance_id()] = true
 		minimum_concurrent_targets = mini(minimum_concurrent_targets, concurrent_targets)
-		minimum_pairwise_distance = minf(
-			minimum_pairwise_distance,
-			_minimum_pairwise_bot_distance(living_bots)
-		)
+		var probe_pair_distance: float = bots[0].global_position.distance_to(bots[1].global_position)
+		if probe_pair_release_seconds < 0.0 and probe_pair_distance >= CLOSE_SPACING_DISTANCE:
+			probe_pair_release_seconds = commit_elapsed
+		if commit_elapsed >= SPACING_RELEASE_LIMIT_SECONDS:
+			minimum_pairwise_distance = minf(
+				minimum_pairwise_distance,
+				_minimum_pairwise_bot_distance(living_bots)
+			)
+			var spacing_samples := _pairwise_spacing_samples(living_bots)
+			close_pair_samples += int(spacing_samples["close"])
+			total_pair_samples += int(spacing_samples["total"])
+			maximum_concurrent_close_pairs = maxi(
+				maximum_concurrent_close_pairs,
+				int(spacing_samples["close"])
+			)
 
 	var retention_ratio := float(target_samples) / maxf(1.0, float(total_samples))
+	var close_pair_ratio := float(close_pair_samples) / maxf(1.0, float(total_pair_samples))
 	var damage_dealt := PLAYER_PROBE_HEALTH - player.current_health
 	var result := {
 		"natural_targets": natural_target_ids.size(),
@@ -151,7 +185,11 @@ func _run() -> void:
 		"objective_target_samples": objective_target_samples,
 		"attackers": attack_ids.size(),
 		"disengagers": disengage_ids.size(),
+		"initial_probe_pair_distance": initial_probe_pair_distance,
+		"probe_pair_release_seconds": probe_pair_release_seconds,
 		"minimum_pairwise_distance": minimum_pairwise_distance,
+		"close_pair_ratio": close_pair_ratio,
+		"maximum_concurrent_close_pairs": maximum_concurrent_close_pairs,
 		"damage": damage_dealt,
 		"state_samples": state_samples,
 		"initial_pickups": initial_pickups,
@@ -167,6 +205,11 @@ func _run() -> void:
 		failure = "Fewer than three squad bots attacked the committed player."
 	elif damage_dealt < MIN_DAMAGE:
 		failure = "Squad bots dealt less than 20 damage during the commitment probe."
+	elif probe_pair_release_seconds < 0.0 \
+			or probe_pair_release_seconds > SPACING_RELEASE_LIMIT_SECONDS:
+		failure = "The forced 1.1m bot pair did not separate within 0.75 seconds."
+	elif close_pair_ratio > MAX_CLOSE_PAIR_RATIO:
+		failure = "Squad bots remained within 1.5m after the separation window."
 	await _cleanup(main)
 	if failure != "":
 		_fail("%s Result: %s" % [failure, result])
@@ -186,6 +229,20 @@ func _minimum_pairwise_bot_distance(bots: Array) -> float:
 				bots[i].global_position.distance_to(bots[j].global_position)
 			)
 	return minimum_distance
+
+
+func _pairwise_spacing_samples(bots: Array) -> Dictionary:
+	var close_pairs := 0
+	var total_pairs := 0
+	for i in range(bots.size()):
+		for j in range(i + 1, bots.size()):
+			total_pairs += 1
+			if bots[i].global_position.distance_to(bots[j].global_position) < CLOSE_SPACING_DISTANCE:
+				close_pairs += 1
+	return {
+		"close": close_pairs,
+		"total": total_pairs,
+	}
 
 
 func _wait_for_navigation(main: Node) -> void:

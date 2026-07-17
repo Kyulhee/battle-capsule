@@ -11,6 +11,7 @@ const DEATH_EFFECT = preload("res://src/fx/DeathEffect.tscn")
 const ITEM_LOS_MASK: int = 1 | 8
 const PERCEPTION_UPDATE_INTERVAL_DEFAULT := 0.08
 const PERCEPTION_UPDATE_INTERVAL_PLAYER := 0.05
+const NEARBY_ACTOR_CACHE_RANGE := 3.0
 const NIGHT_AWARENESS_THEME_PREFIX := "night_artificial_forest"
 const NIGHT_AWARENESS_DARK_RANGE_MULT := 0.86
 const NIGHT_AWARENESS_SIGNATURE_RANGE_BONUS := 0.18
@@ -39,6 +40,7 @@ var _bush_areas: Array = []
 
 # Perception
 var perception_meters: Dictionary = {}
+var _nearby_actors: Array = []
 var _perception_timer: float = 0.0
 var _perception_accumulated_delta: float = 0.0
 var _night_awareness_checked: bool = false
@@ -89,13 +91,18 @@ func _perception_update_interval() -> float:
 
 func _update_perception(delta):
 	var actors = get_tree().get_nodes_in_group("actors")
+	_nearby_actors.clear()
 	for target in actors:
 		if not target is Entity or target == self or target.is_dead:
 			if perception_meters.has(target): perception_meters.erase(target)
 			continue
+		var can_see_target := _can_i_see(target)
+		if can_see_target and global_position.distance_squared_to(target.global_position) \
+				<= NEARBY_ACTOR_CACHE_RANGE * NEARBY_ACTOR_CACHE_RANGE:
+			_nearby_actors.append(target)
 		if not perception_meters.has(target): perception_meters[target] = 0.0
 		var before = float(perception_meters[target])
-		if _can_i_see(target):
+		if can_see_target:
 			var dwell := _perception_dwell_for(target)
 			perception_meters[target] = clamp(perception_meters[target] + (delta / dwell), 0.0, 1.0)
 		else:

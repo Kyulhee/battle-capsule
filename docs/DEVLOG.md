@@ -1,6 +1,13 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-07-18. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## N2-AI-05 국소 전투원 분산
+
+- 기준선: `squad_4` 5-run 중 3회가 1.5m 미만으로 붙었고 접촉 샘플은 최대 7.65%, 최소 거리는 0.97m였다.
+- 수정: 기존 perception LOS 결과에서 3m 근접 캐시를 만들고 ATTACK/비loot CHASE 이동에 2.75m 분리 조향을 합성한다. 현재 표적과 벽 너머 봇은 제외하며 새 전역 순회는 없다.
+- 검증: 자연 5-run 모두 1.5m 미만 접촉 0%, 최소 거리 1.89m 이상. 무작위 gate 실패를 막기 위해 1.1m 쌍과 동일 strafe를 강제했고 5/5회 0.15-0.25초 안에 분리됐다. 표적 유지율 100%, 공격 참여 4명이며 `ai_test_arena`, `unit_smoke` 통과.
+- 다음: 확장 Night 60/99봇에서 AI update 비용, stuck, 이탈 회귀를 확인한 뒤 수동 first-minute로 넘긴다.
 
 ## N2-AI-04 플레이어 표적 기억
 
@@ -69,13 +76,6 @@
 - 수정: 전체 지도를 미니맵과 같은 45도 좌표계로 회전하고 배경 경계, POI, cover, zone, 플레이어 방향이 한 투영을 공유하게 했다.
 - 검증: `unit_smoke` 통과. `full_map_orientation.png`와 `minimap_orientation.png`에서 선 제거, 다이아몬드 경계와 방향 일치를 확인했다.
 - 다음: 4봇이 플레이어를 견제 후 이탈한 원인과 맵의 이동 시간·시야·pickup·장애물 밀도를 분리해 audit한다.
-
-## N2-MAP-01 Route/Cover 구조 audit
-
-- audit: canonical v6의 `idle_loot` 목표 97.3%는 route 안이지만 킬은 flank 46.5%, off-route 33.4%였다. `routes`는 이동 유도가 아니라 위치 분류에만 쓰이고, 고엄폐 11개 중 primary route에는 1개뿐이었다.
-- 후보: Sluice Crossing 양쪽에 고엄폐 rock 2개를 두어 primary 고엄폐를 3개로 늘렸다.
-- 결과: primary 킬 14.3→23.1%, stage1 사망 95.6→94.0명. 반면 평균 stuck 78.6→104.4회, normalized 0.14→0.15, 새 cover 셀 두 곳이 stuck의 26.7%를 차지했고 평균 duration은 431.2초였다.
-- 결정: 후보 맵과 전용 gate를 제거했다. 다음은 물리 cover 추가가 아니라 minimap/fullmap에서 route를 실제 선택 정보로 보이게 한다.
 
 ## 기록 보존
 
