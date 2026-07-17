@@ -407,12 +407,21 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 	var spawn_section := _dictionary(runtime_tuning.get("spawn", {}))
 	var inner_radius := float(spawn_section.get("inner_radius", 0.0))
 	var entity_clearance := float(spawn_section.get("entity_clearance", 0.0))
+	var obstacle_clearance := float(spawn_section.get("obstacle_clearance_margin", 0.0))
 	if inner_radius < 0.0:
 		issues.append("runtime.spawn.inner_radius must be non-negative.")
 	elif spawn_radius < inner_radius:
 		issues.append("spawn_radius %.1f is smaller than runtime.spawn.inner_radius %.1f." % [spawn_radius, inner_radius])
 	if spawn_radius + maxf(0.0, entity_clearance) > half_size:
 		issues.append("spawn_radius %.1f plus entity_clearance %.1f exceeds world half-size %.1f." % [spawn_radius, entity_clearance, half_size])
+	_validate_fixed_spawn_positions(
+		issues,
+		_array(spawn_section.get("fixed_positions", [])),
+		int(match_tuning.get("bot_count", 0)) + 1,
+		half_size,
+		maxf(0.0, entity_clearance),
+		maxf(0.0, obstacle_clearance)
+	)
 
 	var loot_count := int(match_tuning.get("loot_count", 0))
 	if loot_count > 0 and _loot_hotspot_count() <= 0:
@@ -428,7 +437,9 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 
 func summary(game_config = null, preset_name: String = "") -> Dictionary:
 	var match_tuning := get_match_tuning(game_config, {}, preset_name)
+	var runtime_tuning := get_runtime_tuning(game_config, {}, preset_name)
 	var zone_tuning := get_zone_tuning(game_config, {}, preset_name)
+	var spawn_section := _dictionary(runtime_tuning.get("spawn", {}))
 	return {
 		"id": id,
 		"display_name": display_name,
@@ -441,6 +452,7 @@ func summary(game_config = null, preset_name: String = "") -> Dictionary:
 		"bot_count": int(match_tuning.get("bot_count", 0)),
 		"loot_count": int(match_tuning.get("loot_count", 0)),
 		"spawn_radius": float(match_tuning.get("spawn_radius", 0.0)),
+		"fixed_spawn_count": _array(spawn_section.get("fixed_positions", [])).size(),
 		"loot_hotspot_count": _loot_hotspot_count() if map_spec != null else 0,
 		"zone_wait_time": float(zone_tuning.get("wait_time", 0.0)),
 		"zone_shrink_time": float(zone_tuning.get("shrink_time", 0.0)),
@@ -449,6 +461,63 @@ func summary(game_config = null, preset_name: String = "") -> Dictionary:
 		"scale_preset_count": scale_presets.size(),
 		"scale_envelope_count": scale_envelopes.size(),
 	}
+
+
+func _validate_fixed_spawn_positions(
+	issues: Array[String],
+	raw_positions: Array,
+	required_count: int,
+	half_size: float,
+	entity_clearance: float,
+	obstacle_clearance: float
+) -> void:
+	if raw_positions.is_empty():
+		return
+	if raw_positions.size() < required_count:
+		issues.append("runtime.spawn.fixed_positions needs at least %d entries for player plus bots, got %d." % [
+			required_count,
+			raw_positions.size(),
+		])
+
+	var positions: Array[Vector2] = []
+	for i in range(raw_positions.size()):
+		var position := _vector2_from_array(raw_positions[i], Vector2.INF)
+		if not position.is_finite():
+			issues.append("runtime.spawn.fixed_positions.%d is invalid." % i)
+			continue
+		positions.append(position)
+		if absf(position.x) + entity_clearance > half_size \
+				or absf(position.y) + entity_clearance > half_size:
+			issues.append("runtime.spawn.fixed_positions.%d exceeds world bounds with entity_clearance." % i)
+		if _fixed_spawn_overlaps_obstacle(position, obstacle_clearance):
+			issues.append("runtime.spawn.fixed_positions.%d overlaps a blocking obstacle." % i)
+
+	for i in range(positions.size()):
+		for j in range(i + 1, positions.size()):
+			if positions[i].distance_to(positions[j]) < entity_clearance:
+				issues.append("runtime.spawn.fixed_positions.%d and %d are closer than entity_clearance %.1f." % [
+					i,
+					j,
+					entity_clearance,
+				])
+
+
+func _fixed_spawn_overlaps_obstacle(position: Vector2, margin: float) -> bool:
+	if map_spec == null:
+		return false
+	for obstacle_data in map_spec.obstacles:
+		var obstacle := _dictionary(obstacle_data)
+		if String(obstacle.get("type", "")) == "bush_patch":
+			continue
+		var obstacle_pos := _vector2_from_array(obstacle.get("pos", []), Vector2.INF)
+		var scale := _vector3_from_array(obstacle.get("scale", []), Vector3.ZERO)
+		if not obstacle_pos.is_finite() or scale == Vector3.ZERO:
+			continue
+		var extent := _obstacle_axis_extent(obstacle, scale) + Vector2.ONE * margin
+		var delta := position - obstacle_pos
+		if absf(delta.x) < extent.x and absf(delta.y) < extent.y:
+			return true
+	return false
 
 
 func _preset_section(preset_name: String, section_name: String) -> Dictionary:

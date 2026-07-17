@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-TOOLS-01 AI Test Arena
+
+- 구현: `72m` 소형 맵에 오픈 듀얼, LOS 벽, 수풀 시야, 회복·루팅, 존 가장자리 구역을 배치했다. `duel_1`, `squad_4`, `systems_8`, `random_8` preset을 제공한다.
+- 재현성: 맵 runtime의 `fixed_positions`를 플레이어 슬롯부터 순서대로 소비한다. 앵커 수·경계·간격·장애물 겹침을 validation하고 simulation은 플레이어 슬롯을 건너뛴다.
+- 격리: `initial_spawn_enabled=false`로 duel의 초기 loot를 제거했다. 일반 맵 기본값과 4/8봇 시스템 preset은 초기 loot를 유지한다.
+- 검증: `ai_test_arena` 전용 profile과 `unit_smoke` 통과. 전체 지도/미니맵 5구역과 4.5m duel 실제 교전을 캡처로 확인했다.
+- 사용 경계: 작은 AI 오류 재현과 회귀 확인 전용이다. 실제 Night BR의 조우 빈도·페이싱 판정에는 사용하지 않는다.
+
 ## N2-AI-02A 플레이어 근접 위협 계약 복구
 
 - 원인: 봇끼리의 초반 스폰 충돌을 줄이는 4-10초 유예가 플레이어에게도 적용됐다. RECOVER와 회복 루팅도 이미 드러난 근거리 플레이어보다 목적지를 우선할 수 있었다.
@@ -69,13 +77,6 @@
 - 검증: `unit_smoke` 통과. canonical 5-run 평균 551.3초, 범위 237.7-900.3초, first upgrade 221.9초, stage1 사망 평균 92.4명.
 - 실패: first upgrade 누락 1회, long-run stuck 0.19로 gate 실패. stuck의 62.3%가 `DISENGAGE`였고 생존 증가는 v6보다 3.2명에 그쳤다.
 - 결정: runtime 필드, v7 preset, 테스트를 모두 제거했다. 다음은 피해량을 더 낮추지 않고 stage1 post-kill 즉시 재획득 연쇄를 제한한다.
-
-## N2-PACE-40 Opening Noncombat Separation 폐기
-
-- 후보: v6에 첫 12초 동안 loot `CHASE`와 `ZONE_ESCAPE` 주변 봇 분산을 0.2초 간격으로 추가했다. 전투와 플레이어 회피에는 적용하지 않았다.
-- 검증: `unit_smoke` 통과. canonical 5-run 평균 465.4초, 범위 245.0-637.2초, first contact 7.0초, first upgrade 223.4초.
-- 실패: stage1 사망은 v6와 같은 95.6명이고 normalized stuck는 0.14→0.16으로 악화했다.
-- 결정: runtime 필드, v7 preset, 테스트를 모두 제거했다. 다음은 opening 예외가 아니라 stage1 bot damage를 직접 제한한다.
 
 ## 기록 보존
 

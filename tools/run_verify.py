@@ -120,6 +120,13 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
             godot_script(godot, "verify_night_expanded_candidate.gd"),
             godot_script(godot, "verify_strategic_flow_map.gd"),
             godot_script(godot, "verify_map_runtime_path.gd"),
+            godot_script(godot, "verify_ai_test_arena.gd"),
+        ]
+
+    if profile == "ai_test_arena":
+        return [
+            *docs_only,
+            godot_script(godot, "verify_ai_test_arena.gd"),
         ]
 
     if profile == "pacing_v2":
@@ -181,7 +188,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run Battle Capsule verification profiles.")
     parser.add_argument(
         "--profile",
-        choices=["docs_only", "tooling", "unit_smoke", "pacing_v2", "pacing_v3", "pacing_candidate", "scale_99", "visual_review"],
+        choices=["docs_only", "tooling", "unit_smoke", "ai_test_arena", "pacing_v2", "pacing_v3", "pacing_candidate", "scale_99", "visual_review"],
         required=True,
     )
     parser.add_argument("--pacing-preset", default="", help="Scale preset for --profile pacing_candidate.")

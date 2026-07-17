@@ -9,6 +9,7 @@ const DEFAULTS := {
 		"fallback_range": 10.0,
 		"entity_clearance": 3.5,
 		"obstacle_clearance_margin": 2.0,
+		"fixed_positions": [],
 	},
 	"navigation": {
 		"agent_height": 1.8,
@@ -25,6 +26,7 @@ const DEFAULTS := {
 		"hotspot_density_mult": 1.0,
 		"rare_bias_mult": 1.0,
 		"initial_non_pistol_weapon_weight_mult": 1.0,
+		"initial_spawn_enabled": true,
 		"role_weapon_chance_mult": {},
 		"role_wave_weapon_chance_mult": {},
 	},
@@ -90,7 +92,22 @@ static func _sanitize_spawn(spawn_tuning: Dictionary) -> Dictionary:
 		"fallback_range": maxf(0.0, float(spawn_tuning.get("fallback_range", 10.0))),
 		"entity_clearance": maxf(0.0, float(spawn_tuning.get("entity_clearance", 3.5))),
 		"obstacle_clearance_margin": maxf(0.0, float(spawn_tuning.get("obstacle_clearance_margin", 2.0))),
+		"fixed_positions": _sanitize_fixed_positions(spawn_tuning.get("fixed_positions", [])),
 	}
+
+
+static func _sanitize_fixed_positions(source) -> Array:
+	var positions: Array = []
+	if typeof(source) != TYPE_ARRAY:
+		return positions
+	for raw_position in source:
+		if typeof(raw_position) != TYPE_ARRAY or raw_position.size() < 2:
+			continue
+		if typeof(raw_position[0]) not in [TYPE_INT, TYPE_FLOAT] \
+				or typeof(raw_position[1]) not in [TYPE_INT, TYPE_FLOAT]:
+			continue
+		positions.append([float(raw_position[0]), float(raw_position[1])])
+	return positions
 
 static func _sanitize_navigation(nav_tuning: Dictionary) -> Dictionary:
 	return {
@@ -110,6 +127,7 @@ static func _sanitize_loot(loot_tuning: Dictionary) -> Dictionary:
 		"hotspot_density_mult": maxf(0.0, float(loot_tuning.get("hotspot_density_mult", 1.0))),
 		"rare_bias_mult": maxf(0.0, float(loot_tuning.get("rare_bias_mult", 1.0))),
 		"initial_non_pistol_weapon_weight_mult": maxf(0.0, float(loot_tuning.get("initial_non_pistol_weapon_weight_mult", 1.0))),
+		"initial_spawn_enabled": bool(loot_tuning.get("initial_spawn_enabled", true)),
 		"role_weapon_chance_mult": _sanitize_role_float_dict(loot_tuning.get("role_weapon_chance_mult", {})),
 		"role_wave_weapon_chance_mult": _sanitize_role_float_dict(loot_tuning.get("role_wave_weapon_chance_mult", {})),
 	}

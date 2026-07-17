@@ -18,6 +18,7 @@
 python tools\run_verify.py --profile docs_only
 python tools\run_verify.py --profile tooling
 python tools\run_verify.py --profile unit_smoke
+python tools\run_verify.py --profile ai_test_arena
 python tools\run_verify.py --profile pacing_v2
 python tools\run_verify.py --profile pacing_v3
 python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v4 --runs 5 --out-root C:\tmp\run_name
@@ -31,6 +32,7 @@ python tools\run_verify.py --profile visual_review
 | `docs_only` | 문서/계획만 변경 | `git diff --check` |
 | `tooling` | Python 분석/검증 도구 변경 | diff check + `py_compile` |
 | `unit_smoke` | GDScript verifier 또는 작은 로직 변경 | 핵심 `tools/verify_*.gd`, Night/확장 map 구조 |
+| `ai_test_arena` | AI 테스트 맵·고정 스폰·격리 옵션 변경 | 5개 preset validation + duel 스폰 순서 |
 | `pacing_v2` | v2 late-zone 기준 재확인 | 3-run + analyze/summarize + scale gate |
 | `pacing_v3` | v3 first-upgrade 진단 후보 | 3-run + gate |
 | `pacing_candidate` | 현재 후보 승격/회귀 판단 | unit smoke + 최소 5-run + duration/upgrade gate |
@@ -71,8 +73,17 @@ python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_test_arena.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_mission_health_rules.gd
 ```
+
+AI 오류를 짧게 재현할 때는 제품 맵 대신 72m 전용 표면을 먼저 쓴다.
+
+```powershell
+.\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_ai_test_arena.json scale_preset=duel_1 debug_flags=ai,perception,nav
+```
+
+`duel_1`은 4.5m 고정 1대1과 초기 loot 격리, `squad_4`는 다중 위협, `systems_8`은 loot 포함 8봇 상태 전이, `random_8`은 고정 스폰 의존성 비교용이다. Arena 통과는 재현·회귀 근거이며 Night gameplay 승격 근거가 아니다.
 
 ## 시뮬레이션 분석
 

@@ -28,6 +28,22 @@
 
 플레이어 주변의 얇은 원은 `3.2m` 야간 주변 조명이며 AI 감지 범위 표시는 아니다. 이번 확인에서는 첫 10초와 이후 시점에 정지 상태로 봇의 옆·뒤 5m 안에 접근해 IDLE은 목표를 전환하고 RECOVER는 회피·반격하는지 본다.
 
+## AI 빠른 재현 표면
+
+`mapSpec_ai_test_arena.json`은 작은 AI 오류를 격리하는 `72m` 테스트 맵이다. 실제 Night BR의 조우 빈도나 페이싱 판정에는 사용하지 않는다.
+
+| preset | 용도 |
+|---|---|
+| `duel_1` | 플레이어-봇 4.5m 고정, 초기 loot 없음. 감지·반응·1대1 상태 전이 |
+| `squad_4` | 중앙 4방향 고정. 다중 위협·이탈·재교전 |
+| `systems_8` | 중앙 8방향 고정 + loot. 상태 전이와 목표 충돌 스트레스 |
+| `random_8` | 같은 맵의 무작위 스폰. 고정 앵커에만 재현되는지 비교 |
+
+```powershell
+.\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_ai_test_arena.json scale_preset=duel_1 debug_flags=ai,perception,nav
+python tools\run_verify.py --profile ai_test_arena
+```
+
 ## 화면 리뷰 체크리스트
 
 HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 화면으로 확인한다.
@@ -64,24 +80,6 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 결과: route 표현 폐기, AI와 맵 구조 반복 필요.
 체감: 정지하면 접촉이 적고 4봇이 플레이어를 견제하다 처리하지 않고 이탈했다. 플레이어는 원인을 이해할 수 있게 피해를 받았지만 너무 덜 죽었다. 추가 확인에서는 얇은 주변광 안에서 옆에 붙어도 봇이 반응하지 않았다. route 선은 과도하고 이질적이며 AI가 따르는 경로도 아니었다. cover는 읽혔지만 맵은 예상보다 좁고 평지가 많아 비어 보였다. 전체 지도는 게임 방향과 45도 어긋나 있었다.
 다음 행동: route 표현과 지도 정렬 수정은 완료했다. 플레이어 근접 위협 계약 수정 후 실제 IDLE/RECOVER 반응을 재확인하고, 이어서 실제 이동 시간·pickup·장애물 밀도를 분리해 audit한다.
-
-### 2026-07-17 - N2-MAP-03 World Route Cue 자동 화면 리뷰
-
-날짜: 2026-07-17
-표면: `tools/run_verify.py --profile visual_review`, 캡처 `C:\tmp\world_route_cues_overview.png`, `C:\tmp\world_route_cues_player_view.png`.
-테스트 변경: map UI의 route 역할을 폭 0.26-0.36m의 비충돌 ground strip으로 world에 연결하고 역할별 4개 MultiMesh로 배치했다.
-결과: 자동 화면 PASS였으나 이후 수동 플레이에서 폐기.
-체감: 조감에서 6개 route가 좌표대로 이어지고 Wire Maze 플레이 시점에서 primary/flank가 낮은 strip으로 구분되며 통나무 아래에서 가려진다. 실제 첫 1분의 시선 우선순위와 전투 중 강도는 아직 미확정이다.
-다음 행동: 실제 조작으로 첫 1분을 플레이하며 route/cover 판독, cue 과표시, 첫 교전 이해도를 기록한다.
-
-### 2026-07-17 - N2-MAP-02 Map Route 가시화
-
-날짜: 2026-07-17
-표면: `tools/run_verify.py --profile visual_review --out-root C:\tmp\n2_map_02_visual`, 캡처 `C:\tmp\full_map_routes.png`, `C:\tmp\minimap_routes.png`.
-테스트 변경: primary, flank, loot, recovery route를 공유 색·선형으로 minimap/fullmap의 POI·cover 아래에 표시했다.
-결과: 자동 화면 PASS였으나 이후 수동 플레이에서 폐기.
-체감: 1280x720 fullmap과 240x240 minimap에서 primary 실선, flank 점선, loot 녹색, recovery 보라 점선이 zone·POI와 구분된다. 중앙 교차부는 조밀하지만 경로 연속성은 유지된다.
-다음 행동: map UI만 보고 끝내지 않고 collider 없는 world route cue로 실제 이동 화면과 연결한다.
 
 ### 2026-07-17 - N2-VIS-01 Night 월드 가독성
 

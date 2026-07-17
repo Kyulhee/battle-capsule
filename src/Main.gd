@@ -40,6 +40,9 @@ var _spawn_positions: Array = []
 var _spawn_fallback_count: int = 0
 var _spawn_attempt_total: int = 0
 var _spawn_attempt_max: int = 0
+var _fixed_spawn_positions: Array = []
+var _fixed_spawn_cursor: int = 0
+var _fixed_spawn_count: int = 0
 
 var zone = null
 @export var zone_wait_time: float = 30.0
@@ -741,10 +744,7 @@ func _on_zone_warning():
 	if has_node("/root/Sfx"): get_node("/root/Sfx").play("zone_warning")
 
 func spawn_entities():
-	_spawn_positions = []
-	_spawn_fallback_count = 0
-	_spawn_attempt_total = 0
-	_spawn_attempt_max = 0
+	_reset_spawn_runtime()
 	# Spawn Player
 	var p = player_scene.instantiate()
 	$Entities.add_child(p)
@@ -781,9 +781,32 @@ func spawn_entities():
 			get_node("/root/Telemetry").log_archetype_spawn(aname)
 	_log_spawn_distribution_metrics()
 
+func _reset_spawn_runtime() -> void:
+	_spawn_positions = []
+	_spawn_fallback_count = 0
+	_spawn_attempt_total = 0
+	_spawn_attempt_max = 0
+	var spawn_tuning := MatchRuntimeTuningScript.spawn(match_runtime_tuning)
+	_fixed_spawn_positions = spawn_tuning.get("fixed_positions", []).duplicate(true)
+	_fixed_spawn_cursor = 1 if is_simulation and not _fixed_spawn_positions.is_empty() else 0
+	_fixed_spawn_count = 0
+
 func _get_safe_spawn_pos() -> Vector3:
 	var spawn_tuning = MatchRuntimeTuningScript.spawn(match_runtime_tuning)
 	var spawn_height = float(spawn_tuning["spawn_height"])
+	if _fixed_spawn_cursor < _fixed_spawn_positions.size():
+		var raw_position: Array = _fixed_spawn_positions[_fixed_spawn_cursor]
+		_fixed_spawn_cursor += 1
+		var fixed_candidate := Vector2(float(raw_position[0]), float(raw_position[1]))
+		if _is_clear_of_obstacles(fixed_candidate) and _is_clear_of_entities(fixed_candidate):
+			var fixed_pos := Vector3(fixed_candidate.x, spawn_height, fixed_candidate.y)
+			_spawn_positions.append(fixed_pos)
+			_fixed_spawn_count += 1
+			return fixed_pos
+		push_warning("Fixed spawn rejected at (%.1f, %.1f); using safe random fallback." % [
+			fixed_candidate.x,
+			fixed_candidate.y,
+		])
 	var safe_attempts = int(spawn_tuning["safe_spawn_attempts"])
 	for attempt in range(safe_attempts):
 		_spawn_attempt_total += 1
@@ -852,6 +875,7 @@ func _spawn_distribution_summary() -> Dictionary:
 		"fallback_count": _spawn_fallback_count,
 		"attempt_total": _spawn_attempt_total,
 		"attempt_max": _spawn_attempt_max,
+		"fixed_count": _fixed_spawn_count,
 		"avg_attempts": float(_spawn_attempt_total) / max(1, count),
 		"min_nearest_distance": min_nearest if min_nearest < INF else 0.0,
 		"avg_nearest_distance": nearest_total / max(1, count),
@@ -906,6 +930,9 @@ func _random_loot_pos(hotspot: Dictionary) -> Vector2:
 
 func _spawn_initial_loot():
 	if not loot_spawner or not loot_spawner.has_hotspots():
+		return
+	var loot_tuning := MatchRuntimeTuningScript.loot(match_runtime_tuning)
+	if not bool(loot_tuning.get("initial_spawn_enabled", true)):
 		return
 	LootSpawnDirectorScript.spawn_initial_loot(
 		pickup_scene,
