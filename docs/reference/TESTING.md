@@ -32,7 +32,7 @@ python tools\run_verify.py --profile visual_review
 | `docs_only` | 문서/계획만 변경 | `git diff --check` |
 | `tooling` | Python 분석/검증 도구 변경 | diff check + `py_compile` |
 | `unit_smoke` | GDScript verifier 또는 작은 로직 변경 | 핵심 `tools/verify_*.gd`, Night/확장 map 구조 |
-| `ai_test_arena` | AI 테스트 맵·고정 스폰·격리 옵션 변경 | 5개 preset validation + duel 스폰 순서 |
+| `ai_test_arena` | AI 정책·테스트 맵·고정 스폰·격리 옵션 변경 | 위협/표적/위치 정책 + 5개 preset validation + duel 스폰 순서 |
 | `pacing_v2` | v2 late-zone 기준 재확인 | 3-run + analyze/summarize + scale gate |
 | `pacing_v3` | v3 first-upgrade 진단 후보 | 3-run + gate |
 | `pacing_candidate` | 현재 후보 승격/회귀 판단 | unit smoke + 최소 5-run + duration/upgrade gate |
@@ -73,6 +73,7 @@ python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_decision_policy.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_ai_test_arena.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_mission_health_rules.gd
 ```

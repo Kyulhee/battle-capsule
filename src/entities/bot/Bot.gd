@@ -6,6 +6,7 @@ const PICKUP_SCN         = preload("res://src/entities/pickup/Pickup.tscn")
 const IMPACT_EFFECT_SCN  = preload("res://src/fx/ImpactEffect.tscn")
 const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const BOT_DOCTRINE       = preload("res://src/entities/bot/BotDoctrine.gd")
+const BOT_DECISION_POLICY = preload("res://src/entities/bot/BotDecisionPolicy.gd")
 const BOT_TUNING         = preload("res://src/entities/bot/BotTuning.gd")
 const BOT_DEBUG_LABEL_BUILDER = preload("res://src/entities/bot/BotDebugLabelBuilder.gd")
 const BOT_MARKER_FORMATTER = preload("res://src/entities/bot/BotMarkerFormatter.gd")
@@ -1961,19 +1962,13 @@ func _count_visible_enemies() -> int:
 	return count
 
 func _should_disengage_outnumbered() -> bool:
-	if _is_targeting_player():
-		return _count_visible_additional_threats() >= _disengage_threshold
-	return _count_visible_enemies() >= _disengage_threshold
+	return BOT_DECISION_POLICY.should_disengage(_threat_pressure_context())
 
 func _can_reengage_after_pressure() -> bool:
-	if _is_targeting_player():
-		return _count_visible_additional_threats() == 0
-	return _count_visible_enemies() <= 1
+	return BOT_DECISION_POLICY.can_reengage(_threat_pressure_context())
 
 func _is_heavily_outnumbered() -> bool:
-	if _is_targeting_player():
-		return _count_visible_additional_threats() >= 3
-	return _count_visible_enemies() >= 4
+	return BOT_DECISION_POLICY.is_heavily_outnumbered(_threat_pressure_context())
 
 func _count_relevant_combat_threats() -> int:
 	if not _is_targeting_player():
@@ -1986,12 +1981,23 @@ func _count_relevant_combat_threats() -> int:
 func _is_targeting_player() -> bool:
 	return is_instance_valid(target_actor) and target_actor.is_in_group("players")
 
+func _threat_pressure_context() -> Dictionary:
+	return {
+		"targeting_player": _is_targeting_player(),
+		"additional_threats": _count_visible_additional_threats(),
+		"visible_enemies": _count_visible_enemies(),
+		"disengage_threshold": _disengage_threshold,
+	}
+
 func _count_visible_additional_threats() -> int:
 	var count := 0
 	for candidate in perception_meters:
-		if candidate == target_actor or not _is_visible_living_entity(candidate):
-			continue
-		if _is_active_combat_threat(candidate):
+		if BOT_DECISION_POLICY.is_additional_threat({
+			"is_current_target": candidate == target_actor,
+			"is_visible_living": _is_visible_living_entity(candidate),
+			"recent_attacker": _was_recently_attacked_by(candidate),
+			"pressuring_self": _is_pressured_by(candidate),
+		}):
 			count += 1
 	return count
 
@@ -2002,10 +2008,17 @@ func _is_visible_living_entity(candidate: Variant) -> bool:
 		and float(perception_meters.get(candidate, 0.0)) >= 1.0
 
 func _is_active_combat_threat(candidate: Entity) -> bool:
+	return _was_recently_attacked_by(candidate) or _is_pressured_by(candidate)
+
+func _was_recently_attacked_by(candidate: Variant) -> bool:
+	if not is_instance_valid(candidate):
+		return false
 	var last_hit_ms := int(damage_history.get(candidate, -ASSIST_WINDOW_MS - 1))
-	if Time.get_ticks_msec() - last_hit_ms <= ASSIST_WINDOW_MS:
-		return true
-	return candidate.has_method("_is_actively_pressuring") \
+	return Time.get_ticks_msec() - last_hit_ms <= ASSIST_WINDOW_MS
+
+func _is_pressured_by(candidate: Variant) -> bool:
+	return is_instance_valid(candidate) \
+		and candidate.has_method("_is_actively_pressuring") \
 		and candidate._is_actively_pressuring(self)
 
 func _is_actively_pressuring(candidate: Entity) -> bool:
@@ -2015,7 +2028,7 @@ func _is_actively_pressuring(candidate: Entity) -> bool:
 func _find_cover_point(threat_pos: Vector3) -> Vector3:
 	var obstacles = get_tree().get_nodes_in_group("obstacles")
 	var best_pos = Vector3.ZERO
-	var best_score = INF
+	var best_utility = -INF
 	# Per-bot angular sector so multiple bots spread around the same obstacle
 	var sector_angle = float(get_instance_id() % 8) * (TAU / 8.0)
 
@@ -2035,8 +2048,6 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 		var cover = obs_pos + threat_to_obs * 2.0 + spread
 		cover.y = global_position.y
 
-		if cover.distance_to(threat_pos) < 5.0: continue
-
 		# Penalise cover spots already targeted by allied bots
 		var crowding = 0.0
 		for b in get_tree().get_nodes_in_group("bots"):
@@ -2044,9 +2055,14 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 				if (b._disengage_cover as Vector3).distance_to(cover) < 4.0:
 					crowding += 10.0
 
-		var score = dist_to_obs + crowding
-		if score < best_score:
-			best_score = score
+		var utility := BOT_DECISION_POLICY.position_utility({
+			"travel_distance": dist_to_obs,
+			"threat_distance": cover.distance_to(threat_pos),
+			"minimum_threat_distance": 5.0,
+			"crowding_penalty": crowding,
+		})
+		if utility > best_utility:
+			best_utility = utility
 			best_pos = cover
 
 	if best_pos == Vector3.ZERO:
@@ -2068,10 +2084,14 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 				var spec_spread = Vector3(cos(sector_angle), 0, sin(sector_angle)) * 1.5
 				var spec_cover = spec_obs_pos + spec_threat_to_obs * 2.0 + spec_spread
 				spec_cover.y = global_position.y
-				if spec_cover.distance_to(threat_pos) < 5.0: continue
-				var spec_score = spec_dist + 3.0
-				if spec_score < best_score:
-					best_score = spec_score
+				var spec_utility := BOT_DECISION_POLICY.position_utility({
+					"travel_distance": spec_dist,
+					"threat_distance": spec_cover.distance_to(threat_pos),
+					"minimum_threat_distance": 5.0,
+					"fallback_penalty": 3.0,
+				})
+				if spec_utility > best_utility:
+					best_utility = spec_utility
 					best_pos = spec_cover
 
 	return best_pos
@@ -2296,20 +2316,22 @@ func _find_nearest_hotspot() -> Vector3:
 func _find_nearest_target() -> Entity:
 	_ensure_doctrine_profile()
 	var actors = get_tree().get_nodes_in_group("actors")
-	var best: Entity = null
-	var best_score = INF
-	var target_profile = _doctrine_profile.get("target", {})
-	var distance_weight = float(target_profile.get("distance_weight", 1.0))
-	var hp_weight = float(target_profile.get("hp_weight", 0.0))
+	var candidates: Array = []
 	for a in actors:
 		if a == self or not a is Entity or a.is_dead: continue
 		if a.is_revealed_to(self):
 			var d = global_position.distance_to(a.global_position)
 			if d >= stats.vision_range: continue
 			var hp_ratio = a.current_health / maxf(1.0, a.stats.max_health)
-			var score = d * (distance_weight + hp_ratio * hp_weight)
-			if score < best_score: best_score = score; best = a
-	return best
+			candidates.append({
+				"actor": a,
+				"distance": d,
+				"hp_ratio": hp_ratio,
+			})
+	return BOT_DECISION_POLICY.choose_target(
+		candidates,
+		_doctrine_profile.get("target", {})
+	) as Entity
 
 func _is_target_valid(t: Variant) -> bool:
 	return is_instance_valid(t) and (not t is Entity or not t.is_dead)

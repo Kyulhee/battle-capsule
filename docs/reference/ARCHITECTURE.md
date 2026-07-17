@@ -12,6 +12,7 @@ Entity layer
   Entity.gd
   Player.gd
   Bot.gd
+  BotDecisionPolicy.gd
   BotDoctrine.gd
   BotTuning.gd
 
@@ -59,7 +60,7 @@ Data
 | Simulation participants | `SimulationParticipants.gd` | headless player는 observer, alive/spawn/target participant는 bot만 계산 |
 | Zone | `ZoneController.gd` | Main이 인스턴스를 소유, Bot/UI는 읽기 중심 |
 | Loot | `LootSpawner.gd`, `LootSpawnDirector.gd`, `Pickup.gd` | spawn 계산과 pickup runtime 분리 |
-| Combat AI | `Bot.gd`, `BotDoctrine.gd`, `BotTuning.gd` | opening guard와 doctrine 변경은 검증 필수 |
+| Combat AI | `Bot.gd`, `BotDecisionPolicy.gd`, `BotDoctrine.gd`, `BotTuning.gd` | 정책은 순수 판단, Bot은 관측 수집과 상태 실행 |
 | Player inventory | `Player.gd`, `WeaponSlotManager.gd` | 외부는 Player wrapper를 통해 접근 |
 | Mission | `MissionTracker.gd`, mission format/evaluator helpers | HUD 문자열과 판정 분리 |
 | Telemetry | `Telemetry.gd`, `tools/analyze_results.py` | gameplay 판단을 위한 구조화된 출력 |
@@ -91,6 +92,7 @@ Data
 - `routes`는 현재 텔레메트리 위치 분류 전용 데이터다. bot 이동은 POI loot, zone, cover가 결정하며 route graph를 직접 소비하지 않으므로 플레이어 지도와 월드에는 표시하지 않는다.
 - minimap과 fullmap은 월드 좌표를 45도 회전해 게임 카메라 방향과 맞춘다.
 - player-target outnumbered 판정은 현재 표적을 제외하고 자신을 추적 중이거나 최근 5초 안에 공격한 제3자만 센다. bot-only 판정은 기존 페이싱 계약을 유지한다.
+- `BotDecisionPolicy.gd`는 scene tree를 조회하지 않는다. 위협·표적·위치 후보의 context를 받아 판단하며 `Bot.gd`가 관측 수집과 실제 이동·상태 전이를 맡는다.
 - headless simulation은 player 행동을 흉내 내지 않는다. player는 비참가 observer이고 99봇 중 1명이 남으면 종료한다.
 
 ## 자산 구조

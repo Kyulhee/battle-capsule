@@ -2,6 +2,13 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-AI-02 AI 결정 정책 분리
+
+- 구조: `BotDecisionPolicy`를 추가해 추가 위협 판정, archetype 표적 점수, 엄폐 위치 효용을 scene tree 조회와 상태 실행에서 분리했다.
+- 보존: player-target commitment, bot-only 가시 적 기준, AGGRESSIVE 최근접 표적, OPPORTUNIST 저체력 표적, 기존 엄폐 거리·혼잡 벌점을 그대로 유지했다.
+- 검증: 정책 단독 smoke를 `ai_test_arena`와 `unit_smoke`에 연결했다. 위협/방관자 구분, 표적 성향, 혼잡·위험 엄폐 거부와 기존 AI 회귀가 통과했다.
+- 다음: `squad_4`에서 목표 유지와 엄폐 분산을 관찰 가능한 행동 계약으로 만든 뒤 Night 후보에서 재검증한다.
+
 ## N2-TOOLS-01 AI Test Arena
 
 - 구현: `72m` 소형 맵에 오픈 듀얼, LOS 벽, 수풀 시야, 회복·루팅, 존 가장자리 구역을 배치했다. `duel_1`, `squad_4`, `systems_8`, `random_8` preset을 제공한다.
@@ -70,13 +77,6 @@
 - 검증: `unit_smoke` 통과. canonical 5-run 평균 301.5초, 범위 237.3-373.0초, first upgrade 225.5초, stage1 사망 95.6명.
 - 실패: `post_kill_scan` 획득은 v6 평균 132.4→56.4회로 줄었지만 생존자는 평균 3.4명뿐이었다. idle/damage 획득으로 우회했고 stage3는 0/5였다.
 - 결정: runtime 필드, v7 preset, 테스트를 모두 제거했다. AI 미세 예외를 멈추고 `visual_review`에서 route/encounter 구조를 확인한다.
-
-## N2-PACE-41 Stage1 Bot Damage 폐기
-
-- 후보: v6의 bot-vs-bot 피해 0.55는 유지하고 stage1에서만 0.35를 적용한 뒤 stage2부터 복원했다.
-- 검증: `unit_smoke` 통과. canonical 5-run 평균 551.3초, 범위 237.7-900.3초, first upgrade 221.9초, stage1 사망 평균 92.4명.
-- 실패: first upgrade 누락 1회, long-run stuck 0.19로 gate 실패. stuck의 62.3%가 `DISENGAGE`였고 생존 증가는 v6보다 3.2명에 그쳤다.
-- 결정: runtime 필드, v7 preset, 테스트를 모두 제거했다. 다음은 피해량을 더 낮추지 않고 stage1 post-kill 즉시 재획득 연쇄를 제한한다.
 
 ## 기록 보존
 
