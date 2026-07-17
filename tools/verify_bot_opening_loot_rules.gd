@@ -12,6 +12,8 @@ class MockMain:
 	extends Node
 	var zone = MockZone.new()
 	var alive_count := 100
+	var map_spec = null
+	var map_spec_path := ""
 
 
 func _init():
@@ -32,6 +34,9 @@ func _run() -> void:
 		quit(1)
 		return
 	if not await _verify_opening_close_range_reveal_guard():
+		quit(1)
+		return
+	if not await _verify_player_proximity_threat_contract():
 		quit(1)
 		return
 	if not await _verify_opening_idle_loot_safety():
@@ -218,6 +223,127 @@ func _verify_opening_close_range_reveal_guard() -> bool:
 	return true
 
 
+func _verify_player_proximity_threat_contract() -> bool:
+	var main := MockMain.new()
+	main.name = "Main"
+	var bot = _new_tree_bot()
+	var player = _new_entity()
+	player.set_process(false)
+	player.set_physics_process(false)
+	root.add_child(main)
+	root.add_child(bot)
+	root.add_child(player)
+	player.add_to_group("players")
+	bot.global_position = Vector3.ZERO
+	player.global_position = Vector3(1.5, 0.0, 0.0)
+	bot.current_state = 0 # IDLE
+	bot.set("_spawn_age", 1.0)
+	bot.stats.weapon_type = "pistol"
+	bot.stats.current_ammo = 10
+	var failure := ""
+	player.global_position = Vector3(0.0, 0.0, 4.5)
+	if not bot._can_i_see(player):
+		failure = "A player inside 5m should be visible even behind the bot."
+	else:
+		bot._update_perception(0.35)
+		if float(bot.perception_meters.get(player, 0.0)) < 1.0:
+			failure = "Near-range 360-degree vision should complete normal dwell detection."
+	if failure == "":
+		player.global_position = Vector3(1.5, 0.0, 0.0)
+	if failure == "" and bot._should_defer_opening_idle_reaction(player):
+		failure = "Opening idle reaction must not defer a player."
+	elif bot._should_defer_opening_close_range_reveal(player, 1.5):
+		failure = "Opening close-range reveal must not defer a player."
+	elif bot._should_defer_opening_idle_loot_interrupt(player):
+		failure = "Opening loot safety must not defer a player interrupt."
+	else:
+		player.global_position = Vector3(0.8, 0.0, 0.0)
+		if bot._should_defer_opening_hard_bump_combat(player, 0.8):
+			failure = "Opening hard-bump grace must only apply to bot-vs-bot contact."
+	if failure == "":
+		bot.current_state = 3 # ZONE_ESCAPE
+		bot.global_position = Vector3(95.0, 0.0, 0.0)
+		player.global_position = Vector3(101.0, 0.0, 0.0)
+		if bot._should_defer_opening_zone_escape_counteraction(player):
+			failure = "Opening zone escape must not defer counteraction against a player."
+	if failure == "":
+		bot.current_state = 0 # IDLE
+		bot.global_position = Vector3.ZERO
+		player.global_position = Vector3(1.5, 0.0, 0.0)
+		bot.perception_meters.clear()
+		bot.set("_close_range_check_timer", 0.0)
+		bot._check_close_range(0.1)
+		if float(bot.perception_meters.get(player, 0.0)) < 1.0:
+			failure = "An adjacent player should be fully detected during the opening window."
+	if failure == "":
+		bot.set("_reaction_delay", 0.0)
+		bot.handle_idle_state(0.1)
+		bot.handle_idle_state(0.1)
+		if bot.target_actor != player or bot.current_state != 1: # CHASE
+			failure = "An adjacent player should become the idle bot's combat target."
+	await _cleanup_tree_nodes([bot, player, main])
+	if failure != "":
+		return _fail(failure)
+	return await _verify_recovery_player_proximity_contract()
+
+
+func _verify_recovery_player_proximity_contract() -> bool:
+	var bot = _new_tree_bot()
+	var player = _new_entity()
+	player.set_process(false)
+	player.set_physics_process(false)
+	root.add_child(bot)
+	root.add_child(player)
+	player.add_to_group("players")
+	bot.global_position = Vector3.ZERO
+	player.global_position = Vector3(0.0, 0.0, 4.5)
+	bot.stats.weapon_type = "pistol"
+	bot.stats.current_ammo = 10
+	bot._update_perception(0.35)
+	bot.current_state = 4 # RECOVER
+	bot.recovery_substate = "patrol"
+	bot.handle_recover_state(0.1)
+	var failure := ""
+	if float(bot.perception_meters.get(player, 0.0)) < 1.0:
+		failure = "A player 4.5m behind a recovering bot should complete near-range detection."
+	elif bot.target_actor != player or bot.current_state != 5: # DISENGAGE
+		failure = "A recovering bot should counter a revealed player inside its near range."
+	await _cleanup_tree_nodes([bot, player])
+	if failure != "":
+		return _fail(failure)
+	return await _verify_recovery_loot_player_interrupt()
+
+
+func _verify_recovery_loot_player_interrupt() -> bool:
+	var bot = _new_tree_bot()
+	var player = _new_entity()
+	var loot = _new_pickup(_new_ammo_item("pistol"))
+	player.set_process(false)
+	player.set_physics_process(false)
+	loot.set_process(false)
+	loot.set_physics_process(false)
+	root.add_child(bot)
+	root.add_child(player)
+	root.add_child(loot)
+	player.add_to_group("players")
+	bot.global_position = Vector3.ZERO
+	player.global_position = Vector3(0.0, 0.0, 4.5)
+	loot.global_position = Vector3(12.0, 0.0, 0.0)
+	bot.stats.weapon_type = "pistol"
+	bot.stats.current_ammo = 10
+	bot._update_perception(0.35)
+	bot.current_state = 1 # CHASE
+	bot._start_loot_objective(loot, "recover_seek_loot", true)
+	var interrupted: bool = bool(bot._maybe_interrupt_objective_for_enemy())
+	var failure := ""
+	if not interrupted or bot.target_actor != player or bot.is_targeting_loot:
+		failure = "Recovery loot must yield to a revealed player inside the near range."
+	await _cleanup_tree_nodes([bot, player, loot])
+	if failure != "":
+		return _fail(failure)
+	return true
+
+
 func _verify_opening_idle_loot_safety() -> bool:
 	var bot = _new_tree_bot()
 	var enemy = _new_entity()
@@ -371,6 +497,10 @@ func _new_ammo_item(weapon_type: String):
 
 
 func _cleanup_tree_nodes(nodes: Array) -> void:
+	for node in nodes:
+		if is_instance_valid(node):
+			node.set_process(false)
+			node.set_physics_process(false)
 	var wait_until := Time.get_ticks_msec() + 250
 	while Time.get_ticks_msec() < wait_until:
 		await process_frame

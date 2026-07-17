@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-AI-02A 플레이어 근접 위협 계약 복구
+
+- 원인: 봇끼리의 초반 스폰 충돌을 줄이는 4-10초 유예가 플레이어에게도 적용됐다. RECOVER와 회복 루팅도 이미 드러난 근거리 플레이어보다 목적지를 우선할 수 있었다.
+- 수정: 초반 IDLE·근접 reveal·loot interrupt·zone counteraction 유예를 bot-vs-bot 전용으로 제한했다. 드러난 플레이어가 5m 전방위 근접 범위에 들어오면 RECOVER는 대응 상태로 전환하고 회복 루팅은 중단한다.
+- 보존: 일반 봇은 기존 1-2m opening brush 유예를 유지한다. 화면의 얇은 원은 3.2m 야간 주변 조명이며 AI 감지 범위 표시는 아니다.
+- 검증: opening IDLE 즉시 reveal/target, RECOVER 대응, 회복 루팅 interrupt, bot-vs-bot 기존 유예를 자동 검증했다. `unit_smoke` 통과.
+- 다음: `xlarge_60` 실제 플레이에서 정지 상태로 근접해 IDLE/RECOVER 봇이 5m 안에서 목표 전환·대응하는지 확인한다.
+
 ## N2-MAP-05 260m 확장 Night whitebox
 
 - 구현: 기존 이름뿐인 180m large 후보를 `mapSpec_night_forest_expanded_candidate.json`으로 교체했다. 260m, 환경 요소 64개, POI 13개, `xlarge_60`/`target_99_probe`를 분리했다.
@@ -68,14 +76,6 @@
 - 검증: `unit_smoke` 통과. canonical 5-run 평균 465.4초, 범위 245.0-637.2초, first contact 7.0초, first upgrade 223.4초.
 - 실패: stage1 사망은 v6와 같은 95.6명이고 normalized stuck는 0.14→0.16으로 악화했다.
 - 결정: runtime 필드, v7 preset, 테스트를 모두 제거했다. 다음은 opening 예외가 아니라 stage1 bot damage를 직접 제한한다.
-
-## N2-PACE-38 Inside-Edge Zone Return 분리
-
-- 문제: 봇이 실제 존 안에서도 반경 95%에서 `ZONE_ESCAPE`에 진입해 75%까지 중앙으로 이동했다.
-- 수정: runtime bot tuning을 추가하고 v6에서 stage1 안쪽 선제 복귀만 0.90에서 해제한다. 실제 존 밖에서 진입하거나 이동 중 밖이 된 봇은 기존 0.75 복귀를 유지한다.
-- 검증: `unit_smoke` 통과. canonical 5-run 평균 465.1초, 범위 236.3-1132.7초, first upgrade 224.4초, stage2 220.1초, stage3 590.1초다.
-- 구조 효과: normalized stuck 0.14 통과, ZONE_ESCAPE 체류 345.2→174.0초, 해당 stuck 51.2→10.4회.
-- 남은 문제: first contact 6.7초와 stage1 사망 95.6명은 개선되지 않았다. v6는 비기본 pathing 후보로 유지하고 IDLE loot 수렴을 다음에 본다.
 
 ## 기록 보존
 

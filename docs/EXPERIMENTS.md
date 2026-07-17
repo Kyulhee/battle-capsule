@@ -32,6 +32,7 @@
 | E-024 | 초기 pickup끼리 3.5m 간격을 두면 opening 미시 수렴이 줄어드는가? | v7 5-run first acquisition 6.7초/1.0-1.3m, stage1 사망 96.0명, 평균 434.5초, stuck 106.0회/normalized 0.15 초과 | 폐기하고 runtime/preset/test 제거. pickup 간격은 같은 POI·route 수렴을 바꾸지 못함 |
 | E-025 | outnumbered를 단순 가시 적 수가 아니라 실제 압박 위협으로 계산해야 하는가? | 전역 적용 5-run 평균 516.9초였지만 2개 run 300초 미만, first upgrade 1회 누락, stuck 0.17. 수동 증거는 플레이어 표적에서만 확인됨 | 전역 적용 폐기. player-target commitment로 범위를 좁히고 bot-only 기존 판정 유지 |
 | E-026 | 260m 확대와 pickup/장애물 밀도만으로 자연스러운 교전 흐름을 만들 수 있는가? | 64요소·10.6% 점유로 빈 grid는 줄었지만 5-run 평균 196.6초, 첫 조우 7.1초, 이탈 152.4회, open 피해 66.7% | 크기 whitebox는 유지, gameplay 승격 보류. AI가 위협·목표·위치 효용을 소비하기 전 장애물 추가 금지 |
+| E-027 | 봇끼리의 opening grace와 회복 목표 보호가 플레이어에게도 적용되어야 하는가? | 인접 플레이어가 첫 4-10초 reveal/reaction에서 제외되고 RECOVER/회복 루팅이 5m 내 드러난 플레이어를 무시할 수 있었음 | 금지. opening grace는 bot-vs-bot 전용, 근거리 플레이어 위협은 회복 목표보다 우선 |
 
 ## 폐기 패턴
 

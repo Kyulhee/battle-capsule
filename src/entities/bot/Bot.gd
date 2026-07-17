@@ -534,7 +534,9 @@ func _maybe_interrupt_objective_for_enemy() -> bool:
 
 	# Recovery and combat-loot runs keep their objective; damage and loud gunshot
 	# overrides can still break them through the existing higher-priority paths.
-	if _recovering:
+	# A player already revealed inside the omnidirectional near range is an
+	# immediate threat and must not be ignored for the recovery objective.
+	if _recovering and not _is_close_player_threat(enemy):
 		return false
 	if _should_defer_idle_loot_interrupt(enemy):
 		return false
@@ -694,15 +696,26 @@ func handle_attack_state(delta):
 
 func handle_recover_state(delta):
 	recovery_timer += delta
+	var nearest_enemy = _find_nearest_target()
+	if _is_close_player_threat(nearest_enemy):
+		acquire_enemy_target(nearest_enemy, "recover_close_player")
+		if stats.current_ammo <= 0 and reserve_ammo > 0:
+			_try_reload()
+		if stats.current_ammo > 0:
+			change_state(State.DISENGAGE)
+		else:
+			_knife_mode = true
+			change_state(State.ATTACK)
+		return
+
 	# Knife retaliation: if an enemy closes in while bot is unarmed, don't just stand there
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
-		var nearby_enemy = _find_nearest_target()
+		var nearby_enemy = nearest_enemy
 		if nearby_enemy and global_position.distance_to(nearby_enemy.global_position) < BOT_TUNING.MELEE_RANGE * 2.5:
 			acquire_enemy_target(nearby_enemy, "recover_melee")
 			_knife_mode = true
 			change_state(State.ATTACK)
 			return
-	var nearest_enemy = _find_nearest_target()
 
 	if recovery_substate == "seek_cover":
 		# Break line-of-sight first, then loot. Running straight to ammo while
@@ -1531,6 +1544,8 @@ func _should_defer_idle_loot_interrupt(enemy: Entity) -> bool:
 func _should_defer_opening_idle_reaction(enemy: Entity) -> bool:
 	if current_state != State.IDLE or not is_instance_valid(enemy):
 		return false
+	if _is_player_actor(enemy):
+		return false
 	var distance := global_position.distance_to(enemy.global_position)
 	if _should_defer_opening_hard_bump_combat(enemy, distance):
 		return true
@@ -1544,6 +1559,8 @@ func _should_defer_opening_idle_reaction(enemy: Entity) -> bool:
 
 func _should_defer_opening_close_range_reveal(actor: Entity, distance: float) -> bool:
 	if current_state != State.IDLE or not is_instance_valid(actor):
+		return false
+	if _is_player_actor(actor):
 		return false
 	if _spawn_age >= OPENING_CLOSE_RANGE_REVEAL_GRACE_SECONDS:
 		return false
@@ -1561,6 +1578,8 @@ func _should_defer_opening_idle_loot_objective(loot_target: Node3D) -> bool:
 
 
 func _should_defer_opening_idle_loot_interrupt(enemy: Entity) -> bool:
+	if not is_instance_valid(enemy) or _is_player_actor(enemy):
+		return false
 	if _spawn_age >= OPENING_IDLE_LOOT_INTERRUPT_SAFETY_SECONDS:
 		return false
 	var distance := global_position.distance_to(enemy.global_position)
@@ -1571,6 +1590,8 @@ func _should_defer_opening_idle_loot_interrupt(enemy: Entity) -> bool:
 
 func _should_defer_opening_zone_escape_counteraction(threat: Entity) -> bool:
 	if current_state != State.ZONE_ESCAPE or not is_instance_valid(threat):
+		return false
+	if _is_player_actor(threat):
 		return false
 	if _spawn_age >= OPENING_ZONE_ESCAPE_COUNTERACTION_GRACE_SECONDS:
 		return false
@@ -1596,9 +1617,22 @@ func _should_defer_opening_zone_escape_counteraction(threat: Entity) -> bool:
 func _should_defer_opening_hard_bump_combat(actor: Entity, distance: float) -> bool:
 	if not is_instance_valid(actor):
 		return false
+	if _is_player_actor(actor):
+		return false
 	if _spawn_age >= OPENING_HARD_BUMP_COMBAT_GRACE_SECONDS:
 		return false
 	return distance <= OPENING_CLOSE_RANGE_HARD_BUMP_RANGE
+
+
+func _is_player_actor(actor: Entity) -> bool:
+	return is_instance_valid(actor) and actor.is_in_group("players")
+
+
+func _is_close_player_threat(actor: Entity) -> bool:
+	if not _is_player_actor(actor):
+		return false
+	var near_range := maxf(stats.fov_near_range, OPENING_IDLE_REACTION_CLOSE_RANGE)
+	return global_position.distance_to(actor.global_position) <= near_range
 
 
 func _has_nearby_opening_actor(radius: float) -> bool:
@@ -1782,8 +1816,8 @@ func _check_gunshot_sounds(delta: float):
 				change_state(State.RECOVER)
 
 # ─── CLOSE RANGE INSTANT DETECTION ─────────────────────────────────────────
-# Any actor within 2m is immediately fully detected, except for the opening
-# near-bump guard that keeps 1-2m spawn-window brushes from becoming instant aggro.
+# Any actor within 2m is immediately fully detected. The opening near-bump guard
+# only keeps bot-vs-bot spawn-window brushes from becoming instant aggro.
 
 func _check_close_range(delta: float):
 	_close_range_check_timer -= delta
