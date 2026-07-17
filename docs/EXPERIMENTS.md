@@ -29,6 +29,7 @@
 | E-021 | primary route에 고엄폐 2개를 추가하면 off-route 교전을 안전하게 되돌리는가? | primary 킬 14.3→23.1%, stage1 사망 95.6→94.0명. stuck 78.6→104.4회, 신규 두 셀 26.7%, 평균 431.2초 | 폐기하고 맵/테스트 제거. route 표시·이동 계약 없이 물리 cover를 추가하지 않음 |
 | E-022 | route 역할을 minimap/fullmap에 표시하면 충돌물 없이 선택 정보를 만들 수 있는가? | 6개 route 투영 smoke, 1280x720 fullmap과 240x240 minimap 캡처, `unit_smoke`·`visual_review` PASS | 채택. 공유 style helper와 두 deterministic 캡처 유지 |
 | E-023 | map route를 이동에 간섭하지 않는 world cue로 연결할 수 있는가? | 6개 route를 폭 0.26-0.36m의 127개 strip, 역할별 4개 MultiMesh로 배치. 방향/폭/충돌 smoke와 조감·플레이 시점 캡처, `unit_smoke`·`visual_review` PASS | 구현 채택. nav/충돌 권한은 주지 않고 실제 첫 1분 체감은 수동 gate로 분리 |
+| E-024 | 초기 pickup끼리 3.5m 간격을 두면 opening 미시 수렴이 줄어드는가? | v7 5-run first acquisition 6.7초/1.0-1.3m, stage1 사망 96.0명, 평균 434.5초, stuck 106.0회/normalized 0.15 초과 | 폐기하고 runtime/preset/test 제거. pickup 간격은 같은 POI·route 수렴을 바꾸지 못함 |
 
 ## 폐기 패턴
 
@@ -55,6 +56,7 @@
 | stage1 broad damage 감소 | 사망 감소가 작고 DISENGAGE/stuck 장기화 | 피해량이 아닌 교전 시작·종료 연쇄를 제한하는 증거 필요 |
 | post-kill 재획득 지연 | 해당 source는 줄지만 idle/damage acquisition으로 우회하고 사망 유지 | 구조적 encounter density가 줄어든다는 맵/화면 증거 필요 |
 | route 위 고엄폐 직접 추가 | route 킬 비중은 오르지만 새 cover 셀이 stuck hotspot이 되고 duration이 짧아짐 | route가 실제 이동/선택 표면으로 구현되고 수동 동선이 특정 엄폐를 요구 |
+| 초기 pickup 간격만으로 opening 수렴 해결 | 3.5m 간격에도 첫 획득 5/5가 6.7초 idle reaction, stage1 사망 96.0명 | 개별 pickup이 아니라 POI 단위 목적지 분포가 원인이라는 새 설계 필요 |
 
 ## 기록 규칙
 

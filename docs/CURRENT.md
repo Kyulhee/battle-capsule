@@ -15,9 +15,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | N2-PLAY-01 첫 1분 route/cover 판독 수동 gate |
+| 현재 단위 | N2-ASSET-01 route/POI landmark 자산 후보 audit |
 | 최신 검증 개발 단위 | N2-MAP-03 비충돌 world route cue와 역할별 MultiMesh 배치 |
-| 최신 검증 게임플레이 단위 | N2-MAP-01 primary route 고엄폐 2개 폐기. route 킬은 늘었지만 stuck 78.6→104.4회 |
+| 최신 검증 게임플레이 단위 | N2-PACE-43 초기 pickup 3.5m 간격 폐기. first acquisition 유지, stuck 106.0회 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
 | 실행 메모 | 샌드박스 읽기 실패 시 승격 실행 사용. 이전 증상: `CreateProcessAsUserW failed: 1312` |
@@ -34,11 +34,11 @@
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
 | P0 | 문서 운영 축소 | 완료: 활성 루트 7개, 기술/자산 참조 분리, 장문 사본 제거 |
-| P1 | 매치 길이 안정화 | 대기: route 라벨/엄폐물 추가를 페이싱 lever로 쓰지 않고 실제 route 선택 표면을 만든 뒤 재개 |
+| P1 | 매치 길이 안정화 | 대기: 실제 첫 1분 route/cover 수동 판단 뒤 재개 |
 | P2 | 수동 플레이 기준 승격 | 다음: T2/T3 첫 1분을 실제 조작과 화면 기준으로 판단 |
 | P3 | 야간 가독성 개선 | 완료: T3 1차, Night 전용 주변광/달빛과 deterministic 대비 gate 적용 |
 | P4 | 맵/경로 체감 점검 | 1차 완료: map UI와 world에 같은 역할의 비충돌 route cue 연결 |
-| P5 | 자산 승격 | 이후: T5, gameplay 가독성을 돕는 prop/audio만 선택 승격 |
+| P5 | 자산 승격 | 다음: T5, route/POI 판독을 돕는 landmark prop 후보만 audit |
 | P6 | 기술 부채 정리 | 상시: T6, 닿는 도메인만 작은 추출 |
 
 ## 리스크 보드
@@ -50,7 +50,7 @@
 | 야간 암전 | 플레이어/픽업 외 지면·수풀·cover 윤곽 소실 | Night 전용 월드 프로필과 캡처 픽셀 대비 gate 유지 |
 | 큰 파일 집중 | `Bot.gd`, `Telemetry.gd`, `Main.gd`, `Player.gd`가 큼 | 해당 도메인을 건드릴 때만 추출 |
 | 실험 반복 | 폐기 후보가 다시 등장 | `EXPERIMENTS.md` 먼저 확인 |
-| 오프닝 압박 | guard, zone 복귀, 근접 분산 모두 stage1 사망 95명대를 바꾸지 못함 | opening 전용 구조를 더 쌓지 않고 first-minute 체감은 후속 수동 검증으로 분리 |
+| 오프닝 압박 | guard, zone 복귀, 근접 분산, 초기 pickup 간격 모두 stage1 사망 95-96명대를 바꾸지 못함 | opening 수치·미시 배치를 더 쌓지 않고 first-minute 체감은 수동 검증으로 분리 |
 | 매치 길이 | v6 평균 465.1초. 피해 감소와 post-kill 지연 모두 gate 실패 | 미세 AI 수치 조정을 멈추고 route/encounter 구조 증거 뒤 페이싱 설계를 재개 |
 | stage1 과소모 | post-kill 획득은 132.4→56.4회로 줄었지만 사망은 95.6명 유지 | acquisition source가 아니라 구조적 encounter density를 화면·맵 흐름에서 확인 |
 | 최종 2인 교착 | observer 분리 뒤 ATTACK 최대 16.0초로 정상화 | 이전 245.5초는 하네스 오염으로 폐기 |

@@ -10,9 +10,9 @@ Repository: `https://github.com/Kyulhee/battle-capsule`
 |---|---|
 | 개발 라인 | v2-dev: Night BR 후보, 99명 구조 gate, playable pacing |
 | 활성 트래커 | [CURRENT.md](docs/CURRENT.md) |
-| 최신 검증 gameplay slice | N2-MAP-01 primary route cover 폐기. route 킬은 늘었지만 stuck 78.6→104.4회 |
+| 최신 검증 gameplay slice | N2-PACE-43 초기 pickup 3.5m 간격 폐기. first acquisition 유지, stuck 106.0회 |
 | 최신 검증 운영 slice | N2-MAP-03 비충돌 world route cue와 역할별 MultiMesh 배치 |
-| 현재 운영 slice | N2-PLAY-01 첫 1분 route/cover 판독 수동 gate |
+| 현재 운영 slice | N2-ASSET-01 route/POI landmark 자산 후보 audit |
 | 릴리즈 정책 | 명시 요청 전까지 릴리즈/빌드 금지 |
 | 외부 원본 풀 | `asset_generator/`, `plan_report/`는 통합 요청 전까지 커밋하지 않음 |
 

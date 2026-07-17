@@ -2,6 +2,13 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-PACE-43 초기 Pickup 간격 폐기
+
+- 근거: v6 spawn은 최소 5.0m, fallback 0으로 정상이지만 첫 획득 4/5가 같은 route·POI 안 1.0-1.2m에서 발생했다. 초기 pickup 배치에는 상호 간격 검사가 없었다.
+- 후보: v6의 수량, 종류, AI, zone, damage를 유지하고 초기 pickup끼리만 3.5m 간격을 둔 v7을 5-run 검증했다.
+- 실패: 첫 획득은 5/5 모두 6.7초 `idle_reaction`, 1.0-1.3m였고 stage1 사망 96.0명, 평균 434.5초, stuck 106.0회/normalized 0.15 초과였다.
+- 결정: runtime 필드, v7 preset, 배치 코드, 전용 smoke를 모두 제거했다. 수동 첫 1분 gate를 유지하고 다음 비차단 작업은 route/POI landmark 자산 audit로 전환한다.
+
 ## N2-MAP-03 비충돌 World Route Cue
 
 - 문제: minimap/fullmap의 6개 route 역할이 실제 월드 지면과 연결되지 않아 플레이 화면에서 같은 동선을 찾을 수 없었다.
@@ -69,15 +76,6 @@
 - 결과: 5-run 평균 401.3초, first contact 18.0초, first kill 37.8초, normalized stuck 0.26으로 v5보다 악화됐다.
 - 원인 신호: 첫 획득 5/5가 hard-bump였고 80%는 `retreat_counteraction`이었다. 유예 중 이동한 봇이 `ZONE_ESCAPE` 경로에서 모인 뒤 충돌 전투로 우회했다.
 - 결정: 후보 preset과 런타임 코드는 모두 제거했다. 다음은 유예 추가가 아니라 `ZONE_ESCAPE`의 95%-75% 복귀 구간을 분리한다.
-
-## N2-PACE-36 Simulation Participant 정리
-
-- 문제: headless player가 `actors`, alive count, spawn 분포에 포함돼 아무 행동 없이 모든 run에서 승리했고, simulation이 봇 1명 생존이 아니라 봇 전멸까지 진행됐다.
-- 수정: simulation player를 충돌/타게팅/처리에서 빠진 observer로 두고 99봇 중 1명이 남을 때 종료한다. `session.win`은 rank가 아니라 실제 winner로 기록한다.
-- 구조: `SimulationParticipants.gd`로 participant count와 observer 설정을 분리하고 unit smoke를 추가했다.
-- 검증: `unit_smoke` 통과. v5 bot-only 5-run에서 win=false, spawn 99/99, ATTACK 최대 16.0초로 기존 245.5초 이상치가 사라졌다.
-- 기준선: 평균 434.7초, 범위 271.0-655.5초, first contact 7.0초, first upgrade 222.8초, stage2 220.1초, stage3 590.1초. duration/stuck 0.21 gate는 실패했다.
-- 다음: hard-bump 첫 획득은 0/5이므로 초기 배치 밀도와 idle/objective acquisition을 stage1 소모 원인으로 비교한다.
 
 ## 기록 보존
 
