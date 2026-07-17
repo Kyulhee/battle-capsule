@@ -2,6 +2,13 @@
 
 > 최종 업데이트: 2026-07-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-MAP-01 Route/Cover 구조 audit
+
+- audit: canonical v6의 `idle_loot` 목표 97.3%는 route 안이지만 킬은 flank 46.5%, off-route 33.4%였다. `routes`는 이동 유도가 아니라 위치 분류에만 쓰이고, 고엄폐 11개 중 primary route에는 1개뿐이었다.
+- 후보: Sluice Crossing 양쪽에 고엄폐 rock 2개를 두어 primary 고엄폐를 3개로 늘렸다.
+- 결과: primary 킬 14.3→23.1%, stage1 사망 95.6→94.0명. 반면 평균 stuck 78.6→104.4회, normalized 0.14→0.15, 새 cover 셀 두 곳이 stuck의 26.7%를 차지했고 평균 duration은 431.2초였다.
+- 결정: 후보 맵과 전용 gate를 제거했다. 다음은 물리 cover 추가가 아니라 minimap/fullmap에서 route를 실제 선택 정보로 보이게 한다.
+
 ## N2-VIS-01 Night 월드 가독성 프로필
 
 - 문제: 기존 deterministic 캡처에서 플레이어와 픽업만 보이고 지면, 수풀, cover가 검은 배경에 묻혔다.
@@ -72,14 +79,6 @@
 - 추적: 각 simulation에 seed를 기록하고 bot snapshot을 출력하며, 개별 duration 최소/최대 gate를 추가했다.
 - 판정: nav bake 대기 뒤에도 같은 seed가 525.4초와 909.6초로 갈려 고정 seed를 결정적 재현으로 사용할 수 없다. `pacing_candidate` 최소 run을 5로 올렸다.
 - 정리: 이 과정에서 시험한 v6와 stage damage 후보는 증거 부족으로 제거했다. 다음은 canonical v4/v5 5-run 기준선 재구축이다.
-
-## N2-PACE-33 Bot-vs-Bot Damage Pacing 후보
-
-- 진단: v4 control 5-run 평균은 350.6초였고 사망 98/99가 stage1 combat, zone death는 0회여서 zone보다 bot 교전 속도가 match length를 지배했다.
-- 구현: runtime combat tuning을 추가하고 `bot_vs_bot_damage_mult=0.55`를 bot끼리의 melee/gun/engagement estimate에만 적용했다. 플레이어 damage는 그대로다.
-- 후보: `playable_pacing_v5`는 v4 timing을 유지하되 initial zone timer를 150초로 두어 first upgrade band를 보존한다.
-- 당시 검증: pre-canonical 3-run에서 avg 689.0초, 범위 336.2-1219.9초를 기록했다.
-- 현재 판단: bot-only damage 동작은 유지하지만 당시 초 단위는 현재 기준선에서 제외한다. canonical 5-run 재측정 전 기본 승격을 보류한다.
 
 ## 기록 보존
 

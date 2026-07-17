@@ -26,6 +26,7 @@
 | E-018 | stage1 bot-vs-bot 피해를 0.35로 낮추고 stage2부터 0.55로 복원하면 과소모가 줄어드는가? | v7 평균 551.3초, stage1 사망 92.4명, first upgrade 누락 1회, long-run stuck 0.19 | 폐기하고 코드 제거. 소폭 생존보다 DISENGAGE 장기화 회귀가 큼 |
 | E-019 | stage1 post-kill 능동 재획득을 2초 늦추면 킬 연쇄가 줄어드는가? | post-kill 획득 132.4→56.4회, stage1 사망 95.6명 유지, 평균 301.5초, stage3 없음 | 폐기하고 코드 제거. idle/damage 반응으로 우회하며 attrition 인과 없음 |
 | E-020 | Night 월드 환경을 공통 프로필로 올리면 darkness를 유지하며 route/cover가 읽히는가? | cover blue 0.1765 vs background 0.0784, bush green 0.2235 vs 0.0627. `visual_review` PASS | 채택. Main/캡처 공유와 deterministic 대비 gate 유지 |
+| E-021 | primary route에 고엄폐 2개를 추가하면 off-route 교전을 안전하게 되돌리는가? | primary 킬 14.3→23.1%, stage1 사망 95.6→94.0명. stuck 78.6→104.4회, 신규 두 셀 26.7%, 평균 431.2초 | 폐기하고 맵/테스트 제거. route 표시·이동 계약 없이 물리 cover를 추가하지 않음 |
 
 ## 폐기 패턴
 
@@ -51,6 +52,7 @@
 | 짧은 비전투 근접 분산을 opening 해결책으로 사용 | first contact/stage1 사망은 그대로이고 stuck 0.14→0.16 | 실제 이동 충돌이 사망 분포를 지배한다는 새 증거 |
 | stage1 broad damage 감소 | 사망 감소가 작고 DISENGAGE/stuck 장기화 | 피해량이 아닌 교전 시작·종료 연쇄를 제한하는 증거 필요 |
 | post-kill 재획득 지연 | 해당 source는 줄지만 idle/damage acquisition으로 우회하고 사망 유지 | 구조적 encounter density가 줄어든다는 맵/화면 증거 필요 |
+| route 위 고엄폐 직접 추가 | route 킬 비중은 오르지만 새 cover 셀이 stuck hotspot이 되고 duration이 짧아짐 | route가 실제 이동/선택 표면으로 구현되고 수동 동선이 특정 엄폐를 요구 |
 
 ## 기록 규칙
 

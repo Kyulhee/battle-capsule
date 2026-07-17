@@ -88,6 +88,7 @@ Data
 - `mapSpec_night_forest_candidate.json`은 현재 Night BR 후보 표면이다.
 - `target_99_probe`는 구조 gate다.
 - `playable_pacing_v4`는 현재 자동 페이싱 후보이며 default promotion이 아니다.
+- `routes`는 현재 위치 분류와 UI 표시용 데이터다. bot 이동은 POI loot, zone, cover가 결정하며 route graph를 직접 소비하지 않는다.
 - headless simulation은 player 행동을 흉내 내지 않는다. player는 비참가 observer이고 99봇 중 1명이 남으면 종료한다.
 
 ## 자산 구조

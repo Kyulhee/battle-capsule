@@ -1,6 +1,6 @@
 # 결정 기록
 
-> 최종 업데이트: 2026-07-16. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
+> 최종 업데이트: 2026-07-17. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
 
 ## 재검토 전까지 유지
 
@@ -25,6 +25,7 @@
 | D-017 | nav 경로 이동도 항상 `_move_or_unstick()`을 거친다 | 유효 경로가 있을 때 stuck override를 우회해 같은 코너에서 이탈이 반복됨 | 이동/회피 파이프라인을 대체하는 구조 변경 |
 | D-018 | headless simulation player는 비참가 observer로 둔다 | idle player가 actor/alive/spawn에 포함돼 봇 전멸까지 duration을 늘리고 ATTACK 245.5초 이상치를 만듦 | player 행동 모델을 가진 시뮬레이터가 도입됨 |
 | D-019 | stage1 존 안쪽 선제 복귀와 실제 존 밖 탈출의 해제 깊이를 분리한다 | v6가 실제 탈출 0.75를 유지하면서 zone stuck를 51.2→10.4회로 줄임 | zone damage/경계 AI 구조를 교체 |
+| D-020 | 현재 `routes`는 분류·표시 데이터이며 이동 유도로 간주하지 않는다 | 봇 이동은 POI loot, zone, cover가 만들고 route 폭 변경은 행동을 바꾸지 않음 | route graph를 소비하는 이동/목표 시스템이 도입됨 |
 
 ## 현재 설계 편향
 
@@ -38,3 +39,4 @@
 - N2-PACE-36 이전 99봇 simulation duration/stuck은 player 참가 오염으로 기준선에서 제외한다.
 - 초반 전투는 유예 시간을 독립적으로 늘리지 않고 이동 수렴과 collision acquisition을 먼저 분리한다.
 - `playable_pacing_v6`는 pathing 후보이며 duration 또는 기본 preset 승격으로 보지 않는다.
+- route 교전 비중만 올리려고 물리 cover를 추가하지 않는다. route 선택 표면과 이동 계약을 먼저 만든다.
