@@ -326,10 +326,17 @@ func _move_or_unstick(desired_dir: Vector3, delta: float, should_rotate: bool = 
 		handle_movement(desired_dir, delta, should_rotate)
 
 
+func _should_cache_nearby_actors() -> bool:
+	return BOT_MOVEMENT_POLICY.should_separate(
+		_is_targeting_player(),
+		current_state == State.ATTACK,
+		current_state == State.CHASE and not is_targeting_loot
+	)
+
+
 func handle_movement(direction: Vector3, delta: float, should_rotate: bool = true):
 	var adjusted_direction := direction
-	if current_state == State.ATTACK \
-			or (current_state == State.CHASE and not is_targeting_loot):
+	if _should_cache_nearby_actors():
 		adjusted_direction = BOT_MOVEMENT_POLICY.separated_direction(
 			direction,
 			_local_bot_neighbor_offsets()

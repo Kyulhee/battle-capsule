@@ -5,6 +5,19 @@ const POLICY := preload("res://src/entities/bot/BotMovementPolicy.gd")
 
 
 func _init() -> void:
+	if not POLICY.should_separate(true, true, false):
+		_fail("A player-target ATTACK must apply local separation.")
+		return
+	if not POLICY.should_separate(true, false, true):
+		_fail("A player-target combat CHASE must apply local separation.")
+		return
+	if POLICY.should_separate(false, true, false):
+		_fail("Bot-only combat must preserve its existing movement contract.")
+		return
+	if POLICY.should_separate(true, false, false):
+		_fail("Player-target movement outside combat states must not separate.")
+		return
+
 	var desired := Vector3(0.0, 0.0, -1.0)
 	if POLICY.separated_direction(desired, []) != desired:
 		_fail("Movement without local neighbors must remain unchanged.")

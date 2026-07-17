@@ -100,7 +100,10 @@ python tools\analyze_map_structure.py data\mapSpec_night_forest_candidate.json -
 python tools\analyze_map_structure.py data\mapSpec_night_forest_expanded_candidate.json --preset target_99_probe
 python tools\summarize_pacing_baseline.py C:\tmp\manual_run
 python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-duration 540 --min-run-duration 300 --max-run-duration 1200 --min-avg-first-upgrade 120 --max-missing-first-upgrade 0
+python tools\compare_scale_profiles.py C:\tmp\parent_control C:\tmp\candidate --baseline-label parent --target-label candidate
 ```
+
+AI 이동처럼 규모에 민감한 변경은 부모 커밋 worktree와 현재 후보를 같은 맵·preset·seed base로 각각 최소 5회 실행한다. seed별 결과 일치를 기대하지 않고 종료 분포, 개체·분 기준 stuck/disengage, AI 평균·최대 비용을 함께 비교한다.
 
 ## 회귀 신호
 

@@ -5,6 +5,14 @@ const LOCAL_SEPARATION_RADIUS := 2.75
 const LOCAL_SEPARATION_STRENGTH := 1.35
 
 
+static func should_separate(
+	targeting_player: bool,
+	in_attack: bool,
+	in_combat_chase: bool
+) -> bool:
+	return targeting_player and (in_attack or in_combat_chase)
+
+
 static func separated_direction(desired_direction: Vector3, neighbor_offsets: Array) -> Vector3:
 	var desired := Vector3(desired_direction.x, 0.0, desired_direction.z)
 	var separation := Vector3.ZERO

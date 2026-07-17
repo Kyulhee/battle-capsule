@@ -95,8 +95,8 @@ Data
 - player-target outnumbered 판정은 현재 표적을 제외하고 자신을 추적 중이거나 최근 5초 안에 공격한 제3자만 센다. bot-only 판정은 기존 페이싱 계약을 유지한다.
 - 짧은 LOS 상실 기억은 player 표적 5초, 일반 표적 2.5초다. 이 값은 `BotDecisionPolicy.gd`가 소유하고 `Bot.gd`가 ATTACK 해제 시 소비한다.
 - `BotDecisionPolicy.gd`는 scene tree를 조회하지 않는다. 위협·표적·위치 후보의 context를 받아 판단하며 `Bot.gd`가 관측 수집과 실제 이동·상태 전이를 맡는다.
-- `Entity.gd`는 기존 perception 갱신에서 LOS가 있는 3m 근접 actor 캐시를 만든다. `BotMovementPolicy.gd`는 위치 offset만 받아 분리 방향을 계산하며 scene tree를 조회하지 않는다.
-- 봇 분리는 ATTACK과 전투 CHASE에만 적용한다. loot CHASE와 현재 표적은 제외해 opening 수렴과 직접 교전 거리를 바꾸지 않는다.
+- `Entity.gd`는 하위 타입이 요청할 때만 기존 perception 갱신에서 LOS가 있는 3m 근접 actor 캐시를 만든다. `BotMovementPolicy.gd`는 위치 offset만 받아 분리 방향을 계산하며 scene tree를 조회하지 않는다.
+- 봇의 캐시와 분리는 player-target ATTACK과 비loot CHASE에만 적용한다. bot-only 교전, loot CHASE, 현재 표적은 제외해 기존 시뮬레이션 흐름과 직접 교전 거리를 보존한다.
 - headless simulation은 player 행동을 흉내 내지 않는다. player는 비참가 observer이고 99봇 중 1명이 남으면 종료한다.
 
 ## 자산 구조

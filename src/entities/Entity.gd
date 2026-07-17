@@ -91,13 +91,15 @@ func _perception_update_interval() -> float:
 
 func _update_perception(delta):
 	var actors = get_tree().get_nodes_in_group("actors")
+	var cache_nearby_actors := _should_cache_nearby_actors()
 	_nearby_actors.clear()
 	for target in actors:
 		if not target is Entity or target == self or target.is_dead:
 			if perception_meters.has(target): perception_meters.erase(target)
 			continue
 		var can_see_target := _can_i_see(target)
-		if can_see_target and global_position.distance_squared_to(target.global_position) \
+		if cache_nearby_actors and can_see_target \
+				and global_position.distance_squared_to(target.global_position) \
 				<= NEARBY_ACTOR_CACHE_RANGE * NEARBY_ACTOR_CACHE_RANGE:
 			_nearby_actors.append(target)
 		if not perception_meters.has(target): perception_meters[target] = 0.0
@@ -110,6 +112,11 @@ func _update_perception(delta):
 			perception_meters[target] = clamp(perception_meters[target] - (delta / decay), 0.0, 1.0)
 		if before < 1.0 and float(perception_meters[target]) >= 1.0:
 			_debug_log("perception", "%s revealed %s" % [_debug_name(), target._debug_name()])
+
+
+func _should_cache_nearby_actors() -> bool:
+	return false
+
 
 # Can THIS entity see 'target'? Uses THIS entity's stats for range/FOV.
 func _can_i_see(target: Entity) -> bool:
