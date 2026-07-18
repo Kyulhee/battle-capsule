@@ -12,9 +12,9 @@ const DEFAULTS := {
 		"fixed_positions": [],
 	},
 	"navigation": {
-		"agent_height": 1.8,
-		"agent_radius": 0.5,
-		"agent_max_climb": 0.3,
+		"agent_height": 2.0,
+		"agent_radius": 0.6,
+		"agent_max_climb": 0.25,
 		"agent_max_slope": 45.0,
 		"cell_size": 0.3,
 		"cell_height": 0.25,
@@ -111,9 +111,9 @@ static func _sanitize_fixed_positions(source) -> Array:
 
 static func _sanitize_navigation(nav_tuning: Dictionary) -> Dictionary:
 	return {
-		"agent_height": maxf(0.1, float(nav_tuning.get("agent_height", 1.8))),
-		"agent_radius": maxf(0.1, float(nav_tuning.get("agent_radius", 0.5))),
-		"agent_max_climb": maxf(0.0, float(nav_tuning.get("agent_max_climb", 0.3))),
+		"agent_height": maxf(0.1, float(nav_tuning.get("agent_height", 2.0))),
+		"agent_radius": maxf(0.1, float(nav_tuning.get("agent_radius", 0.6))),
+		"agent_max_climb": maxf(0.0, float(nav_tuning.get("agent_max_climb", 0.25))),
 		"agent_max_slope": clampf(float(nav_tuning.get("agent_max_slope", 45.0)), 0.0, 90.0),
 		"cell_size": maxf(0.01, float(nav_tuning.get("cell_size", 0.3))),
 		"cell_height": maxf(0.01, float(nav_tuning.get("cell_height", 0.25))),

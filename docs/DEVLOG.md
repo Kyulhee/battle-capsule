@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-18. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-NAV-02 실제 내비게이션 메시 복구
+
+- 원인: runtime `NavigationRegion3D`는 `WorldBuilder`의 형제였고 기본 child scan을 사용해 bake 결과가 `polygons=0, vertices=0`이었다. 봇은 실제 경로 없이 direct fallback과 stuck override로만 이동했다.
+- 수정: WorldBuilder와 하위 static collider를 source group으로 명시해 실제 geometry를 bake했다. voxel 양자화 실효값에 맞춰 agent height/radius/climb 기본값도 2.0/0.6/0.25로 정렬했다.
+- Arena: rock 횡단은 stuck 1→0, open traffic은 5/5회 약 5.0초·stuck 0, 강제 wall traffic은 5/5회 11.0초·stuck 4였다. runtime gate는 빈 메시를 즉시 실패시킨다.
+- Night: 동일 seed 60봇은 stuck 39.0→2.8·AI 341.9→260.7µs·종료 225.1→222.5초, 99봇은 53.2→12.4·473.0→353.6µs·199.7→222.9초였다.
+- 잔여: 99봇 정체의 59.7%가 `0,40` ZONE_ESCAPE에 몰렸고 disengage 166.8회는 실패 유지다. 다음은 두 문제를 섞지 않고 hotspot부터 격리한다.
+
 ## N2-MAP-09 다중 traffic gate와 wall 후보 기각
 
 - Arena: 기존 진단 구역과 분리된 96m 맵에 open/wall 4봇 traffic preset을 추가했다. open은 5/5회 4.20초·stuck 0이었다.
@@ -15,14 +23,6 @@
 - 동일 seed 60봇: 기준선 대비 평균 종료 225.1→201.0초, open 피해 69.7→69.9%, loot-hub 10.4→12.2%, 전체 stuck 39.0→43.6이었다.
 - 국소 회귀: `10,10` stuck이 0→5회로 5-run 중 4회 발생했고 별도 5-run에서도 14회였다. 1대1 횡단은 다중 traffic 보장이 아니다.
 - 결정: 후보·전용 gate를 제거하고 99봇 확대를 중단했다. high rock 추가 배치를 금지하고 비-rock 엄폐를 다중 traffic Arena에서 먼저 비교한다.
-
-## N2-NAV-01 high rock ramp 정체 제거
-
-- 재현: Night와 같은 `[3.5,3.0,3.2]` high rock 양쪽 24m 고정 CHASE를 Arena에 추가했다. 기존 ramp는 14.19m에서 멈추고 stuck 3회를 만들었다.
-- 수정: 시각 rock 조각과 충돌은 유지하고 high cluster의 climb ramp만 제거했다. NavigationObstacle, 단순 proxy, agent radius 증가는 추가 이득이 없어 제외했다.
-- 검증: Arena 5/5회 2.8-3.0m까지 횡단·stuck 1회, `unit_smoke` 통과. runtime 실제 캡처에서 외형 유지 확인.
-- Night: 60봇 두 rock 셀 32→15회, 전체 stuck 42.2→39.0, duration 224.3→225.1초. 99봇 rock 셀 74→22회, raw stuck 64.8→53.2로 gate 통과했지만 disengage 154.4는 실패 유지.
-- 하네스: duel/rock-nav/squad runtime은 `simulation_seed=41000`으로 고정해 archetype 변동 실패를 차단했다.
 
 ## N2-AI-07 POI 목적지 수렴 감사
 

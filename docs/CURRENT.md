@@ -15,8 +15,8 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | N2-NAV-02 Box 장애물 corner clearance와 wall traffic stuck 0 |
-| 최신 검증 개발 단위 | N2-MAP-09 96m Arena 다중 traffic gate와 중앙 wall 후보 기각 |
+| 현재 단위 | N2-NAV-03 실제 nav 잔여 `0,40` ZONE_ESCAPE hotspot 격리 |
+| 최신 검증 개발 단위 | N2-NAV-02 WorldBuilder 실제 geometry bake와 빈 navmesh 회귀 차단 |
 | 최신 검증 게임플레이 단위 | N2-PLAY-02: 조우·간격·공격·추적·사망 압박 적절, N2-PERF-01 뒤 체감 버벅임도 크게 감소 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
@@ -38,7 +38,7 @@
 | P1 | AI 교전 결정 재설계 | 완료: 플레이어 목표 기억·국소 분산과 Night 60/99봇 회귀 통과 |
 | P2 | 수동 플레이 기준 승격 | 완료: `xlarge_60` AI 전투와 N2-PERF-01 뒤 성능 체감 통과 |
 | P3 | 야간 가독성 개선 | 완료: T3 1차, Night 전용 주변광/달빛과 deterministic 대비 gate 적용 |
-| P4 | 맵/경로 체감 점검 | open/wall 다중 traffic 재현 완료. Box corner 정체를 0으로 만든 뒤 맵 재시도 |
+| P4 | 맵/경로 체감 점검 | 실제 nav bake 완료. `0,40` 잔여 정체를 격리한 뒤 맵 후보 한 개만 재시도 |
 | P5 | 자산 승격 | 대기: 맵 규모·지형 구조 확정 전 landmark 선정을 시작하지 않는다 |
 | P6 | 기술 부채 정리 | 상시: T6, 닿는 도메인만 작은 추출 |
 
@@ -57,20 +57,20 @@
 | 매치 길이 | bot-only v6 평균 465.1초지만 수동 플레이어는 오히려 너무 오래 생존 | bot-vs-bot 과소모와 bot-vs-player 과소압박을 분리하고 단일 수치로 함께 고치지 않음 |
 | stage1 과소모 | post-kill 획득은 132.4→56.4회로 줄었지만 사망은 95.6명 유지 | acquisition source가 아니라 구조적 encounter density를 화면·맵 흐름에서 확인 |
 | 최종 2인 교착 | observer 분리 뒤 ATTACK 최대 16.0초로 정상화 | 이전 245.5초는 하네스 오염으로 폐기 |
-| 경로 이탈 | Arena open 4봇은 stuck 0, 축 정렬 폭 4m wall은 2회. 제품 중앙 wall은 60봇 `10,10` 셀 0→16회 | wall traffic을 stuck 0으로 낮추기 전 제품 장애물 추가 금지. log·회전 wall 재시도 금지 |
+| 경로 이탈 | runtime navmesh가 `polygons=0, vertices=0`인 채 direct fallback으로 움직였다. 실제 bake 뒤 60/99봇 stuck 39.0→2.8, 53.2→12.4 | 빈 메시를 runtime gate로 차단. 99봇 잔여 `0,40` ZONE_ESCAPE hotspot을 격리하기 전 제품 장애물 추가 금지 |
 | 초반 수렴 | v6가 ZONE_ESCAPE 체류/stuck을 절반 이하로 줄였지만 stage1 사망은 그대로 | zone 수렴을 attrition lever로 다시 쓰지 않고 loot/IDLE 이동을 조사 |
 | 구조적 교전 밀도 | 260m 후보는 43.3초 횡단·64요소·10.6% 점유지만 첫 조우 7.1초, open 피해 66.7% | 맵 크기와 spawn 밀도를 한 수치로 상쇄하지 않고 AI 목표/위치 효용을 연결 |
-| POI 교전 유출 | 60/99봇 open 피해 74.5/72.5%, POI 경계 8m 밖 72.6/73.3%. 상위 단일 셀은 6.7% 이하이고 기존 장애물 주변에 분산 | `open=빈 평지` 해석을 금지. 장애물 근접성과 정체를 함께 보고 실제 맵 수정은 nav 원인 확인 뒤 결정 |
+| POI 교전 유출 | 빈 nav 기준 위치 분포는 폐기 대상이다. 실제 nav 60/99봇 open 피해는 73.4/70.4%, loot-hub는 8.4/11.3% | `open=빈 평지` 해석을 금지. 잔여 nav hotspot 제거 뒤 위치 기준선을 다시 확정 |
 | route 오해 | AI가 소비하지 않는 route 표시가 전략 경로처럼 보여 이질감과 오해를 만듦 | route는 진단 분류로만 유지하고 실제 이동 계약 전에는 플레이어에게 표시하지 않음 |
 | 전체 지도 혼잡 | 45도 방향 정렬 후 내부 분석 POI 이름이 중앙에서 겹쳤음 | loot/recovery landmark만 표시하고 transit/concealment 분석 라벨은 숨김 |
 | 플레이어 근접 무시 | 봇끼리의 초반 충돌 유예와 회복 목표가 플레이어 대응을 막았으나 수동 재검증에서 크게 개선 | 수정 계약과 opening smoke 유지, 다음 AI 변경에서도 `duel_1` 근접 대응 회귀 금지 |
-| 테스트 표면 오판 | 72m 고정 스폰 실험 결과를 실제 Night 맵 페이싱으로 확대 해석 | Arena는 재현·회귀용으로만 쓰고 gameplay 결정은 Night 후보에서 재검증 |
+| 테스트 표면 오판 | 96m 고정 스폰 실험 결과를 실제 Night 맵 페이싱으로 확대 해석 | Arena는 재현·회귀용으로만 쓰고 gameplay 결정은 Night 후보에서 재검증 |
 | AI 대상 수명 | 사망한 chase target 타입 판별이 해제 인스턴스 오류를 반복 | context/kind/pickup 판별에서 유효성 확인, 전용 smoke 유지 |
 | 전역 재배치 탐색 비용 | 양측 후보마다 99봇 전체를 순회하자 AI update 411.7→548.8µs, DISENGAGE 623.5→1133.7µs | 코드 제거. Arena 계측 없이 전역 후보 탐색 재시도 금지 |
 | squad 근접 겹침 | 기준선 5-run 중 3회 1.5m 미만. 플레이어 대상 분리 뒤 강제 1.1m 쌍 0.2초 분리, 99봇 정체 0.14→0.12/개체·분 | player-target ATTACK/비loot CHASE와 현재 표적 제외 계약 유지 |
 | 광범위 전투 분리 | 60봇에서 전체 교전에 적용하면 평균 종료 261.5→195.7초, 피해 16.23→22.19/개체·분, 정체 0.14→0.22 | bot-only 이동은 보존하고 플레이어 대상 전투에만 적용 |
 | 60봇 프레임 버벅임 | 변경 전 프레임 p95 45.5ms, 33ms 초과 12.8%. N2-PERF-01 자동 반복은 p95 12.6-13.5ms, 33ms 초과 0.04-0.11%, 수동 재확인에서도 크게 감소 | 현재 개선을 기준선으로 유지. 99봇 확장 whitebox disengage gate 실패와 성능 회귀를 혼동하지 않음 |
-| 99봇 정체 제거 후 소모 | ramp 제거로 raw stuck 64.8→53.2와 해당 gate는 통과했지만 평균 종료 254.3→199.7초, disengage 154.4로 기존 실패 유지 | 정체를 매치 길이 lever로 복원하지 않고 60봇 대표 흐름 보존과 99봇 disengage 원인을 분리 |
+| 99봇 실제 nav 전환 | 빈 nav 대비 평균 종료 199.7→222.9초, stuck 53.2→12.4, AI 평균 473.0→353.6µs. disengage는 166.8회로 기존 실패 유지 | 정체를 매치 길이 lever로 복원하지 않고 `0,40` hotspot과 disengage 원인을 분리 |
 | 시뮬레이션 재현성 | 같은 seed에서도 physics/timer 순서에 따라 525.4초와 909.6초로 갈림 | seed는 입력 추적용으로만 쓰고 후보 판정은 최소 5-run 분포로 수행 |
 | 자산 노이즈 | 생성 원본 풀이 프로젝트 루트에 있음 | 런타임 승격 전까지 untracked 유지 |
 

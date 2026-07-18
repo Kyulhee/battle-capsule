@@ -113,6 +113,7 @@ var map_definition = null
 @onready var world_builder = $WorldBuilder
 
 # Navigation
+const NAVIGATION_SOURCE_GROUP := &"navigation_mesh_source"
 var _nav_region: NavigationRegion3D = null
 
 # v1.8 expansion foundation
@@ -613,6 +614,9 @@ func _setup_navigation():
 	var nav_tuning = MatchRuntimeTuningScript.navigation(match_runtime_tuning)
 	var nav_mesh = NavigationMesh.new()
 	nav_mesh.geometry_parsed_geometry_type = NavigationMesh.PARSED_GEOMETRY_STATIC_COLLIDERS
+	nav_mesh.geometry_source_geometry_mode = NavigationMesh.SOURCE_GEOMETRY_GROUPS_WITH_CHILDREN
+	nav_mesh.geometry_source_group_name = NAVIGATION_SOURCE_GROUP
+	nav_mesh.geometry_collision_mask = 1
 	nav_mesh.agent_height = float(nav_tuning["agent_height"])
 	nav_mesh.agent_radius = float(nav_tuning["agent_radius"])
 	nav_mesh.agent_max_climb = float(nav_tuning["agent_max_climb"])
@@ -623,6 +627,7 @@ func _setup_navigation():
 	_nav_region.name = "NavRegion"
 	_nav_region.navigation_mesh = nav_mesh
 	add_child(_nav_region)
+	world_builder.add_to_group(NAVIGATION_SOURCE_GROUP)
 	_nav_region.bake_finished.connect(func(): print("[NAV] Bake complete"))
 	_nav_region.bake_navigation_mesh()
 	print("[NAV] Baking navigation mesh...")
