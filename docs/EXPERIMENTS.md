@@ -37,6 +37,7 @@
 | E-029 | 국소 분리를 모든 전투에 적용해도 bot-only 흐름이 유지되는가? | 60봇 평균 종료 261.5→195.7초, 피해 16.23→22.19/개체·분, 정체 0.14→0.22. player-target 전용은 99봇 정체 0.14→0.12, AI 평균 +6.1% | 전체 교전 적용 폐기. player-target ATTACK/비loot CHASE에서만 캐시·분리 |
 | E-030 | AI 검색·텔레메트리 주기를 분산·캐시하면 60봇 끊김을 행동 회귀 없이 줄일 수 있는가? | 60봇 p95 45.5→13.5ms, 33ms 초과 12.8→0.04%. 동일 seed 99봇 AI 476→353µs, stuck 0.15→0.16, ATTACK+CHASE -0.58%p | 채택. nav 0.75m 재사용은 ZONE_ESCAPE stuck 0.20을 만들어 0.35m+상태/stuck 재경로로 보완 |
 | E-031 | AI가 POI/route 목적지를 소비하지 않아 확장 맵 교전이 open으로 흐르는가? | 60/99봇 spawn POI 내부 25.7/26.5%, IDLE loot 목표 내부 66.3/67.2%·route 위 약 90%. 피해 open 70-71% | 목적지 미사용 가설 기각. pickup 수렴 뒤 교전 유출로 좁히고 `Central Meadow` 단일 whitebox 진행 |
+| E-032 | `Central Meadow` 가장자리의 고엄폐가 pickup 수렴을 거점 전투로 전환하는가? | 동일 시드 60봇에서 open 피해 71.2→69.5%, loot-hub 피해 9.0→15.8%, normalized stuck 0.20→0.16. 바위 셀 정체 0→15회 | 폐기하고 맵·전용 테스트 제거. 장애물 위치 반복 대신 open 피해 셀·인접 POI를 먼저 계측 |
 
 ## 폐기 패턴
 

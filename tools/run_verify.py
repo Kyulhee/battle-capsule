@@ -72,6 +72,7 @@ def pacing_steps(
     max_run_duration: float | None = None,
     min_avg_first_upgrade: float = 10.0,
     max_missing_first_upgrade: int | None = None,
+    map_spec: str = NIGHT_MAP_SPEC,
 ) -> list[Step]:
     out_dir = out_root / f"game_dev_verify_{preset}"
     scale_gate_args = [
@@ -93,14 +94,21 @@ def pacing_steps(
         scale_gate_args.extend(["--max-missing-first-upgrade", str(max_missing_first_upgrade)])
     return [
         *profile_steps("unit_smoke", godot, runs, out_root),
-        simulate_step(runs, preset, out_dir),
+        simulate_step(runs, preset, out_dir, map_spec),
         Step(f"analyze {label}", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
         Step(f"summarize {label}", [sys.executable, rel("tools/summarize_pacing_baseline.py"), str(out_dir)]),
         Step(f"scale gate {label}", scale_gate_args),
     ]
 
 
-def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_preset: str = "") -> list[Step]:
+def profile_steps(
+    profile: str,
+    godot: str,
+    runs: int,
+    out_root: Path,
+    pacing_preset: str = "",
+    map_spec_path: str = "",
+) -> list[Step]:
     docs_only = [Step("git diff --check", ["git", "diff", "--check"])]
     report_scripts = [
         "tools/analyze_results.py",
@@ -191,9 +199,23 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
     if profile == "pacing_candidate":
         if not pacing_preset:
             raise ValueError("--pacing-preset is required for pacing_candidate.")
+        if not map_spec_path:
+            raise ValueError("--map-spec-path is required for pacing_candidate.")
         if runs < 5:
             raise ValueError("pacing_candidate requires at least 5 runs because fixed RNG seeds are not physics-deterministic.")
-        return pacing_steps("pacing_candidate", pacing_preset, godot, runs, out_root, 540.0, None, None, 120.0, 0)
+        return pacing_steps(
+            "pacing_candidate",
+            pacing_preset,
+            godot,
+            runs,
+            out_root,
+            540.0,
+            None,
+            None,
+            120.0,
+            0,
+            map_spec_path,
+        )
 
     if profile == "scale_99":
         out_dir = out_root / "game_dev_verify_scale_99"
@@ -245,6 +267,7 @@ def main() -> int:
         required=True,
     )
     parser.add_argument("--pacing-preset", default="", help="Scale preset for --profile pacing_candidate.")
+    parser.add_argument("--map-spec-path", default="", help="Explicit res:// map path for --profile pacing_candidate.")
     parser.add_argument("--runs", type=int, default=5, help="Run count for simulation profiles.")
     parser.add_argument("--out-root", default=str(DEFAULT_OUT_ROOT))
     parser.add_argument("--godot", default=str(DEFAULT_GODOT))
@@ -253,7 +276,14 @@ def main() -> int:
     args = parser.parse_args()
 
     try:
-        steps = profile_steps(args.profile, args.godot, max(1, args.runs), Path(args.out_root), args.pacing_preset)
+        steps = profile_steps(
+            args.profile,
+            args.godot,
+            max(1, args.runs),
+            Path(args.out_root),
+            args.pacing_preset,
+            args.map_spec_path,
+        )
     except ValueError as exc:
         parser.error(str(exc))
     failures = 0

@@ -21,8 +21,8 @@ python tools\run_verify.py --profile unit_smoke
 python tools\run_verify.py --profile ai_test_arena
 python tools\run_verify.py --profile pacing_v2
 python tools\run_verify.py --profile pacing_v3
-python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v4 --runs 5 --out-root C:\tmp\run_name
-python tools\run_verify.py --profile pacing_candidate --pacing-preset playable_pacing_v5 --runs 5 --out-root C:\tmp\run_name
+python tools\run_verify.py --profile pacing_candidate --map-spec-path res://data/mapSpec_night_forest_candidate.json --pacing-preset playable_pacing_v4 --runs 5 --out-root C:\tmp\run_name
+python tools\run_verify.py --profile pacing_candidate --map-spec-path res://data/mapSpec_night_forest_candidate.json --pacing-preset playable_pacing_v5 --runs 5 --out-root C:\tmp\run_name
 python tools\run_verify.py --profile scale_99 --runs 5
 python tools\run_verify.py --profile visual_review
 ```
@@ -43,6 +43,7 @@ python tools\run_verify.py --profile visual_review
 
 `pacing_candidate`는 다음을 요구한다.
 
+- 명시적 `--map-spec-path`: 후보와 다른 기본 맵으로 실행되는 일을 금지
 - 최소 run 수: 5
 - avg duration: 540초 이상
 - avg first upgrade: 120초 이상
