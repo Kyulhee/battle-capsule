@@ -68,6 +68,18 @@
         }
       }
     },
+    "rock_nav_1": {
+      "match": {
+        "bot_count": 1,
+        "loot_count": 0,
+        "spawn_radius": 28.0
+      },
+      "runtime": {
+        "spawn": {
+          "fixed_positions": [[-19.0, -24.0], [-19.0, 0.0]]
+        }
+      }
+    },
     "squad_4": {
       "match": {
         "bot_count": 4,
@@ -134,7 +146,7 @@
   "obstacles": [
     { "type": "canyon_wall", "pos": [-14, 0], "scale": [1.2, 3.2, 7.0], "rot": 0 },
     { "type": "canyon_wall", "pos": [-24, 0], "scale": [1.2, 3.2, 7.0], "rot": 0 },
-    { "type": "rock_cluster", "pos": [-19, -12], "scale": [2.0, 3.0, 2.0], "rot": 0 },
+    { "type": "rock_cluster", "pos": [-19, -12], "scale": [3.5, 3.0, 3.2], "rot": 0 },
     { "type": "rock_cluster", "pos": [-19, 12], "scale": [2.0, 3.0, 2.0], "rot": 0 },
 
     { "type": "bush_patch", "pos": [14, 0], "scale": [2.6, 1.0, 3.0], "rot": 0 },

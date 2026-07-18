@@ -282,35 +282,6 @@ func _build_rock_cluster(parent: Node3D, pos: Array, scale_vec: Array):
 		var ps = rng.randf_range(0.55, 1.05) * footprint_mult
 		_add_rock_piece(root, Vector3(px, 0, pz), Vector3(ps, ph, ps), rng, col_layer)
 
-	# Ramp on high clusters so players can climb up
-	if high:
-		var ramp_angle = rng.randf_range(0, TAU)
-		var ramp_cx = cos(ramp_angle)
-		var ramp_cz = sin(ramp_angle)
-		var ramp_y_rot = atan2(ramp_cx, ramp_cz)
-
-		var ramp_body = StaticBody3D.new()
-		root.add_child(ramp_body)
-		ramp_body.position = Vector3(ramp_cx * 1.8 * footprint_mult, base_height * 0.35, ramp_cz * 1.8 * footprint_mult)
-		ramp_body.rotation.y = ramp_y_rot
-		ramp_body.rotation.x = deg_to_rad(26.0)
-		ramp_body.collision_layer = 1
-
-		var ramp_mesh = MeshInstance3D.new()
-		var rmesh = BoxMesh.new()
-		rmesh.size = Vector3(1.6 * footprint_mult, 0.18, 2.2 * footprint_mult)
-		var rmat = StandardMaterial3D.new()
-		rmat.albedo_color = Color(0.42, 0.39, 0.34)
-		rmesh.surface_set_material(0, rmat)
-		ramp_mesh.mesh = rmesh
-		ramp_body.add_child(ramp_mesh)
-
-		var ramp_col = CollisionShape3D.new()
-		var rshape = BoxShape3D.new()
-		rshape.size = Vector3(1.6 * footprint_mult, 0.18, 2.2 * footprint_mult)
-		ramp_col.shape = rshape
-		ramp_body.add_child(ramp_col)
-
 func _add_rock_piece(parent: Node3D, local_pos: Vector3, size: Vector3, rng: RandomNumberGenerator, col_layer: int):
 	var body = StaticBody3D.new()
 	parent.add_child(body)

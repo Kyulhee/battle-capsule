@@ -5,6 +5,7 @@ const MAP_PATH := "res://data/mapSpec_ai_test_arena.json"
 const PRESET_EXPECTATIONS := {
 	"baseline": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
 	"duel_1": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
+	"rock_nav_1": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
 	"squad_4": {"bots": 4, "loot": 6, "fixed": 5, "initial_loot": true},
 	"systems_8": {"bots": 8, "loot": 12, "fixed": 9, "initial_loot": true},
 	"random_8": {"bots": 8, "loot": 12, "fixed": 0, "initial_loot": true},
@@ -41,7 +42,7 @@ func _run() -> void:
 	if not _verify_runtime_duel_spawn(definition, game_config):
 		return
 
-	print("AI test arena smoke passed: world=72m presets=5 duel fixed=2.")
+	print("AI test arena smoke passed: world=72m presets=6 duel/nav fixed=2.")
 	quit(0)
 
 

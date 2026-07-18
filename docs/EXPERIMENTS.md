@@ -39,6 +39,7 @@
 | E-031 | AI가 POI/route 목적지를 소비하지 않아 확장 맵 교전이 open으로 흐르는가? | 60/99봇 spawn POI 내부 25.7/26.5%, IDLE loot 목표 내부 66.3/67.2%·route 위 약 90%. 피해 open 70-71% | 목적지 미사용 가설 기각. pickup 수렴 뒤 교전 유출로 좁히고 `Central Meadow` 단일 whitebox 진행 |
 | E-032 | `Central Meadow` 가장자리의 고엄폐가 pickup 수렴을 거점 전투로 전환하는가? | 동일 시드 60봇에서 open 피해 71.2→69.5%, loot-hub 피해 9.0→15.8%, normalized stuck 0.20→0.16. 바위 셀 정체 0→15회 | 폐기하고 맵·전용 테스트 제거. 장애물 위치 반복 대신 open 피해 셀·인접 POI를 먼저 계측 |
 | E-033 | open 피해 70%대는 특정 POI 경계의 빈 평지로 전투가 새는 현상인가? | 60/99봇 open 피해 74.5/72.5%, 경계 8m 밖 72.6/73.3%. 상위 셀은 6.7% 이하이며 기존 두 high rock 셀이 open 피해 10-11%·정체 15-23%를 함께 차지 | 단일 경계 가설 기각. `open=POI 밖`으로 해석하고 Arena에서 high rock ramp·nav를 먼저 격리 |
+| E-034 | high `rock_cluster`의 climb ramp가 반복 정체의 공통 원인인가? | ramp 포함 Arena 24→14.19m/stuck 3, 제거 뒤 5/5회 24→2.8-3.0m/stuck 1. 60봇 rock 셀 32→15·duration 유지, 99봇 74→22·raw stuck 64.8→53.2 | ramp 제거 채택. NavigationObstacle/proxy/agent radius는 추가 이득 없어 폐기. 99 disengage 154.4는 별도 문제 |
 
 ## 폐기 패턴
 

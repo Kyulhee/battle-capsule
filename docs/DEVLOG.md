@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-18. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-NAV-01 high rock ramp 정체 제거
+
+- 재현: Night와 같은 `[3.5,3.0,3.2]` high rock 양쪽 24m 고정 CHASE를 Arena에 추가했다. 기존 ramp는 14.19m에서 멈추고 stuck 3회를 만들었다.
+- 수정: 시각 rock 조각과 충돌은 유지하고 high cluster의 climb ramp만 제거했다. NavigationObstacle, 단순 proxy, agent radius 증가는 추가 이득이 없어 제외했다.
+- 검증: Arena 5/5회 2.8-3.0m까지 횡단·stuck 1회, `unit_smoke` 통과. runtime 실제 캡처에서 외형 유지 확인.
+- Night: 60봇 두 rock 셀 32→15회, 전체 stuck 42.2→39.0, duration 224.3→225.1초. 99봇 rock 셀 74→22회, raw stuck 64.8→53.2로 gate 통과했지만 disengage 154.4는 실패 유지.
+- 하네스: duel/rock-nav/squad runtime은 `simulation_seed=41000`으로 고정해 archetype 변동 실패를 차단했다.
+
 ## N2-MAP-07 open 전투 누출 위치 감사
 
 - 구현: 실제 체력 피해 중 POI 밖 이벤트를 `10m 셀|인접 POI|경계 대역` 복합 키 하나로 누적하고 분석기·요약기에서 오프라인 분해한다. Bot의 중복 전략 문맥은 Entity 구현으로 통합했다.
