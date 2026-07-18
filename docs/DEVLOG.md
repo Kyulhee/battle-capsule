@@ -2,6 +2,13 @@
 
 > 최종 업데이트: 2026-07-18. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-AI-07 POI 목적지 수렴 감사
+
+- 구현: spawn 반경 대역·POI·route 점유를 한 번 계산하는 `SpawnDistributionMetrics`를 분리하고 loot 목적지 POI 이름을 JSON과 분석기에 연결했다.
+- 결과: 60/99봇 spawn은 POI 내부 25.7/26.5%, IDLE loot 목표는 66.3/67.2%가 내부이고 약 90%가 route 위였다. 전투 피해는 open 70-71%였다.
+- 판단: AI가 pickup 배치를 소비하지 않는 것이 아니라 POI에서 교전이 개방지로 유출된다. 단일 99봇 진단에서 `Central Meadow`가 IDLE loot 113/300으로 가장 커 다음 whitebox 대상으로 정했다.
+- 검증: `unit_smoke` 통과. 60/99봇 각 5-run 완료. 99봇 gate는 기존 구조 실패인 stuck 75.4>60, disengage 156.4>130을 유지했다.
+
 ## N2-PLAY-02 60봇 성능 수동 통과
 
 - 표면: 확장 Night whitebox `xlarge_60`, 사용자 직접 플레이.

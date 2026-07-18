@@ -108,6 +108,15 @@ def tactics_counter(results: list[dict], key: str) -> Counter:
     return counter
 
 
+def spawn_counter(results: list[dict], key: str) -> Counter:
+    counter = Counter()
+    for result in results:
+        values = result.get("spawn", {}).get(key, {})
+        if isinstance(values, dict):
+            counter.update({name: float(value) for name, value in values.items()})
+    return counter
+
+
 def doctrine_context_counter(results: list[dict], key: str, context: str) -> Counter:
     counter = Counter()
     for run in results:
@@ -688,6 +697,10 @@ if __name__ == "__main__":
         avg_attempts = [float(s.get("avg_attempts", 0.0)) for s in spawn_runs]
         max_attempts = [int(s.get("attempt_max", 0)) for s in spawn_runs]
         saturation = [float(s.get("annulus_saturation", 0.0)) for s in spawn_runs]
+        avg_origin = [float(s.get("avg_origin_distance", 0.0)) for s in spawn_runs]
+        radial_inner_half = [float(s.get("radial_inner_half_share", 0.0)) for s in spawn_runs]
+        inside_poi = [float(s.get("inside_poi_share", 0.0)) for s in spawn_runs]
+        on_route = [float(s.get("on_route_share", 0.0)) for s in spawn_runs]
         print(
             "Spawn distribution: placed={:.1f}/{:.1f}, fallback={:.1f}/run, min_nearest avg/min={:.1f}/{:.1f}m, avg_nearest={:.1f}m".format(
                 avg(placed),
@@ -703,6 +716,21 @@ if __name__ == "__main__":
                 avg(avg_attempts),
                 max(max_attempts),
                 avg(saturation),
+            )
+        )
+        print(
+            "Spawn strategic distribution: avg_radius={:.1f}m, inner_half={:.1f}%, inside_poi={:.1f}%, on_route={:.1f}%".format(
+                avg(avg_origin),
+                avg(radial_inner_half) * 100.0,
+                avg(inside_poi) * 100.0,
+                avg(on_route) * 100.0,
+            )
+        )
+        print(
+            "Spawn strategic mix: radial=[{}], poi=[{}], route=[{}]".format(
+                format_counter_mix(spawn_counter(results, "origin_band_counts")),
+                format_counter_mix(spawn_counter(results, "poi_role_counts")),
+                format_counter_mix(spawn_counter(results, "route_role_counts")),
             )
         )
     if first_upgrade:
@@ -999,6 +1027,11 @@ if __name__ == "__main__":
         print(
             "Loot objective detail/match by source: {}".format(
                 format_source_mix(results, "loot_objective_detail_match_by_source", objective_sources)
+            )
+        )
+        print(
+            "Loot objective nearest POI by source: {}".format(
+                format_source_mix(results, "loot_objective_target_nearest_poi_name_by_source", objective_sources)
             )
         )
         print(

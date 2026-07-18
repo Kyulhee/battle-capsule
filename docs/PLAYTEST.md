@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` 비기본 whitebox |
 | 권장 preset | `xlarge_60` 임시 대표 수동 표면. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 초점 | AI 목적지 결정, 외곽 픽업 이동, 장애물 가림 |
+| 현재 초점 | `Central Meadow` pickup 접근, 교전 유출, 장애물 가림 |
 
 ## 수동 체크리스트
 

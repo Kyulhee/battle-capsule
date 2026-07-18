@@ -91,6 +91,7 @@ const MatchBootstrapScript = preload("res://src/systems/match/MatchBootstrap.gd"
 const MatchRuntimeTuningScript = preload("res://src/systems/match/MatchRuntimeTuning.gd")
 const MatchTuningScript = preload("res://src/systems/match/MatchTuning.gd")
 const SimulationParticipantsScript = preload("res://src/systems/match/SimulationParticipants.gd")
+const SpawnDistributionMetricsScript = preload("res://src/systems/match/SpawnDistributionMetrics.gd")
 const MissionTrackerScript = preload("res://src/systems/mission/MissionTracker.gd")
 const MissionTuningScript = preload("res://src/systems/mission/MissionTuning.gd")
 const NightWorldReadabilityScript = preload("res://src/environment/NightWorldReadability.gd")
@@ -840,50 +841,19 @@ func _log_spawn_distribution_metrics():
 
 func _spawn_distribution_summary() -> Dictionary:
 	var spawn_tuning = MatchRuntimeTuningScript.spawn(match_runtime_tuning)
-	var count = _spawn_positions.size()
-	var inner_radius = float(spawn_tuning["inner_radius"])
-	var clearance = float(spawn_tuning["entity_clearance"])
-	var min_nearest = INF
-	var nearest_total = 0.0
-	var min_origin = INF
-	var max_origin = 0.0
-	var origin_total = 0.0
-	for i in range(count):
-		var pos = Vector2(_spawn_positions[i].x, _spawn_positions[i].z)
-		var origin_dist = pos.length()
-		min_origin = minf(min_origin, origin_dist)
-		max_origin = maxf(max_origin, origin_dist)
-		origin_total += origin_dist
-		var nearest = INF
-		for j in range(count):
-			if i == j:
-				continue
-			var other = Vector2(_spawn_positions[j].x, _spawn_positions[j].z)
-			nearest = minf(nearest, pos.distance_to(other))
-		if nearest < INF:
-			min_nearest = minf(min_nearest, nearest)
-			nearest_total += nearest
-	var annulus_area = maxf(1.0, PI * maxf(1.0, spawn_radius * spawn_radius - inner_radius * inner_radius))
-	var clearance_area = PI * clearance * clearance * count
-	return {
-		"requested_count": SimulationParticipantsScript.initial_alive_count(bot_count, is_simulation),
-		"placed_count": count,
-		"spawn_radius": spawn_radius,
-		"inner_radius": inner_radius,
-		"entity_clearance": clearance,
-		"world_size": map_definition.get_world_size() if map_definition and map_definition.has_method("get_world_size") else 0.0,
-		"fallback_count": _spawn_fallback_count,
-		"attempt_total": _spawn_attempt_total,
-		"attempt_max": _spawn_attempt_max,
-		"fixed_count": _fixed_spawn_count,
-		"avg_attempts": float(_spawn_attempt_total) / max(1, count),
-		"min_nearest_distance": min_nearest if min_nearest < INF else 0.0,
-		"avg_nearest_distance": nearest_total / max(1, count),
-		"min_origin_distance": min_origin if min_origin < INF else 0.0,
-		"avg_origin_distance": origin_total / max(1, count),
-		"max_origin_distance": max_origin,
-		"annulus_saturation": clearance_area / annulus_area,
-	}
+	return SpawnDistributionMetricsScript.summarize(
+		_spawn_positions,
+		SimulationParticipantsScript.initial_alive_count(bot_count, is_simulation),
+		spawn_radius,
+		float(spawn_tuning["inner_radius"]),
+		float(spawn_tuning["entity_clearance"]),
+		map_definition.get_world_size() if map_definition and map_definition.has_method("get_world_size") else 0.0,
+		_spawn_fallback_count,
+		_spawn_attempt_total,
+		_spawn_attempt_max,
+		_fixed_spawn_count,
+		map_definition
+	)
 
 func _is_clear_of_entities(pos: Vector2, min_dist: float = -1.0) -> bool:
 	if min_dist < 0.0:

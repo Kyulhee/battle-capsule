@@ -124,6 +124,7 @@ def profile_steps(profile: str, godot: str, runs: int, out_root: Path, pacing_pr
             godot_script(godot, "verify_pacing_telemetry.gd"),
             godot_script(godot, "verify_playable_pacing_preset.gd"),
             godot_script(godot, "verify_zone_initial_radius_tuning.gd"),
+            godot_script(godot, "verify_spawn_distribution_metrics.gd"),
             godot_script(godot, "verify_bot_opening_loot_rules.gd"),
             godot_script(godot, "verify_bot_runtime_combat.gd"),
             godot_script(godot, "verify_bot_target_lifetime.gd"),

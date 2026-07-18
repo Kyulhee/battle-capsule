@@ -403,6 +403,13 @@ def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None
     saturation = numeric_values(runs, "spawn", "annulus_saturation")
     avg_attempts = numeric_values(runs, "spawn", "avg_attempts")
     max_attempts = numeric_values(runs, "spawn", "attempt_max")
+    avg_origin = numeric_values(runs, "spawn", "avg_origin_distance")
+    radial_inner_half = numeric_values(runs, "spawn", "radial_inner_half_share")
+    inside_poi = numeric_values(runs, "spawn", "inside_poi_share")
+    on_route = numeric_values(runs, "spawn", "on_route_share")
+    origin_bands = counter_from_group(runs, "spawn", "origin_band_counts")
+    poi_roles = counter_from_group(runs, "spawn", "poi_role_counts")
+    route_roles = counter_from_group(runs, "spawn", "route_role_counts")
     first_acquisition = positive_values(runs, "pacing", "first_target_acquisition_time")
     first_acquisition_distance = positive_values(runs, "pacing", "first_target_acquisition_distance")
     acquisition_sources = string_counter(runs, "pacing", "first_target_acquisition_source")
@@ -436,6 +443,21 @@ def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None
         print(
             "  spawn packing: "
             f"saturation={saturation_text}, attempts={avg_attempts_text}/{max_attempts_text} max"
+        )
+    if avg_origin or radial_inner_half or inside_poi or on_route:
+        avg_origin_text = f"{avg(avg_origin):.1f}m" if avg_origin else "none"
+        inner_half_text = f"{avg(radial_inner_half) * 100.0:.1f}%" if radial_inner_half else "none"
+        inside_poi_text = f"{avg(inside_poi) * 100.0:.1f}%" if inside_poi else "none"
+        on_route_text = f"{avg(on_route) * 100.0:.1f}%" if on_route else "none"
+        print(
+            "  spawn strategic distribution: "
+            f"avg-radius={avg_origin_text}, inner-half={inner_half_text}, "
+            f"inside-poi={inside_poi_text}, on-route={on_route_text}"
+        )
+        print(
+            "  spawn strategic mix: "
+            f"radial=[{format_mix(origin_bands)}], "
+            f"poi=[{format_mix(poi_roles)}], route=[{format_mix(route_roles)}]"
         )
     if first_acquisition:
         print(

@@ -251,6 +251,7 @@ func _reset_metrics():
 			"fallback_count": 0,
 			"attempt_total": 0,
 			"attempt_max": 0,
+			"fixed_count": 0,
 			"avg_attempts": 0.0,
 			"min_nearest_distance": 0.0,
 			"avg_nearest_distance": 0.0,
@@ -258,6 +259,18 @@ func _reset_metrics():
 			"avg_origin_distance": 0.0,
 			"max_origin_distance": 0.0,
 			"annulus_saturation": 0.0,
+			"origin_band_counts": {},
+			"radial_inner_half_count": 0,
+			"radial_inner_half_share": 0.0,
+			"inside_poi_count": 0,
+			"inside_poi_share": 0.0,
+			"on_route_count": 0,
+			"on_route_share": 0.0,
+			"poi_role_counts": {},
+			"poi_name_counts": {},
+			"nearest_poi_role_counts": {},
+			"route_role_counts": {},
+			"nearest_route_role_counts": {},
 		},
 		# hell
 		"hell": {
@@ -347,6 +360,7 @@ func _reset_metrics():
 			"loot_objective_weapon_match_by_source": {},
 			"loot_objective_detail_match_by_source": {},
 			"loot_objective_target_poi_role_by_source": {},
+			"loot_objective_target_nearest_poi_name_by_source": {},
 			"loot_objective_target_route_role_by_source": {},
 			"loot_objective_route_kind_by_source": {},
 			"loot_objective_route_detail_by_source": {},
@@ -1068,6 +1082,12 @@ func log_doctrine_loot_objective_start(
 		metrics.doctrine.loot_objective_target_poi_role_by_source,
 		source_key,
 		String(target_context.get("poi_role", "open")),
+		1.0
+	)
+	_add_nested_bucket_value(
+		metrics.doctrine.loot_objective_target_nearest_poi_name_by_source,
+		source_key,
+		_normalized_key(String(target_context.get("nearest_poi_name", "none")), "none"),
 		1.0
 	)
 	_add_nested_bucket_value(

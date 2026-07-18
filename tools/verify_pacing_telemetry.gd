@@ -68,6 +68,30 @@ func _verify_pacing_schema_and_hooks() -> bool:
 			"zone_status": "edge",
 		}
 	)
+	tel.log_doctrine_loot_objective_start(
+		"AGGRESSIVE",
+		"idle_loot",
+		"loot",
+		"IDLE",
+		"pickup_weapon",
+		{
+			"poi_role": "loot_hub",
+			"poi_name": "Supply Flats",
+			"poi_inside": true,
+			"nearest_poi_role": "loot_hub",
+			"nearest_poi_name": "Supply Flats",
+			"nearest_poi_edge_distance": 0.0,
+			"route_role": "primary_choke",
+			"nearest_route_role": "primary_choke",
+			"nearest_route_edge_distance": 0.0,
+		},
+		6.0,
+		{
+			"need": "opportunity",
+			"target_match": "weapon_new_type",
+			"target_detail": "weapon_ar",
+		}
+	)
 	tel.log_doctrine_objective_enemy_interrupt(
 		"AGGRESSIVE",
 		"idle_loot",
@@ -75,7 +99,9 @@ func _verify_pacing_schema_and_hooks() -> bool:
 		"pickup_weapon",
 		{
 			"poi_role": "loot_hub",
+			"poi_name": "Supply Flats",
 			"nearest_poi_role": "loot_hub",
+			"nearest_poi_name": "Supply Flats",
 			"nearest_poi_edge_distance": 0.0,
 			"route_role": "primary_choke",
 			"nearest_route_role": "primary_choke",
@@ -204,6 +230,9 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if String(pacing.first_objective_interrupt_target_match) != "weapon_new_type":
 		tel.free()
 		return _fail("Pacing did not record first objective interrupt target match.")
+	if int(tel.metrics.doctrine.loot_objective_target_nearest_poi_name_by_source.get("idle_loot", {}).get("supply flats", 0)) != 1:
+		tel.free()
+		return _fail("Doctrine did not preserve the loot objective POI name.")
 	if absf(float(pacing.first_objective_interrupt_enemy_distance) - 14.0) > 0.001:
 		tel.free()
 		return _fail("Pacing did not record first objective interrupt enemy distance.")
