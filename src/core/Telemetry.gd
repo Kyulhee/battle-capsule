@@ -114,6 +114,7 @@ func _reset_metrics():
 			"hit_location_by_route_id": {},
 			"damage_location_by_route_id": {},
 			"kill_location_by_route_id": {},
+			"open_damage_by_context": {},
 			"attack_max_continuous": 0.0,
 			"attack_disengage_count": 0,
 		},
@@ -473,6 +474,12 @@ func log_combat_location(event: String, amount: float, context: Dictionary):
 				_add_bucket_value(metrics.combat.damage_location_by_poi_role, poi_role, amount)
 				_add_bucket_value(metrics.combat.damage_location_by_route_role, route_role, amount)
 				_add_bucket_value(metrics.combat.damage_location_by_route_id, route_id, amount)
+				if poi_role == "open":
+					var cell_key := String(context.get("cell", "unknown"))
+					var nearest_poi_name := _normalized_key(String(context.get("nearest_poi_name", "none")), "none")
+					var poi_edge_band := _poi_distance_band(context)
+					var open_context_key := "%s|%s|%s" % [cell_key, nearest_poi_name, poi_edge_band]
+					_add_bucket_value(metrics.combat.open_damage_by_context, open_context_key, amount)
 		"kill":
 			_record_first_pacing_time("first_kill_time")
 			_add_bucket_count(metrics.combat.kill_location_by_poi_role, poi_role)

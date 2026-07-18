@@ -99,6 +99,28 @@ def combat_location_counter(results: list[dict], key: str) -> Counter:
     return counter
 
 
+def open_damage_context_counters(results: list[dict]) -> tuple[Counter, Counter, Counter, Counter]:
+    cells = Counter()
+    nearest_pois = Counter()
+    edge_bands = Counter()
+    contexts = Counter()
+    for run in results:
+        values = run.get("combat", {}).get("open_damage_by_context", {})
+        if not isinstance(values, dict):
+            continue
+        for raw_context, raw_value in values.items():
+            parts = str(raw_context).split("|", 2)
+            if len(parts) != 3:
+                continue
+            cell, nearest_poi, edge_band = parts
+            value = float(raw_value)
+            cells[cell] += value
+            nearest_pois[nearest_poi] += value
+            edge_bands[edge_band] += value
+            contexts[f"{cell}->{nearest_poi}/{edge_band}"] += value
+    return cells, nearest_pois, edge_bands, contexts
+
+
 def tactics_counter(results: list[dict], key: str) -> Counter:
     counter = Counter()
     for run in results:
@@ -647,6 +669,9 @@ if __name__ == "__main__":
     damage_route_roles = combat_location_counter(results, "damage_location_by_route_role")
     kill_route_roles = combat_location_counter(results, "kill_location_by_route_role")
     damage_route_ids = combat_location_counter(results, "damage_location_by_route_id")
+    open_damage_cells, open_damage_nearest_pois, open_damage_edge_bands, open_damage_contexts = (
+        open_damage_context_counters(results)
+    )
     if hit_poi_roles or damage_poi_roles or kill_poi_roles:
         print(
             "Combat location by POI role: hits=[{}], damage=[{}], kills=[{}]".format(
@@ -662,6 +687,15 @@ if __name__ == "__main__":
                 format_counter_mix(damage_route_roles),
                 format_counter_mix(kill_route_roles),
                 format_counter_mix(damage_route_ids),
+            )
+        )
+    if open_damage_cells or open_damage_nearest_pois or open_damage_edge_bands:
+        print(
+            "Open combat leak: cells=[{}], nearest POIs=[{}], edge bands=[{}], contexts=[{}]".format(
+                format_counter_mix(open_damage_cells),
+                format_counter_mix(open_damage_nearest_pois),
+                format_counter_mix(open_damage_edge_bands),
+                format_counter_mix(open_damage_contexts),
             )
         )
     print(

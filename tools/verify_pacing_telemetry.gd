@@ -124,9 +124,12 @@ func _verify_pacing_schema_and_hooks() -> bool:
 		}
 	)
 	tel.log_combat_location("damage", 12.0, {
-		"poi_role": "transit_choke",
+		"poi_role": "open",
 		"route_role": "primary_choke",
 		"route_id": "sluice_direct_crossing",
+		"nearest_poi_name": "Central Meadow",
+		"nearest_poi_edge_distance": 5.0,
+		"cell": "10,20",
 	})
 	tel.log_combat_location("kill", 0.0, {
 		"poi_role": "transit_choke",
@@ -245,6 +248,10 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if float(pacing.first_kill_time) < 0.0:
 		tel.free()
 		return _fail("Pacing did not record first kill time.")
+	var open_context_key := "10,20|central meadow|near_4_8m"
+	if absf(float(tel.metrics.combat.open_damage_by_context.get(open_context_key, 0.0)) - 12.0) > 0.001:
+		tel.free()
+		return _fail("Combat telemetry did not preserve the open damage cell context.")
 	if String(pacing.first_non_pistol_upgrade_weapon) != "shotgun":
 		tel.free()
 		return _fail("Pacing did not mirror first non-pistol upgrade.")

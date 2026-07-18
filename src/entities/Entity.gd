@@ -452,16 +452,25 @@ func _is_combat_damage_source(source: String) -> bool:
 	return source == "gun" or source == "melee"
 
 func _strategic_position_context(world_pos: Vector3) -> Dictionary:
+	var cell_key := _combat_cell_key(world_pos)
 	var context := {
 		"poi_role": "open",
 		"poi_name": "none",
 		"route_role": "off_route",
 		"route_id": "off_route",
+		"cell": cell_key,
 	}
 	var main = get_tree().root.get_node_or_null("Main")
 	if not main:
 		return context
 	var definition = main.get("map_definition")
 	if definition and definition.has_method("describe_strategic_position"):
-		return definition.describe_strategic_position(Vector2(world_pos.x, world_pos.z))
+		var described: Dictionary = definition.describe_strategic_position(Vector2(world_pos.x, world_pos.z))
+		described["cell"] = cell_key
+		return described
 	return context
+
+func _combat_cell_key(world_pos: Vector3) -> String:
+	var cell_x := int(floor(world_pos.x / 10.0)) * 10
+	var cell_z := int(floor(world_pos.z / 10.0)) * 10
+	return "%d,%d" % [cell_x, cell_z]

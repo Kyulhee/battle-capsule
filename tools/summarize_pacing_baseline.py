@@ -205,6 +205,28 @@ def counter_from_group(runs: list[dict], group: str, key: str) -> Counter:
     return counter
 
 
+def open_damage_context_counters(runs: list[dict]) -> tuple[Counter, Counter, Counter, Counter]:
+    cells = Counter()
+    nearest_pois = Counter()
+    edge_bands = Counter()
+    contexts = Counter()
+    for run in runs:
+        values = run.get("combat", {}).get("open_damage_by_context", {})
+        if not isinstance(values, dict):
+            continue
+        for raw_context, raw_value in values.items():
+            parts = str(raw_context).split("|", 2)
+            if len(parts) != 3:
+                continue
+            cell, nearest_poi, edge_band = parts
+            value = float(raw_value)
+            cells[cell] += value
+            nearest_pois[nearest_poi] += value
+            edge_bands[edge_band] += value
+            contexts[f"{cell}->{nearest_poi}/{edge_band}"] += value
+    return cells, nearest_pois, edge_bands, contexts
+
+
 def nested_counter(runs: list[dict], group: str, key: str) -> Counter:
     counter = Counter()
     for run in runs:
@@ -523,6 +545,9 @@ def main() -> int:
     target_route = nested_counter(runs, "doctrine", "chase_target_route_role_by_context")
     stuck_cells = counter_from_group(runs, "tactics", "stuck_by_cell")
     stuck_routes = counter_from_group(runs, "tactics", "stuck_by_route_id")
+    open_damage_cells, open_damage_nearest_pois, open_damage_edge_bands, open_damage_contexts = (
+        open_damage_context_counters(runs)
+    )
 
     print("--- Pacing Baseline Report ---")
     print(f"Runs: {len(runs)}")
@@ -554,6 +579,12 @@ def main() -> int:
     print(f"  CHASE context dwell: {format_mix(chase_context)}")
     print(f"  self route dwell: {format_mix(self_route)}")
     print(f"  target route dwell: {format_mix(target_route)}")
+    if open_damage_cells or open_damage_nearest_pois or open_damage_edge_bands:
+        print("Open combat leak:")
+        print(f"  cells: {format_mix(open_damage_cells)}")
+        print(f"  nearest POIs: {format_mix(open_damage_nearest_pois)}")
+        print(f"  POI edge bands: {format_mix(open_damage_edge_bands)}")
+        print(f"  cell contexts: {format_mix(open_damage_contexts)}")
     if stuck_cells or stuck_routes:
         print("Pathing watch:")
         print(f"  stuck route ids: {format_mix(stuck_routes)}")
