@@ -15,8 +15,8 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | N2-MAP-09 비-rock 엄폐 primitive와 다중 traffic Arena gate |
-| 최신 검증 개발 단위 | N2-MAP-08 `Central Meadow` 동쪽 high rock 재검증·재기각 |
+| 현재 단위 | N2-NAV-02 Box 장애물 corner clearance와 wall traffic stuck 0 |
+| 최신 검증 개발 단위 | N2-MAP-09 96m Arena 다중 traffic gate와 중앙 wall 후보 기각 |
 | 최신 검증 게임플레이 단위 | N2-PLAY-02: 조우·간격·공격·추적·사망 압박 적절, N2-PERF-01 뒤 체감 버벅임도 크게 감소 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
@@ -38,7 +38,7 @@
 | P1 | AI 교전 결정 재설계 | 완료: 플레이어 목표 기억·국소 분산과 Night 60/99봇 회귀 통과 |
 | P2 | 수동 플레이 기준 승격 | 완료: `xlarge_60` AI 전투와 N2-PERF-01 뒤 성능 체감 통과 |
 | P3 | 야간 가독성 개선 | 완료: T3 1차, Night 전용 주변광/달빛과 deterministic 대비 gate 적용 |
-| P4 | 맵/경로 체감 점검 | high rock 재배치 종료. 비-rock 엄폐를 다중 traffic gate에서 먼저 비교 |
+| P4 | 맵/경로 체감 점검 | open/wall 다중 traffic 재현 완료. Box corner 정체를 0으로 만든 뒤 맵 재시도 |
 | P5 | 자산 승격 | 대기: 맵 규모·지형 구조 확정 전 landmark 선정을 시작하지 않는다 |
 | P6 | 기술 부채 정리 | 상시: T6, 닿는 도메인만 작은 추출 |
 
@@ -57,7 +57,7 @@
 | 매치 길이 | bot-only v6 평균 465.1초지만 수동 플레이어는 오히려 너무 오래 생존 | bot-vs-bot 과소모와 bot-vs-player 과소압박을 분리하고 단일 수치로 함께 고치지 않음 |
 | stage1 과소모 | post-kill 획득은 132.4→56.4회로 줄었지만 사망은 95.6명 유지 | acquisition source가 아니라 구조적 encounter density를 화면·맵 흐름에서 확인 |
 | 최종 2인 교착 | observer 분리 뒤 ATTACK 최대 16.0초로 정상화 | 이전 245.5초는 하네스 오염으로 폐기 |
-| 경로 이탈 | ramp 제거 뒤 1대1 횡단은 통과했지만 중앙 동쪽 high rock은 60봇 `10,10` 셀 정체를 0→5회, 별도 seed에서 14회 생성 | high rock 추가 배치 금지. 다음 엄폐는 1대1과 다중 traffic을 모두 통과해야 제품 맵에 넣음 |
+| 경로 이탈 | Arena open 4봇은 stuck 0, 축 정렬 폭 4m wall은 2회. 제품 중앙 wall은 60봇 `10,10` 셀 0→16회 | wall traffic을 stuck 0으로 낮추기 전 제품 장애물 추가 금지. log·회전 wall 재시도 금지 |
 | 초반 수렴 | v6가 ZONE_ESCAPE 체류/stuck을 절반 이하로 줄였지만 stage1 사망은 그대로 | zone 수렴을 attrition lever로 다시 쓰지 않고 loot/IDLE 이동을 조사 |
 | 구조적 교전 밀도 | 260m 후보는 43.3초 횡단·64요소·10.6% 점유지만 첫 조우 7.1초, open 피해 66.7% | 맵 크기와 spawn 밀도를 한 수치로 상쇄하지 않고 AI 목표/위치 효용을 연결 |
 | POI 교전 유출 | 60/99봇 open 피해 74.5/72.5%, POI 경계 8m 밖 72.6/73.3%. 상위 단일 셀은 6.7% 이하이고 기존 장애물 주변에 분산 | `open=빈 평지` 해석을 금지. 장애물 근접성과 정체를 함께 보고 실제 맵 수정은 nav 원인 확인 뒤 결정 |

@@ -43,6 +43,18 @@ def godot_script_args(godot: str, script: str, args: list[str]) -> Step:
     )
 
 
+def arena_traffic_step(godot: str, preset: str) -> Step:
+    return godot_script_args(
+        godot,
+        "verify_ai_arena_traffic_runtime.gd",
+        [
+            "map_spec_path=res://data/mapSpec_ai_test_arena.json",
+            f"scale_preset={preset}",
+            "simulation_seed=41000",
+        ],
+    )
+
+
 def py_compile(paths: list[str]) -> Step:
     return Step("python py_compile", [sys.executable, "-m", "py_compile", *[rel(path) for path in paths]])
 
@@ -166,6 +178,8 @@ def profile_steps(
                     "simulation_seed=41000",
                 ],
             ),
+            arena_traffic_step(godot, "open_traffic_4"),
+            arena_traffic_step(godot, "wall_traffic_4"),
             godot_script_args(
                 godot,
                 "verify_ai_arena_squad_runtime.gd",
@@ -201,6 +215,8 @@ def profile_steps(
                     "simulation_seed=41000",
                 ],
             ),
+            arena_traffic_step(godot, "open_traffic_4"),
+            arena_traffic_step(godot, "wall_traffic_4"),
             godot_script_args(
                 godot,
                 "verify_ai_arena_squad_runtime.gd",

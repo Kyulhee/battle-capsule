@@ -6,6 +6,8 @@ const PRESET_EXPECTATIONS := {
 	"baseline": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
 	"duel_1": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
 	"rock_nav_1": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
+	"wall_traffic_4": {"bots": 4, "loot": 0, "fixed": 5, "initial_loot": false},
+	"open_traffic_4": {"bots": 4, "loot": 0, "fixed": 5, "initial_loot": false},
 	"squad_4": {"bots": 4, "loot": 6, "fixed": 5, "initial_loot": true},
 	"systems_8": {"bots": 8, "loot": 12, "fixed": 9, "initial_loot": true},
 	"random_8": {"bots": 8, "loot": 12, "fixed": 0, "initial_loot": true},
@@ -25,16 +27,18 @@ func _run() -> void:
 		_fail("AI test arena could not load.")
 		return
 
-	if definition.id != "ai_test_arena" or not is_equal_approx(definition.get_world_size(), 72.0):
+	if definition.id != "ai_test_arena" or not is_equal_approx(definition.get_world_size(), 96.0):
 		_fail("AI test arena identity or world size is invalid.")
 		return
-	if definition.map_spec.pois.size() != 5 or definition.map_spec.obstacles.size() != 15:
-		_fail("AI test arena should keep five diagnostic zones and fifteen obstacles.")
+	if definition.map_spec.pois.size() != 5 or definition.map_spec.obstacles.size() != 16:
+		_fail("AI test arena should keep five diagnostic zones and sixteen obstacles.")
 		return
 
 	for preset_name in PRESET_EXPECTATIONS:
 		if not _verify_preset(definition, game_config, preset_name, PRESET_EXPECTATIONS[preset_name]):
 			return
+	if not _verify_traffic_wall(definition):
+		return
 	if not _verify_fixed_spawn_sanitizer():
 		return
 	if not _verify_fixed_spawn_validation(game_config):
@@ -42,7 +46,7 @@ func _run() -> void:
 	if not _verify_runtime_duel_spawn(definition, game_config):
 		return
 
-	print("AI test arena smoke passed: world=72m presets=6 duel/nav fixed=2.")
+	print("AI test arena smoke passed: world=96m presets=8 duel/nav/traffic.")
 	quit(0)
 
 
@@ -64,6 +68,22 @@ func _verify_preset(definition, game_config, preset_name: String, expected: Dict
 	if bool(loot_tuning.get("initial_spawn_enabled", true)) != bool(expected["initial_loot"]):
 		return _fail_bool("%s initial loot isolation mismatch." % preset_name)
 	return true
+
+
+func _verify_traffic_wall(definition) -> bool:
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("type", "")) != "canyon_wall":
+			continue
+		var position: Vector2 = obstacle.get("pos_2d", Vector2.INF)
+		if position.distance_to(Vector2(22.0, 32.0)) > 0.01:
+			continue
+		var scale: Vector3 = obstacle.get("scale_3d", Vector3.ZERO)
+		if not scale.is_equal_approx(Vector3(2.0, 3.2, 1.2)):
+			return _fail_bool("Traffic wall scale changed: %s." % scale)
+		if not is_equal_approx(float(obstacle.get("rot", 0.0)), 0.0):
+			return _fail_bool("Traffic wall rotation changed.")
+		return true
+	return _fail_bool("Traffic wall is missing.")
 
 
 func _verify_fixed_spawn_sanitizer() -> bool:

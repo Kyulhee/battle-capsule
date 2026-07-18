@@ -41,6 +41,7 @@
 | E-033 | open 피해 70%대는 특정 POI 경계의 빈 평지로 전투가 새는 현상인가? | 60/99봇 open 피해 74.5/72.5%, 경계 8m 밖 72.6/73.3%. 상위 셀은 6.7% 이하이며 기존 두 high rock 셀이 open 피해 10-11%·정체 15-23%를 함께 차지 | 단일 경계 가설 기각. `open=POI 밖`으로 해석하고 Arena에서 high rock ramp·nav를 먼저 격리 |
 | E-034 | high `rock_cluster`의 climb ramp가 반복 정체의 공통 원인인가? | ramp 포함 Arena 24→14.19m/stuck 3, 제거 뒤 5/5회 24→2.8-3.0m/stuck 1. 60봇 rock 셀 32→15·duration 유지, 99봇 74→22·raw stuck 64.8→53.2 | ramp 제거 채택. NavigationObstacle/proxy/agent radius는 추가 이득 없어 폐기. 99 disengage 154.4는 별도 문제 |
 | E-035 | ramp 제거 뒤 `Central Meadow` 동쪽 high rock을 다시 쓸 수 있는가? | 실제 맵 1대1 횡단 5/5 통과. 동일 seed 60봇 open 피해 69.7→69.9%, loot-hub 10.4→12.2%, `10,10` stuck 0→5회; 별도 seed도 14회 | 재기각·99봇 중단. high rock 추가 배치 금지, 비-rock 엄폐는 다중 traffic gate 선행 |
+| E-036 | 단순 Box wall은 rock의 국소 정체 없이 엄폐를 만들 수 있는가? | open 4봇 5/5회 4.20초/stuck 0, 축 정렬 폭 4m wall 6.55초/2. log 1봇·회전 wall은 실패. 제품 60봇 wall은 `10,10` 0→16회, open 69.7→69.6% | 제품 후보 기각·99 중단, 96m traffic gate 채택. Box corner 정체를 0으로 고치는 N2-NAV-02 선행 |
 
 ## 폐기 패턴
 

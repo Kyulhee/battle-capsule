@@ -4,8 +4,8 @@
     "name": "AI Test Arena",
     "theme": "ai_test_arena",
     "version": "1.0",
-    "world_size": 72,
-    "layout": "open_duel_los_cover_bush_recovery_zone_edge"
+    "world_size": 96,
+    "layout": "open_duel_los_cover_bush_recovery_zone_edge_traffic_lanes"
   },
   "match": {
     "bot_count": 1,
@@ -78,6 +78,38 @@
         "spawn": {
           "fixed_positions": [[-19.0, -24.0], [-19.0, 0.0]]
         }
+      }
+    },
+    "wall_traffic_4": {
+      "match": {
+        "bot_count": 4,
+        "loot_count": 0,
+        "spawn_radius": 44.0
+      },
+      "runtime": {
+        "spawn": {
+          "fixed_positions": [[22.0, 42.0], [20.0, 22.0], [28.0, 22.0], [24.0, 22.0], [16.0, 22.0]]
+        }
+      },
+      "zone": {
+        "initial_radius": 48.0,
+        "next_radius": 40.0
+      }
+    },
+    "open_traffic_4": {
+      "match": {
+        "bot_count": 4,
+        "loot_count": 0,
+        "spawn_radius": 44.0
+      },
+      "runtime": {
+        "spawn": {
+          "fixed_positions": [[42.0, 0.0], [22.0, -2.0], [22.0, -6.0], [22.0, 2.0], [22.0, 6.0]]
+        }
+      },
+      "zone": {
+        "initial_radius": 48.0,
+        "next_radius": 40.0
       }
     },
     "squad_4": {
@@ -161,7 +193,9 @@
 
     { "type": "log_pile", "pos": [0, -15], "scale": [4.0, 1.3, 1.2], "rot": 0 },
     { "type": "rock_cluster", "pos": [-12, -22], "scale": [1.8, 2.2, 1.8], "rot": 0 },
-    { "type": "rock_cluster", "pos": [12, -22], "scale": [1.8, 2.2, 1.8], "rot": 0 }
+    { "type": "rock_cluster", "pos": [12, -22], "scale": [1.8, 2.2, 1.8], "rot": 0 },
+
+    { "type": "canyon_wall", "pos": [22, 32], "scale": [2.0, 3.2, 1.2], "rot": 0 }
   ],
   "routes": []
 }

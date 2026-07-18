@@ -2,6 +2,13 @@
 
 > 최종 업데이트: 2026-07-18. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-MAP-09 다중 traffic gate와 wall 후보 기각
+
+- Arena: 기존 진단 구역과 분리된 96m 맵에 open/wall 4봇 traffic preset을 추가했다. open은 5/5회 4.20초·stuck 0이었다.
+- primitive: low log는 1봇도 nav가 상단을 walkable로 보고 11.75m/stuck 3에서 실패했다. 폭 8m·18도 wall도 실패했고 축 정렬 폭 4m wall만 5/5회 6.55초·stuck 2로 통과했다.
+- 제품 60봇: 동일 seed에서 전체 stuck 39.0→26.6, duration 225.1→242.0초였지만 직접 셀 `10,10`은 0→16회, open 피해는 69.7→69.6%였다.
+- 결정: 제품 wall과 전용 계약을 제거하고 99봇 확대를 중단했다. Arena traffic gate만 유지하고 N2-NAV-02에서 wall stuck 0을 요구한다.
+
 ## N2-MAP-08 중앙 초원 high rock 재기각
 
 - 조건: ramp 제거 뒤 `[17,12]` high rock 하나를 복원했다. 구조 gate와 실제 260m 맵 32m CHASE는 5/5회 2.8-3.0m, stuck 1회로 통과했다.
@@ -16,13 +23,6 @@
 - 검증: Arena 5/5회 2.8-3.0m까지 횡단·stuck 1회, `unit_smoke` 통과. runtime 실제 캡처에서 외형 유지 확인.
 - Night: 60봇 두 rock 셀 32→15회, 전체 stuck 42.2→39.0, duration 224.3→225.1초. 99봇 rock 셀 74→22회, raw stuck 64.8→53.2로 gate 통과했지만 disengage 154.4는 실패 유지.
 - 하네스: duel/rock-nav/squad runtime은 `simulation_seed=41000`으로 고정해 archetype 변동 실패를 차단했다.
-
-## N2-MAP-07 open 전투 누출 위치 감사
-
-- 구현: 실제 체력 피해 중 POI 밖 이벤트를 `10m 셀|인접 POI|경계 대역` 복합 키 하나로 누적하고 분석기·요약기에서 오프라인 분해한다. Bot의 중복 전략 문맥은 Entity 구현으로 통합했다.
-- 결과: 60/99봇 open 피해는 74.5/72.5%, POI 경계 8m 밖은 72.6/73.3%였다. 상위 단일 셀은 6.7% 이하라 한 입구로 집중되지 않았다.
-- 새 원인: 기존 high rock `(-6,-48)`, `(8,46)` 주변 셀이 두 규모에서 open 피해 약 10-11%를 만들고 정체도 약 15-23%를 차지했다. `open`은 빈 평지가 아니라 POI 밖 분류다.
-- 결정: 추가 장애물 배치를 중단하고 N2-NAV-01에서 high rock ramp·nav를 소형 Arena로 격리한다. `unit_smoke`, 실제 Night 복합 키 1-run, 60/99봇 각 5-run을 통과했다.
 
 ## N2-AI-07 POI 목적지 수렴 감사
 
