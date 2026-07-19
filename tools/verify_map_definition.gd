@@ -241,6 +241,7 @@ func _verify_validation_issues(map_definition_script, game_config, parsed: Dicti
 		"pos": [54.0, 0.0],
 		"scale": [8.0, 2.0, 2.0],
 		"rot": 45.0,
+		"cover_class": "opaque",
 	})
 	invalid_spec["routes"].append({
 		"id": "",
@@ -275,6 +276,7 @@ func _verify_validation_issues(map_definition_script, game_config, parsed: Dicti
 		"POI 0 has negative item_density.",
 		"POI 0 rare_bias 1.25 must be within 0..1.",
 		"Obstacle 35 extends outside world bounds.",
+		"Obstacle 35 cover_class 'opaque' is unknown.",
 		"spawn_radius 58.0 plus entity_clearance 3.5 exceeds world half-size 60.0.",
 		"zone.initial_radius 90.0 exceeds world half-size 60.0.",
 		"zone.next_radius 95.0 must be smaller than initial_radius 90.0.",

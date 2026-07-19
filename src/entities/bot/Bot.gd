@@ -2280,7 +2280,7 @@ func _find_cover_point(threat_pos: Vector3) -> Vector3:
 
 	return best_pos
 
-# True when the obstacle is tall enough (collision layer 8 = bullet-blocking height > 2.5m).
+# Hard cover blocks both bullets and perception on collision layer 8.
 func _obs_provides_cover(obs: Node3D) -> bool:
 	if obs is StaticBody3D:
 		return (obs.collision_layer & 8) != 0

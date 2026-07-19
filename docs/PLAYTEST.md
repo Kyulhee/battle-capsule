@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` 비기본 whitebox |
 | 권장 preset | `xlarge_60` 임시 대표 수동 표면. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 초점 | Cabin Row 진입감, 도로·숲 경계, 칼 휘두름·피격 분리, 60인 끊김 |
+| 현재 초점 | Cabin Row 3입구 선택, 엄폐 뒤 AI 시야 전환, 칼 분리음, 60인 끊김 |
 
 ## 수동 체크리스트
 
@@ -28,6 +28,8 @@
 - 칼 휘두름 3종이 반복 피로 없이 공기를 가르고, 명중할 때만 별도 살점 피격음이 들리는가?
 - 정지해 기다리지 않아도 봇 이동과 픽업 밀도가 주요 거점으로 압력을 만드는가?
 - Cabin Row가 도로 진입, 수목 경계, 건물·마당·보급 프롭이 연결된 하나의 장소로 읽히는가?
+- Cabin Row 남·서·동 입구가 서로 다른 접근으로 읽히고 한 입구가 막혀도 자연스럽게 우회할 수 있는가?
+- 오두막·폐벽 뒤에서는 총알과 AI 시야가 함께 끊기고, 외곽 수목 뒤에서는 시야만 끊겨 재배치 선택이 생기는가?
 
 ```powershell
 .\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=xlarge_60
@@ -44,6 +46,7 @@
 | preset | 용도 |
 |---|---|
 | `duel_1` | 플레이어-봇 4.5m 고정, 초기 loot 없음. 감지·반응·1대1 상태 전이 |
+| `cover_lab_1` | 수목 시야 차폐를 사이에 둔 고정 1대1. 감지 상실·우회·재획득 |
 | `squad_4` | 중앙 4방향 고정. 다중 위협·이탈·재교전 |
 | `systems_8` | 중앙 8방향 고정 + loot. 상태 전이와 목표 충돌 스트레스 |
 | `random_8` | 같은 맵의 무작위 스폰. 고정 앵커에만 재현되는지 비교 |

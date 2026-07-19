@@ -28,6 +28,11 @@ const VALID_ROUTE_ROLES := {
 	"recovery_exit": true,
 	"zone_rotation": true,
 }
+const VALID_COVER_CLASSES := {
+	"hard": true,
+	"screen": true,
+	"soft": true,
+}
 
 @export var id: String = ""
 @export var display_name: String = ""
@@ -393,6 +398,9 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 		if scale.x <= 0.0 or scale.y <= 0.0 or scale.z <= 0.0:
 			issues.append("Obstacle %d has non-positive scale." % i)
 			continue
+		var cover_class := String(obstacle.get("cover_class", "")).strip_edges().to_lower()
+		if not cover_class.is_empty() and not VALID_COVER_CLASSES.has(cover_class):
+			issues.append("Obstacle %d cover_class '%s' is unknown." % [i, cover_class])
 		var extent := _obstacle_axis_extent(obstacle, scale)
 		var jitter := _vector2_from_array(obstacle.get("jitter", [0.0, 0.0]), Vector2.ZERO)
 		extent += Vector2(absf(jitter.x), absf(jitter.y))

@@ -9,6 +9,7 @@ signal died
 
 const DEATH_EFFECT = preload("res://src/fx/DeathEffect.tscn")
 const ITEM_LOS_MASK: int = 1 | 8
+const PERCEPTION_LOS_MASK: int = 8 | 16
 const PERCEPTION_UPDATE_INTERVAL_DEFAULT := 0.08
 const PERCEPTION_UPDATE_INTERVAL_PLAYER := 0.05
 const UPDATE_PHASE_SLOT_COUNT := 16
@@ -233,11 +234,14 @@ func is_revealed_to(viewer: Entity) -> bool:
 	return viewer.perception_meters.has(self) and viewer.perception_meters[self] >= 1.0
 
 func has_los_to(target: Node3D) -> bool:
-	var ray = get_node_or_null("RayCast3D")
-	if not ray: return true
-	ray.target_position = ray.to_local(target.global_position + Vector3(0, 1, 0))
-	ray.force_raycast_update()
-	return not ray.is_colliding() or ray.get_collider() == target
+	if target == null or get_world_3d() == null:
+		return true
+	var ray := get_node_or_null("RayCast3D") as RayCast3D
+	var eye_pos := ray.global_position if ray != null else global_position + Vector3(0, 1.0, 0)
+	var target_pos := target.global_position + Vector3(0, 1.0, 0)
+	var query := PhysicsRayQueryParameters3D.create(eye_pos, target_pos, PERCEPTION_LOS_MASK)
+	query.exclude = [get_rid()]
+	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
 func can_sense_item(world_pos: Vector3) -> bool:
 	if not stats:

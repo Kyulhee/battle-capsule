@@ -93,6 +93,8 @@ Data
 - `routes`는 현재 텔레메트리 위치 분류 전용 데이터다. bot 이동은 POI loot, zone, cover가 결정하며 route graph를 직접 소비하지 않으므로 플레이어 지도와 월드에는 표시하지 않는다.
 - minimap과 fullmap은 월드 좌표를 45도 회전해 게임 카메라 방향과 맞춘다.
 - `surface_zones`는 rect/ellipse/path 지면 구역의 material ID와 surface ID를 함께 소유한다. `WorldBuilder`, 발걸음 판정, minimap/fullmap이 같은 데이터를 소비하며 뒤에 선언한 구역이 판정 우선권을 가진다.
+- 표준 장애물은 `cover_class`를 명시한다. `hard`는 이동·탄도·AI 시야를 막고, `screen`은 이동·AI 시야만 막으며, `soft`는 이동만 막는다. 미지정 데이터는 호환성을 위해 기존 높이 추정을 쓴다.
+- 탄도 RayCast는 actor와 layer 8만, perception LOS는 layer 8과 16만 조회한다. GLB 외형이 아니라 gameplay proxy와 `cover_class`가 권위다.
 - player-target outnumbered 판정은 현재 표적을 제외하고 자신을 추적 중이거나 최근 5초 안에 공격한 제3자만 센다. bot-only 판정은 기존 페이싱 계약을 유지한다.
 - 짧은 LOS 상실 기억은 player 표적 5초, 일반 표적 2.5초다. 이 값은 `BotDecisionPolicy.gd`가 소유하고 `Bot.gd`가 ATTACK 해제 시 소비한다.
 - `BotDecisionPolicy.gd`는 scene tree를 조회하지 않는다. 위협·표적·위치 후보의 context를 받아 판단하며 `Bot.gd`가 관측 수집과 실제 이동·상태 전이를 맡는다.

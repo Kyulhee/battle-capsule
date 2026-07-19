@@ -156,6 +156,7 @@ def profile_steps(
             godot_script(godot, "verify_match_tuning_cli.gd"),
             godot_script(godot, "verify_night_world_readability.gd"),
             godot_script(godot, "verify_audio_catalog_assets.gd"),
+            godot_script(godot, "verify_cover_classes.gd"),
             godot_script(godot, "verify_world_prop_assets.gd"),
             godot_script(godot, "verify_full_map_overlay.gd"),
             godot_script(godot, "verify_simulation_participants.gd"),
@@ -163,6 +164,15 @@ def profile_steps(
             godot_script_args(
                 godot,
                 "verify_night_nav_hotspot_runtime.gd",
+                [
+                    "map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json",
+                    "scale_preset=nav_hotspot_1",
+                    "simulation_seed=41000",
+                ],
+            ),
+            godot_script_args(
+                godot,
+                "verify_night_cabin_compound_nav.gd",
                 [
                     "map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json",
                     "scale_preset=nav_hotspot_1",

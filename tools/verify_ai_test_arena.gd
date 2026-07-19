@@ -6,6 +6,7 @@ const PRESET_EXPECTATIONS := {
 	"baseline": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
 	"duel_1": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
 	"rock_nav_1": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
+	"cover_lab_1": {"bots": 1, "loot": 0, "fixed": 2, "initial_loot": false},
 	"wall_traffic_4": {"bots": 4, "loot": 0, "fixed": 5, "initial_loot": false},
 	"open_traffic_4": {"bots": 4, "loot": 0, "fixed": 5, "initial_loot": false},
 	"squad_4": {"bots": 4, "loot": 6, "fixed": 5, "initial_loot": true},
@@ -39,6 +40,8 @@ func _run() -> void:
 			return
 	if not _verify_traffic_wall(definition):
 		return
+	if not _verify_cover_lab(definition):
+		return
 	if not _verify_fixed_spawn_sanitizer():
 		return
 	if not _verify_fixed_spawn_validation(game_config):
@@ -46,7 +49,7 @@ func _run() -> void:
 	if not _verify_runtime_duel_spawn(definition, game_config):
 		return
 
-	print("AI test arena smoke passed: world=96m presets=8 duel/nav/traffic.")
+	print("AI test arena smoke passed: world=96m presets=9 duel/nav/cover/traffic.")
 	quit(0)
 
 
@@ -84,6 +87,23 @@ func _verify_traffic_wall(definition) -> bool:
 			return _fail_bool("Traffic wall rotation changed.")
 		return true
 	return _fail_bool("Traffic wall is missing.")
+
+
+func _verify_cover_lab(definition) -> bool:
+	var cover_counts := {"hard": 0, "screen": 0, "soft": 0}
+	var has_screen_fixture := false
+	for obstacle in definition.get_obstacle_descriptors():
+		var cover_class := String(obstacle.get("cover_class", ""))
+		if cover_counts.has(cover_class):
+			cover_counts[cover_class] = int(cover_counts[cover_class]) + 1
+		var position: Vector2 = obstacle.get("pos_2d", Vector2.INF)
+		if position.distance_to(Vector2(19.0, -13.0)) <= 0.01 and cover_class == "screen":
+			has_screen_fixture = true
+	if cover_counts != {"hard": 5, "screen": 2, "soft": 3}:
+		return _fail_bool("AI arena cover fixtures changed: %s." % [cover_counts])
+	if not has_screen_fixture:
+		return _fail_bool("AI arena cover_lab_1 vision-screen fixture is missing.")
+	return true
 
 
 func _verify_fixed_spawn_sanitizer() -> bool:

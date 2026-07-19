@@ -5,6 +5,9 @@ class_name WorldBuilder
 @export var bush_scene: PackedScene = preload("res://src/environment/Bush.tscn")
 
 const BUSH_PROP_ID := "forest.bush"
+const WORLD_LAYER := 1
+const BALLISTIC_COVER_LAYER := 8
+const VISION_SCREEN_LAYER := 16
 
 var minimap_features: Array[Dictionary] = []
 var _surface_material_cache: Dictionary = {}
@@ -93,11 +96,18 @@ func _build_standard_obstacle(
 
 	var collision_enabled := bool(descriptor.get("collision", true))
 	if collision_enabled:
+		var cover_class := _resolve_cover_class(descriptor, scale_vec)
 		obs.add_to_group("occluder")
 		obs.add_to_group("obstacles")
-		obs.collision_layer = (1 | 8) if float(scale_vec[1]) > 2.5 else 1
+		obs.set_meta("cover_class", cover_class)
+		obs.collision_layer = _collision_layer_for_cover(cover_class)
+		if cover_class == "hard":
+			obs.add_to_group("hard_cover")
+		elif cover_class == "screen":
+			obs.add_to_group("vision_screens")
 	else:
 		obs.remove_from_group("obstacles")
+		obs.set_meta("cover_class", "none")
 		obs.collision_layer = 0
 		obs.collision_mask = 0
 
@@ -127,9 +137,30 @@ func _build_standard_obstacle(
 		map_size,
 		rot_deg,
 		float(scale_vec[1]) * 2.0,
-		2 if float(scale_vec[1]) > 2.5 else 1,
+		_minimap_layer_for_cover(String(obs.get_meta("cover_class", "none"))),
 		String(descriptor.get("map_shape", "rect"))
 	)
+
+
+func _resolve_cover_class(descriptor: Dictionary, scale_vec: Array) -> String:
+	var explicit := String(descriptor.get("cover_class", "")).strip_edges().to_lower()
+	if explicit in ["hard", "screen", "soft"]:
+		return explicit
+	return "hard" if float(scale_vec[1]) > 2.5 else "soft"
+
+
+func _collision_layer_for_cover(cover_class: String) -> int:
+	match cover_class:
+		"hard":
+			return WORLD_LAYER | BALLISTIC_COVER_LAYER
+		"screen":
+			return WORLD_LAYER | VISION_SCREEN_LAYER
+		_:
+			return WORLD_LAYER
+
+
+func _minimap_layer_for_cover(cover_class: String) -> int:
+	return 2 if cover_class == "hard" else 1
 
 
 func _apply_catalog_visual(

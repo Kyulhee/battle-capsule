@@ -16,10 +16,19 @@ const REQUIRED_PROPS := {
 const EXPECTED_WORLD_PROP_COUNTS := {
 	"forest.tree": 6,
 	"landmark.cabin": 3,
-	"landmark.wall": 2,
-	"landmark.crate": 3,
-	"landmark.barrels": 2,
+	"landmark.wall": 6,
+	"landmark.crate": 5,
+	"landmark.barrels": 3,
 	"landmark.fire_pit": 1,
+}
+
+const EXPECTED_COVER_CLASSES := {
+	"forest.tree": "screen",
+	"landmark.cabin": "hard",
+	"landmark.wall": "hard",
+	"landmark.crate": "soft",
+	"landmark.barrels": "soft",
+	"landmark.fire_pit": "none",
 }
 
 
@@ -102,6 +111,28 @@ func _init():
 				expected_count,
 				actual_count,
 			])
+			return
+	for visual in catalog_visuals:
+		var prop_id := String(visual.get_meta("prop_id", ""))
+		if not EXPECTED_COVER_CLASSES.has(prop_id) or not (visual.get_parent() is StaticBody3D):
+			continue
+		var parent := visual.get_parent() as StaticBody3D
+		var expected_cover := String(EXPECTED_COVER_CLASSES[prop_id])
+		var actual_cover := String(parent.get_meta("cover_class", ""))
+		if actual_cover != expected_cover:
+			_fail("%s cover class mismatch: expected %s, got %s." % [
+				prop_id,
+				expected_cover,
+				actual_cover,
+			])
+			return
+		if expected_cover == "hard" and (parent.collision_layer & 8) == 0:
+			_fail("%s hard cover does not block ballistics." % prop_id)
+			return
+		if expected_cover == "screen" and (
+				(parent.collision_layer & 16) == 0 or (parent.collision_layer & 8) != 0
+		):
+			_fail("%s screen layer contract mismatch." % prop_id)
 			return
 
 	var surface_container: Node = builder.get_node_or_null("GeneratedSurfaceZones")

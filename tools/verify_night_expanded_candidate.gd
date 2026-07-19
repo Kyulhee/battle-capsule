@@ -132,9 +132,25 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	if _count_prop_obstacles(definition, "landmark.cabin") != 3:
 		_fail("Cabin Row needs three cabin landmarks.")
 		return false
+	if _count_prop_obstacles(definition, "landmark.wall") != 6:
+		_fail("Cabin Row needs six wall segments around three open entries.")
+		return false
 	if _count_prop_obstacles(definition, "forest.tree") < 6:
 		_fail("Cabin Row needs a physical tree boundary.")
 		return false
+	if _count_compound_cover(definition, "hard") != 9:
+		_fail("Cabin Row needs nine explicit hard-cover masses.")
+		return false
+	if _count_compound_cover(definition, "screen") != 6:
+		_fail("Cabin Row needs six explicit outer vision screens.")
+		return false
+	for entry_id in ["south", "west", "east"]:
+		if _count_compound_entry(definition, "perimeter", entry_id) != 2:
+			_fail("Cabin Row entry '%s' needs two perimeter shoulders." % entry_id)
+			return false
+		if _count_compound_entry(definition, "approach_cover", entry_id) < 1:
+			_fail("Cabin Row entry '%s' needs approach cover." % entry_id)
+			return false
 	if _count_obstacles_near(definition, "tree_cluster", Vector2.ZERO, 15.0) < 2:
 		_fail("Central Meadow needs two close tree-cover shoulders.")
 		return false
@@ -168,6 +184,25 @@ func _count_prop_obstacles(definition, prop_id: String) -> int:
 	var count := 0
 	for obstacle in definition.get_obstacle_descriptors():
 		if String(obstacle.get("prop_id", "")) == prop_id:
+			count += 1
+	return count
+
+
+func _count_compound_cover(definition, cover_class: String) -> int:
+	var count := 0
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("compound_id", "")) == "cabin_row" \
+				and String(obstacle.get("cover_class", "")) == cover_class:
+			count += 1
+	return count
+
+
+func _count_compound_entry(definition, role: String, entry_id: String) -> int:
+	var count := 0
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("compound_id", "")) == "cabin_row" \
+				and String(obstacle.get("compound_role", "")) == role \
+				and String(obstacle.get("entry_id", "")) == entry_id:
 			count += 1
 	return count
 
