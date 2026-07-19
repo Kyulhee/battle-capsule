@@ -66,7 +66,7 @@ Data
 | Mission | `MissionTracker.gd`, mission format/evaluator helpers | HUD 문자열과 판정 분리 |
 | Telemetry | `Telemetry.gd`, `tools/analyze_results.py` | gameplay 판단을 위한 구조화된 출력 |
 | Assets | `AssetCatalog.gd`, `data/asset_catalog.json` | missing path는 fallback으로 처리 |
-| 지도 UI | `Minimap.gd`, `FullMapOverlay.gd` | 같은 45도 투영 사용, route 분류는 표시하지 않음 |
+| 지도 UI | `Minimap.gd`, `MinimapStaticLayer.gd`, `FullMapOverlay.gd` | 같은 45도 투영 사용. 미니맵 정적 지도는 1회 캐시하고 동적 상태만 실시간 표시 |
 
 ## 빠른 변경 영향표
 

@@ -1,5 +1,7 @@
 extends Control
 
+const MINIMAP_STATIC_LAYER = preload("res://src/ui/MinimapStaticLayer.gd")
+
 func _init():
 	print("[MINIMAP] Script initialized.")
 
@@ -20,6 +22,9 @@ var supply_pulse = 0.0
 var map_spec: Resource = null
 var map_definition = null
 var minimap_features: Array[Dictionary] = []
+var _static_viewport: SubViewport = null
+var _static_texture: TextureRect = null
+var _static_layer: Control = null
 
 func set_map_spec(spec: Resource, features: Array[Dictionary] = [], definition = null):
 	map_spec = spec
@@ -29,14 +34,58 @@ func set_map_spec(spec: Resource, features: Array[Dictionary] = [], definition =
 	elif spec != null and spec.has_method("get_world_size"):
 		map_size_3d = Vector2(spec.get_world_size(), spec.get_world_size())
 	minimap_features = features.duplicate(true)
+	if is_inside_tree():
+		_refresh_static_cache()
 	queue_redraw()
 
 func _ready():
+	_ensure_static_cache()
 	print("[MINIMAP] Ready. Attempting to pull MapSpec from Main...")
 	var main = get_tree().get_root().get_node_or_null("Main")
 	if main and main.get("map_spec"):
 		print("[MINIMAP] MapSpec pulled successfully from Main.")
 		set_map_spec(main.map_spec, [], main.get("map_definition"))
+	else:
+		_refresh_static_cache()
+
+func _ensure_static_cache() -> void:
+	if is_instance_valid(_static_viewport):
+		return
+	_static_viewport = SubViewport.new()
+	_static_viewport.name = "StaticMapViewport"
+	_static_viewport.disable_3d = true
+	_static_viewport.transparent_bg = true
+	add_child(_static_viewport)
+
+	_static_layer = MINIMAP_STATIC_LAYER.new()
+	_static_layer.name = "StaticMapLayer"
+	_static_viewport.add_child(_static_layer)
+
+	_static_texture = TextureRect.new()
+	_static_texture.name = "StaticMapTexture"
+	_static_texture.show_behind_parent = true
+	_static_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_static_texture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_static_texture.texture = _static_viewport.get_texture()
+	add_child(_static_texture)
+
+func _refresh_static_cache() -> void:
+	_ensure_static_cache()
+	var viewport_size := Vector2i(
+		maxi(1, int(ceil(minimap_size.x))),
+		maxi(1, int(ceil(minimap_size.y)))
+	)
+	_static_viewport.size = viewport_size
+	_static_texture.position = Vector2.ZERO
+	_static_texture.size = minimap_size
+	_static_layer.configure(
+		map_spec,
+		minimap_features,
+		map_definition,
+		map_size_3d,
+		minimap_size
+	)
+	_static_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 func _process(delta):
 	if not player:
@@ -65,43 +114,8 @@ func _process(delta):
 	queue_redraw()
 
 func _draw():
-	var center = minimap_size / 2.0
-	
-	# 1. Draw Diamond Background
-	var half = map_size_3d / 2.0
-	var boundary_pts = PackedVector2Array([
-		world_to_minimap(Vector2(-half.x, -half.y)),
-		world_to_minimap(Vector2(half.x, -half.y)),
-		world_to_minimap(Vector2(half.x, half.y)),
-		world_to_minimap(Vector2(-half.x, half.y))
-	])
-	draw_colored_polygon(boundary_pts, Color(0.1, 0.1, 0.1, 0.8))
-	draw_polyline(boundary_pts + PackedVector2Array([boundary_pts[0]]), Color(0.5, 0.5, 0.5), 1.5)
-	
 	if not map_spec:
-		draw_string(ThemeDB.fallback_font, Vector2(10, 20), "MAP DATA MISSING", HORIZONTAL_ALIGNMENT_LEFT, -1, 12, Color.RED)
 		return
-	
-	# 2. Draw POI Areas
-	for poi in _poi_source():
-		var pos = _descriptor_pos_2d(poi)
-		var mini_pos = world_to_minimap(pos)
-		var mini_rad = world_size_to_minimap(float(poi.get("radius", 0.0)))
-		var role_color = Color(0.5, 0.5, 0.5, 0.05)
-		match poi.get("role", ""):
-			"loot_hub": role_color = Color(1.0, 0.8, 0.2, 0.08)
-			"transit_choke": role_color = Color(1.0, 0.2, 0.2, 0.08)
-			"concealment_field": role_color = Color(0.2, 1.0, 0.2, 0.08)
-			"recovery_pocket": role_color = Color(0.2, 0.2, 1.0, 0.08)
-		draw_circle(mini_pos, mini_rad, role_color)
-
-	# 3. Draw final generated footprints from bottom to top.
-	var features = minimap_features.duplicate(true)
-	if features.is_empty():
-		features = _build_fallback_features()
-	features.sort_custom(Callable(self, "_sort_minimap_features"))
-	for feature in features:
-		_draw_minimap_feature(feature)
 
 	# 4. Draw Supply Zones (Telegraphing/Active)
 	if supply_state != "none":
@@ -162,176 +176,3 @@ func world_to_minimap(world_pos: Vector2) -> Vector2:
 
 func world_size_to_minimap(size: float) -> float:
 	return size * (minimap_size.x / (map_size_3d.x * 1.414))
-
-func _sort_minimap_features(a: Dictionary, b: Dictionary) -> bool:
-	var layer_a = int(a.get("layer", 0))
-	var layer_b = int(b.get("layer", 0))
-	if layer_a == layer_b:
-		var height_a = float(a.get("height", 0.0))
-		var height_b = float(b.get("height", 0.0))
-		if not is_equal_approx(height_a, height_b):
-			return height_a < height_b
-		return int(a.get("order", 0)) < int(b.get("order", 0))
-	return layer_a < layer_b
-
-func _draw_minimap_feature(feature: Dictionary):
-	var pos = feature.get("pos", [0.0, 0.0])
-	var size = feature.get("size", [1.0, 1.0])
-	var wpos = Vector2(float(pos[0]), float(pos[1]))
-	var world_size = Vector2(float(size[0]), float(size[1]))
-	var rot_rad = deg_to_rad(float(feature.get("rot", 0.0)))
-	var shape = String(feature.get("shape", "rect"))
-	var obs_type = String(feature.get("type", ""))
-	var colors = _feature_colors(obs_type)
-
-	if shape == "ellipse":
-		var pts = PackedVector2Array()
-		var steps = 24
-		for i in range(steps):
-			var a = TAU * float(i) / float(steps)
-			var local = Vector2(cos(a) * world_size.x * 0.5, sin(a) * world_size.y * 0.5)
-			pts.append(world_to_minimap(local.rotated(rot_rad) + wpos))
-		draw_colored_polygon(pts, colors["fill"])
-		return
-
-	var hx = world_size.x * 0.5
-	var hz = world_size.y * 0.5
-	var corners_local = [
-		Vector2(-hx, -hz),
-		Vector2( hx, -hz),
-		Vector2( hx,  hz),
-		Vector2(-hx,  hz),
-	]
-	var pts = PackedVector2Array()
-	for c in corners_local:
-		pts.append(world_to_minimap(c.rotated(rot_rad) + wpos))
-	draw_colored_polygon(pts, colors["fill"])
-	draw_polyline(pts + PackedVector2Array([pts[0]]), colors["border"], float(colors["width"]))
-
-func _feature_colors(obs_type: String) -> Dictionary:
-	match obs_type:
-		"bush_patch":
-			return {
-				"fill": Color(0.22, 0.58, 0.20, 0.42),
-				"border": Color(0.16, 0.36, 0.12, 0.0),
-				"width": 0.0,
-			}
-		"tree_cluster":
-			return {
-				"fill": Color(0.24, 0.20, 0.14, 0.92),
-				"border": Color(0.12, 0.09, 0.06, 1.0),
-				"width": 1.0,
-			}
-		"canyon_wall", "rock_cluster":
-			return {
-				"fill": Color(0.42, 0.42, 0.46, 0.96),
-				"border": Color(0.24, 0.24, 0.28, 1.0),
-				"width": 1.2,
-			}
-		"log_pile":
-			return {
-				"fill": Color(0.44, 0.30, 0.14, 0.92),
-				"border": Color(0.26, 0.17, 0.07, 1.0),
-				"width": 1.0,
-			}
-	return {
-		"fill": Color(0.35, 0.35, 0.40, 0.92),
-		"border": Color(0.22, 0.22, 0.26, 1.0),
-		"width": 1.0,
-	}
-
-func _build_fallback_features() -> Array[Dictionary]:
-	var features: Array[Dictionary] = []
-	if not map_spec and map_definition == null:
-		return features
-	for obs in _obstacle_source():
-		var obs_type = String(obs.get("type", ""))
-		var scale = _descriptor_scale_3d(obs)
-		var size = Vector2(scale.x * 2.0, scale.z * 2.0)
-		var shape = "rect"
-		var height = scale.y * 2.0
-		var layer = _fallback_feature_layer(obs_type, height)
-		if obs_type == "bush_patch":
-			size = Vector2(scale.x * 3.0, scale.z * 3.0)
-			shape = "ellipse"
-		size = _fallback_cover_size(obs_type, size, height)
-		features.append({
-			"type": obs_type,
-			"pos": obs.get("pos", [0.0, 0.0]),
-			"size": [size.x, size.y],
-			"rot": obs.get("rot", 0.0),
-			"height": height,
-			"layer": layer,
-			"shape": shape,
-			"order": features.size(),
-		})
-	return features
-
-func _poi_source() -> Array[Dictionary]:
-	if map_definition != null and map_definition.has_method("get_poi_descriptors"):
-		return map_definition.get_poi_descriptors()
-	var pois: Array[Dictionary] = []
-	if map_spec == null:
-		return pois
-	for poi in map_spec.pois:
-		if typeof(poi) == TYPE_DICTIONARY:
-			pois.append(poi.duplicate(true))
-	return pois
-
-func _obstacle_source() -> Array[Dictionary]:
-	if map_definition != null and map_definition.has_method("get_obstacle_descriptors"):
-		return map_definition.get_obstacle_descriptors()
-	var obstacles: Array[Dictionary] = []
-	if map_spec == null:
-		return obstacles
-	for obstacle in map_spec.obstacles:
-		if typeof(obstacle) == TYPE_DICTIONARY:
-			obstacles.append(obstacle.duplicate(true))
-	return obstacles
-
-func _descriptor_pos_2d(descriptor: Dictionary) -> Vector2:
-	var pos_value = descriptor.get("pos_2d", null)
-	if typeof(pos_value) == TYPE_VECTOR2:
-		return pos_value
-	var pos = descriptor.get("pos", [0.0, 0.0])
-	if typeof(pos) == TYPE_ARRAY and pos.size() >= 2:
-		return Vector2(float(pos[0]), float(pos[1]))
-	return Vector2.ZERO
-
-func _descriptor_scale_3d(descriptor: Dictionary) -> Vector3:
-	var scale_value = descriptor.get("scale_3d", null)
-	if typeof(scale_value) == TYPE_VECTOR3:
-		return scale_value
-	var scale = descriptor.get("scale", [1.0, 1.0, 1.0])
-	if typeof(scale) == TYPE_ARRAY and scale.size() >= 3:
-		return Vector3(float(scale[0]), float(scale[1]), float(scale[2]))
-	return Vector3.ONE
-
-func _fallback_feature_layer(obs_type: String, height: float) -> int:
-	match obs_type:
-		"bush_patch":
-			return 0
-		"log_pile":
-			return 1
-		"rock_cluster":
-			return 3 if height > 2.5 else 2
-		"tree_cluster":
-			return 3
-		"canyon_wall":
-			return 4
-	return 1
-
-func _fallback_cover_size(obs_type: String, base_size: Vector2, height: float) -> Vector2:
-	match obs_type:
-		"bush_patch", "log_pile":
-			return base_size
-		"rock_cluster":
-			var rock_margin = clampf(height * 0.55, 0.4, 2.6)
-			return base_size + Vector2(rock_margin, rock_margin)
-		"tree_cluster":
-			var tree_margin = clampf(height * 0.28, 1.0, 3.4)
-			return base_size + Vector2(tree_margin, tree_margin)
-		"canyon_wall":
-			var wall_margin = clampf(height * 0.38, 1.2, 4.8)
-			return base_size + Vector2(wall_margin, wall_margin)
-	return base_size

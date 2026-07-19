@@ -102,7 +102,25 @@ func _init():
 
 	var minimap = minimap_script.new()
 	minimap.minimap_size = Vector2(240.0, 240.0)
+	root.add_child(minimap)
 	minimap.set_map_spec(spec, features, definition)
+	minimap._refresh_static_cache()
+	var static_viewport = minimap.get("_static_viewport")
+	var static_texture = minimap.get("_static_texture")
+	var static_layer = minimap.get("_static_layer")
+	if static_viewport == null or static_texture == null or static_layer == null:
+		_fail("Minimap static cache is incomplete: viewport=%s texture=%s layer=%s." % [
+			static_viewport,
+			static_texture,
+			static_layer,
+		])
+		return
+	if static_viewport.render_target_update_mode != SubViewport.UPDATE_ONCE:
+		_fail("Minimap static viewport must not update every frame.")
+		return
+	if int(static_layer.get("_features").size()) != features.size():
+		_fail("Minimap static cache did not receive all generated map features.")
+		return
 	var sample_world := Vector2(18.0, -12.0)
 	var full_direction: Vector2 = (
 		overlay.world_to_full_map(sample_world, map_rect) - map_rect.get_center()

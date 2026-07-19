@@ -107,7 +107,7 @@ python tools\compare_scale_profiles.py C:\tmp\parent_control C:\tmp\candidate --
 
 AI 이동처럼 규모에 민감한 변경은 부모 커밋 worktree와 현재 후보를 같은 맵·preset·seed base로 각각 최소 5회 실행한다. seed별 결과 일치를 기대하지 않고 종료 분포, 개체·분 기준 stuck/disengage, AI 평균·최대 비용을 함께 비교한다.
 
-`profile_runtime_performance.gd`는 headless가 아닌 Forward+ 실행에서 실제 frame interval, process/physics/navigation monitor, draw call, collision pair, pipeline compile, AI 상태별 평균·최대 시간을 JSON으로 남긴다. 성능 후보는 같은 조건을 최소 2회 반복하고 frame p95, p99, 33ms 초과 비율을 함께 본다. N2-PERF-01의 60봇 기준은 p95 13.5ms, p99 17.5ms, 33ms 초과 0.04%다.
+`profile_runtime_performance.gd`는 headless가 아닌 Forward+ 실행에서 frame/process/physics/navigation, draw call, collision pair, pipeline compile, AI 비용을 JSON으로 남긴다. 같은 조건을 최소 2회 반복하며 `perf_hide_minimap=true`는 UI 병목 대조에만 쓴다. N2-PERF-02 기준은 p95 15.4-15.8ms, p99 21.1-23.9ms, 33ms 초과 0.14-0.27%다.
 
 ## 회귀 신호
 

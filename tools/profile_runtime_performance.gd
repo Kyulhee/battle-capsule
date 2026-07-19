@@ -26,6 +26,10 @@ func _run() -> void:
 	await _wait_for_navigation(main)
 	main.start_game()
 	_keep_player_alive(main)
+	if bool(options["hide_minimap"]):
+		var minimap = main.get_node_or_null("CanvasLayer/Control/HUD/Minimap")
+		if minimap:
+			minimap.visible = false
 
 	await create_timer(float(options["warmup_seconds"])).timeout
 	var pipeline_start := _pipeline_compilation_counts()
@@ -63,6 +67,7 @@ func _run() -> void:
 		"scale_preset": options["scale_preset"],
 		"warmup_seconds": options["warmup_seconds"],
 		"sample_seconds": options["sample_seconds"],
+		"hide_minimap": options["hide_minimap"],
 		"sample_count": samples.frame_interval_seconds.size(),
 		"population": {
 			"bots": get_nodes_in_group("bots").size(),
@@ -103,6 +108,7 @@ func _parse_options() -> Dictionary:
 		"sample_seconds": DEFAULT_SAMPLE_SECONDS,
 		"map_spec_path": "",
 		"scale_preset": "",
+		"hide_minimap": false,
 	}
 	for raw_arg in OS.get_cmdline_user_args():
 		var arg := String(raw_arg)
@@ -116,6 +122,8 @@ func _parse_options() -> Dictionary:
 			result.map_spec_path = arg.trim_prefix("map_spec_path=")
 		elif arg.begins_with("scale_preset="):
 			result.scale_preset = arg.trim_prefix("scale_preset=")
+		elif arg.begins_with("perf_hide_minimap="):
+			result.hide_minimap = arg.trim_prefix("perf_hide_minimap=") == "true"
 	return result
 
 
