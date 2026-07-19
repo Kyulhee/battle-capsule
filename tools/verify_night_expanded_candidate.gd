@@ -40,7 +40,7 @@ func _init():
 	var summary: Dictionary = definition.summary(game_config, SOURCE_PRESET)
 	var source := _source_metrics(definition, game_config, runtime_tuning_script, SOURCE_PRESET)
 	var envelope: Dictionary = definition.get_scale_envelope(TARGET_ENVELOPE)
-	if not _verify_candidate(summary, source, envelope):
+	if not _verify_candidate(definition, summary, source, envelope):
 		return
 
 	print("Expanded Night candidate smoke passed: %s world=%.0fm spawn=%.0fm margin=%.1fm target_99 preferred saturation=%.2f." % [
@@ -74,7 +74,7 @@ func _source_metrics(definition, game_config, runtime_tuning_script, preset_name
 	}
 
 
-func _verify_candidate(summary: Dictionary, source: Dictionary, envelope: Dictionary) -> bool:
+func _verify_candidate(definition, summary: Dictionary, source: Dictionary, envelope: Dictionary) -> bool:
 	var bot_count := int(source.get("bot_count", 0))
 	var world_size := float(source.get("world_size", 0.0))
 	var spawn_radius := float(source.get("spawn_radius", 0.0))
@@ -114,8 +114,21 @@ func _verify_candidate(summary: Dictionary, source: Dictionary, envelope: Dictio
 	if int(summary.get("poi_count", 0)) < 10:
 		_fail("Candidate needs at least 10 POIs.")
 		return false
-	if int(summary.get("obstacle_count", 0)) < 55:
-		_fail("Candidate needs at least 55 obstacles.")
+	if int(summary.get("obstacle_count", 0)) < 70:
+		_fail("Candidate needs at least 70 obstacles.")
+		return false
+	if _count_obstacles_near(definition, "tree_cluster", Vector2.ZERO, 15.0) < 2:
+		_fail("Central Meadow needs two close tree-cover shoulders.")
+		return false
+	if _count_obstacles_near(definition, "bush_patch", Vector2.ZERO, 12.0) < 2:
+		_fail("Central Meadow needs two close concealment shoulders.")
+		return false
+	var south_center := Vector2(20.0, -98.0)
+	if _count_obstacles_near(definition, "tree_cluster", south_center, 12.0) < 1:
+		_fail("South Creek Bend needs close physical cover.")
+		return false
+	if _count_obstacles_near(definition, "bush_patch", south_center, 12.0) < 1:
+		_fail("South Creek Bend needs close concealment.")
 		return false
 	if int(summary.get("route_count", 0)) < 6:
 		_fail("Candidate needs at least 6 strategic route descriptors.")
@@ -124,6 +137,17 @@ func _verify_candidate(summary: Dictionary, source: Dictionary, envelope: Dictio
 		_fail("Candidate should only expose gameplay presets plus the nav_hotspot_1 regression preset.")
 		return false
 	return true
+
+
+func _count_obstacles_near(definition, type_name: String, center: Vector2, radius: float) -> int:
+	var count := 0
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("type", "")) != type_name:
+			continue
+		var position: Vector2 = obstacle.get("pos_2d", Vector2.INF)
+		if position.distance_to(center) <= radius:
+			count += 1
+	return count
 
 
 func _annulus_saturation(total_entities: int, clearance: float, spawn_radius: float, inner_radius: float) -> float:

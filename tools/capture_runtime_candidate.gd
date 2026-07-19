@@ -10,6 +10,7 @@ func _init() -> void:
 
 func _capture() -> void:
 	root.size = Vector2i(1920, 1080)
+	var options := _capture_options()
 	var main_scene: PackedScene = load("res://src/Main.tscn")
 	if main_scene == null:
 		push_error("Could not load Main.tscn for runtime capture.")
@@ -24,7 +25,11 @@ func _capture() -> void:
 		quit(1)
 		return
 	main.start_game()
-	await create_timer(4.0).timeout
+	var capture_position: Vector2 = options["player_position"]
+	if capture_position.is_finite() and is_instance_valid(main.player_ref):
+		main.player_ref.global_position = Vector3(capture_position.x, 0.5, capture_position.y)
+		main.player_ref.velocity = Vector3.ZERO
+	await create_timer(float(options["settle_seconds"])).timeout
 	await process_frame
 	await process_frame
 
@@ -34,11 +39,7 @@ func _capture() -> void:
 		quit(1)
 		return
 
-	var output_path := DEFAULT_OUTPUT_PATH
-	for arg in OS.get_cmdline_user_args():
-		var value := String(arg)
-		if value.begins_with("capture_output="):
-			output_path = value.trim_prefix("capture_output=")
+	var output_path := String(options["output_path"])
 	var err := image.save_png(output_path)
 	if err != OK:
 		push_error("Could not save runtime candidate capture: %s." % output_path)
@@ -46,3 +47,28 @@ func _capture() -> void:
 		return
 	print("Runtime candidate capture saved: %s" % output_path)
 	quit(0)
+
+
+func _capture_options() -> Dictionary:
+	var options := {
+		"output_path": DEFAULT_OUTPUT_PATH,
+		"player_position": Vector2.INF,
+		"settle_seconds": 4.0,
+	}
+	for arg in OS.get_cmdline_user_args():
+		var value := String(arg)
+		if value.begins_with("capture_output="):
+			options["output_path"] = value.trim_prefix("capture_output=")
+		elif value.begins_with("capture_player_position="):
+			var components := value.trim_prefix("capture_player_position=").split(",")
+			if components.size() == 2:
+				options["player_position"] = Vector2(
+					float(components[0]),
+					float(components[1])
+				)
+		elif value.begins_with("capture_settle_seconds="):
+			options["settle_seconds"] = maxf(
+				0.0,
+				float(value.trim_prefix("capture_settle_seconds="))
+			)
+	return options

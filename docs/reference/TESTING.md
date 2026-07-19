@@ -107,7 +107,9 @@ python tools\compare_scale_profiles.py C:\tmp\parent_control C:\tmp\candidate --
 
 AI 이동처럼 규모에 민감한 변경은 부모 커밋 worktree와 현재 후보를 같은 맵·preset·seed base로 각각 최소 5회 실행한다. seed별 결과 일치를 기대하지 않고 종료 분포, 개체·분 기준 stuck/disengage, AI 평균·최대 비용을 함께 비교한다.
 
-`profile_runtime_performance.gd`는 headless가 아닌 Forward+ 실행에서 frame/process/physics/navigation, draw call, collision pair, pipeline compile, AI 비용을 JSON으로 남긴다. 같은 조건을 최소 2회 반복하며 `perf_hide_minimap=true`는 UI 병목 대조에만 쓴다. N2-PERF-02 기준은 p95 15.4-15.8ms, p99 21.1-23.9ms, 33ms 초과 0.14-0.27%다.
+`profile_runtime_performance.gd`는 headless가 아닌 Forward+ 실행에서 frame/process/physics/navigation, draw call, collision pair, pipeline compile, AI 비용을 JSON으로 남긴다. 같은 조건을 최소 2회 반복하며 `perf_hide_minimap=true`는 UI 병목 대조에만 쓴다. N2-MAP-10까지의 기준은 p95 15.4-16.1ms, p99 21.1-23.9ms, 33ms 초과 0.14-0.27%다.
+
+맵 엄폐 후보는 구조 분석만으로 승격하지 않는다. `analyze_map_structure.py`로 빈 셀·방사 대역·POI 개방률을 확인한 뒤 60/99봇 각 5-run의 spawn fallback, stuck, POI/route 피해와 Forward+ 2회를 비교하고, 고정 좌표 실제 카메라 캡처와 `PLAYTEST.md` 수동 판정을 함께 남긴다.
 
 ## 회귀 신호
 

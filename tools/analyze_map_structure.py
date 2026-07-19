@@ -89,9 +89,9 @@ def empty_grid_metrics(
     obstacles: list[dict[str, Any]],
     grid_step: float,
     camera_half_width: float,
-) -> tuple[int, int, float, float]:
+) -> tuple[list[tuple[float, float, float]], int, int, float]:
     half = world_size * 0.5
-    samples = 0
+    samples: list[tuple[float, float, float]] = []
     beyond_camera = 0
     beyond_detection = 0
     distance_sum = 0.0
@@ -103,7 +103,7 @@ def empty_grid_metrics(
                 (point_to_obstacle_distance(x, z, obstacle) for obstacle in obstacles),
                 default=world_size,
             )
-            samples += 1
+            samples.append((x, z, nearest))
             distance_sum += nearest
             if nearest > camera_half_width:
                 beyond_camera += 1
@@ -111,7 +111,125 @@ def empty_grid_metrics(
                 beyond_detection += 1
             x += grid_step
         z += grid_step
-    return samples, beyond_camera, beyond_detection, distance_sum / max(1, samples)
+    return samples, beyond_camera, beyond_detection, distance_sum / max(1, len(samples))
+
+
+def radial_empty_metrics(
+    samples: list[tuple[float, float, float]],
+    world_size: float,
+    open_threshold: float,
+) -> list[tuple[str, float, float]]:
+    half = world_size * 0.5
+    bands = [
+        ("inner", 0.0, half / 3.0),
+        ("middle", half / 3.0, half * 2.0 / 3.0),
+        ("outer", half * 2.0 / 3.0, math.inf),
+    ]
+    result: list[tuple[str, float, float]] = []
+    for name, minimum, maximum in bands:
+        distances = [
+            nearest
+            for x, z, nearest in samples
+            if minimum <= math.hypot(x, z) < maximum
+        ]
+        if not distances:
+            continue
+        result.append(
+            (
+                name,
+                sum(distances) / len(distances),
+                sum(distance > open_threshold for distance in distances) / len(distances),
+            )
+        )
+    return result
+
+
+def top_empty_cells(
+    samples: list[tuple[float, float, float]],
+    count: int = 8,
+    minimum_spacing: float = 20.0,
+) -> list[tuple[float, float, float]]:
+    selected: list[tuple[float, float, float]] = []
+    for candidate in sorted(samples, key=lambda sample: sample[2], reverse=True):
+        if all(
+            math.hypot(candidate[0] - chosen[0], candidate[1] - chosen[1]) >= minimum_spacing
+            for chosen in selected
+        ):
+            selected.append(candidate)
+        if len(selected) >= count:
+            break
+    return selected
+
+
+def poi_context_metrics(
+    poi: dict[str, Any],
+    physical_obstacles: list[dict[str, Any]],
+    concealment_obstacles: list[dict[str, Any]],
+    open_threshold: float,
+    sample_step: float = 4.0,
+) -> dict[str, Any]:
+    raw_position = poi.get("pos", [0.0, 0.0])
+    center = (float(raw_position[0]), float(raw_position[1]))
+    radius = max(1.0, float(poi.get("radius", 1.0)))
+    local_samples: list[tuple[float, float]] = []
+    z = center[1] - radius
+    while z <= center[1] + radius:
+        x = center[0] - radius
+        while x <= center[0] + radius:
+            if math.hypot(x - center[0], z - center[1]) <= radius:
+                local_samples.append((x, z))
+            x += sample_step
+        z += sample_step
+
+    physical_distances = [
+        min(
+            (point_to_obstacle_distance(x, z, obstacle) for obstacle in physical_obstacles),
+            default=open_threshold * 2.0,
+        )
+        for x, z in local_samples
+    ]
+    concealment_distances = [
+        min(
+            (point_to_obstacle_distance(x, z, obstacle) for obstacle in concealment_obstacles),
+            default=open_threshold * 2.0,
+        )
+        for x, z in local_samples
+    ]
+    boundary_samples = [
+        (
+            center[0] + math.cos(index * math.tau / 16.0) * radius,
+            center[1] + math.sin(index * math.tau / 16.0) * radius,
+        )
+        for index in range(16)
+    ]
+    blocked_boundary = sum(
+        min(
+            (point_to_obstacle_distance(x, z, obstacle) for obstacle in physical_obstacles),
+            default=open_threshold * 2.0,
+        )
+        <= 2.5
+        for x, z in boundary_samples
+    )
+    nearby_physical = sum(
+        point_to_obstacle_distance(center[0], center[1], obstacle) <= radius + 6.0
+        for obstacle in physical_obstacles
+    )
+    nearby_concealment = sum(
+        point_to_obstacle_distance(center[0], center[1], obstacle) <= radius + 4.0
+        for obstacle in concealment_obstacles
+    )
+    return {
+        "name": str(poi.get("name", "Unnamed POI")),
+        "role": str(poi.get("role", "")),
+        "item_density": float(poi.get("item_density", 0.0)),
+        "nearby_physical": nearby_physical,
+        "nearby_concealment": nearby_concealment,
+        "open_ratio": sum(distance > open_threshold for distance in physical_distances)
+        / max(1, len(physical_distances)),
+        "concealment_ratio": sum(distance <= 2.5 for distance in concealment_distances)
+        / max(1, len(concealment_distances)),
+        "blocked_boundary_ratio": blocked_boundary / len(boundary_samples),
+    }
 
 
 def analyze(args: argparse.Namespace) -> None:
@@ -179,9 +297,53 @@ def analyze(args: argparse.Namespace) -> None:
         )
     print(
         f"Empty grid ({args.grid_step:.0f}m): avg obstacle-edge distance={avg_empty_distance:.1f}m, "
-        f">{camera_width * 0.5:.1f}m={100.0 * beyond_camera / max(1, samples):.1f}%, "
-        f">17.2m={100.0 * beyond_detection / max(1, samples):.1f}%"
+        f">{camera_width * 0.5:.1f}m={100.0 * beyond_camera / max(1, len(samples)):.1f}%, "
+        f">17.2m={100.0 * beyond_detection / max(1, len(samples)):.1f}%"
     )
+    radial_metrics = radial_empty_metrics(samples, world_size, camera_width * 0.5)
+    print(
+        "Radial empty bands: "
+        + ", ".join(
+            f"{name}=avg {average:.1f}m/open {open_ratio * 100.0:.1f}%"
+            for name, average, open_ratio in radial_metrics
+        )
+    )
+    print(
+        "Top empty cells: "
+        + ", ".join(
+            f"({x:.0f},{z:.0f}) {distance:.1f}m"
+            for x, z, distance in top_empty_cells(samples)
+        )
+    )
+
+    poi_contexts = [
+        poi_context_metrics(
+            poi,
+            physical_obstacles,
+            concealment_obstacles,
+            camera_width * 0.5,
+        )
+        for poi in pois
+    ]
+    weighted_density = sum(context["item_density"] for context in poi_contexts)
+    weighted_open = sum(
+        context["item_density"] * context["open_ratio"] for context in poi_contexts
+    ) / max(0.001, weighted_density)
+    print(f"Loot-weighted POI open ratio: {weighted_open * 100.0:.1f}%")
+    print("POI tactical context:")
+    for context in sorted(
+        poi_contexts,
+        key=lambda item: (item["item_density"], item["open_ratio"]),
+        reverse=True,
+    ):
+        print(
+            "  "
+            f"{context['name']}: role={context['role']} loot={context['item_density']:.2f} "
+            f"physical={context['nearby_physical']} concealment={context['nearby_concealment']} "
+            f"open={context['open_ratio'] * 100.0:.1f}% "
+            f"concealed={context['concealment_ratio'] * 100.0:.1f}% "
+            f"blocked_edge={context['blocked_boundary_ratio'] * 100.0:.1f}%"
+        )
 
 
 def main() -> int:

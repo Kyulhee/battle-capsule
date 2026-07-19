@@ -1,6 +1,6 @@
 # 플레이테스트 노트
 
-> 최종 업데이트: 2026-07-18. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
+> 최종 업데이트: 2026-07-19. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
 
 ## 현재 수동 테스트 대상
 
@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` 비기본 whitebox |
 | 권장 preset | `xlarge_60` 임시 대표 수동 표면. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 초점 | 올바른 260m 월드의 빈 평지, pickup 접근, 자연스러운 물리 병목 |
+| 현재 초점 | 중앙 초원과 남쪽 보급 거점에서 엄폐 사이 pickup 접근·우회 선택이 자연스러운가 |
 
 ## 수동 체크리스트
 
@@ -19,6 +19,8 @@
 - stage2가 회전 압박을 만들면서 stage3 도달을 막지 않는가?
 - 죽음의 이유가 플레이어 관점에서 이해되는가?
 - `xlarge_60`에서 이동과 다중 전투 중 프레임 끊김이 반복되는가?
+- 중앙 초원에서 수목·수풀이 화면 가장자리에 읽히면서 중심 이동을 막지 않는가?
+- 남쪽 보급 거점에서 왼쪽 수풀·수목과 오른쪽 바위 사이 접근 선택이 생기는가?
 
 ```powershell
 .\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=xlarge_60
@@ -30,7 +32,7 @@
 
 ## AI 빠른 재현 표면
 
-`mapSpec_ai_test_arena.json`은 작은 AI 오류를 격리하는 `72m` 테스트 맵이다. 실제 Night BR의 조우 빈도나 페이싱 판정에는 사용하지 않는다.
+`mapSpec_ai_test_arena.json`은 작은 AI 오류를 격리하는 `96m` 테스트 맵이다. 실제 Night BR의 조우 빈도나 페이싱 판정에는 사용하지 않는다.
 
 | preset | 용도 |
 |---|---|

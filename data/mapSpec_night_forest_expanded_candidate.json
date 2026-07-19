@@ -194,6 +194,9 @@
     { "type": "tree_cluster", "pos": [46, -20], "scale": [5.8, 5.0, 5.2], "rot": 16, "jitter": [1.3, 1.3], "rot_jitter": 12 },
     { "type": "tree_cluster", "pos": [58, -104], "scale": [6.2, 5.0, 5.6], "rot": -12, "jitter": [1.4, 1.4], "rot_jitter": 12 },
     { "type": "tree_cluster", "pos": [22, 72], "scale": [5.8, 5.0, 5.2], "rot": 18, "jitter": [1.3, 1.3], "rot_jitter": 12 },
+    { "type": "tree_cluster", "pos": [-11, -6], "scale": [4.8, 4.8, 4.0], "rot": 28, "jitter": [0.6, 0.6], "rot_jitter": 8 },
+    { "type": "tree_cluster", "pos": [12, 7], "scale": [4.8, 4.8, 4.0], "rot": -28, "jitter": [0.6, 0.6], "rot_jitter": 8 },
+    { "type": "tree_cluster", "pos": [13, -103], "scale": [4.8, 4.8, 4.0], "rot": 18, "jitter": [0.6, 0.6], "rot_jitter": 8 },
 
     { "type": "bush_patch", "pos": [-34, 38], "scale": [4.8, 1.0, 4.4], "rot": -14 },
     { "type": "bush_patch", "pos": [40, -40], "scale": [4.8, 1.0, 4.4], "rot": 16 },
@@ -209,6 +212,9 @@
     { "type": "bush_patch", "pos": [68, 6], "scale": [4.4, 1.0, 4.2], "rot": -24 },
     { "type": "bush_patch", "pos": [-10, 70], "scale": [4.2, 1.0, 4.0], "rot": 10 },
     { "type": "bush_patch", "pos": [12, -76], "scale": [4.2, 1.0, 4.0], "rot": -10 },
+    { "type": "bush_patch", "pos": [-5, 9], "scale": [3.8, 1.0, 3.4], "rot": 18 },
+    { "type": "bush_patch", "pos": [6, -10], "scale": [3.8, 1.0, 3.4], "rot": -18 },
+    { "type": "bush_patch", "pos": [14, -88], "scale": [3.8, 1.0, 3.4], "rot": 12 },
 
     { "type": "rock_cluster", "pos": [-104, -16], "scale": [4.0, 3.4, 3.6], "rot": 34, "jitter": [1.0, 1.0], "rot_jitter": 18 },
     { "type": "rock_cluster", "pos": [104, 32], "scale": [4.0, 3.4, 3.6], "rot": -34, "jitter": [1.0, 1.0], "rot_jitter": 18 },
