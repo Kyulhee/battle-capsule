@@ -346,6 +346,7 @@ func _update_stuck(delta):
 			_stuck_override_dir = _pick_stuck_escape_dir(threat)
 			_stuck_override_timer = 1.2
 			_stuck_timer = 0.0
+			_debug_stuck_context()
 			if has_node("/root/Telemetry"):
 				var tel = get_node("/root/Telemetry")
 				tel.log_tactics("stuck_triggered")
@@ -361,6 +362,36 @@ func _update_stuck(delta):
 					tel.log_tactics("stuck_while_threatened")
 	else:
 		_stuck_timer = 0.0
+
+
+func _debug_stuck_context() -> void:
+	var main = get_tree().root.get_node_or_null("Main")
+	if not main or not main.has_method("debug_enabled") or not main.debug_enabled("nav"):
+		return
+	var path: PackedVector3Array = _nav_agent.get_current_navigation_path() if _nav_agent else PackedVector3Array()
+	var path_index := int(_nav_agent.get_current_navigation_path_index()) if _nav_agent else -1
+	var zone_center := Vector2.ZERO
+	var zone_radius := 0.0
+	var zone_stage := 0
+	if main.zone:
+		zone_center = main.zone.current_center
+		zone_radius = main.zone.current_radius
+		zone_stage = main.zone.stage
+	main.debug_log("nav", "stuck id=%d state=%s pos=(%.1f,%.1f) zone=(%.1f,%.1f r=%.1f s=%d) target=(%.1f,%.1f) path=%d/%d" % [
+		get_instance_id(),
+		String(State.keys()[current_state]),
+		global_position.x,
+		global_position.z,
+		zone_center.x,
+		zone_center.y,
+		zone_radius,
+		zone_stage,
+		_nav_target_position.x,
+		_nav_target_position.z,
+		path_index,
+		path.size(),
+	])
+
 
 # Replaces direct handle_movement calls in movement states.
 # Applies the stuck override direction when active.

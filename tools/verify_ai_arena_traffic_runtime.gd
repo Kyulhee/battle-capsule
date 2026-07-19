@@ -3,7 +3,10 @@ extends SceneTree
 
 const EXPECTED_BOTS := 4
 const PROBE_TIMEOUT_SECONDS := 12.0
-const ARRIVAL_DISTANCE := 4.5
+const ARRIVAL_DISTANCE := {
+	"open_traffic_4": 4.5,
+	"wall_traffic_4": 5.0,
+}
 const MAX_ELAPSED_SECONDS := {
 	"open_traffic_4": 5.5,
 	"wall_traffic_4": 12.0,
@@ -20,9 +23,10 @@ func _init() -> void:
 
 func _run() -> void:
 	var preset := _argument_value("scale_preset")
-	if not MAX_STUCK_RECOVERIES.has(preset):
+	if not MAX_STUCK_RECOVERIES.has(preset) or not ARRIVAL_DISTANCE.has(preset):
 		_fail("Traffic runtime needs a supported scale_preset.")
 		return
+	var arrival_distance := float(ARRIVAL_DISTANCE[preset])
 	var main_scene: PackedScene = load("res://src/Main.tscn")
 	if main_scene == null:
 		_fail("Could not load Main.tscn.")
@@ -73,7 +77,7 @@ func _run() -> void:
 			var bot_id := bot.get_instance_id()
 			var distance: float = float(bot.global_position.distance_to(player.global_position))
 			minimum_distances[bot_id] = minf(float(minimum_distances[bot_id]), distance)
-			if float(minimum_distances[bot_id]) > ARRIVAL_DISTANCE:
+			if float(minimum_distances[bot_id]) > arrival_distance:
 				all_arrived = false
 				_force_chase(bot, player)
 		if all_arrived:

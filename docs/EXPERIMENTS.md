@@ -43,6 +43,7 @@
 | E-035 | ramp 제거 뒤 `Central Meadow` 동쪽 high rock을 다시 쓸 수 있는가? | 실제 맵 1대1 횡단 5/5 통과. 동일 seed 60봇 open 피해 69.7→69.9%, loot-hub 10.4→12.2%, `10,10` stuck 0→5회; 별도 seed도 14회 | 재기각·99봇 중단. high rock 추가 배치 금지, 비-rock 엄폐는 다중 traffic gate 선행 |
 | E-036 | 단순 Box wall은 rock의 국소 정체 없이 엄폐를 만들 수 있는가? | open 4봇 5/5회 4.20초/stuck 0, 축 정렬 폭 4m wall 6.55초/2. log 1봇·회전 wall은 실패. 제품 60봇 wall은 `10,10` 0→16회, open 69.7→69.6% | 제품 후보 기각·99 중단, 96m traffic gate 채택. Box corner 정체를 0으로 고치는 N2-NAV-02 선행 |
 | E-037 | runtime NavigationRegion이 실제 WorldBuilder geometry를 bake하고 있었는가? | 기존 메시 `polygons=0, vertices=0`. source group bake 뒤 rock stuck 1→0, 60/99봇 stuck 39.0→2.8·53.2→12.4, 평균 종료 225.1→222.5·199.7→222.9초 | 실제 geometry bake 채택, 빈 메시 gate 추가. `0,40` hotspot과 99봇 disengage는 별도 격리 |
+| E-038 | `0,40` 정체가 high rock/zone 구조 때문인가? | 실제 충돌 경로는 `/Minimap/Cabin_South/Wall2`였고 Minimap UID가 TestMap을 가리켰다. UID 교정 뒤 hotspot 5.1초/stuck 0, 60/99봇 stuck 1.4/1.2 | UID 교정과 Minimap 충돌체 금지 gate 채택. rock proxy와 path 허용치 변경은 폐기 |
 
 ## 폐기 패턴
 

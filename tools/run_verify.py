@@ -157,6 +157,15 @@ def profile_steps(
             godot_script(godot, "verify_full_map_overlay.gd"),
             godot_script(godot, "verify_simulation_participants.gd"),
             godot_script(godot, "verify_night_expanded_candidate.gd"),
+            godot_script_args(
+                godot,
+                "verify_night_nav_hotspot_runtime.gd",
+                [
+                    "map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json",
+                    "scale_preset=nav_hotspot_1",
+                    "simulation_seed=41000",
+                ],
+            ),
             godot_script(godot, "verify_strategic_flow_map.gd"),
             godot_script(godot, "verify_map_runtime_path.gd"),
             godot_script(godot, "verify_ai_test_arena.gd"),

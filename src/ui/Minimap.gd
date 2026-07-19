@@ -45,10 +45,11 @@ func _process(delta):
 	
 	var main = get_tree().get_root().get_node_or_null("Main")
 	if main:
-		current_zone_center = main.zone.current_center
-		current_zone_radius = main.zone.current_radius
-		next_zone_center = main.zone.next_center
-		next_zone_radius = main.zone.next_radius
+		if main.zone:
+			current_zone_center = main.zone.current_center
+			current_zone_radius = main.zone.current_radius
+			next_zone_center = main.zone.next_center
+			next_zone_radius = main.zone.next_radius
 		
 		# Supply sync
 		if main.get("supply_telegraphed"):

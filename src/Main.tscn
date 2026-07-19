@@ -2,7 +2,7 @@
 
 [ext_resource type="Script" path="res://src/Main.gd" id="1_script"]
 [ext_resource type="Script" path="res://src/maps/WorldBuilder.gd" id="2_builder"]
-[ext_resource type="PackedScene" uid="uid://dyqy0q7n7q7l" path="res://src/ui/Minimap.tscn" id="3_minimap"]
+[ext_resource type="PackedScene" uid="uid://c6m8x5u5m4i3c" path="res://src/ui/Minimap.tscn" id="3_minimap"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.384314, 0.454902, 0.54902, 1)

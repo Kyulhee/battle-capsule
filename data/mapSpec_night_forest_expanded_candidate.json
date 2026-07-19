@@ -98,6 +98,29 @@
           "rare_bias_mult": 1.45
         }
       }
+    },
+    "nav_hotspot_1": {
+      "match": {
+        "bot_count": 1,
+        "loot_count": 0,
+        "spawn_radius": 90.0
+      },
+      "runtime": {
+        "spawn": {
+          "fixed_positions": [[0.0, 0.0], [0.0, 30.0]]
+        },
+        "loot": {
+          "initial_spawn_enabled": false,
+          "stage_wave_base_prob": 0.0,
+          "stage_wave_prob_per_stage": 0.0,
+          "stage_wave_count_mult": 0
+        }
+      },
+      "zone": {
+        "initial_timer": 600.0,
+        "wait_time": 600.0,
+        "shrink_time": 600.0
+      }
     }
   },
   "scale_envelopes": {

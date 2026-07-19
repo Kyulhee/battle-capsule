@@ -53,7 +53,7 @@ def run_match(match_id: int) -> dict:
     if proc.returncode != 0:
         raise RuntimeError(f"Godot exited with code {proc.returncode}\n{proc.stdout[-4000:]}")
     for line in proc.stdout.splitlines():
-        if line.startswith("[BOT_SNAPSHOT]"):
+        if line.startswith("[BOT_SNAPSHOT]") or line.startswith("[DEBUG:"):
             print(f"  {line}", flush=True)
     if not SIM_RESULT_PATH.exists():
         raise FileNotFoundError(f"Telemetry result not found: {SIM_RESULT_PATH}")

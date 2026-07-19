@@ -120,8 +120,8 @@ func _verify_candidate(summary: Dictionary, source: Dictionary, envelope: Dictio
 	if int(summary.get("route_count", 0)) < 6:
 		_fail("Candidate needs at least 6 strategic route descriptors.")
 		return false
-	if int(summary.get("scale_preset_count", 0)) != 3:
-		_fail("Candidate should only expose baseline, %s, and target_99_probe scale presets." % SOURCE_PRESET)
+	if int(summary.get("scale_preset_count", 0)) != 4:
+		_fail("Candidate should only expose gameplay presets plus the nav_hotspot_1 regression preset.")
 		return false
 	return true
 

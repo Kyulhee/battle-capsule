@@ -2,6 +2,15 @@
 
 > 최종 업데이트: 2026-07-18. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-NAV-03 Minimap 물리 오염 제거
+
+- 재현: 실제 260m 맵의 봇 하나가 `(4.2,44.5)`에서 유효한 9점 경로를 가진 채 반복 정체했다. 충돌 진단은 `/HUD/Minimap/Cabin_South/Wall2`를 지목했다.
+- 원인: `Main.tscn`의 Minimap 외부 리소스 UID가 `TestMap.tscn` UID여서 legacy 테스트 맵 물리가 UI 하위에 로드됐다. 경로 허용치와 high rock proxy 가설은 폐기했다.
+- 수정: Minimap UID를 교정하고 zone 초기화 null guard를 추가했다. 제품 hotspot smoke는 Minimap 하위 충돌체 0개, 8초 내 ZONE_ESCAPE 종료, stuck 1 이하를 요구한다.
+- 검증: hotspot은 약 5.1초·stuck 0, `unit_smoke` 통과. 동일 seed 60봇은 종료 245.6초·stuck 1.4·AI 317.9µs·open 피해 63.0%였다.
+- 확대: 99봇은 종료 239.8초·stuck 1.2·AI 435.6µs·open 피해 69.6%였다. disengage 165.8회는 별도 실패로 유지한다.
+- 다음: 오염된 물리 기준과 수치가 달라졌으므로 N2-PERF-02에서 60봇 Forward+ 프레임을 다시 측정한다.
+
 ## N2-NAV-02 실제 내비게이션 메시 복구
 
 - 원인: runtime `NavigationRegion3D`는 `WorldBuilder`의 형제였고 기본 child scan을 사용해 bake 결과가 `polygons=0, vertices=0`이었다. 봇은 실제 경로 없이 direct fallback과 stuck override로만 이동했다.
@@ -102,14 +111,6 @@
 - 런타임 수정: 실제 60봇 캡처에서 외곽 spawn 가림을 발견해 spawn을 90m/100m로 줄이고 벽 높이와 수풀 크기를 낮췄다. 사망한 chase target 참조 오류도 수명 방어와 smoke로 수정했다.
 - 실패 신호: 99봇 5-run 평균 196.6초, 범위 180.2-217.8초, 첫 조우 7.1초, 이탈 152.4회, stuck 49회, open 피해 66.7%. `scale_99` gate 실패.
 - 결정: 크기·시각 밀도 실험으로는 유지하되 기본 맵으로 승격하지 않는다. 다음은 obstacle 추가가 아니라 위협·목표·위치 효용을 분리하는 AI 결정 계층이다.
-
-## N2-AI-01 플레이어 표적 위협 판정
-
-- 원인: outnumbered 판정이 현재 표적과 단순 방관자까지 모두 세어 `DEFENSIVE`/`SNIPER`는 1대1에서도 즉시 이탈하고, 여러 봇이 플레이어를 공격하면 서로를 보고 흩어졌다.
-- 실패 후보: 실제 압박 위협만 세는 판정을 모든 교전에 적용했으나 5-run에서 평균 516.9초, 2개 run 300초 미만, first upgrade 1회 누락, stuck 0.17로 gate 실패했다.
-- 채택 범위: 플레이어를 현재 표적으로 둔 경우에만 자신을 추적하거나 최근 5초 안에 공격한 제3자를 센다. bot-only는 기존 가시 적 판정을 유지한다.
-- 검증: 현재 표적, 방관자, 추적자, 최근/만료 공격자를 구분하고 bot-only 계약 보존을 확인하는 smoke를 추가했다. `unit_smoke` 통과.
-- 다음: 180m/장애물 4.2% 맵과 8봇/99봇 표면 불일치를 해소하는 whitebox를 설계한다.
 
 ## 기록 보존
 
