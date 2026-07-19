@@ -27,6 +27,7 @@ const BASE_PROFILE := {
 	"awareness_level": 0,
 	"scan_interval_max": 3.0,
 	"patrol_preference": "random",
+	"strategic_preference": "mixed",
 	"safety": {
 		"zone_escape_locked": true,
 		"death_guard_locked": true,
@@ -81,6 +82,7 @@ const ARCHETYPE_OVERLAYS := {
 		"loot_radius": 70.0,
 		"combat_loot_threshold": 0.0,
 		"flee_hp_ratio": 0.15,
+		"strategic_preference": "loot_hub",
 		"combat": {
 			"survival_cover_hp_buffer": 0.12,
 			"outnumbered_visible_enemies": 3,
@@ -101,6 +103,7 @@ const ARCHETYPE_OVERLAYS := {
 		"combat_loot_threshold": 0.20,
 		"flee_hp_ratio": 0.35,
 		"patrol_preference": "bush",
+		"strategic_preference": "cover",
 		"combat": {
 			"cover_probe_chance": 0.42,
 			"reposition_probe_chance": 0.14,
@@ -118,6 +121,7 @@ const ARCHETYPE_OVERLAYS := {
 		"combat_loot_threshold": 0.0,
 		"flee_hp_ratio": 0.40,
 		"sniper_min_engage_range": 14.0,
+		"strategic_preference": "transit",
 		"combat": {
 			"prefers_hold_angle": true,
 			"kite_probe_chance": 0.18,
@@ -133,6 +137,7 @@ const ARCHETYPE_OVERLAYS := {
 		"combat_loot_threshold": 0.25,
 		"flee_hp_ratio": 0.25,
 		"patrol_preference": "hotspot",
+		"strategic_preference": "loot_hub",
 		"supply": {
 			"telegraph_interest_dist": 70.0,
 			"spawn_interest_dist": 80.0,

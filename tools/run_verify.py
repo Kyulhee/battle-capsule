@@ -150,6 +150,7 @@ def profile_steps(
             godot_script(godot, "verify_bot_target_lifetime.gd"),
             godot_script(godot, "verify_bot_decision_policy.gd"),
             godot_script(godot, "verify_bot_movement_policy.gd"),
+            godot_script(godot, "verify_bot_strategic_movement_policy.gd"),
             godot_script(godot, "verify_bot_threat_pressure.gd"),
             godot_script(godot, "verify_bot_zone_escape_runtime.gd"),
             godot_script(godot, "verify_match_tuning_cli.gd"),

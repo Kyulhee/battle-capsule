@@ -86,7 +86,7 @@
       "tags": ["movement", "surface.stone"]
     },
     "melee": {
-      "path": "",
+      "path": "res://assets/sfx/weapons/knife_swing.wav",
       "fallback": "melee",
       "tags": ["weapon", "knife"]
     },

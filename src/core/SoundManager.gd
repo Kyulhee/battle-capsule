@@ -5,10 +5,11 @@ extends Node
 # 3D sounds: pass a world position. UI/player sounds: omit position (plays flat 2D).
 
 const SOUND_VOLUME_DB := {
-	"shoot.pistol": -4.0,
+	"shoot.pistol": -8.5,
 	"shoot.ar": -6.0,
 	"shoot.shotgun": -3.0,
 	"shoot.railgun": -4.0,
+	"melee": -5.0,
 }
 const WEAPON_PITCH_VARIATION := 0.02
 
@@ -23,7 +24,11 @@ func set_asset_catalog(catalog) -> void:
 	asset_catalog = catalog
 	_stream_cache.clear()
 
-func play(sound_name: String, pos: Vector3 = Vector3.ZERO):
+func play(
+	sound_name: String,
+	pos: Vector3 = Vector3.ZERO,
+	volume_offset_db: float = 0.0
+):
 	var stream = _try_load_file(sound_name)
 	var fallback_name = sound_name
 	if not stream and asset_catalog and asset_catalog.has_method("get_audio_fallback"):
@@ -33,16 +38,20 @@ func play(sound_name: String, pos: Vector3 = Vector3.ZERO):
 	if not stream:
 		return
 	if pos != Vector3.ZERO:
-		_play_3d(stream, pos, sound_name)
+		_play_3d(stream, pos, sound_name, volume_offset_db)
 	else:
-		_play_2d(stream, sound_name)
+		_play_2d(stream, sound_name, volume_offset_db)
 
 func play_weapon_shot(weapon_type: String, pos: Vector3 = Vector3.ZERO):
 	play("shoot.%s" % weapon_type, pos)
 
-func play_footstep(surface_id: String = "", pos: Vector3 = Vector3.ZERO):
+func play_footstep(
+	surface_id: String = "",
+	pos: Vector3 = Vector3.ZERO,
+	volume_offset_db: float = 0.0
+):
 	var sound_id = "footstep.%s" % surface_id if surface_id != "" else "footstep"
-	play(sound_id, pos)
+	play(sound_id, pos, volume_offset_db)
 
 func _try_load_file(sound_name: String) -> AudioStream:
 	if _stream_cache.has(sound_name):
@@ -71,27 +80,40 @@ func _load_stream(path: String) -> AudioStream:
 		return AudioStreamWAV.load_from_file(path)
 	return null
 
-func _play_3d(stream: AudioStream, pos: Vector3, sound_name: String = ""):
+func _play_3d(
+	stream: AudioStream,
+	pos: Vector3,
+	sound_name: String = "",
+	volume_offset_db: float = 0.0
+):
 	var player = AudioStreamPlayer3D.new()
 	get_tree().root.add_child(player)
 	player.global_position = pos
 	player.stream = stream
 	player.unit_size = 10.0
 	player.max_distance = 60.0
-	_apply_playback_profile(player, sound_name)
+	_apply_playback_profile(player, sound_name, volume_offset_db)
 	player.play()
 	player.finished.connect(player.queue_free)
 
-func _play_2d(stream: AudioStream, sound_name: String = ""):
+func _play_2d(
+	stream: AudioStream,
+	sound_name: String = "",
+	volume_offset_db: float = 0.0
+):
 	var player = AudioStreamPlayer.new()
 	get_tree().root.add_child(player)
 	player.stream = stream
-	_apply_playback_profile(player, sound_name)
+	_apply_playback_profile(player, sound_name, volume_offset_db)
 	player.play()
 	player.finished.connect(player.queue_free)
 
-func _apply_playback_profile(player, sound_name: String) -> void:
-	player.volume_db = float(SOUND_VOLUME_DB.get(sound_name, 0.0))
+func _apply_playback_profile(
+	player,
+	sound_name: String,
+	volume_offset_db: float = 0.0
+) -> void:
+	player.volume_db = float(SOUND_VOLUME_DB.get(sound_name, 0.0)) + volume_offset_db
 	if sound_name.begins_with("shoot."):
 		player.pitch_scale = _audio_rng.randf_range(
 			1.0 - WEAPON_PITCH_VARIATION,

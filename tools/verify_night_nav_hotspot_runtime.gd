@@ -51,6 +51,7 @@ func _run() -> void:
 
 	player.set_process(false)
 	player.set_physics_process(false)
+	player.global_position = Vector3(400.0, player.global_position.y, 400.0)
 	var bot = bots[0]
 	bot.global_position = Vector3(APPROACH_POSITION.x, bot.global_position.y, APPROACH_POSITION.y)
 	bot.velocity = Vector3.ZERO
@@ -78,6 +79,11 @@ func _run() -> void:
 	var final_distance := Vector2(final_position.x, final_position.z).distance_to(ZONE_CENTER)
 	var final_state := String(bot.State.keys()[bot.current_state])
 	var path_snapshot := _path_snapshot(bot)
+	var strategic_wait := 0.0
+	while strategic_wait < 1.0 and bot.get("_strategic_destination").is_empty():
+		await create_timer(0.05).timeout
+		strategic_wait += 0.05
+	var strategic_destination: Dictionary = bot.get("_strategic_destination").duplicate(true)
 	await _cleanup(main)
 	if final_state == "ZONE_ESCAPE":
 		_fail("Night nav hotspot bot did not escape: elapsed=%.2fs stuck=%d pos=(%.1f,%.1f) zone_dist=%.1f %s." % [
@@ -96,6 +102,13 @@ func _run() -> void:
 			final_position.z,
 			path_snapshot,
 		])
+		return
+	if strategic_destination.is_empty():
+		_fail("Night nav hotspot bot escaped the zone but did not select a strategic POI destination.")
+		return
+	var strategic_role := String(strategic_destination.get("role", ""))
+	if strategic_role not in ["loot_hub", "transit_choke", "recovery_pocket", "concealment_field"]:
+		_fail("Night nav hotspot bot selected an invalid strategic role: %s." % strategic_role)
 		return
 	print("Night nav hotspot smoke passed: elapsed=%.2fs stuck=%d pos=(%.1f,%.1f) zone_dist=%.1f." % [
 		elapsed,

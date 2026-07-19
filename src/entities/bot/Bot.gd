@@ -8,6 +8,7 @@ const DropDisplayCatalogScript = preload("res://src/core/DropDisplayCatalog.gd")
 const BOT_DOCTRINE       = preload("res://src/entities/bot/BotDoctrine.gd")
 const BOT_DECISION_POLICY = preload("res://src/entities/bot/BotDecisionPolicy.gd")
 const BOT_MOVEMENT_POLICY = preload("res://src/entities/bot/BotMovementPolicy.gd")
+const BOT_STRATEGIC_MOVEMENT_POLICY = preload("res://src/entities/bot/BotStrategicMovementPolicy.gd")
 const BOT_TUNING         = preload("res://src/entities/bot/BotTuning.gd")
 const BOT_DEBUG_LABEL_BUILDER = preload("res://src/entities/bot/BotDebugLabelBuilder.gd")
 const BOT_MARKER_FORMATTER = preload("res://src/entities/bot/BotMarkerFormatter.gd")
@@ -39,6 +40,10 @@ const OPENING_ZONE_ESCAPE_COUNTERACTION_HARD_BUMP_RANGE := 1.0
 const ZONE_ESCAPE_DEEP_RELEASE_RATIO := 0.75
 const LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT := 2.0
 const HEALTHY_HEAL_PICKUP_RATIO := 0.82
+const STRATEGIC_IDLE_START_SECONDS := 3.0
+const STRATEGIC_TARGET_RETRY_MIN := 9.0
+const STRATEGIC_TARGET_RETRY_MAX := 14.0
+const STRATEGIC_TARGET_ARRIVAL_DISTANCE := 4.0
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -113,6 +118,9 @@ var _cached_pickup_max_ammo: int = -1
 var _cached_pickup_reserve_ammo: int = -1
 var _doctrine_state_telemetry_timer: float = 0.0
 var _doctrine_state_telemetry_delta: float = 0.0
+var _strategic_destination: Dictionary = {}
+var _strategic_target_retry_timer: float = 0.0
+var _strategic_target_cycle: int = 0
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -241,6 +249,7 @@ func _physics_process(delta):
 	_retreat_threat_search_timer -= delta
 	_threat_pressure_timer -= delta
 	_pickup_search_timer -= delta
+	_strategic_target_retry_timer -= delta
 	_spawn_age += delta
 	state_timer += delta
 	_update_doctrine_state_telemetry(delta)
@@ -570,6 +579,10 @@ func handle_idle_state(delta):
 	if _late_game_applied and last_known_target_pos != Vector3.ZERO:
 		if global_position.distance_to(last_known_target_pos) > 6.0:
 			_nav_move_toward(last_known_target_pos, delta, true)
+		return
+
+	if _spawn_age >= STRATEGIC_IDLE_START_SECONDS:
+		_move_toward_strategic_destination(main, delta)
 
 func handle_chase_state(delta):
 	if not _is_target_valid(target_actor):
@@ -2459,6 +2472,53 @@ func _pick_patrol_target() -> Vector3:
 		var hotspot = _find_nearest_hotspot()
 		if hotspot != Vector3.ZERO: return hotspot
 	return _random_zone_point()
+
+func _move_toward_strategic_destination(main, delta: float) -> bool:
+	if main == null or main.zone == null or main.map_spec == null:
+		return false
+	var target: Vector2 = _strategic_destination.get("target", Vector2.INF)
+	var self_position := Vector2(global_position.x, global_position.z)
+	var target_invalid := not target.is_finite()
+	if not target_invalid:
+		target_invalid = self_position.distance_to(target) <= STRATEGIC_TARGET_ARRIVAL_DISTANCE
+	if not target_invalid:
+		target_invalid = target.distance_to(main.zone.current_center) \
+			> float(main.zone.current_radius) - BOT_STRATEGIC_MOVEMENT_POLICY.ZONE_EDGE_MARGIN
+	if target_invalid and target.is_finite():
+		_strategic_destination.clear()
+		_strategic_target_retry_timer = 0.0
+		target = Vector2.INF
+	if not target.is_finite() and _strategic_target_retry_timer <= 0.0:
+		_strategic_destination = _select_strategic_destination(main, self_position)
+		_strategic_target_retry_timer = randf_range(
+			STRATEGIC_TARGET_RETRY_MIN,
+			STRATEGIC_TARGET_RETRY_MAX
+		)
+		target = _strategic_destination.get("target", Vector2.INF)
+	if not target.is_finite():
+		return false
+	_nav_move_toward(Vector3(target.x, global_position.y, target.y), delta, true)
+	return true
+
+func _select_strategic_destination(main, origin: Vector2) -> Dictionary:
+	var pois: Array[Dictionary] = []
+	if main.map_definition != null and main.map_definition.has_method("get_poi_descriptors"):
+		pois = main.map_definition.get_poi_descriptors()
+	else:
+		for poi in main.map_spec.pois:
+			if typeof(poi) == TYPE_DICTIONARY:
+				pois.append(poi)
+	_ensure_doctrine_profile()
+	_strategic_target_cycle += 1
+	return BOT_STRATEGIC_MOVEMENT_POLICY.select_destination(
+		pois,
+		origin,
+		main.zone.current_center,
+		float(main.zone.current_radius),
+		String(_doctrine_profile.get("strategic_preference", "mixed")),
+		randf(),
+		int(get_instance_id()) + _strategic_target_cycle
+	)
 
 func _find_nearest_bush() -> Vector3:
 	var main = get_tree().root.get_node_or_null("Main")

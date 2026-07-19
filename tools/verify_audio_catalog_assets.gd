@@ -6,6 +6,7 @@ const REQUIRED_AUDIO := {
 	"shoot.ar": "res://assets/sfx/weapons/ar_shoot.wav",
 	"shoot.shotgun": "res://assets/sfx/weapons/shotgun_shoot.wav",
 	"shoot.railgun": "res://assets/sfx/weapons/railgun_shoot.wav",
+	"melee": "res://assets/sfx/weapons/knife_swing.wav",
 	"footstep.grass": "res://assets/sfx/footsteps/grass_01.wav",
 	"footstep.dirt": "res://assets/sfx/footsteps/dirt_01.wav",
 	"footstep.stone": "res://assets/sfx/footsteps/stone_01.wav",
@@ -15,6 +16,9 @@ const REQUIRED_AUDIO := {
 func _init() -> void:
 	var asset_catalog_script = load("res://src/core/AssetCatalog.gd")
 	var sound_manager_script = load("res://src/core/SoundManager.gd")
+	var movement_audio_policy = load(
+		"res://src/entities/player/PlayerMovementAudioPolicy.gd"
+	)
 	var asset_catalog = asset_catalog_script.new()
 	asset_catalog.load_or_default()
 
@@ -47,6 +51,9 @@ func _init() -> void:
 		if sound_id.begins_with("shoot.") and stream.get_length() >= 1.0:
 			_fail("%s weapon stream is too long for repeated combat playback." % sound_id)
 			return
+		if sound_id == "melee" and stream.get_length() >= 0.35:
+			_fail("Knife swing stream is too long for repeated melee playback.")
+			return
 		if sound_manager._try_load_file(sound_id) != stream:
 			_fail("%s did not reuse its cached stream." % sound_id)
 			return
@@ -59,14 +66,43 @@ func _init() -> void:
 	if weapon_profile_probe.pitch_scale < 0.98 or weapon_profile_probe.pitch_scale > 1.02:
 		_fail("Weapon pitch variation exceeded the ±2% contract.")
 		return
+	var pistol_profile_probe := AudioStreamPlayer.new()
+	sound_manager._apply_playback_profile(pistol_profile_probe, "shoot.pistol")
+	if not is_equal_approx(pistol_profile_probe.volume_db, -8.5):
+		_fail("Pistol playback profile must sit below the other gunshots.")
+		return
+	if pistol_profile_probe.volume_db >= weapon_profile_probe.volume_db:
+		_fail("Pistol playback must be quieter than AR playback.")
+		return
 	var footstep_profile_probe := AudioStreamPlayer.new()
 	sound_manager._apply_playback_profile(footstep_profile_probe, "footstep.grass")
 	if not is_equal_approx(footstep_profile_probe.volume_db, 0.0):
 		_fail("Accepted footstep volume must remain unchanged.")
 		return
+	var crouch_footstep_probe := AudioStreamPlayer.new()
+	var crouch_volume_db: float = movement_audio_policy.footstep_volume_offset_db(true)
+	sound_manager._apply_playback_profile(
+		crouch_footstep_probe,
+		"footstep.grass",
+		crouch_volume_db
+	)
+	if not is_equal_approx(crouch_footstep_probe.volume_db, -10.0):
+		_fail("Crouched footsteps must apply a -10 dB stance offset.")
+		return
+	if not is_equal_approx(movement_audio_policy.footstep_volume_offset_db(false), 0.0):
+		_fail("Standing footsteps must preserve the accepted volume.")
+		return
+	if not is_equal_approx(movement_audio_policy.footstep_stance_radius_mult(true), 0.45):
+		_fail("Crouched footsteps must reduce AI hearing radius to 45%.")
+		return
+	if not is_equal_approx(movement_audio_policy.footstep_stance_radius_mult(false), 1.0):
+		_fail("Standing footsteps must preserve AI hearing radius.")
+		return
 
 	weapon_profile_probe.free()
+	pistol_profile_probe.free()
 	footstep_profile_probe.free()
+	crouch_footstep_probe.free()
 	sound_manager.free()
 	print("Audio catalog asset smoke passed: %d streams, missing=0." % REQUIRED_AUDIO.size())
 	quit(0)

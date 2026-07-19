@@ -14,7 +14,7 @@ data/asset_catalog.json
 
 `AssetCatalog.get_path(category, id, fallback)`은 경로를 반환하거나 없으면 빈 문자열을 반환한다. 빈 경로는 오류가 아니라 procedural fallback 또는 기본 표시로 이어진다.
 
-현재 path가 설정된 7개 항목은 모두 실제 파일과 연결되어 `AssetCatalog.missing_count()`가 0이다. path가 비어 있는 항목은 의도된 procedural fallback이며 누락 경고 대상이 아니다.
+현재 path가 설정된 8개 항목은 모두 실제 파일과 연결되어 `AssetCatalog.missing_count()`가 0이다. path가 비어 있는 항목은 의도된 procedural fallback이며 누락 경고 대상이 아니다.
 
 ## 현재 catalog 상태
 
@@ -29,9 +29,10 @@ data/asset_catalog.json
 | `footstep.grass` | 수동 채택 | `res://assets/sfx/footsteps/grass_01.wav` |
 | `footstep.dirt` | 수동 채택 | `res://assets/sfx/footsteps/dirt_01.wav` |
 | `footstep.stone` | 수동 채택 | `res://assets/sfx/footsteps/stone_01.wav` |
-| `reload`, `dry_fire`, `hit`, `impact_wall`, `hurt`, `death`, `pickup`, `heal`, `melee`, `zone_warning`, fallback IDs | path 비어 있음 | procedural sound 또는 silence fallback |
+| `melee` | 교체 후보 | CC0 Foley `swish-3.wav` 단발 |
+| `reload`, `dry_fire`, `hit`, `impact_wall`, `hurt`, `death`, `pickup`, `heal`, `zone_warning`, fallback IDs | path 비어 있음 | procedural sound 또는 silence fallback |
 
-발걸음은 Kenney CC0 원본을 유지한다. 첫 무기음 4종은 Kenney laser proxy여서 수동 폐기했고, OpenGameArt `Gunshot Sounds` CC0 실사 녹음으로 교체했다. 세부 출처와 가공 범위는 `assets/sfx/README.txt`에 둔다. `SoundManager`는 성공 스트림을 ID별로 캐시하고 무기별 볼륨과 ±2% 피치 변화를 적용한다.
+발걸음은 Kenney CC0 원본을 유지한다. 첫 무기음 4종은 Kenney laser proxy여서 수동 폐기했고, OpenGameArt `Gunshot Sounds` CC0 실사 녹음으로 교체했다. 칼은 procedural noise를 OpenGameArt `Swishes Sound Pack` Foley로 교체했다. 세부 출처와 가공 범위는 `assets/sfx/README.txt`에 둔다. `SoundManager`는 성공 스트림을 ID별로 캐시하며 권총은 AR보다 작게, 앉기 발걸음은 -10 dB로 재생한다.
 
 ### 아이콘
 

@@ -45,7 +45,8 @@
 | E-037 | runtime NavigationRegion이 실제 WorldBuilder geometry를 bake하고 있었는가? | 기존 메시 `polygons=0, vertices=0`. source group bake 뒤 rock stuck 1→0, 60/99봇 stuck 39.0→2.8·53.2→12.4, 평균 종료 225.1→222.5·199.7→222.9초 | 실제 geometry bake 채택, 빈 메시 gate 추가. `0,40` hotspot과 99봇 disengage는 별도 격리 |
 | E-038 | `0,40` 정체가 high rock/zone 구조 때문인가? | 실제 충돌 경로는 `/Minimap/Cabin_South/Wall2`였고 Minimap UID가 TestMap을 가리켰다. UID 교정 뒤 hotspot 5.1초/stuck 0, 60/99봇 stuck 1.4/1.2 | UID 교정과 Minimap 충돌체 금지 gate 채택. rock proxy와 path 허용치 변경은 폐기 |
 | E-039 | loot hub 주변의 비-rock 수목·수풀이 경로 정체 없이 빈 평지를 줄이는가? | 중앙/남쪽 개방률 80.2/39.5→16.0/17.3%, 60/99봇 POI 피해 +8.5/+6.9%p. stuck 약 0.01/0.00, 60봇 p95 15.8-16.1ms | 자동 후보 채택. 인공 route 표시는 추가하지 않고 N2-PLAY-03 수동 접근 판정 뒤 승격 |
-| E-039 | 정상 Minimap 로드 뒤 60봇 렉은 AI/nav 비용인가? | 표시 p95 36.6-39.1ms, 비표시 21.7ms. 정적 지도를 1회 캐시하자 15.4-15.8ms, draw call 평균 502-519→146-234 | 정적/동적 지도 레이어 분리 채택. navigation 튜닝으로 해결하지 않음 |
+| E-040 | 정상 Minimap 로드 뒤 60봇 렉은 AI/nav 비용인가? | 표시 p95 36.6-39.1ms, 비표시 21.7ms. 정적 지도를 1회 캐시하자 15.4-15.8ms, draw call 평균 502-519→146-234 | 정적/동적 지도 레이어 분리 채택. navigation 튜닝으로 해결하지 않음 |
+| E-041 | 근거리 pickup 목표만으로 확장 맵의 장거리 이동 압력이 생기는가? | 수동으로 압력 부재. loot가 없어진 IDLE은 정지했다. POI 13개 저빈도 목적지 후보는 60봇 p95 12.9ms, 99봇 AI 146.2µs, 3-run 평균 231.1초 | 자동 후보 유지, N2-PLAY-05 전 승격 금지. actor/pickup 전역 탐색과 인공 route 표시는 재도입하지 않음 |
 
 ## 폐기 패턴
 

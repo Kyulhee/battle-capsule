@@ -1,5 +1,9 @@
 extends Entity
 
+const PLAYER_MOVEMENT_AUDIO_POLICY = preload(
+	"res://src/entities/player/PlayerMovementAudioPolicy.gd"
+)
+
 @onready var camera_pivot = $CameraPivot
 @onready var ray_cast = $RayCast3D
 @onready var hud_label = $CanvasLayer/Control/HPLabel
@@ -245,10 +249,13 @@ func _physics_process(delta):
 		footstep_timer -= delta
 		if footstep_timer <= 0:
 			footstep_timer = PlayerTuningScript.FOOTSTEP_INTERVAL
+			var footstep_volume_db := PLAYER_MOVEMENT_AUDIO_POLICY.footstep_volume_offset_db(
+				is_crouching
+			)
 			if Sfx and Sfx.has_method("play_footstep"):
-				Sfx.play_footstep(_current_surface_id(), global_position)
+				Sfx.play_footstep(_current_surface_id(), global_position, footstep_volume_db)
 			elif Sfx:
-				Sfx.play("footstep", global_position)
+				Sfx.play("footstep", global_position, footstep_volume_db)
 	else:
 		footstep_timer = 0.0
 
@@ -1053,4 +1060,7 @@ func _receive_shield_capped(amount: float, shield_cap: float) -> void:
 	shield_changed.emit(current_shield, stats.max_shield)
 
 func get_footstep_radius_mult() -> float:
-	return _artifact_runtime.get_footstep_radius_mult(_artifact_mods.get("footstep_radius_mult", 1.0))
+	var stance_mult := PLAYER_MOVEMENT_AUDIO_POLICY.footstep_stance_radius_mult(is_crouching)
+	return stance_mult * _artifact_runtime.get_footstep_radius_mult(
+		_artifact_mods.get("footstep_radius_mult", 1.0)
+	)
