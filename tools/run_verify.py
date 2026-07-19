@@ -154,6 +154,7 @@ def profile_steps(
             godot_script(godot, "verify_bot_zone_escape_runtime.gd"),
             godot_script(godot, "verify_match_tuning_cli.gd"),
             godot_script(godot, "verify_night_world_readability.gd"),
+            godot_script(godot, "verify_audio_catalog_assets.gd"),
             godot_script(godot, "verify_full_map_overlay.gd"),
             godot_script(godot, "verify_simulation_participants.gd"),
             godot_script(godot, "verify_night_expanded_candidate.gd"),

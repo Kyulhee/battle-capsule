@@ -1,6 +1,6 @@
 # Battle Capsule 자산 상태
 
-> 최종 업데이트: 2026-06-30. 현재 통합/보류/미연결 자산 상태를 요약한다.
+> 최종 업데이트: 2026-07-19. 현재 통합/보류/미연결 자산 상태를 요약한다.
 
 ## 연결 방식
 
@@ -14,13 +14,7 @@ data/asset_catalog.json
 
 `AssetCatalog.get_path(category, id, fallback)`은 경로를 반환하거나 없으면 빈 문자열을 반환한다. 빈 경로는 오류가 아니라 procedural fallback 또는 기본 표시로 이어진다.
 
-예상 가능한 시작 경고:
-
-```text
-AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
-```
-
-이 경고는 의도된 상태다. 숨기지 않는다.
+현재 path가 설정된 7개 항목은 모두 실제 파일과 연결되어 `AssetCatalog.missing_count()`가 0이다. path가 비어 있는 항목은 의도된 procedural fallback이며 누락 경고 대상이 아니다.
 
 ## 현재 catalog 상태
 
@@ -37,7 +31,7 @@ AssetCatalog: 7 configured asset paths are missing; fallbacks remain active.
 | `footstep.stone` | 통합됨 | `res://assets/sfx/footsteps/stone_01.wav` |
 | `reload`, `dry_fire`, `hit`, `impact_wall`, `hurt`, `death`, `pickup`, `heal`, `melee`, `zone_warning`, fallback IDs | path 비어 있음 | procedural sound 또는 silence fallback |
 
-`asset_generator/expected_output/assets/sfx/`에 생성 WAV가 있고, `scripts/fetch_kenney_audio.py`도 더 나은 대체 음원을 만들 수 있다. 아직 런타임으로 승격하지 않았다.
+7개 WAV는 `asset_generator/expected_output/assets/sfx/`에서 필요한 파일만 승격했다. `SoundManager`는 import metadata가 없는 WAV도 직접 읽고, 성공한 스트림을 ID별로 캐시한다. `scripts/fetch_kenney_audio.py`는 이후 수동 청취에서 교체가 필요할 때만 사용한다.
 
 ### 아이콘
 
@@ -119,4 +113,4 @@ Bush는 현재 prop 중 유일하게 전체 통합 흐름을 가진다.
 2. 필요한 파일만 `assets/`로 복사한다.
 3. `data/asset_catalog.json` path를 추가한다.
 4. fallback 동작을 유지한다.
-5. Godot headless와 1-run sim으로 확인한다.
+5. `verify_audio_catalog_assets.gd`, `unit_smoke`, 60봇 Forward+ 2회로 확인한다.

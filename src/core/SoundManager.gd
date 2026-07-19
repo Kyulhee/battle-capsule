@@ -5,9 +5,11 @@ extends Node
 # 3D sounds: pass a world position. UI/player sounds: omit position (plays flat 2D).
 
 var asset_catalog = null
+var _stream_cache: Dictionary = {}
 
 func set_asset_catalog(catalog) -> void:
 	asset_catalog = catalog
+	_stream_cache.clear()
 
 func play(sound_name: String, pos: Vector3 = Vector3.ZERO):
 	var stream = _try_load_file(sound_name)
@@ -31,23 +33,30 @@ func play_footstep(surface_id: String = "", pos: Vector3 = Vector3.ZERO):
 	play(sound_id, pos)
 
 func _try_load_file(sound_name: String) -> AudioStream:
+	if _stream_cache.has(sound_name):
+		return _stream_cache[sound_name]
+
 	if asset_catalog and asset_catalog.has_method("get_audio_path"):
 		var catalog_path = asset_catalog.get_audio_path(sound_name)
 		var catalog_stream = _load_stream(catalog_path)
 		if catalog_stream:
+			_stream_cache[sound_name] = catalog_stream
 			return catalog_stream
 
 	var path = "res://assets/sfx/" + sound_name + ".wav"
 	var legacy_stream = _load_stream(path)
 	if legacy_stream:
+		_stream_cache[sound_name] = legacy_stream
 		return legacy_stream
 	return null
 
 func _load_stream(path: String) -> AudioStream:
 	if path == "":
 		return null
-	if ResourceLoader.exists(path) or FileAccess.file_exists(path):
+	if ResourceLoader.exists(path):
 		return load(path)
+	if FileAccess.file_exists(path) and path.get_extension().to_lower() == "wav":
+		return AudioStreamWAV.load_from_file(path)
 	return null
 
 func _play_3d(stream: AudioStream, pos: Vector3):

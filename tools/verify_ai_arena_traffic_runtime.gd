@@ -3,6 +3,7 @@ extends SceneTree
 
 const EXPECTED_BOTS := 4
 const PROBE_TIMEOUT_SECONDS := 12.0
+const WALL_CLEAR_Z := 35.0
 const ARRIVAL_DISTANCE := {
 	"open_traffic_4": 4.5,
 	"wall_traffic_4": 5.0,
@@ -50,8 +51,11 @@ func _run() -> void:
 	player.set_physics_process(false)
 
 	var minimum_distances := {}
+	var wall_crossed := {}
 	for bot in bots:
-		minimum_distances[bot.get_instance_id()] = bot.global_position.distance_to(player.global_position)
+		var bot_id := bot.get_instance_id()
+		minimum_distances[bot_id] = bot.global_position.distance_to(player.global_position)
+		wall_crossed[bot_id] = false
 		bot.stats.attack_range = 0.5
 		bot.stats.current_ammo = max(1, bot.stats.current_ammo)
 		_force_chase(bot, player)
@@ -77,7 +81,14 @@ func _run() -> void:
 			var bot_id := bot.get_instance_id()
 			var distance: float = float(bot.global_position.distance_to(player.global_position))
 			minimum_distances[bot_id] = minf(float(minimum_distances[bot_id]), distance)
-			if float(minimum_distances[bot_id]) > arrival_distance:
+			if preset == "wall_traffic_4":
+				wall_crossed[bot_id] = bool(wall_crossed[bot_id]) or bot.global_position.z >= WALL_CLEAR_Z
+			var arrived := (
+				bool(wall_crossed[bot_id])
+				if preset == "wall_traffic_4"
+				else float(minimum_distances[bot_id]) <= arrival_distance
+			)
+			if not arrived:
 				all_arrived = false
 				_force_chase(bot, player)
 		if all_arrived:

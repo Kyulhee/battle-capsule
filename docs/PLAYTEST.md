@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` 비기본 whitebox |
 | 권장 preset | `xlarge_60` 임시 대표 수동 표면. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 초점 | 중앙 초원과 남쪽 보급 거점에서 엄폐 사이 pickup 접근·우회 선택이 자연스러운가 |
+| 현재 초점 | 중앙·남쪽 거점 동선과 무기 4종·지면 발걸음 3종의 식별성·거리감·야간 분위기 |
 
 ## 수동 체크리스트
 
@@ -21,6 +21,8 @@
 - `xlarge_60`에서 이동과 다중 전투 중 프레임 끊김이 반복되는가?
 - 중앙 초원에서 수목·수풀이 화면 가장자리에 읽히면서 중심 이동을 막지 않는가?
 - 남쪽 보급 거점에서 왼쪽 수풀·수목과 오른쪽 바위 사이 접근 선택이 생기는가?
+- 피스톨·AR·샷건·레일건 발사가 화면을 보지 않아도 구분되는가?
+- 잔디·흙·돌 발걸음이 과도하게 튀지 않고 적의 거리와 방향 판단을 돕는가?
 
 ```powershell
 .\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=xlarge_60
