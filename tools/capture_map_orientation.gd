@@ -79,13 +79,13 @@ func _capture() -> void:
 	await process_frame
 
 	var minimap_viewport := SubViewport.new()
-	minimap_viewport.size = Vector2i(240, 240)
+	minimap_viewport.size = Vector2i(280, 280)
 	minimap_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	root.add_child(minimap_viewport)
 	var minimap = load("res://src/ui/Minimap.gd").new()
 	minimap.position = Vector2.ZERO
-	minimap.size = Vector2(240.0, 240.0)
-	minimap.minimap_size = Vector2(240.0, 240.0)
+	minimap.size = Vector2(280.0, 280.0)
+	minimap.minimap_size = Vector2(280.0, 280.0)
 	minimap_viewport.add_child(minimap)
 	minimap.set_map_spec(definition.map_spec, features, definition)
 

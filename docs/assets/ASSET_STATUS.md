@@ -22,16 +22,16 @@ data/asset_catalog.json
 
 | ID | 상태 | 파일 |
 |---|---|---|
-| `shoot.pistol` | 통합됨 | `res://assets/sfx/weapons/pistol_shoot.wav` |
-| `shoot.ar` | 통합됨 | `res://assets/sfx/weapons/ar_shoot.wav` |
-| `shoot.shotgun` | 통합됨 | `res://assets/sfx/weapons/shotgun_shoot.wav` |
-| `shoot.railgun` | 통합됨 | `res://assets/sfx/weapons/railgun_shoot.wav` |
-| `footstep.grass` | 통합됨 | `res://assets/sfx/footsteps/grass_01.wav` |
-| `footstep.dirt` | 통합됨 | `res://assets/sfx/footsteps/dirt_01.wav` |
-| `footstep.stone` | 통합됨 | `res://assets/sfx/footsteps/stone_01.wav` |
+| `shoot.pistol` | 교체 후보 | CC0 실사 `cz.wav` 단발 |
+| `shoot.ar` | 교체 후보 | CC0 실사 `sks.wav` 단발 |
+| `shoot.shotgun` | 교체 후보 | CC0 실사 `shotty.wav` 단발 |
+| `shoot.railgun` | 교체 후보 | CC0 실사 `mosin.wav` 단발 |
+| `footstep.grass` | 수동 채택 | `res://assets/sfx/footsteps/grass_01.wav` |
+| `footstep.dirt` | 수동 채택 | `res://assets/sfx/footsteps/dirt_01.wav` |
+| `footstep.stone` | 수동 채택 | `res://assets/sfx/footsteps/stone_01.wav` |
 | `reload`, `dry_fire`, `hit`, `impact_wall`, `hurt`, `death`, `pickup`, `heal`, `melee`, `zone_warning`, fallback IDs | path 비어 있음 | procedural sound 또는 silence fallback |
 
-7개 WAV는 `asset_generator/expected_output/assets/sfx/`에서 필요한 파일만 승격했다. `SoundManager`는 import metadata가 없는 WAV도 직접 읽고, 성공한 스트림을 ID별로 캐시한다. `scripts/fetch_kenney_audio.py`는 이후 수동 청취에서 교체가 필요할 때만 사용한다.
+발걸음은 Kenney CC0 원본을 유지한다. 첫 무기음 4종은 Kenney laser proxy여서 수동 폐기했고, OpenGameArt `Gunshot Sounds` CC0 실사 녹음으로 교체했다. 세부 출처와 가공 범위는 `assets/sfx/README.txt`에 둔다. `SoundManager`는 성공 스트림을 ID별로 캐시하고 무기별 볼륨과 ±2% 피치 변화를 적용한다.
 
 ### 아이콘
 

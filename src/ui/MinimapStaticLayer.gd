@@ -6,7 +6,6 @@ var minimap_size := Vector2(240.0, 240.0)
 var map_spec: Resource = null
 var map_definition = null
 var minimap_features: Array[Dictionary] = []
-var _pois: Array[Dictionary] = []
 var _features: Array[Dictionary] = []
 
 
@@ -23,7 +22,6 @@ func configure(
 	minimap_size = texture_size
 	size = texture_size
 	minimap_features = features.duplicate(true)
-	_pois = _poi_source()
 	_features = minimap_features.duplicate(true)
 	if _features.is_empty():
 		_features = _build_fallback_features()
@@ -57,21 +55,6 @@ func _draw() -> void:
 			Color.RED
 		)
 		return
-
-	for poi in _pois:
-		var mini_position := world_to_minimap(_descriptor_pos_2d(poi))
-		var mini_radius := world_size_to_minimap(float(poi.get("radius", 0.0)))
-		var role_color := Color(0.5, 0.5, 0.5, 0.05)
-		match poi.get("role", ""):
-			"loot_hub":
-				role_color = Color(1.0, 0.8, 0.2, 0.08)
-			"transit_choke":
-				role_color = Color(1.0, 0.2, 0.2, 0.08)
-			"concealment_field":
-				role_color = Color(0.2, 1.0, 0.2, 0.08)
-			"recovery_pocket":
-				role_color = Color(0.2, 0.2, 1.0, 0.08)
-		draw_circle(mini_position, mini_radius, role_color)
 
 	for feature in _features:
 		_draw_minimap_feature(feature)
@@ -200,18 +183,6 @@ func _build_fallback_features() -> Array[Dictionary]:
 	return features
 
 
-func _poi_source() -> Array[Dictionary]:
-	if map_definition != null and map_definition.has_method("get_poi_descriptors"):
-		return map_definition.get_poi_descriptors()
-	var pois: Array[Dictionary] = []
-	if map_spec == null:
-		return pois
-	for poi in map_spec.pois:
-		if typeof(poi) == TYPE_DICTIONARY:
-			pois.append(poi.duplicate(true))
-	return pois
-
-
 func _obstacle_source() -> Array[Dictionary]:
 	if map_definition != null and map_definition.has_method("get_obstacle_descriptors"):
 		return map_definition.get_obstacle_descriptors()
@@ -222,16 +193,6 @@ func _obstacle_source() -> Array[Dictionary]:
 		if typeof(obstacle) == TYPE_DICTIONARY:
 			obstacles.append(obstacle.duplicate(true))
 	return obstacles
-
-
-func _descriptor_pos_2d(descriptor: Dictionary) -> Vector2:
-	var position_value = descriptor.get("pos_2d", null)
-	if typeof(position_value) == TYPE_VECTOR2:
-		return position_value
-	var position_array = descriptor.get("pos", [0.0, 0.0])
-	if typeof(position_array) == TYPE_ARRAY and position_array.size() >= 2:
-		return Vector2(float(position_array[0]), float(position_array[1]))
-	return Vector2.ZERO
 
 
 func _descriptor_scale_3d(descriptor: Dictionary) -> Vector3:

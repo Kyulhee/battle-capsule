@@ -1,12 +1,15 @@
 extends Control
 
 const MINIMAP_STATIC_LAYER = preload("res://src/ui/MinimapStaticLayer.gd")
+const MAP_ROTATION := PI / 4.0
+const STATIC_CACHE_SIZE := Vector2i(768, 768)
 
 func _init():
 	print("[MINIMAP] Script initialized.")
 
 @export var map_size_3d: Vector2 = Vector2(120, 120)
-@export var minimap_size: Vector2 = Vector2(240, 240)
+@export var minimap_size: Vector2 = Vector2(280, 280)
+@export var local_view_size_m := 120.0
 
 var player: Node3D
 var current_zone_center = Vector2.ZERO
@@ -25,6 +28,7 @@ var minimap_features: Array[Dictionary] = []
 var _static_viewport: SubViewport = null
 var _static_texture: TextureRect = null
 var _static_layer: Control = null
+var _pois: Array[Dictionary] = []
 
 func set_map_spec(spec: Resource, features: Array[Dictionary] = [], definition = null):
 	map_spec = spec
@@ -34,11 +38,13 @@ func set_map_spec(spec: Resource, features: Array[Dictionary] = [], definition =
 	elif spec != null and spec.has_method("get_world_size"):
 		map_size_3d = Vector2(spec.get_world_size(), spec.get_world_size())
 	minimap_features = features.duplicate(true)
+	_pois = _poi_source()
 	if is_inside_tree():
 		_refresh_static_cache()
 	queue_redraw()
 
 func _ready():
+	clip_contents = true
 	_ensure_static_cache()
 	print("[MINIMAP] Ready. Attempting to pull MapSpec from Main...")
 	var main = get_tree().get_root().get_node_or_null("Main")
@@ -66,26 +72,23 @@ func _ensure_static_cache() -> void:
 	_static_texture.show_behind_parent = true
 	_static_texture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_static_texture.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+	_static_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_static_texture.stretch_mode = TextureRect.STRETCH_SCALE
 	_static_texture.texture = _static_viewport.get_texture()
 	add_child(_static_texture)
 
 func _refresh_static_cache() -> void:
 	_ensure_static_cache()
-	var viewport_size := Vector2i(
-		maxi(1, int(ceil(minimap_size.x))),
-		maxi(1, int(ceil(minimap_size.y)))
-	)
-	_static_viewport.size = viewport_size
-	_static_texture.position = Vector2.ZERO
-	_static_texture.size = minimap_size
+	_static_viewport.size = STATIC_CACHE_SIZE
 	_static_layer.configure(
 		map_spec,
 		minimap_features,
 		map_definition,
 		map_size_3d,
-		minimap_size
+		Vector2(STATIC_CACHE_SIZE)
 	)
 	_static_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	_update_static_texture_transform()
 
 func _process(delta):
 	if not player:
@@ -111,11 +114,14 @@ func _process(delta):
 			supply_state = "none"
 			
 	supply_pulse += delta * 5.0
+	_update_static_texture_transform()
 	queue_redraw()
 
 func _draw():
 	if not map_spec:
 		return
+
+	_draw_local_poi_labels()
 
 	# 4. Draw Supply Zones (Telegraphing/Active)
 	if supply_state != "none":
@@ -151,10 +157,10 @@ func _draw():
 		var p_mini = world_to_minimap(p_pos_2d)
 		var forward_3d = -player.global_transform.basis.z
 		var angle = Vector2(forward_3d.x, forward_3d.z).angle()
-		var mini_angle = angle + PI/4
+		var mini_angle = angle + MAP_ROTATION
 		
 		var fov_pts = PackedVector2Array([p_mini])
-		var cone_dist = 40.0
+		var cone_dist = minf(52.0, world_size_to_minimap(22.0))
 		var fov_half = PI/6
 		for i in range(5):
 			var a = mini_angle - fov_half + (fov_half * 2 * i / 4.0)
@@ -169,10 +175,82 @@ func _draw():
 		draw_colored_polygon(arrow_pts, Color.GREEN)
 		draw_circle(p_mini, 3.5, Color.GREEN)
 
+	draw_rect(Rect2(Vector2.ZERO, minimap_size), Color(0.68, 0.70, 0.68, 0.82), false, 2.0)
+
 func world_to_minimap(world_pos: Vector2) -> Vector2:
-	var rotated = world_pos.rotated(PI/4)
-	var scale_factor = minimap_size.x / (map_size_3d.x * 1.414)
-	return (minimap_size / 2.0) + rotated * scale_factor
+	var relative := world_pos - _focus_world_position()
+	return minimap_size * 0.5 + relative.rotated(MAP_ROTATION) * _local_world_scale()
 
 func world_size_to_minimap(size: float) -> float:
-	return size * (minimap_size.x / (map_size_3d.x * 1.414))
+	return size * _local_world_scale()
+
+func _update_static_texture_transform() -> void:
+	if not is_instance_valid(_static_texture):
+		return
+	var texture_size := Vector2(STATIC_CACHE_SIZE)
+	var full_world_scale := texture_size.x / maxf(1.0, map_size_3d.x * sqrt(2.0))
+	var display_scale := _local_world_scale() / full_world_scale
+	var focus_texture_position := (
+		texture_size * 0.5
+		+ _focus_world_position().rotated(MAP_ROTATION) * full_world_scale
+	)
+	_static_texture.size = texture_size * display_scale
+	_static_texture.position = minimap_size * 0.5 - focus_texture_position * display_scale
+
+func _local_world_scale() -> float:
+	return minimap_size.x / maxf(1.0, local_view_size_m)
+
+func _focus_world_position() -> Vector2:
+	if is_instance_valid(player):
+		return Vector2(player.global_position.x, player.global_position.z)
+	return Vector2.ZERO
+
+func _draw_local_poi_labels() -> void:
+	var label_width := minf(130.0, minimap_size.x * 0.46)
+	for poi in _pois:
+		if String(poi.get("role", "")) not in ["loot_hub", "recovery_pocket"]:
+			continue
+		var label := String(poi.get("name", "")).strip_edges()
+		if label.is_empty():
+			continue
+		var mini_position := world_to_minimap(_descriptor_pos_2d(poi))
+		var mini_radius := world_size_to_minimap(float(poi.get("radius", 8.0)))
+		if (
+			mini_position.x + mini_radius < 0.0
+			or mini_position.y + mini_radius < 0.0
+			or mini_position.x - mini_radius > minimap_size.x
+			or mini_position.y - mini_radius > minimap_size.y
+		):
+			continue
+		var label_position := mini_position + Vector2(-label_width * 0.5, -mini_radius - 3.0)
+		label_position.x = clampf(label_position.x, 4.0, minimap_size.x - label_width - 4.0)
+		label_position.y = clampf(label_position.y, 13.0, minimap_size.y - 4.0)
+		draw_string(
+			ThemeDB.fallback_font,
+			label_position,
+			label,
+			HORIZONTAL_ALIGNMENT_CENTER,
+			label_width,
+			11,
+			Color(0.84, 0.86, 0.80, 0.90)
+		)
+
+func _poi_source() -> Array[Dictionary]:
+	if map_definition != null and map_definition.has_method("get_poi_descriptors"):
+		return map_definition.get_poi_descriptors()
+	var pois: Array[Dictionary] = []
+	if map_spec == null:
+		return pois
+	for poi in map_spec.pois:
+		if typeof(poi) == TYPE_DICTIONARY:
+			pois.append(poi.duplicate(true))
+	return pois
+
+func _descriptor_pos_2d(descriptor: Dictionary) -> Vector2:
+	var position_value = descriptor.get("pos_2d", null)
+	if typeof(position_value) == TYPE_VECTOR2:
+		return position_value
+	var position_array = descriptor.get("pos", [0.0, 0.0])
+	if typeof(position_array) == TYPE_ARRAY and position_array.size() >= 2:
+		return Vector2(float(position_array[0]), float(position_array[1]))
+	return Vector2.ZERO

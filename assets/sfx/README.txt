@@ -1,33 +1,32 @@
-WAV files placed here override the procedural fallback in SoundManager.gd.
-For new asset IDs, prefer registering the file in data/asset_catalog.json.
-All files must be 44100 Hz, 16-bit PCM mono .wav
+Battle Capsule 오디오 자산
 
-Required filenames:
-  shoot.wav       — gunshot
-  hit.wav         — bullet hits entity
-  impact_wall.wav — bullet hits wall/obstacle
-  hurt.wav        — player takes damage (non-positional)
-  death.wav       — entity death
-  dry_fire.wav    — empty magazine click (non-positional)
-  pickup.wav      — item collected
-  heal.wav        — healing used (non-positional)
+런타임 형식:
+- WAV
+- mono
+- 44.1 kHz
+- 16-bit PCM
 
-Recommended free sources (CC0 — commercial use OK, no attribution required):
-  Kenney Impact Sounds   https://kenney.nl/assets/impact-sounds
-  Kenney Interface Sounds https://kenney.nl/assets/interface-sounds
-  Kenney Game Audio       https://kenney.nl/assets/game-audio
+무기 발사음 4종:
+- 출처: OpenGameArt "Gunshot Sounds" by Tabasco
+- 원본 URL: https://opengameart.org/content/gunshot-sounds
+- 라이선스: CC0
+- pistol: cz.wav 단발
+- ar: sks.wav 단발
+- shotgun: shotty.wav 단발
+- railgun: mosin.wav 단발
+- 처리: 단발 구간 절단, mono 변환, 44.1 kHz 재표본화, 42-55 Hz
+  high-pass, 11.5-13.5 kHz low-pass, 끝부분 fade, peak 0.45-0.60
 
-Suggested Kenney file mappings:
-  shoot.wav        <- impactMetal_medium_000.ogg (convert to wav)  or  laserSmall_000.wav
-  hit.wav          <- impactFlesh_medium_000.ogg
-  impact_wall.wav  <- impactMetal_light_000.ogg
-  hurt.wav         <- damage1.ogg
-  death.wav        <- explosionCrunch_000.ogg
-  dry_fire.wav     <- impactPlate_000.ogg
-  pickup.wav       <- pickupCoin_000.ogg
-  heal.wav         <- powerUp3.ogg
+발걸음 3종:
+- 출처: Kenney Impact Sounds / RPG Audio
+- 라이선스: CC0
+- grass: footstep_grass_000.ogg
+- dirt: footstep00.ogg
+- stone: footstep_concrete_000.ogg
 
-Catalog examples:
-  shoot.ar          -> assets/sfx/weapons/ar_shoot.wav
-  shoot.shotgun     -> assets/sfx/weapons/shotgun_shoot.wav
-  footstep.grass    -> assets/sfx/footsteps/grass_01.wav
+런타임 계약:
+- data/asset_catalog.json에 ID와 경로를 등록한다.
+- SoundManager는 성공한 스트림을 ID별로 캐시한다.
+- 무기음은 ID별 volume_db와 ±2% pitch variation을 적용한다.
+- tools/verify_audio_catalog_assets.gd가 파일, 길이, 캐시와 playback
+  profile을 검증한다.

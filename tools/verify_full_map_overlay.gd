@@ -101,7 +101,8 @@ func _init():
 		return
 
 	var minimap = minimap_script.new()
-	minimap.minimap_size = Vector2(240.0, 240.0)
+	minimap.minimap_size = Vector2(280.0, 280.0)
+	minimap.local_view_size_m = 120.0
 	root.add_child(minimap)
 	minimap.set_map_spec(spec, features, definition)
 	minimap._refresh_static_cache()
@@ -118,8 +119,17 @@ func _init():
 	if static_viewport.render_target_update_mode != SubViewport.UPDATE_ONCE:
 		_fail("Minimap static viewport must not update every frame.")
 		return
+	if static_viewport.size != Vector2i(768, 768):
+		_fail("Minimap static cache must retain high-resolution terrain detail.")
+		return
+	if static_texture.size.x <= minimap.minimap_size.x or static_texture.size.y <= minimap.minimap_size.y:
+		_fail("Local minimap texture must be larger than its clipped display.")
+		return
 	if int(static_layer.get("_features").size()) != features.size():
 		_fail("Minimap static cache did not receive all generated map features.")
+		return
+	if absf(minimap.world_size_to_minimap(60.0) - 140.0) > 0.001:
+		_fail("Local minimap must show 120m across its 280px display.")
 		return
 	var sample_world := Vector2(18.0, -12.0)
 	var full_direction: Vector2 = (

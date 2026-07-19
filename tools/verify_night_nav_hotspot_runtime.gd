@@ -25,7 +25,12 @@ func _run() -> void:
 		await _cleanup(main)
 		_fail("Night nav hotspot runtime found an empty navigation mesh.")
 		return
-	var minimap_colliders := main.get_node("CanvasLayer/Control/HUD/Minimap").find_children(
+	var minimaps := main.find_children("Minimap", "Control", true, false)
+	if minimaps.size() != 1:
+		await _cleanup(main)
+		_fail("Main runtime must have exactly one HUD-owned Minimap, got %d." % minimaps.size())
+		return
+	var minimap_colliders := minimaps[0].find_children(
 		"*",
 		"CollisionObject3D",
 		true,

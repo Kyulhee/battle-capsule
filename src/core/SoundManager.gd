@@ -4,8 +4,20 @@ extends Node
 # and finally falls back to procedural audio.
 # 3D sounds: pass a world position. UI/player sounds: omit position (plays flat 2D).
 
+const SOUND_VOLUME_DB := {
+	"shoot.pistol": -4.0,
+	"shoot.ar": -6.0,
+	"shoot.shotgun": -3.0,
+	"shoot.railgun": -4.0,
+}
+const WEAPON_PITCH_VARIATION := 0.02
+
 var asset_catalog = null
 var _stream_cache: Dictionary = {}
+var _audio_rng := RandomNumberGenerator.new()
+
+func _ready() -> void:
+	_audio_rng.randomize()
 
 func set_asset_catalog(catalog) -> void:
 	asset_catalog = catalog
@@ -21,9 +33,9 @@ func play(sound_name: String, pos: Vector3 = Vector3.ZERO):
 	if not stream:
 		return
 	if pos != Vector3.ZERO:
-		_play_3d(stream, pos)
+		_play_3d(stream, pos, sound_name)
 	else:
-		_play_2d(stream)
+		_play_2d(stream, sound_name)
 
 func play_weapon_shot(weapon_type: String, pos: Vector3 = Vector3.ZERO):
 	play("shoot.%s" % weapon_type, pos)
@@ -59,22 +71,32 @@ func _load_stream(path: String) -> AudioStream:
 		return AudioStreamWAV.load_from_file(path)
 	return null
 
-func _play_3d(stream: AudioStream, pos: Vector3):
+func _play_3d(stream: AudioStream, pos: Vector3, sound_name: String = ""):
 	var player = AudioStreamPlayer3D.new()
 	get_tree().root.add_child(player)
 	player.global_position = pos
 	player.stream = stream
 	player.unit_size = 10.0
 	player.max_distance = 60.0
+	_apply_playback_profile(player, sound_name)
 	player.play()
 	player.finished.connect(player.queue_free)
 
-func _play_2d(stream: AudioStream):
+func _play_2d(stream: AudioStream, sound_name: String = ""):
 	var player = AudioStreamPlayer.new()
 	get_tree().root.add_child(player)
 	player.stream = stream
+	_apply_playback_profile(player, sound_name)
 	player.play()
 	player.finished.connect(player.queue_free)
+
+func _apply_playback_profile(player, sound_name: String) -> void:
+	player.volume_db = float(SOUND_VOLUME_DB.get(sound_name, 0.0))
+	if sound_name.begins_with("shoot."):
+		player.pitch_scale = _audio_rng.randf_range(
+			1.0 - WEAPON_PITCH_VARIATION,
+			1.0 + WEAPON_PITCH_VARIATION
+		)
 
 # ── Procedural generator ─────────────────────────────────────────────────────
 

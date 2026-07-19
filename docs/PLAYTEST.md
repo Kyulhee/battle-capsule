@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` 비기본 whitebox |
 | 권장 preset | `xlarge_60` 임시 대표 수동 표면. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 초점 | 중앙·남쪽 거점 동선과 무기 4종·지면 발걸음 3종의 식별성·거리감·야간 분위기 |
+| 현재 초점 | 120m 로컬 미니맵의 지역 이동감과 실사 무기음 4종의 현실성·피로도 |
 
 ## 수동 체크리스트
 
@@ -76,6 +76,15 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 
 ## 최근 기록
 
+### 2026-07-19 - N2-PLAY-03 거점 이동감·오디오 판정
+
+날짜: 2026-07-19
+표면: `mapSpec_night_forest_expanded_candidate.json`, `xlarge_60`, 사용자 직접 플레이.
+결과: 발걸음 채택, 거점 이동감과 무기음 폐기.
+체감: 발걸음은 괜찮지만 지역 사이를 이동한다는 느낌은 약했다. 기존 무기음은 비현실적이고 거슬렸다.
+자동 후속: 미니맵을 120m/280px 로컬 뷰로 바꾸고 중복 인스턴스를 제거했다. laser proxy는 CC0 실사 단발로 교체했다. 60봇 p95 13.3-14.2ms.
+다음 행동: N2-PLAY-04에서 지역 변화와 새 무기음 피로도를 다시 본다.
+
 ### 2026-07-18 - N2-PLAY-02 성능 개선 수동 통과
 
 날짜: 2026-07-18
@@ -113,15 +122,6 @@ HUD, 메뉴, 픽업 라벨, 미니맵, 결과 화면을 바꾸면 실제 게임 
 결과: 채택.
 체감: 플레이어/픽업 외에도 양쪽 cover, 수풀 덩어리, 지면 경계가 읽힌다. 어둠은 유지되며 화면 전체가 회색으로 뜨지 않는다.
 다음 행동: v6와 visual run에서 open/off-route 교전이 우세하므로 route 폭, cover, POI 연결을 구조적으로 audit한다.
-
-### 2026-06-29 - N2-PACE-31 v4 시각 리뷰
-
-날짜: 2026-06-29
-표면: `tools/run_verify.py --profile visual_review --out-root C:\tmp\game_dev_N2_PACE_31_visual_review`, 캡처 `C:\tmp\player_night_readability.png`, 페이싱 기준 `playable_pacing_v4`.
-테스트 변경: initial non-pistol weapon을 initial loot에서 제거하고 stage/supply source가 첫 업그레이드 창을 담당하는 v4 후보.
-결과: 반복 필요.
-체감: 플레이어 실루엣, 픽업 라벨, 픽업 glow는 읽힌다. 주변 수풀/지형 윤곽은 매우 어두워서 route/cover 읽기는 별도 시각 패스가 필요하다. 1-run visual sim은 first contact 10.1초, first kill 23.4초, first upgrade 없음, hard-bump acquisition 0/1이었다.
-다음 행동: `playable_pacing_v4`는 자동 후보로 유지하되, hard-bump threshold-only, zone, broad economy 변경을 반복하지 않고 오프닝 압박을 다룬 뒤에만 수동 기준선으로 승격한다.
 
 ## 메모
 

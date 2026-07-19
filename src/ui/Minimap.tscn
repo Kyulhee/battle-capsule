@@ -5,7 +5,7 @@
 [node name="Minimap" type="Control"]
 layout_mode = 3
 anchors_preset = 0
-offset_right = 200.0
-offset_bottom = 200.0
+offset_right = 280.0
+offset_bottom = 280.0
 script = ExtResource("1_script")
-minimap_size = Vector2(200, 200)
+minimap_size = Vector2(280, 280)

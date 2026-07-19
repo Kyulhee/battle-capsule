@@ -44,10 +44,29 @@ func _init() -> void:
 		if stream.get_length() <= 0.05:
 			_fail("%s stream is empty or too short." % sound_id)
 			return
+		if sound_id.begins_with("shoot.") and stream.get_length() >= 1.0:
+			_fail("%s weapon stream is too long for repeated combat playback." % sound_id)
+			return
 		if sound_manager._try_load_file(sound_id) != stream:
 			_fail("%s did not reuse its cached stream." % sound_id)
 			return
 
+	var weapon_profile_probe := AudioStreamPlayer.new()
+	sound_manager._apply_playback_profile(weapon_profile_probe, "shoot.ar")
+	if not is_equal_approx(weapon_profile_probe.volume_db, -6.0):
+		_fail("AR playback profile must reduce repeated-shot volume.")
+		return
+	if weapon_profile_probe.pitch_scale < 0.98 or weapon_profile_probe.pitch_scale > 1.02:
+		_fail("Weapon pitch variation exceeded the ±2% contract.")
+		return
+	var footstep_profile_probe := AudioStreamPlayer.new()
+	sound_manager._apply_playback_profile(footstep_profile_probe, "footstep.grass")
+	if not is_equal_approx(footstep_profile_probe.volume_db, 0.0):
+		_fail("Accepted footstep volume must remain unchanged.")
+		return
+
+	weapon_profile_probe.free()
+	footstep_profile_probe.free()
 	sound_manager.free()
 	print("Audio catalog asset smoke passed: %d streams, missing=0." % REQUIRED_AUDIO.size())
 	quit(0)
