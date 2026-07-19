@@ -1,11 +1,11 @@
 {
   "metadata": {
     "id": "night_forest_expanded_whitebox",
-    "name": "Night Forest Expanded Whitebox",
+    "name": "Night Artificial Forest",
     "theme": "night_artificial_forest",
-    "version": "0.1-whitebox",
+    "version": "0.2-world-identity-slice",
     "world_size": 260,
-    "layout": "pickup_clusters_with_physical_channels_and_concealment_transitions"
+    "layout": "regional_surface_bands_with_landmark_compounds_and_physical_channels"
   },
   "match": {
     "bot_count": 24,
@@ -149,7 +149,7 @@
   },
   "pois": [
     { "name": "Central Meadow", "pos": [0, 0], "radius": 20, "role": "loot_hub", "item_density": 0.48, "rare_bias": 0.12 },
-    { "name": "North Clearing", "pos": [0, 96], "radius": 20, "role": "loot_hub", "item_density": 0.88, "rare_bias": 0.24 },
+    { "name": "Cabin Row", "pos": [0, 96], "radius": 20, "role": "loot_hub", "item_density": 0.88, "rare_bias": 0.24 },
     { "name": "South Creek Bend", "pos": [20, -98], "radius": 20, "role": "loot_hub", "item_density": 0.86, "rare_bias": 0.22 },
     { "name": "West Ridge Gap", "pos": [-104, -16], "radius": 18, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.18 },
     { "name": "West Ridge Overlook", "pos": [-54, 28], "radius": 16, "role": "transit_choke", "item_density": 0.60, "rare_bias": 0.18 },
@@ -161,6 +161,95 @@
     { "name": "Southeast Brush", "pos": [92, -80], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
     { "name": "Inner Brush North", "pos": [-34, 38], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
     { "name": "Inner Brush South", "pos": [40, -40], "radius": 18, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.06 }
+  ],
+  "surface_zones": [
+    {
+      "id": "west_forest_band",
+      "shape": "rect",
+      "surface": "grass",
+      "material_id": "ground.forest_grass",
+      "pos": [-82, 4],
+      "size": [66, 224],
+      "rot": -3
+    },
+    {
+      "id": "east_forest_band",
+      "shape": "rect",
+      "surface": "grass",
+      "material_id": "ground.forest_grass",
+      "pos": [82, 6],
+      "size": [66, 222],
+      "rot": 3
+    },
+    {
+      "id": "north_forest_edge",
+      "shape": "ellipse",
+      "surface": "grass",
+      "material_id": "ground.forest_grass",
+      "pos": [0, 106],
+      "size": [150, 50],
+      "rot": 0
+    },
+    {
+      "id": "south_forest_edge",
+      "shape": "ellipse",
+      "surface": "grass",
+      "material_id": "ground.forest_grass",
+      "pos": [0, -106],
+      "size": [154, 48],
+      "rot": 0
+    },
+    {
+      "id": "inner_north_woods",
+      "shape": "ellipse",
+      "surface": "grass",
+      "material_id": "ground.forest_grass",
+      "pos": [-34, 38],
+      "size": [56, 44],
+      "rot": -18
+    },
+    {
+      "id": "inner_south_woods",
+      "shape": "ellipse",
+      "surface": "grass",
+      "material_id": "ground.forest_grass",
+      "pos": [40, -40],
+      "size": [58, 46],
+      "rot": 16
+    },
+    {
+      "id": "main_service_road",
+      "shape": "path",
+      "surface": "dirt",
+      "material_id": "ground.path_dirt",
+      "points": [[-88, -84], [-56, -62], [-24, -34], [-4, -6], [2, 28], [0, 64], [0, 116]],
+      "width": 9.0
+    },
+    {
+      "id": "east_service_branch",
+      "shape": "path",
+      "surface": "dirt",
+      "material_id": "ground.path_dirt",
+      "points": [[-4, -6], [28, 2], [66, -10], [84, 20], [104, 32]],
+      "width": 6.5
+    },
+    {
+      "id": "cabin_row_lane",
+      "shape": "path",
+      "surface": "dirt",
+      "material_id": "ground.path_dirt",
+      "points": [[-38, 82], [-20, 91], [0, 96], [20, 92], [38, 82]],
+      "width": 6.0
+    },
+    {
+      "id": "cabin_row_yard",
+      "shape": "ellipse",
+      "surface": "dirt",
+      "material_id": "ground.path_dirt",
+      "pos": [0, 98],
+      "size": [46, 34],
+      "rot": 0
+    }
   ],
   "obstacles": [
     { "type": "canyon_wall", "pos": [-118, 82], "scale": [12.0, 3.2, 2.5], "rot": 28 },
@@ -236,7 +325,26 @@
     { "type": "log_pile", "pos": [-78, 30], "scale": [4.8, 1.4, 1.6], "rot": 58 },
     { "type": "log_pile", "pos": [82, 28], "scale": [4.8, 1.4, 1.6], "rot": -58 },
     { "type": "log_pile", "pos": [-42, -52], "scale": [4.8, 1.4, 1.6], "rot": 36 },
-    { "type": "log_pile", "pos": [46, 54], "scale": [4.8, 1.4, 1.6], "rot": -36 }
+    { "type": "log_pile", "pos": [46, 54], "scale": [4.8, 1.4, 1.6], "rot": -36 },
+
+    { "type": "tree_cluster", "prop_id": "forest.tree", "pos": [-37, 88], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 12 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "pos": [-31, 113], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -24 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "pos": [34, 112], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 26 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "pos": [39, 84], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -14 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "pos": [-24, 75], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 31 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "pos": [25, 74], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -29 },
+
+    { "type": "cabin", "prop_id": "landmark.cabin", "pos": [-15, 102], "scale": [2.92, 2.37, 2.47], "visual_scale": [1.0, 1.0, 1.0], "rot": 18, "map_size": [5.84, 4.94] },
+    { "type": "cabin", "prop_id": "landmark.cabin", "pos": [2, 112], "scale": [2.92, 2.37, 2.47], "visual_scale": [1.0, 1.0, 1.0], "rot": -4, "map_size": [5.84, 4.94] },
+    { "type": "cabin", "prop_id": "landmark.cabin", "pos": [17, 96], "scale": [2.92, 2.37, 2.47], "visual_scale": [1.0, 1.0, 1.0], "rot": -21, "map_size": [5.84, 4.94] },
+    { "type": "ruined_wall", "prop_id": "landmark.wall", "pos": [-25, 96], "scale": [2.87, 0.72, 0.56], "visual_scale": [1.0, 1.0, 1.0], "rot": 72, "map_size": [5.74, 1.12] },
+    { "type": "ruined_wall", "prop_id": "landmark.wall", "pos": [27, 107], "scale": [2.87, 0.72, 0.56], "visual_scale": [1.0, 1.0, 1.0], "rot": -62, "map_size": [5.74, 1.12] },
+    { "type": "camp_crate", "prop_id": "landmark.crate", "pos": [-8, 90], "scale": [0.58, 0.68, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": 8, "map_size": [1.15, 1.0] },
+    { "type": "camp_crate", "prop_id": "landmark.crate", "pos": [-5, 88], "scale": [0.58, 0.68, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": -16, "map_size": [1.15, 1.0] },
+    { "type": "camp_crate", "prop_id": "landmark.crate", "pos": [8, 105], "scale": [0.58, 0.68, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": 24, "map_size": [1.15, 1.0] },
+    { "type": "barrel_cluster", "prop_id": "landmark.barrels", "pos": [10, 88], "scale": [0.89, 0.39, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": -12, "map_size": [1.78, 1.0] },
+    { "type": "barrel_cluster", "prop_id": "landmark.barrels", "pos": [23, 100], "scale": [0.89, 0.39, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": 18, "map_size": [1.78, 1.0] },
+    { "type": "fire_pit", "prop_id": "landmark.fire_pit", "collision": false, "pos": [1, 97], "scale": [0.53, 0.13, 0.47], "visual_scale": [1.0, 1.0, 1.0], "rot": 0, "map_size": [1.1, 1.0], "map_shape": "ellipse" }
   ],
   "routes": [
     {
@@ -265,17 +373,17 @@
       "role": "loot_flow",
       "points": [[20, -98], [8, -56], [0, 0], [-4, 52], [0, 96]],
       "width": 14.0,
-      "connects": ["South Creek Bend", "Central Meadow", "North Clearing"],
+      "connects": ["South Creek Bend", "Central Meadow", "Cabin Row"],
       "alternate_route_id": "north_slope_flank",
       "strategic_value": "low_density_center_between_outer_loot"
     },
     {
       "id": "north_slope_flank",
-      "name": "North Slope Flank",
+      "name": "Cabin Row Flank",
       "role": "flank",
       "points": [[-80, 82], [-42, 104], [0, 96], [42, 108], [82, 90]],
       "width": 12.5,
-      "connects": ["Northwest Slope", "North Clearing", "Northeast Slope"],
+      "connects": ["Northwest Slope", "Cabin Row", "Northeast Slope"],
       "alternate_route_id": "west_ridge_choke",
       "strategic_value": "outer_cover_flank"
     },

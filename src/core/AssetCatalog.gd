@@ -102,6 +102,7 @@ func summary() -> Dictionary:
 	return {
 		"audio": count_section("audio"),
 		"icons": count_section("icons"),
+		"materials": count_section("materials"),
 		"props": count_section("props"),
 		"cosmetics": count_section("cosmetics"),
 		"missing": missing_count()
@@ -109,7 +110,7 @@ func summary() -> Dictionary:
 
 func _refresh_missing_paths() -> void:
 	missing_paths.clear()
-	for section_name in ["audio", "icons", "props", "cosmetics"]:
+	for section_name in ["audio", "icons", "materials", "props", "cosmetics"]:
 		var section = data.get(section_name, {})
 		if typeof(section) != TYPE_DICTIONARY:
 			continue
@@ -149,10 +150,14 @@ func _default_data() -> Dictionary:
 			"footstep.dirt": { "path": "", "fallback": "footstep" },
 			"footstep.stone": { "path": "", "fallback": "footstep" },
 			"melee": { "path": "", "fallback": "melee" },
+			"melee.swing.2": { "path": "", "fallback": "melee" },
+			"melee.swing.3": { "path": "", "fallback": "melee" },
+			"melee.hit": { "path": "", "fallback": "hit" },
 			"reload": { "path": "", "fallback": "reload" },
 			"zone_warning": { "path": "", "fallback": "zone_warning" }
 		},
 		"icons": {},
+		"materials": {},
 		"props": {},
 		"cosmetics": {
 			"player.default": {

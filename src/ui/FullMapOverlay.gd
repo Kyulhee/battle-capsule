@@ -179,8 +179,8 @@ func _draw() -> void:
 		draw_string(ThemeDB.fallback_font, map_rect.position + Vector2(18.0, 30.0), "MAP DATA MISSING", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color.RED)
 		return
 
-	_draw_pois(map_rect)
 	_draw_features(map_rect)
+	_draw_pois(map_rect)
 	_draw_supply(map_rect)
 	_draw_zones(map_rect)
 	_draw_player(map_rect)
@@ -276,6 +276,29 @@ func _draw_feature(feature: Dictionary, map_rect: Rect2) -> void:
 	var shape := String(feature.get("shape", "rect"))
 	var obs_type := String(feature.get("type", ""))
 	var colors := _feature_colors(obs_type)
+
+	if shape == "path":
+		var path_points := PackedVector2Array()
+		for point_data in feature.get("points", []):
+			if typeof(point_data) == TYPE_ARRAY and point_data.size() >= 2:
+				path_points.append(world_to_full_map(Vector2(
+					float(point_data[0]),
+					float(point_data[1])
+				), map_rect))
+		if path_points.size() >= 2:
+			var path_width := maxf(
+				1.0,
+				world_size_to_full_map(float(feature.get("width", 1.0)), map_rect)
+			)
+			if float(colors["width"]) > 0.0:
+				draw_polyline(
+					path_points,
+					colors["border"],
+					path_width + float(colors["width"]) * 2.0,
+					true
+				)
+			draw_polyline(path_points, colors["fill"], path_width, true)
+		return
 
 	if shape == "ellipse":
 		var ellipse_pts := PackedVector2Array()
@@ -377,6 +400,24 @@ func _poi_colors(role: String) -> Dictionary:
 
 func _feature_colors(obs_type: String) -> Dictionary:
 	match obs_type:
+		"ground.forest_grass":
+			return {
+				"fill": Color(0.18, 0.31, 0.15, 0.90),
+				"border": Color(0.12, 0.21, 0.10, 0.0),
+				"width": 0.0,
+			}
+		"ground.forest_dirt":
+			return {
+				"fill": Color(0.18, 0.15, 0.11, 0.92),
+				"border": Color(0.12, 0.10, 0.08, 0.0),
+				"width": 0.0,
+			}
+		"ground.path_dirt":
+			return {
+				"fill": Color(0.43, 0.34, 0.22, 0.95),
+				"border": Color(0.17, 0.13, 0.09, 0.86),
+				"width": 0.9,
+			}
 		"bush_patch":
 			return {
 				"fill": Color(0.20, 0.50, 0.18, 0.34),
@@ -399,6 +440,18 @@ func _feature_colors(obs_type: String) -> Dictionary:
 			return {
 				"fill": Color(0.42, 0.28, 0.13, 0.82),
 				"border": Color(0.23, 0.15, 0.07, 0.92),
+				"width": 1.0,
+			}
+		"cabin":
+			return {
+				"fill": Color(0.48, 0.30, 0.16, 0.98),
+				"border": Color(0.18, 0.11, 0.06, 1.0),
+				"width": 1.4,
+			}
+		"ruined_wall", "camp_crate", "barrel_cluster":
+			return {
+				"fill": Color(0.48, 0.38, 0.24, 0.96),
+				"border": Color(0.20, 0.15, 0.09, 1.0),
 				"width": 1.0,
 			}
 	return {

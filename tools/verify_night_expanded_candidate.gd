@@ -117,6 +117,24 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	if int(summary.get("obstacle_count", 0)) < 70:
 		_fail("Candidate needs at least 70 obstacles.")
 		return false
+	if int(summary.get("surface_zone_count", 0)) < 10:
+		_fail("Candidate needs regional ground bands and physical paths.")
+		return false
+	if not _has_poi(definition, "Cabin Row"):
+		_fail("Expanded candidate must expose Cabin Row as a player-facing POI.")
+		return false
+	if definition.get_surface_id_at(Vector2(-82.0, 4.0)) != "grass":
+		_fail("West forest band must resolve to grass.")
+		return false
+	if definition.get_surface_id_at(Vector2(0.0, 98.0)) != "dirt":
+		_fail("Cabin Row yard must override the forest edge as dirt.")
+		return false
+	if _count_prop_obstacles(definition, "landmark.cabin") != 3:
+		_fail("Cabin Row needs three cabin landmarks.")
+		return false
+	if _count_prop_obstacles(definition, "forest.tree") < 6:
+		_fail("Cabin Row needs a physical tree boundary.")
+		return false
 	if _count_obstacles_near(definition, "tree_cluster", Vector2.ZERO, 15.0) < 2:
 		_fail("Central Meadow needs two close tree-cover shoulders.")
 		return false
@@ -137,6 +155,21 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 		_fail("Candidate should only expose gameplay presets plus the nav_hotspot_1 regression preset.")
 		return false
 	return true
+
+
+func _has_poi(definition, poi_name: String) -> bool:
+	for poi in definition.get_poi_descriptors():
+		if String(poi.get("name", "")) == poi_name:
+			return true
+	return false
+
+
+func _count_prop_obstacles(definition, prop_id: String) -> int:
+	var count := 0
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("prop_id", "")) == prop_id:
+			count += 1
+	return count
 
 
 func _count_obstacles_near(definition, type_name: String, center: Vector2, radius: float) -> int:

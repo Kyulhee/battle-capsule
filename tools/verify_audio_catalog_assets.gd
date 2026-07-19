@@ -7,6 +7,9 @@ const REQUIRED_AUDIO := {
 	"shoot.shotgun": "res://assets/sfx/weapons/shotgun_shoot.wav",
 	"shoot.railgun": "res://assets/sfx/weapons/railgun_shoot.wav",
 	"melee": "res://assets/sfx/weapons/knife_swing.wav",
+	"melee.swing.2": "res://assets/sfx/weapons/knife_swing_02.wav",
+	"melee.swing.3": "res://assets/sfx/weapons/knife_swing_03.wav",
+	"melee.hit": "res://assets/sfx/weapons/knife_hit.ogg",
 	"footstep.grass": "res://assets/sfx/footsteps/grass_01.wav",
 	"footstep.dirt": "res://assets/sfx/footsteps/dirt_01.wav",
 	"footstep.stone": "res://assets/sfx/footsteps/stone_01.wav",
@@ -51,8 +54,12 @@ func _init() -> void:
 		if sound_id.begins_with("shoot.") and stream.get_length() >= 1.0:
 			_fail("%s weapon stream is too long for repeated combat playback." % sound_id)
 			return
-		if sound_id == "melee" and stream.get_length() >= 0.35:
-			_fail("Knife swing stream is too long for repeated melee playback.")
+		if sound_id.begins_with("melee.swing") or sound_id == "melee":
+			if stream.get_length() >= 0.35:
+				_fail("%s is too long for repeated melee playback." % sound_id)
+				return
+		if sound_id == "melee.hit" and stream.get_length() >= 0.60:
+			_fail("Knife impact stream is too long for close combat feedback.")
 			return
 		if sound_manager._try_load_file(sound_id) != stream:
 			_fail("%s did not reuse its cached stream." % sound_id)
@@ -73,6 +80,19 @@ func _init() -> void:
 		return
 	if pistol_profile_probe.volume_db >= weapon_profile_probe.volume_db:
 		_fail("Pistol playback must be quieter than AR playback.")
+		return
+	var melee_swing_profile_probe := AudioStreamPlayer.new()
+	sound_manager._apply_playback_profile(melee_swing_profile_probe, "melee")
+	if not is_equal_approx(melee_swing_profile_probe.volume_db, -7.5):
+		_fail("Knife swing must stay below the impact layer.")
+		return
+	var melee_hit_profile_probe := AudioStreamPlayer.new()
+	sound_manager._apply_playback_profile(melee_hit_profile_probe, "melee.hit")
+	if not is_equal_approx(melee_hit_profile_probe.volume_db, -4.5):
+		_fail("Knife impact playback profile mismatch.")
+		return
+	if melee_hit_profile_probe.volume_db <= melee_swing_profile_probe.volume_db:
+		_fail("Knife impact must be clearer than the swing layer.")
 		return
 	var footstep_profile_probe := AudioStreamPlayer.new()
 	sound_manager._apply_playback_profile(footstep_profile_probe, "footstep.grass")
@@ -101,6 +121,8 @@ func _init() -> void:
 
 	weapon_profile_probe.free()
 	pistol_profile_probe.free()
+	melee_swing_profile_probe.free()
+	melee_hit_profile_probe.free()
 	footstep_profile_probe.free()
 	crouch_footstep_probe.free()
 	sound_manager.free()

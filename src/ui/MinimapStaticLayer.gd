@@ -91,6 +91,29 @@ func _draw_minimap_feature(feature: Dictionary) -> void:
 	var shape := String(feature.get("shape", "rect"))
 	var colors := _feature_colors(String(feature.get("type", "")))
 
+	if shape == "path":
+		var path_points := PackedVector2Array()
+		for point_data in feature.get("points", []):
+			if typeof(point_data) == TYPE_ARRAY and point_data.size() >= 2:
+				path_points.append(world_to_minimap(Vector2(
+					float(point_data[0]),
+					float(point_data[1])
+				)))
+		if path_points.size() >= 2:
+			var path_width := maxf(
+				1.0,
+				world_size_to_minimap(float(feature.get("width", 1.0)))
+			)
+			if float(colors["width"]) > 0.0:
+				draw_polyline(
+					path_points,
+					colors["border"],
+					path_width + float(colors["width"]) * 2.0,
+					true
+				)
+			draw_polyline(path_points, colors["fill"], path_width, true)
+		return
+
 	if shape == "ellipse":
 		var ellipse_points := PackedVector2Array()
 		for point_index in range(24):
@@ -125,6 +148,24 @@ func _draw_minimap_feature(feature: Dictionary) -> void:
 
 func _feature_colors(obstacle_type: String) -> Dictionary:
 	match obstacle_type:
+		"ground.forest_grass":
+			return {
+				"fill": Color(0.19, 0.32, 0.16, 0.88),
+				"border": Color(0.13, 0.22, 0.11, 0.0),
+				"width": 0.0,
+			}
+		"ground.forest_dirt":
+			return {
+				"fill": Color(0.19, 0.16, 0.12, 0.90),
+				"border": Color(0.12, 0.10, 0.08, 0.0),
+				"width": 0.0,
+			}
+		"ground.path_dirt":
+			return {
+				"fill": Color(0.43, 0.34, 0.22, 0.94),
+				"border": Color(0.17, 0.13, 0.09, 0.84),
+				"width": 0.8,
+			}
 		"bush_patch":
 			return {
 				"fill": Color(0.22, 0.58, 0.20, 0.42),
@@ -147,6 +188,18 @@ func _feature_colors(obstacle_type: String) -> Dictionary:
 			return {
 				"fill": Color(0.44, 0.30, 0.14, 0.92),
 				"border": Color(0.26, 0.17, 0.07, 1.0),
+				"width": 1.0,
+			}
+		"cabin":
+			return {
+				"fill": Color(0.48, 0.30, 0.16, 0.98),
+				"border": Color(0.18, 0.11, 0.06, 1.0),
+				"width": 1.4,
+			}
+		"ruined_wall", "camp_crate", "barrel_cluster":
+			return {
+				"fill": Color(0.48, 0.38, 0.24, 0.96),
+				"border": Color(0.20, 0.15, 0.09, 1.0),
 				"width": 1.0,
 			}
 	return {

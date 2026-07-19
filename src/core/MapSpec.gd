@@ -4,6 +4,7 @@ extends Resource
 @export var metadata: Dictionary = {}
 @export var pois: Array[Dictionary] = []
 @export var obstacles: Array[Dictionary] = []
+@export var surface_zones: Array[Dictionary] = []
 @export var routes: Array[Dictionary] = []
 
 static func from_json(json_text: String) -> Resource:
@@ -22,6 +23,9 @@ static func from_json(json_text: String) -> Resource:
 		
 	for o in data.get("obstacles", []):
 		spec.obstacles.append(o)
+
+	for surface_zone in data.get("surface_zones", []):
+		spec.surface_zones.append(surface_zone)
 		
 	for r in data.get("routes", []):
 		spec.routes.append(r)

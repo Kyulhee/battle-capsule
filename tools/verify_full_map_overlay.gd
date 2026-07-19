@@ -11,13 +11,20 @@ func _init():
 	var game_config = game_config_script.new()
 	game_config.load_or_default()
 
-	var file = FileAccess.open("res://data/mapSpec_night_forest_candidate.json", FileAccess.READ)
+	var file = FileAccess.open(
+		"res://data/mapSpec_night_forest_expanded_candidate.json",
+		FileAccess.READ
+	)
 	if not file:
-		_fail("mapSpec_night_forest_candidate.json not found.")
+		_fail("Expanded Night map not found.")
 		return
 
 	var definition = map_definition_script.new()
-	if not definition.load_from_json(file.get_as_text(), "res://data/mapSpec_night_forest_candidate.json", game_config):
+	if not definition.load_from_json(
+		file.get_as_text(),
+		"res://data/mapSpec_night_forest_expanded_candidate.json",
+		game_config
+	):
 		_fail("MapDefinition failed to load.")
 		return
 	var spec = definition.map_spec
@@ -30,6 +37,13 @@ func _init():
 	var features: Array[Dictionary] = world_builder.get_minimap_features()
 	if features.is_empty():
 		_fail("WorldBuilder produced no map features for FullMapOverlay.")
+		return
+	var path_feature_count := 0
+	for feature in features:
+		if String(feature.get("shape", "")) == "path":
+			path_feature_count += 1
+	if path_feature_count < 3:
+		_fail("Expanded Night map must expose physical path surfaces to both maps.")
 		return
 	world_builder.free()
 
@@ -85,7 +99,7 @@ func _init():
 	if not overlay.is_open():
 		_fail("FullMapOverlay did not report open after show_map().")
 		return
-	if String(overlay._poi_label({"name": "North Clearing", "role": "loot_hub"})) != "North Clearing":
+	if String(overlay._poi_label({"name": "Cabin Row", "role": "loot_hub"})) != "Cabin Row":
 		_fail("Full map should label player-facing loot hubs.")
 		return
 	if String(overlay._poi_label({"name": "East Pine Lane", "role": "recovery_pocket"})) != "East Pine Lane":

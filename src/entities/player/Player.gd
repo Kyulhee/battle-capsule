@@ -619,7 +619,11 @@ func _melee_attack():
 	reveal()
 	_notify_mission_tracker_fire("knife")
 	fire_cooldown = PlayerTuningScript.MELEE_RATE
-	if Sfx: Sfx.play("melee")
+	if Sfx:
+		if Sfx.has_method("play_melee_swing"):
+			Sfx.play_melee_swing()
+		else:
+			Sfx.play("melee")
 	ray_cast.target_position = Vector3(0, 0, -PlayerTuningScript.MELEE_RANGE)
 	ray_cast.force_raycast_update()
 	if ray_cast.is_colliding():
@@ -631,7 +635,11 @@ func _melee_attack():
 		if target.has_method("take_damage"):
 			var melee_mult = _artifact_mods.get("melee_damage_mult", _artifact_mods.get("damage_mult", 1.0))
 			target.take_damage(PlayerTuningScript.MELEE_DAMAGE * melee_mult, "melee", "knife", self)
-			if Sfx: Sfx.play("hit", hit_pos)
+			if Sfx:
+				if Sfx.has_method("play_melee_hit"):
+					Sfx.play_melee_hit(hit_pos)
+				else:
+					Sfx.play("hit", hit_pos)
 
 func _refresh_slot_hud():
 	PlayerSlotHudRendererScript.refresh(
@@ -907,6 +915,11 @@ func _current_surface_id() -> String:
 	if is_in_bush:
 		return "grass"
 	var main = get_tree().root.get_node_or_null("Main")
+	if main and main.map_definition and main.map_definition.has_method("get_surface_id_at"):
+		return String(main.map_definition.get_surface_id_at(
+			Vector2(global_position.x, global_position.z),
+			"dirt"
+		))
 	if main and main.map_spec:
 		var p2 = Vector2(global_position.x, global_position.z)
 		for obstacle in main.map_spec.obstacles:

@@ -187,6 +187,32 @@ func get_obstacle_descriptors() -> Array[Dictionary]:
 	return descriptors
 
 
+func get_surface_zone_descriptors() -> Array[Dictionary]:
+	var descriptors: Array[Dictionary] = []
+	if map_spec == null:
+		return descriptors
+	for i in range(map_spec.surface_zones.size()):
+		var zone := _dictionary(map_spec.surface_zones[i])
+		zone["index"] = i
+		zone["pos_2d"] = _vector2_from_array(zone.get("pos", []), Vector2.ZERO)
+		zone["size_2d"] = _vector2_from_array(zone.get("size", []), Vector2.ZERO)
+		var points_2d: Array[Vector2] = []
+		for point_data in _array(zone.get("points", [])):
+			points_2d.append(_vector2_from_array(point_data, Vector2.INF))
+		zone["points_2d"] = points_2d
+		descriptors.append(zone)
+	return descriptors
+
+
+func get_surface_id_at(world_pos: Vector2, fallback: String = "dirt") -> String:
+	var zones := get_surface_zone_descriptors()
+	for i in range(zones.size() - 1, -1, -1):
+		var zone: Dictionary = zones[i]
+		if _surface_zone_contains(zone, world_pos):
+			return String(zone.get("surface", fallback))
+	return fallback
+
+
 func get_route_descriptors() -> Array[Dictionary]:
 	var descriptors: Array[Dictionary] = []
 	if map_spec == null:
@@ -373,6 +399,39 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 		if absf(pos.x) + extent.x > half_size or absf(pos.y) + extent.y > half_size:
 			issues.append("Obstacle %d extends outside world bounds." % i)
 
+	for i in range(map_spec.surface_zones.size()):
+		var zone := _dictionary(map_spec.surface_zones[i])
+		var shape := String(zone.get("shape", "rect"))
+		var surface_id := String(zone.get("surface", "")).strip_edges()
+		var material_id := String(zone.get("material_id", "")).strip_edges()
+		if surface_id.is_empty():
+			issues.append("Surface zone %d has empty surface id." % i)
+		if material_id.is_empty():
+			issues.append("Surface zone %d has empty material_id." % i)
+		if shape == "path":
+			var points := _array(zone.get("points", []))
+			if points.size() < 2:
+				issues.append("Surface zone %d path needs at least 2 points." % i)
+			if float(zone.get("width", 0.0)) <= 0.0:
+				issues.append("Surface zone %d path width must be positive." % i)
+			for point_index in range(points.size()):
+				var point := _vector2_from_array(points[point_index], Vector2.INF)
+				if not point.is_finite():
+					issues.append("Surface zone %d point %d is invalid." % [i, point_index])
+				elif absf(point.x) > half_size or absf(point.y) > half_size:
+					issues.append("Surface zone %d point %d extends outside world bounds." % [i, point_index])
+		elif shape in ["rect", "ellipse"]:
+			var pos := _vector2_from_array(zone.get("pos", []), Vector2.INF)
+			var size := _vector2_from_array(zone.get("size", []), Vector2.ZERO)
+			if not pos.is_finite():
+				issues.append("Surface zone %d has invalid pos." % i)
+			elif absf(pos.x) > half_size or absf(pos.y) > half_size:
+				issues.append("Surface zone %d center extends outside world bounds." % i)
+			if size.x <= 0.0 or size.y <= 0.0:
+				issues.append("Surface zone %d has non-positive size." % i)
+		else:
+			issues.append("Surface zone %d shape '%s' is unknown." % [i, shape])
+
 	for i in range(map_spec.routes.size()):
 		var route := _dictionary(map_spec.routes[i])
 		var route_id := String(route.get("id", route.get("name", ""))).strip_edges()
@@ -448,6 +507,7 @@ func summary(game_config = null, preset_name: String = "") -> Dictionary:
 		"world_size": get_world_size(),
 		"poi_count": map_spec.pois.size() if map_spec != null else 0,
 		"obstacle_count": map_spec.obstacles.size() if map_spec != null else 0,
+		"surface_zone_count": map_spec.surface_zones.size() if map_spec != null else 0,
 		"route_count": map_spec.routes.size() if map_spec != null else 0,
 		"bot_count": int(match_tuning.get("bot_count", 0)),
 		"loot_count": int(match_tuning.get("loot_count", 0)),
@@ -548,10 +608,31 @@ static func _map_spec_from_data(data: Dictionary) -> Resource:
 	for obstacle in _array(data.get("obstacles", [])):
 		if typeof(obstacle) == TYPE_DICTIONARY:
 			spec.obstacles.append(obstacle.duplicate(true))
+	for surface_zone in _array(data.get("surface_zones", [])):
+		if typeof(surface_zone) == TYPE_DICTIONARY:
+			spec.surface_zones.append(surface_zone.duplicate(true))
 	for route in _array(data.get("routes", [])):
 		if typeof(route) == TYPE_DICTIONARY:
 			spec.routes.append(route.duplicate(true))
 	return spec
+
+
+static func _surface_zone_contains(zone: Dictionary, world_pos: Vector2) -> bool:
+	var shape := String(zone.get("shape", "rect"))
+	if shape == "path":
+		var points: Array = zone.get("points_2d", [])
+		return _route_distance(world_pos, points) <= float(zone.get("width", 0.0)) * 0.5
+
+	var center: Vector2 = zone.get("pos_2d", Vector2.ZERO)
+	var size: Vector2 = zone.get("size_2d", Vector2.ZERO)
+	var local := (world_pos - center).rotated(-deg_to_rad(float(zone.get("rot", 0.0))))
+	if shape == "ellipse":
+		var radii := size * 0.5
+		if radii.x <= 0.0 or radii.y <= 0.0:
+			return false
+		var normalized := Vector2(local.x / radii.x, local.y / radii.y)
+		return normalized.length_squared() <= 1.0
+	return absf(local.x) <= size.x * 0.5 and absf(local.y) <= size.y * 0.5
 
 
 static func _merge_dict(target: Dictionary, source: Dictionary) -> Dictionary:

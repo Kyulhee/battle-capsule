@@ -1,6 +1,6 @@
 # 아키텍처 개요
 
-> 최종 업데이트: 2026-07-18. 구조 변경 전 읽는 한글 요약 문서다. 세부 구현은 코드와 Git 이력을 우선한다.
+> 최종 업데이트: 2026-07-20. 구조 변경 전 읽는 한글 요약 문서다. 세부 구현은 코드와 Git 이력을 우선한다.
 
 ## 전체 구조
 
@@ -92,6 +92,7 @@ Data
 - `playable_pacing_v4`는 현재 자동 페이싱 후보이며 default promotion이 아니다.
 - `routes`는 현재 텔레메트리 위치 분류 전용 데이터다. bot 이동은 POI loot, zone, cover가 결정하며 route graph를 직접 소비하지 않으므로 플레이어 지도와 월드에는 표시하지 않는다.
 - minimap과 fullmap은 월드 좌표를 45도 회전해 게임 카메라 방향과 맞춘다.
+- `surface_zones`는 rect/ellipse/path 지면 구역의 material ID와 surface ID를 함께 소유한다. `WorldBuilder`, 발걸음 판정, minimap/fullmap이 같은 데이터를 소비하며 뒤에 선언한 구역이 판정 우선권을 가진다.
 - player-target outnumbered 판정은 현재 표적을 제외하고 자신을 추적 중이거나 최근 5초 안에 공격한 제3자만 센다. bot-only 판정은 기존 페이싱 계약을 유지한다.
 - 짧은 LOS 상실 기억은 player 표적 5초, 일반 표적 2.5초다. 이 값은 `BotDecisionPolicy.gd`가 소유하고 `Bot.gd`가 ATTACK 해제 시 소비한다.
 - `BotDecisionPolicy.gd`는 scene tree를 조회하지 않는다. 위협·표적·위치 후보의 context를 받아 판단하며 `Bot.gd`가 관측 수집과 실제 이동·상태 전이를 맡는다.
@@ -110,7 +111,7 @@ Data
 - path가 비면 fallback primitive/sound/silence 사용.
 - `asset_generator/expected_output/`은 원본 풀이고, 런타임 자산이 아니다.
 
-Bush는 예외적으로 GLB visual replacement가 통합되어 있다. 단, concealment gameplay authority는 여전히 `Bush.tscn`의 Area3D가 가진다.
+Bush, tree, landmark는 기존 gameplay proxy에 catalog GLB를 붙인다. concealment/collision authority는 기존 Area3D·StaticBody3D가 가지며 GLB collision은 끈다. 정적 GLB와 지면 구역은 재질별 메시 병합으로 런타임 노드·draw 제출을 줄인다.
 
 ## 변경 시 주의
 

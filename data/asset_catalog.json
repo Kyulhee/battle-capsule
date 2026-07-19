@@ -90,6 +90,21 @@
       "fallback": "melee",
       "tags": ["weapon", "knife"]
     },
+    "melee.swing.2": {
+      "path": "res://assets/sfx/weapons/knife_swing_02.wav",
+      "fallback": "melee",
+      "tags": ["weapon", "knife", "swing"]
+    },
+    "melee.swing.3": {
+      "path": "res://assets/sfx/weapons/knife_swing_03.wav",
+      "fallback": "melee",
+      "tags": ["weapon", "knife", "swing"]
+    },
+    "melee.hit": {
+      "path": "res://assets/sfx/weapons/knife_hit.ogg",
+      "fallback": "hit",
+      "tags": ["combat", "weapon", "knife", "impact"]
+    },
     "zone_warning": {
       "path": "",
       "fallback": "zone_warning",
@@ -188,9 +203,26 @@
       "color": [0.55, 1.0, 0.55, 1.0]
     }
   },
+  "materials": {
+    "ground.forest_dirt": {
+      "path": "res://assets/materials/ground/forest_dirt_albedo.png",
+      "color": [0.72, 0.72, 0.68, 1.0],
+      "tags": ["ground", "forest", "surface.dirt"]
+    },
+    "ground.forest_grass": {
+      "path": "res://assets/materials/ground/forest_grass_albedo.png",
+      "color": [0.66, 0.72, 0.58, 1.0],
+      "tags": ["ground", "forest", "surface.grass"]
+    },
+    "ground.path_dirt": {
+      "path": "res://assets/materials/ground/path_dirt_albedo.png",
+      "color": [0.82, 0.76, 0.66, 1.0],
+      "tags": ["ground", "path", "surface.dirt"]
+    }
+  },
   "props": {
     "forest.tree": {
-      "path": "",
+      "path": "res://assets/props/forest/tree_cluster.glb",
       "fallback_shape": "tree_cluster",
       "tags": ["forest", "cover", "los_blocker"]
     },
@@ -215,14 +247,29 @@
       "tags": ["forest", "cover"]
     },
     "landmark.cabin": {
-      "path": "",
+      "path": "res://assets/props/landmarks/cabin.glb",
       "fallback_shape": "cabin",
       "tags": ["landmark", "loot"]
     },
     "landmark.wall": {
-      "path": "",
+      "path": "res://assets/props/landmarks/ruined_wall.glb",
       "fallback_shape": "wall",
       "tags": ["landmark", "cover"]
+    },
+    "landmark.crate": {
+      "path": "res://assets/props/landmarks/camp_crate.glb",
+      "fallback_shape": "crate",
+      "tags": ["landmark", "loot", "cover"]
+    },
+    "landmark.barrels": {
+      "path": "res://assets/props/landmarks/barrel_cluster.glb",
+      "fallback_shape": "barrels",
+      "tags": ["landmark", "cover"]
+    },
+    "landmark.fire_pit": {
+      "path": "res://assets/props/landmarks/fire_pit.glb",
+      "fallback_shape": "fire_pit",
+      "tags": ["landmark", "light"]
     }
   },
   "cosmetics": {

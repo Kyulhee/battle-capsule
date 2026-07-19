@@ -2595,14 +2595,23 @@ func _bot_melee():
 	fire_cooldown = 0.65
 	if not _is_target_valid(target_actor): return
 	if global_position.distance_to(target_actor.global_position) > BOT_TUNING.MELEE_RANGE: return
+	var sfx = get_node_or_null("/root/Sfx")
+	if sfx:
+		if sfx.has_method("play_melee_swing"):
+			sfx.play_melee_swing(global_position)
+		else:
+			sfx.play("melee", global_position)
 	var damage := _outgoing_damage_for(target_actor, BOT_TUNING.MELEE_DAMAGE)
 	target_actor.take_damage(damage, "melee", "knife", self)
 	_engagement_dmg_dealt += damage
 	var impact = IMPACT_EFFECT_SCN.instantiate()
 	get_tree().root.add_child(impact)
 	impact.global_position = target_actor.global_position + Vector3(0, 0.8, 0)
-	if has_node("/root/Sfx"):
-		get_node("/root/Sfx").play("hit", target_actor.global_position)
+	if sfx:
+		if sfx.has_method("play_melee_hit"):
+			sfx.play_melee_hit(target_actor.global_position)
+		else:
+			sfx.play("hit", target_actor.global_position)
 
 # ─── DEATH & WEAPON DROP ─────────────────────────────────────────────────────
 

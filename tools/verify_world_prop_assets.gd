@@ -5,6 +5,21 @@ const REQUIRED_PROPS := {
 	"forest.bush": "res://assets/props/forest/bush_dense.glb",
 	"forest.bush.low": "res://assets/props/forest/bush_low.glb",
 	"forest.bush.dense": "res://assets/props/forest/bush_dense.glb",
+	"forest.tree": "res://assets/props/forest/tree_cluster.glb",
+	"landmark.cabin": "res://assets/props/landmarks/cabin.glb",
+	"landmark.wall": "res://assets/props/landmarks/ruined_wall.glb",
+	"landmark.crate": "res://assets/props/landmarks/camp_crate.glb",
+	"landmark.barrels": "res://assets/props/landmarks/barrel_cluster.glb",
+	"landmark.fire_pit": "res://assets/props/landmarks/fire_pit.glb",
+}
+
+const EXPECTED_WORLD_PROP_COUNTS := {
+	"forest.tree": 6,
+	"landmark.cabin": 3,
+	"landmark.wall": 2,
+	"landmark.crate": 3,
+	"landmark.barrels": 2,
+	"landmark.fire_pit": 1,
 }
 
 
@@ -32,13 +47,16 @@ func _init():
 			return
 		print("%s prop: path='%s' meshes=%d" % [prop_id, path, mesh_count])
 
-	var spec_file = FileAccess.open("res://data/mapSpec_example.json", FileAccess.READ)
+	var spec_file = FileAccess.open(
+		"res://data/mapSpec_night_forest_expanded_candidate.json",
+		FileAccess.READ
+	)
 	if spec_file == null:
-		_fail("Could not open mapSpec_example.json.")
+		_fail("Could not open expanded Night map.")
 		return
 	var spec = map_spec_script.from_json(spec_file.get_as_text())
 	if spec == null:
-		_fail("Could not parse mapSpec_example.json.")
+		_fail("Could not parse expanded Night map.")
 		return
 
 	var builder = world_builder_script.new()
@@ -48,11 +66,6 @@ func _init():
 	var bushes = builder.find_children("*", "Area3D", true, false)
 	if bushes.is_empty():
 		_fail("Generated world has no bush Area3D nodes.")
-		return
-
-	var catalog_visuals = builder.find_children("CatalogPropVisual", "Node3D", true, false)
-	if catalog_visuals.size() != bushes.size():
-		_fail("Expected %d catalog bush visuals, got %d." % [bushes.size(), catalog_visuals.size()])
 		return
 
 	for bush in bushes:
@@ -75,7 +88,65 @@ func _init():
 			_fail("Generated catalog bush did not register rustle chunks.")
 			return
 
-	print("Bush prop asset smoke passed: %d bushes use catalog GLB visuals." % bushes.size())
+	var prop_counts := {}
+	var catalog_visuals = builder.find_children("CatalogPropVisual", "Node3D", true, false)
+	for visual in catalog_visuals:
+		var prop_id := String(visual.get_meta("prop_id", ""))
+		prop_counts[prop_id] = int(prop_counts.get(prop_id, 0)) + 1
+	for prop_id in EXPECTED_WORLD_PROP_COUNTS:
+		var expected_count := int(EXPECTED_WORLD_PROP_COUNTS[prop_id])
+		var actual_count := int(prop_counts.get(prop_id, 0))
+		if actual_count != expected_count:
+			_fail("%s world count mismatch: expected %d, got %d." % [
+				prop_id,
+				expected_count,
+				actual_count,
+			])
+			return
+
+	var surface_container: Node = builder.get_node_or_null("GeneratedSurfaceZones")
+	if surface_container == null or surface_container.get_child_count() <= 0:
+		_fail("Expanded Night world did not build surface zones.")
+		return
+	if surface_container.get_child_count() > 3:
+		_fail("Surface zones were not merged by material: %d render nodes." % (
+			surface_container.get_child_count()
+		))
+		return
+	for child in surface_container.get_children():
+		if not (child is MeshInstance3D):
+			_fail("Merged surface container contains a non-mesh child.")
+			return
+	var ground_feature_count := 0
+	for feature in builder.get_minimap_features():
+		if String(feature.get("type", "")).begins_with("ground."):
+			ground_feature_count += 1
+	if ground_feature_count != spec.surface_zones.size():
+		_fail("Expected %d surface map features, got %d." % [
+			spec.surface_zones.size(),
+			ground_feature_count,
+		])
+		return
+
+	var fire_visual: Node3D = null
+	for visual in catalog_visuals:
+		if String(visual.get_meta("prop_id", "")) == "landmark.fire_pit":
+			fire_visual = visual
+			break
+	if fire_visual == null or not (fire_visual.get_parent() is CollisionObject3D):
+		_fail("Fire pit visual is missing its collision proxy parent.")
+		return
+	var fire_parent := fire_visual.get_parent() as CollisionObject3D
+	if fire_parent.collision_layer != 0:
+		_fail("Visual-only fire pit must not block navigation.")
+		return
+
+	print("World prop asset smoke passed: visuals=%d surfaces=%d render_nodes=%d bushes=%d." % [
+		catalog_visuals.size(),
+		spec.surface_zones.size(),
+		surface_container.get_child_count(),
+		bushes.size(),
+	])
 	quit(0)
 
 

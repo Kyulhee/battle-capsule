@@ -2,6 +2,7 @@ Battle Capsule 오디오 자산
 
 런타임 형식:
 - WAV
+- OGG
 - mono
 - 44.1 kHz
 - 16-bit PCM
@@ -17,13 +18,19 @@ Battle Capsule 오디오 자산
 - 처리: 단발 구간 절단, mono 변환, 44.1 kHz 재표본화, 42-55 Hz
   high-pass, 11.5-13.5 kHz low-pass, 끝부분 fade, peak 0.45-0.60
 
-칼 휘두르기:
+칼 휘두르기 3종:
 - 출처: OpenGameArt "Swishes Sound Pack" by artisticdude
 - 원본 URL: https://opengameart.org/content/swishes-sound-pack
 - 라이선스: CC0
-- melee: swish-3.wav
-- 처리: mono 변환, 110 Hz high-pass, 14 kHz low-pass, 무음 절단,
-  6 ms fade, peak 0.42
+- melee: swish-1.wav, swish-4.wav, swish-7.wav
+- 런타임: 직전 변형을 피해서 선택하고 -7.5 dB로 재생
+
+칼 피격:
+- 출처: OpenGameArt/LPC "Impact" by qubodup
+- 원본 URL: https://lpc.opengameart.org/content/impact
+- 라이선스: CC0
+- melee hit: qubodupImpactMeat01.ogg
+- 런타임: 실제 명중할 때만 -4.5 dB로 재생
 
 발걸음 3종:
 - 출처: Kenney Impact Sounds / RPG Audio

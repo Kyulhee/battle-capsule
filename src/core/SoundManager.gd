@@ -9,13 +9,18 @@ const SOUND_VOLUME_DB := {
 	"shoot.ar": -6.0,
 	"shoot.shotgun": -3.0,
 	"shoot.railgun": -4.0,
-	"melee": -5.0,
+	"melee": -7.5,
+	"melee.swing.2": -7.5,
+	"melee.swing.3": -7.5,
+	"melee.hit": -4.5,
 }
 const WEAPON_PITCH_VARIATION := 0.02
+const MELEE_SWING_IDS := ["melee", "melee.swing.2", "melee.swing.3"]
 
 var asset_catalog = null
 var _stream_cache: Dictionary = {}
 var _audio_rng := RandomNumberGenerator.new()
+var _last_melee_swing_index := -1
 
 func _ready() -> void:
 	_audio_rng.randomize()
@@ -44,6 +49,19 @@ func play(
 
 func play_weapon_shot(weapon_type: String, pos: Vector3 = Vector3.ZERO):
 	play("shoot.%s" % weapon_type, pos)
+
+
+func play_melee_swing(pos: Vector3 = Vector3.ZERO) -> void:
+	var next_index := _audio_rng.randi_range(0, MELEE_SWING_IDS.size() - 1)
+	if MELEE_SWING_IDS.size() > 1 and next_index == _last_melee_swing_index:
+		next_index = (next_index + 1) % MELEE_SWING_IDS.size()
+	_last_melee_swing_index = next_index
+	play(String(MELEE_SWING_IDS[next_index]), pos)
+
+
+func play_melee_hit(pos: Vector3 = Vector3.ZERO) -> void:
+	play("melee.hit", pos)
+
 
 func play_footstep(
 	surface_id: String = "",
