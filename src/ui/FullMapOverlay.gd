@@ -425,19 +425,19 @@ func _feature_colors(obs_type: String) -> Dictionary:
 				"border": Color(0.10, 0.08, 0.05, 0.95),
 				"width": 1.0,
 			}
-		"canyon_wall", "rock_cluster":
+		"canyon_wall", "rock_cluster", "ridge_rock":
 			return {
 				"fill": Color(0.42, 0.43, 0.46, 0.92),
 				"border": Color(0.23, 0.24, 0.27, 0.95),
 				"width": 1.1,
 			}
-		"log_pile":
+		"log_pile", "fallen_tree":
 			return {
 				"fill": Color(0.42, 0.28, 0.13, 0.82),
 				"border": Color(0.23, 0.15, 0.07, 0.92),
 				"width": 1.0,
 			}
-		"cabin":
+		"cabin", "watchtower":
 			return {
 				"fill": Color(0.48, 0.30, 0.16, 0.98),
 				"border": Color(0.18, 0.11, 0.06, 1.0),
@@ -447,6 +447,12 @@ func _feature_colors(obs_type: String) -> Dictionary:
 			return {
 				"fill": Color(0.48, 0.38, 0.24, 0.96),
 				"border": Color(0.20, 0.15, 0.09, 1.0),
+				"width": 1.0,
+			}
+		"camp_tarp":
+			return {
+				"fill": Color(0.24, 0.31, 0.16, 0.88),
+				"border": Color(0.12, 0.16, 0.08, 0.95),
 				"width": 1.0,
 			}
 	return {
@@ -568,11 +574,11 @@ func _fallback_feature_layer(obs_type: String, height: float) -> int:
 	match obs_type:
 		"bush_patch":
 			return 0
-		"log_pile":
+		"log_pile", "fallen_tree":
 			return 1
-		"rock_cluster":
+		"rock_cluster", "ridge_rock":
 			return 3 if height > 2.5 else 2
-		"tree_cluster":
+		"tree_cluster", "watchtower":
 			return 3
 		"canyon_wall":
 			return 4

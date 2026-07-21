@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` 비기본 whitebox |
 | 권장 preset | `xlarge_60` 임시 대표 수동 표면. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 초점 | Cabin Row 목적 이동, 한 교전으로의 과잉 합류, 칼 분리음, 60인 끊김 |
+| 현재 초점 | Cabin Row 정착지와 West Ridge 감시 능선의 사전 인지, 진입 선택, AI 점유 차이 |
 
 ## 수동 체크리스트
 

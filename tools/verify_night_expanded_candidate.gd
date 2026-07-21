@@ -134,11 +134,31 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 			or int(anchor_roles.get("outer", 0)) != 3:
 		_fail("Cabin Row strategic anchors must expose objective=1, entry=3, outer=3.")
 		return false
-	if definition.get_surface_id_at(Vector2(-82.0, 4.0)) != "grass":
+	if not _has_poi(definition, "West Ridge Watch Post"):
+		_fail("Expanded candidate must expose West Ridge Watch Post.")
+		return false
+	var watch_post := _poi_by_name(definition, "West Ridge Watch Post")
+	var watch_identity: Dictionary = watch_post.get("identity", {})
+	if String(watch_identity.get("theme", "")) != "ridge_watch_post":
+		_fail("West Ridge Watch Post needs a distinct region identity.")
+		return false
+	var watch_anchors: Array = watch_post.get("strategic_anchors", [])
+	var watch_anchor_roles := _anchor_role_counts(watch_anchors)
+	if watch_anchors.size() != 5 \
+			or int(watch_anchor_roles.get("objective", 0)) != 1 \
+			or int(watch_anchor_roles.get("entry", 0)) != 2 \
+			or int(watch_anchor_roles.get("outer", 0)) != 2:
+		_fail("West Ridge strategic anchors must expose objective=1, entry=2, outer=2.")
+		return false
+	if definition.get_surface_id_at(Vector2(-90.0, 60.0)) != "grass":
 		_fail("West forest band must resolve to grass.")
 		return false
 	if definition.get_surface_id_at(Vector2(0.0, 98.0)) != "dirt":
 		_fail("Cabin Row yard must override the forest edge as dirt.")
+		return false
+	if definition.get_surface_id_at(Vector2(-56.0, 31.0)) != "dirt" \
+			or definition.get_surface_id_at(Vector2(-89.0, -3.0)) != "dirt":
+		_fail("West Ridge needs a dirt clearing and exposed service track.")
 		return false
 	if _count_prop_obstacles(definition, "landmark.cabin") != 3:
 		_fail("Cabin Row needs three cabin landmarks.")
@@ -148,6 +168,28 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 		return false
 	if _count_prop_obstacles(definition, "forest.tree") < 6:
 		_fail("Cabin Row needs a physical tree boundary.")
+		return false
+	for prop_id in [
+		"landmark.watchtower",
+		"landmark.camp.tarp",
+		"forest.fallen.tree",
+		"forest.log.pile",
+	]:
+		if _count_prop_obstacles(definition, prop_id) != 1:
+			_fail("West Ridge needs one '%s' landmark prop." % prop_id)
+			return false
+	if _count_prop_obstacles(definition, "forest.rock.large") != 2:
+		_fail("West Ridge needs two large ridge rocks.")
+		return false
+	if _count_named_compound_cover(definition, "west_ridge_watch_post", "hard") != 5:
+		_fail("West Ridge needs five hard-cover anchors.")
+		return false
+	if _count_named_compound_cover(definition, "west_ridge_watch_post", "screen") != 4:
+		_fail("West Ridge needs three forest screens and one tarp screen.")
+		return false
+	var tarp := _obstacle_by_prop(definition, "landmark.camp.tarp")
+	if String(tarp.get("cover_class", "")) != "screen":
+		_fail("West Ridge tarp must block vision without blocking ballistics.")
 		return false
 	if _count_compound_cover(definition, "hard") != 9:
 		_fail("Cabin Row needs nine explicit hard-cover masses.")
@@ -195,6 +237,22 @@ func _count_prop_obstacles(definition, prop_id: String) -> int:
 	var count := 0
 	for obstacle in definition.get_obstacle_descriptors():
 		if String(obstacle.get("prop_id", "")) == prop_id:
+			count += 1
+	return count
+
+
+func _obstacle_by_prop(definition, prop_id: String) -> Dictionary:
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("prop_id", "")) == prop_id:
+			return obstacle
+	return {}
+
+
+func _count_named_compound_cover(definition, compound_id: String, cover_class: String) -> int:
+	var count := 0
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("compound_id", "")) == compound_id \
+				and String(obstacle.get("cover_class", "")) == cover_class:
 			count += 1
 	return count
 

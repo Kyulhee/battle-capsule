@@ -108,6 +108,15 @@ func _init():
 	if overlay._poi_label_world_pos(cabin_poi).distance_to(Vector2(0.0, 104.0)) > 0.001:
 		_fail("Cabin Row label must use its physical compound anchor.")
 		return
+	var watch_poi: Dictionary = definition.get_poi_descriptors().filter(
+		func(poi: Dictionary) -> bool: return String(poi.get("name", "")) == "West Ridge Watch Post"
+	).front()
+	if String(overlay._poi_label(watch_poi)) != "Watch Post":
+		_fail("Full map should label the identified West Ridge landmark.")
+		return
+	if overlay._poi_label_world_pos(watch_poi).distance_to(Vector2(-56.0, 32.0)) > 0.001:
+		_fail("West Ridge label must use its watchtower anchor.")
+		return
 	if not String(overlay._poi_label({"name": "Central Meadow", "role": "loot_hub"})).is_empty():
 		_fail("Full map should not infer labels from internal POI roles.")
 		return

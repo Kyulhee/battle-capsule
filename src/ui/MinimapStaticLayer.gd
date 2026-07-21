@@ -178,19 +178,19 @@ func _feature_colors(obstacle_type: String) -> Dictionary:
 				"border": Color(0.12, 0.09, 0.06, 1.0),
 				"width": 1.0,
 			}
-		"canyon_wall", "rock_cluster":
+		"canyon_wall", "rock_cluster", "ridge_rock":
 			return {
 				"fill": Color(0.42, 0.42, 0.46, 0.96),
 				"border": Color(0.24, 0.24, 0.28, 1.0),
 				"width": 1.2,
 			}
-		"log_pile":
+		"log_pile", "fallen_tree":
 			return {
 				"fill": Color(0.44, 0.30, 0.14, 0.92),
 				"border": Color(0.26, 0.17, 0.07, 1.0),
 				"width": 1.0,
 			}
-		"cabin":
+		"cabin", "watchtower":
 			return {
 				"fill": Color(0.48, 0.30, 0.16, 0.98),
 				"border": Color(0.18, 0.11, 0.06, 1.0),
@@ -200,6 +200,12 @@ func _feature_colors(obstacle_type: String) -> Dictionary:
 			return {
 				"fill": Color(0.48, 0.38, 0.24, 0.96),
 				"border": Color(0.20, 0.15, 0.09, 1.0),
+				"width": 1.0,
+			}
+		"camp_tarp":
+			return {
+				"fill": Color(0.24, 0.31, 0.16, 0.88),
+				"border": Color(0.12, 0.16, 0.08, 0.95),
 				"width": 1.0,
 			}
 	return {
@@ -266,12 +272,14 @@ func _fallback_feature_layer(obstacle_type: String, height: float) -> int:
 	match obstacle_type:
 		"bush_patch":
 			return 0
-		"log_pile":
+		"log_pile", "fallen_tree":
 			return 1
-		"rock_cluster":
+		"rock_cluster", "ridge_rock":
 			return 3 if height > 2.5 else 2
-		"tree_cluster":
+		"tree_cluster", "watchtower":
 			return 3
+		"camp_tarp":
+			return 1
 		"canyon_wall":
 			return 4
 	return 1
@@ -283,7 +291,7 @@ func _fallback_cover_size(
 		height: float
 	) -> Vector2:
 	match obstacle_type:
-		"bush_patch", "log_pile":
+		"bush_patch", "log_pile", "fallen_tree", "ridge_rock", "watchtower", "camp_tarp":
 			return base_size
 		"rock_cluster":
 			var rock_margin := clampf(height * 0.55, 0.4, 2.6)

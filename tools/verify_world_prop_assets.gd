@@ -6,29 +6,44 @@ const REQUIRED_PROPS := {
 	"forest.bush.low": "res://assets/props/forest/bush_low.glb",
 	"forest.bush.dense": "res://assets/props/forest/bush_dense.glb",
 	"forest.tree": "res://assets/props/forest/tree_cluster.glb",
+	"forest.rock.large": "res://assets/props/forest/rock_large.glb",
+	"forest.log.pile": "res://assets/props/forest/log_pile.glb",
+	"forest.fallen.tree": "res://assets/props/forest/fallen_tree.glb",
 	"landmark.cabin": "res://assets/props/landmarks/cabin.glb",
 	"landmark.wall": "res://assets/props/landmarks/ruined_wall.glb",
 	"landmark.crate": "res://assets/props/landmarks/camp_crate.glb",
 	"landmark.barrels": "res://assets/props/landmarks/barrel_cluster.glb",
 	"landmark.fire_pit": "res://assets/props/landmarks/fire_pit.glb",
+	"landmark.camp.tarp": "res://assets/props/landmarks/camp_tarp.glb",
+	"landmark.watchtower": "res://assets/props/landmarks/watchtower.glb",
 }
 
 const EXPECTED_WORLD_PROP_COUNTS := {
-	"forest.tree": 6,
+	"forest.tree": 9,
+	"forest.rock.large": 2,
+	"forest.log.pile": 1,
+	"forest.fallen.tree": 1,
 	"landmark.cabin": 3,
 	"landmark.wall": 6,
-	"landmark.crate": 5,
+	"landmark.crate": 6,
 	"landmark.barrels": 3,
 	"landmark.fire_pit": 1,
+	"landmark.camp.tarp": 1,
+	"landmark.watchtower": 1,
 }
 
 const EXPECTED_COVER_CLASSES := {
 	"forest.tree": "screen",
+	"forest.rock.large": "hard",
+	"forest.log.pile": "hard",
+	"forest.fallen.tree": "hard",
 	"landmark.cabin": "hard",
 	"landmark.wall": "hard",
 	"landmark.crate": "soft",
 	"landmark.barrels": "soft",
 	"landmark.fire_pit": "none",
+	"landmark.camp.tarp": "screen",
+	"landmark.watchtower": "hard",
 }
 
 

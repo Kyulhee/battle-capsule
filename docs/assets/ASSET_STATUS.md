@@ -1,6 +1,6 @@
 # Battle Capsule 자산 상태
 
-> 최종 업데이트: 2026-07-20. 현재 통합/보류/미연결 자산 상태를 요약한다.
+> 최종 업데이트: 2026-07-21. 현재 통합/보류/미연결 자산 상태를 요약한다.
 
 ## 연결 방식
 
@@ -14,7 +14,7 @@ data/asset_catalog.json
 
 `AssetCatalog.get_path(category, id, fallback)`은 경로를 반환하거나 없으면 빈 문자열을 반환한다. 빈 경로는 오류가 아니라 procedural fallback 또는 기본 표시로 이어진다.
 
-현재 path가 설정된 항목은 audio 11, icons 18, materials 3, props 9개이며 모두 실제 파일과 연결되어 `AssetCatalog.missing_count()`가 0이다. path가 비어 있는 항목은 의도된 procedural fallback이며 누락 경고 대상이 아니다.
+현재 path가 설정된 항목은 audio 11, icons 18, materials 3, props 14개이며 모두 실제 파일과 연결되어 `AssetCatalog.missing_count()`가 0이다. path가 비어 있는 항목은 의도된 procedural fallback이며 누락 경고 대상이 아니다.
 
 ## 현재 catalog 상태
 
@@ -54,6 +54,8 @@ data/asset_catalog.json
 | `forest.tree` | 후보 통합 | Cabin Row 외곽 수목 6개 |
 | `landmark.cabin`, `landmark.wall` | 후보 통합 | Cabin Row 건물 3동·경계벽 2개 |
 | `landmark.crate`, `landmark.barrels`, `landmark.fire_pit` | 후보 통합 | 마당 보급·생활 프롭 |
+| `landmark.watchtower`, `landmark.camp.tarp` | 후보 통합 | West Ridge 감시 실루엣·screen cover |
+| `forest.rock.large`, `forest.log.pile`, `forest.fallen.tree` | 후보 통합 | West Ridge 능선·벌목 hard cover |
 | `forest.rock` | path 비어 있음 | 기존 procedural rock 유지 |
 
 아직 런타임에 연결하지 않은 GLB는 `asset_generator/expected_output/assets/props/`에 남아 있다. 주요 목록:
@@ -62,11 +64,6 @@ data/asset_catalog.json
 forest/tree_small.glb
 forest/rock_small.glb
 forest/rock_cluster.glb
-forest/rock_large.glb
-forest/log_pile.glb
-forest/fallen_tree.glb
-landmarks/camp_tarp.glb
-landmarks/watchtower.glb
 ```
 
 ### 지면 material

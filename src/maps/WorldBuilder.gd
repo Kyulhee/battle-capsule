@@ -116,7 +116,7 @@ func _build_standard_obstacle(
 			obs.type = 0 # ROCK
 		"tree_cluster":
 			obs.type = 1 # TREE
-		"log_pile":
+		"log_pile", "fallen_tree":
 			obs.type = 2 # LOG
 
 	var prop_id := String(descriptor.get("prop_id", "")).strip_edges()
@@ -365,23 +365,25 @@ func _minimap_layer_for(type_str: String, height: float) -> int:
 	match type_str:
 		"bush_patch":
 			return 0
-		"log_pile":
+		"log_pile", "fallen_tree":
 			return 1
 		"camp_crate", "barrel_cluster":
 			return 2
-		"rock_cluster":
+		"rock_cluster", "ridge_rock":
 			return 3 if height > 2.5 else 2
-		"tree_cluster", "ruined_wall", "cabin":
+		"tree_cluster", "ruined_wall", "cabin", "watchtower":
 			return 3
+		"camp_tarp":
+			return 1
 		"canyon_wall":
 			return 4
 	return 1
 
 func _minimap_cover_size(type_str: String, base_size: Vector2, height: float) -> Vector2:
 	match type_str:
-		"bush_patch", "log_pile":
+		"bush_patch", "log_pile", "fallen_tree":
 			return base_size
-		"camp_crate", "barrel_cluster", "ruined_wall", "cabin":
+		"camp_crate", "barrel_cluster", "ruined_wall", "cabin", "watchtower", "camp_tarp", "ridge_rock":
 			return base_size
 		"rock_cluster":
 			var rock_margin = clampf(height * 0.55, 0.4, 2.6)

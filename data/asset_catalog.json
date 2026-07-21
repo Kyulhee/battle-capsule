@@ -246,6 +246,21 @@
       "fallback_shape": "rock",
       "tags": ["forest", "cover"]
     },
+    "forest.rock.large": {
+      "path": "res://assets/props/forest/rock_large.glb",
+      "fallback_shape": "rock",
+      "tags": ["forest", "cover", "landmark"]
+    },
+    "forest.log.pile": {
+      "path": "res://assets/props/forest/log_pile.glb",
+      "fallback_shape": "log_pile",
+      "tags": ["forest", "cover", "logging"]
+    },
+    "forest.fallen.tree": {
+      "path": "res://assets/props/forest/fallen_tree.glb",
+      "fallback_shape": "fallen_tree",
+      "tags": ["forest", "cover", "logging"]
+    },
     "landmark.cabin": {
       "path": "res://assets/props/landmarks/cabin.glb",
       "fallback_shape": "cabin",
@@ -270,6 +285,16 @@
       "path": "res://assets/props/landmarks/fire_pit.glb",
       "fallback_shape": "fire_pit",
       "tags": ["landmark", "light"]
+    },
+    "landmark.camp.tarp": {
+      "path": "res://assets/props/landmarks/camp_tarp.glb",
+      "fallback_shape": "camp_tarp",
+      "tags": ["landmark", "camp", "visual"]
+    },
+    "landmark.watchtower": {
+      "path": "res://assets/props/landmarks/watchtower.glb",
+      "fallback_shape": "watchtower",
+      "tags": ["landmark", "cover", "watch_post"]
     }
   },
   "cosmetics": {

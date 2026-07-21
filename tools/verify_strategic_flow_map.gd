@@ -142,8 +142,8 @@ func _verify_position_classification(definition) -> bool:
 		return false
 
 	var west_gate: Dictionary = definition.describe_strategic_position(Vector2(-54.0, 28.0))
-	if String(west_gate.get("poi_name", "")) != "West Ridge Overlook":
-		_fail("West pressure gate should classify as West Ridge Overlook, got %s." % west_gate.get("poi_name", ""))
+	if String(west_gate.get("poi_name", "")) != "West Ridge Watch Post":
+		_fail("West pressure gate should classify as West Ridge Watch Post, got %s." % west_gate.get("poi_name", ""))
 		return false
 	if String(west_gate.get("route_role", "")) != "primary_choke":
 		_fail("West pressure gate should classify as primary_choke route, got %s." % west_gate.get("route_role", ""))
