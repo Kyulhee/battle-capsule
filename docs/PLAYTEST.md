@@ -33,6 +33,8 @@
 - 공격형은 마당·입구를 압박하고 방어형·저격형은 외곽과 입구에 머무르는 차이가 보이는가?
 - 멀리서 총성이 나도 모든 봇이 한곳에 몰리지 않으며, 가까이 마주치거나 공격받은 봇은 여전히 즉시 대응하는가?
 
+다음 맵 판정인 N2-PLAY-08에서는 POI 원을 제거한 전체 지도를 사용한다. Cabin Row는 정착지, West Ridge Watch Post는 감시 능선으로 지도 이름 없이도 먼저 구분되어야 하며, 전자는 3입구 compound, 후자는 노출된 도로 진입과 숲 우회라는 다른 선택을 만들어야 한다.
+
 ```powershell
 .\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=xlarge_60
 ```
