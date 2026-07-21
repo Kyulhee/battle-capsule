@@ -149,6 +149,7 @@ def profile_steps(
             godot_script(godot, "verify_bot_runtime_combat.gd"),
             godot_script(godot, "verify_bot_target_lifetime.gd"),
             godot_script(godot, "verify_bot_decision_policy.gd"),
+            godot_script(godot, "verify_bot_engagement_saturation_runtime.gd"),
             godot_script(godot, "verify_bot_movement_policy.gd"),
             godot_script(godot, "verify_bot_strategic_movement_policy.gd"),
             godot_script(godot, "verify_bot_threat_pressure.gd"),
@@ -217,6 +218,7 @@ def profile_steps(
         return [
             *docs_only,
             godot_script(godot, "verify_bot_decision_policy.gd"),
+            godot_script(godot, "verify_bot_engagement_saturation_runtime.gd"),
             godot_script(godot, "verify_bot_movement_policy.gd"),
             godot_script(godot, "verify_ai_test_arena.gd"),
             godot_script_args(

@@ -142,6 +142,7 @@ func _reset_metrics():
 			"retreat_melee_counter": 0,
 			"stuck_while_threatened": 0,
 			"zone_assisted_death": 0,
+			"engagement_join_deferred": 0,
 			"stuck_by_state": {},
 			"stuck_by_poi_role": {},
 			"stuck_by_route_role": {},
@@ -518,6 +519,7 @@ func log_tactics(event: String, _value: float = 0.0):
 		"retreat_melee_counter": metrics.tactics.retreat_melee_counter += 1
 		"stuck_while_threatened": metrics.tactics.stuck_while_threatened += 1
 		"zone_assisted_death": metrics.tactics.zone_assisted_death += 1
+		"engagement_join_deferred": metrics.tactics.engagement_join_deferred += 1
 
 func log_stuck_context(state_name: String, context: Dictionary, threatened: bool = false):
 	if not match_in_progress or not _g("tactics"): return
@@ -1320,6 +1322,7 @@ func _print_report():
 		])
 		print("  Reserve reloads: %d" % metrics.tactics.reserve_reload)
 		print("  Patrol entries: %d  timeouts: %d" % [metrics.tactics.patrol_entered, metrics.tactics.patrol_timeout])
+		print("  Engagement joins deferred: %d" % metrics.tactics.engagement_join_deferred)
 		print("  Weapon drops: %d" % metrics.tactics.weapon_drop_spawned)
 
 	if _g("economy"):

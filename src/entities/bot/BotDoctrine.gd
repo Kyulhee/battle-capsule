@@ -70,6 +70,10 @@ const BASE_PROFILE := {
 		"distance_weight": 1.0,
 		"hp_weight": 0.0,
 	},
+	"engagement": {
+		"join_capacity": 2,
+		"local_combatant_limit": 6,
+	},
 }
 
 const ARCHETYPE_OVERLAYS := {
@@ -92,6 +96,10 @@ const ARCHETYPE_OVERLAYS := {
 			"advance_min_hp": 0.45,
 			"reposition_forward_bias": true,
 		},
+		"engagement": {
+			"join_capacity": 3,
+			"local_combatant_limit": 8,
+		},
 	},
 	1: {
 		"archetype_name": "DEFENSIVE",
@@ -108,6 +116,10 @@ const ARCHETYPE_OVERLAYS := {
 			"cover_probe_chance": 0.42,
 			"reposition_probe_chance": 0.14,
 			"advance_probe_chance": 0.0,
+		},
+		"engagement": {
+			"join_capacity": 1,
+			"local_combatant_limit": 4,
 		},
 	},
 	2: {
@@ -126,6 +138,10 @@ const ARCHETYPE_OVERLAYS := {
 			"prefers_hold_angle": true,
 			"kite_probe_chance": 0.18,
 			"reposition_probe_chance": 0.12,
+		},
+		"engagement": {
+			"join_capacity": 1,
+			"local_combatant_limit": 5,
 		},
 	},
 	3: {
@@ -151,6 +167,10 @@ const ARCHETYPE_OVERLAYS := {
 		"target": {
 			"distance_weight": 0.4,
 			"hp_weight": 0.6,
+		},
+		"engagement": {
+			"join_capacity": 2,
+			"local_combatant_limit": 6,
 		},
 	},
 }
@@ -301,6 +321,7 @@ static func explain_profile(profile: Dictionary) -> Dictionary:
 		"combat": profile.get("combat", {}).duplicate(true),
 		"supply": profile.get("supply", {}).duplicate(true),
 		"target": profile.get("target", {}).duplicate(true),
+		"engagement": profile.get("engagement", {}).duplicate(true),
 	}
 
 static func _deep_merge(dst: Dictionary, src: Dictionary) -> void:

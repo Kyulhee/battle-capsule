@@ -149,7 +149,24 @@
   },
   "pois": [
     { "name": "Central Meadow", "pos": [0, 0], "radius": 20, "role": "loot_hub", "item_density": 0.48, "rare_bias": 0.12 },
-    { "name": "Cabin Row", "pos": [0, 96], "radius": 20, "role": "loot_hub", "item_density": 0.88, "rare_bias": 0.24 },
+    {
+      "name": "Cabin Row",
+      "pos": [0, 96],
+      "radius": 20,
+      "role": "loot_hub",
+      "item_density": 0.88,
+      "rare_bias": 0.24,
+      "strategic_capacity": 7,
+      "strategic_anchors": [
+        { "id": "yard_objective", "role": "objective", "pos": [0, 97], "jitter_radius": 1.5 },
+        { "id": "south_entry", "role": "entry", "pos": [0, 82], "jitter_radius": 1.5 },
+        { "id": "west_entry", "role": "entry", "pos": [-22, 97], "jitter_radius": 1.5 },
+        { "id": "east_entry", "role": "entry", "pos": [22, 97], "jitter_radius": 1.5 },
+        { "id": "south_outer", "role": "outer", "pos": [0, 72], "jitter_radius": 2.0 },
+        { "id": "west_outer", "role": "outer", "pos": [-33, 98], "jitter_radius": 2.0 },
+        { "id": "east_outer", "role": "outer", "pos": [33, 98], "jitter_radius": 2.0 }
+      ]
+    },
     { "name": "South Creek Bend", "pos": [20, -98], "radius": 20, "role": "loot_hub", "item_density": 0.86, "rare_bias": 0.22 },
     { "name": "West Ridge Gap", "pos": [-104, -16], "radius": 18, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.18 },
     { "name": "West Ridge Overlook", "pos": [-54, 28], "radius": 16, "role": "transit_choke", "item_density": 0.60, "rare_bias": 0.18 },

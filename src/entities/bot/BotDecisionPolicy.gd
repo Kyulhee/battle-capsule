@@ -31,6 +31,22 @@ static func can_reengage(context: Dictionary) -> bool:
 	return int(context.get("visible_enemies", 0)) <= 1
 
 
+static func should_join_engagement(context: Dictionary) -> bool:
+	if bool(context.get("already_targeting", false)) \
+			or bool(context.get("direct_threat", false)) \
+			or bool(context.get("forced_response", false)):
+		return true
+	var distance := maxf(0.0, float(context.get("distance", INF)))
+	var immediate_range := maxf(0.0, float(context.get("immediate_range", 0.0)))
+	if distance <= immediate_range:
+		return true
+	var join_capacity := maxi(1, int(context.get("join_capacity", 1)))
+	if int(context.get("target_commitments", 0)) >= join_capacity:
+		return false
+	var local_combatant_limit := maxi(2, int(context.get("local_combatant_limit", 2)))
+	return int(context.get("local_combatants", 0)) < local_combatant_limit
+
+
 static func is_heavily_outnumbered(context: Dictionary) -> bool:
 	if bool(context.get("targeting_player", false)):
 		return int(context.get("additional_threats", 0)) >= 3

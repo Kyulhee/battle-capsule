@@ -474,6 +474,9 @@ if __name__ == "__main__":
     retreat_melee_counter = [r.get("tactics", {}).get("retreat_melee_counter", 0) for r in results]
     stuck_while_threatened = [r.get("tactics", {}).get("stuck_while_threatened", 0) for r in results]
     zone_assisted_death = [r.get("tactics", {}).get("zone_assisted_death", 0) for r in results]
+    engagement_join_deferred = [
+        r.get("tactics", {}).get("engagement_join_deferred", 0) for r in results
+    ]
     zone_deaths = [r.get("zone", {}).get("zone_deaths", 0) for r in results]
     max_outside_time = [r.get("zone", {}).get("max_outside_time", 0.0) for r in results]
     spawn_runs = [
@@ -643,6 +646,7 @@ if __name__ == "__main__":
             avg(zone_assisted_death),
         )
     )
+    print(f"Avg engagement joins deferred: {avg(engagement_join_deferred):.1f}")
     print(
         "Scale-normalized per spawned entity/min: damage={:.1f}, shots={:.2f}, plans={:.2f}, disengage={:.2f}, entries={:.2f}, stuck={:.2f}, zone_fire={:.2f}, survival={:.2f}".format(
             per_spawned_entity_minute(results, lambda r: r.get("combat", {}).get("total_damage_dealt", 0.0)),

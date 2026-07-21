@@ -8,6 +8,12 @@ const ACTIVE_ROLES := [
 ]
 const ZONE_EDGE_MARGIN := 5.0
 const MIN_DEPARTURE_DISTANCE := 8.0
+const DEFAULT_ROLE_CAPACITY := {
+	"loot_hub": 5,
+	"transit_choke": 3,
+	"recovery_pocket": 2,
+	"concealment_field": 2,
+}
 
 
 static func select_destination(
@@ -17,7 +23,8 @@ static func select_destination(
 	zone_radius: float,
 	preference: String,
 	selection_ticket: float,
-	spread_phase: int
+	spread_phase: int,
+	occupancy_by_name: Dictionary = {}
 ) -> Dictionary:
 	var candidates: Array[Dictionary] = []
 	var total_weight := 0.0
@@ -40,12 +47,20 @@ static func select_destination(
 			continue
 		var density := clampf(float(poi.get("item_density", 0.5)), 0.05, 1.5)
 		weight *= 0.55 + density
+		var capacity := maxi(1, int(poi.get(
+			"strategic_capacity",
+			DEFAULT_ROLE_CAPACITY.get(role, 2)
+		)))
+		var occupancy := maxi(0, int(occupancy_by_name.get(String(poi.get("name", "")), 0)))
+		weight *= occupancy_multiplier(occupancy, capacity)
 		total_weight += weight
 		candidates.append({
 			"poi": poi,
 			"position": poi_position,
 			"radius": poi_radius,
 			"weight": weight,
+			"capacity": capacity,
+			"occupancy": occupancy,
 		})
 	if candidates.is_empty() or total_weight <= 0.0:
 		return {}
@@ -60,16 +75,88 @@ static func select_destination(
 
 	var poi: Dictionary = selected["poi"]
 	var center: Vector2 = selected["position"]
-	var spread_radius := minf(float(selected["radius"]) * 0.35, 7.0)
-	var spread_angle := fposmod(float(spread_phase) * 2.39996323, TAU)
-	var spread_distance := spread_radius * (0.45 + 0.5 * fposmod(selection_ticket * 7.0, 1.0))
-	var target := center + Vector2.from_angle(spread_angle) * spread_distance
-	return {
+	var anchor := _select_anchor(poi, preference, selection_ticket, spread_phase)
+	var target: Vector2
+	if anchor.is_empty():
+		var spread_radius := minf(float(selected["radius"]) * 0.35, 7.0)
+		var spread_angle := fposmod(float(spread_phase) * 2.39996323, TAU)
+		var spread_distance := spread_radius * (0.45 + 0.5 * fposmod(selection_ticket * 7.0, 1.0))
+		target = center + Vector2.from_angle(spread_angle) * spread_distance
+	else:
+		target = anchor.get("target", center)
+	var result := {
 		"name": String(poi.get("name", "")),
 		"role": String(poi.get("role", "")),
 		"center": center,
 		"radius": float(selected["radius"]),
 		"target": target,
+		"capacity": int(selected["capacity"]),
+		"occupancy": int(selected["occupancy"]),
+	}
+	if not anchor.is_empty():
+		result["anchor_id"] = String(anchor.get("id", ""))
+		result["anchor_role"] = String(anchor.get("role", ""))
+		result["anchor_center"] = anchor.get("center", target)
+	return result
+
+
+static func occupancy_multiplier(occupancy: int, capacity: int) -> float:
+	var safe_capacity := maxf(1.0, float(capacity))
+	var load_ratio := maxf(0.0, float(occupancy)) / safe_capacity
+	return 1.0 / pow(1.0 + load_ratio, 2.0)
+
+
+static func _select_anchor(
+	poi: Dictionary,
+	preference: String,
+	selection_ticket: float,
+	spread_phase: int
+) -> Dictionary:
+	var raw_anchors = poi.get("strategic_anchors", [])
+	if typeof(raw_anchors) != TYPE_ARRAY or raw_anchors.is_empty():
+		return {}
+	var candidates: Array[Dictionary] = []
+	var total_weight := 0.0
+	for raw_anchor in raw_anchors:
+		if typeof(raw_anchor) != TYPE_DICTIONARY:
+			continue
+		var anchor: Dictionary = raw_anchor
+		var center := _anchor_position(anchor)
+		if not center.is_finite():
+			continue
+		var role := String(anchor.get("role", ""))
+		var weight := _anchor_role_weight(role, preference)
+		if weight <= 0.0:
+			continue
+		total_weight += weight
+		candidates.append({
+			"anchor": anchor,
+			"center": center,
+			"weight": weight,
+		})
+	if candidates.is_empty() or total_weight <= 0.0:
+		return {}
+
+	var anchor_ticket := fposmod(
+		selection_ticket * 5.731 + float(spread_phase) * 0.381966,
+		1.0
+	) * total_weight
+	var selected: Dictionary = candidates[candidates.size() - 1]
+	for candidate in candidates:
+		anchor_ticket -= float(candidate["weight"])
+		if anchor_ticket <= 0.0:
+			selected = candidate
+			break
+	var anchor: Dictionary = selected["anchor"]
+	var center: Vector2 = selected["center"]
+	var jitter_radius := clampf(float(anchor.get("jitter_radius", 1.5)), 0.0, 3.0)
+	var jitter_angle := fposmod(float(spread_phase) * 2.39996323, TAU)
+	var jitter_distance := jitter_radius * (0.35 + 0.6 * fposmod(selection_ticket * 11.0, 1.0))
+	return {
+		"id": String(anchor.get("id", "")),
+		"role": String(anchor.get("role", "")),
+		"center": center,
+		"target": center + Vector2.from_angle(jitter_angle) * jitter_distance,
 	}
 
 
@@ -81,6 +168,25 @@ static func _poi_position(poi: Dictionary) -> Vector2:
 	if typeof(position_array) == TYPE_ARRAY and position_array.size() >= 2:
 		return Vector2(float(position_array[0]), float(position_array[1]))
 	return Vector2.INF
+
+
+static func _anchor_position(anchor: Dictionary) -> Vector2:
+	var position_array = anchor.get("pos", [])
+	if typeof(position_array) == TYPE_ARRAY and position_array.size() >= 2:
+		return Vector2(float(position_array[0]), float(position_array[1]))
+	return Vector2.INF
+
+
+static func _anchor_role_weight(role: String, preference: String) -> float:
+	match preference:
+		"loot_hub":
+			return {"objective": 3.2, "entry": 1.7, "outer": 0.5}.get(role, 0.0)
+		"cover":
+			return {"objective": 0.35, "entry": 1.8, "outer": 3.0}.get(role, 0.0)
+		"transit":
+			return {"objective": 0.45, "entry": 3.0, "outer": 2.2}.get(role, 0.0)
+		_:
+			return {"objective": 1.5, "entry": 2.0, "outer": 1.2}.get(role, 0.0)
 
 
 static func _role_weight(role: String, preference: String) -> float:

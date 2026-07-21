@@ -33,6 +33,11 @@ const VALID_COVER_CLASSES := {
 	"screen": true,
 	"soft": true,
 }
+const VALID_STRATEGIC_ANCHOR_ROLES := {
+	"objective": true,
+	"entry": true,
+	"outer": true,
+}
 
 @export var id: String = ""
 @export var display_name: String = ""
@@ -387,6 +392,35 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 			issues.append("POI %d item_density %.2f exceeds %.2f." % [i, item_density, MAX_ITEM_DENSITY])
 		if rare_bias < 0.0 or rare_bias > 1.0:
 			issues.append("POI %d rare_bias %.2f must be within 0..1." % [i, rare_bias])
+		var strategic_anchors = poi.get("strategic_anchors", [])
+		if typeof(strategic_anchors) != TYPE_ARRAY:
+			issues.append("POI %d strategic_anchors must be an Array." % i)
+			continue
+		var anchor_ids := {}
+		for anchor_index in range(strategic_anchors.size()):
+			if typeof(strategic_anchors[anchor_index]) != TYPE_DICTIONARY:
+				issues.append("POI %d strategic anchor %d must be a Dictionary." % [i, anchor_index])
+				continue
+			var anchor: Dictionary = strategic_anchors[anchor_index]
+			var anchor_id := String(anchor.get("id", "")).strip_edges()
+			var anchor_role := String(anchor.get("role", "")).strip_edges().to_lower()
+			var anchor_pos := _vector2_from_array(anchor.get("pos", []), Vector2.INF)
+			if anchor_id.is_empty():
+				issues.append("POI %d strategic anchor %d has empty id." % [i, anchor_index])
+			elif anchor_ids.has(anchor_id):
+				issues.append("POI %d strategic anchor id '%s' is duplicated." % [i, anchor_id])
+			else:
+				anchor_ids[anchor_id] = true
+			if not VALID_STRATEGIC_ANCHOR_ROLES.has(anchor_role):
+				issues.append("POI %d strategic anchor %d role '%s' is unknown." % [
+					i,
+					anchor_index,
+					anchor_role,
+				])
+			if not anchor_pos.is_finite():
+				issues.append("POI %d strategic anchor %d has invalid pos." % [i, anchor_index])
+			elif absf(anchor_pos.x) > half_size or absf(anchor_pos.y) > half_size:
+				issues.append("POI %d strategic anchor %d extends outside world bounds." % [i, anchor_index])
 
 	for i in range(map_spec.obstacles.size()):
 		var obstacle: Dictionary = map_spec.obstacles[i]

@@ -9,9 +9,11 @@ func _init() -> void:
 		return
 	if not _verify_target_policy():
 		return
+	if not _verify_engagement_join_policy():
+		return
 	if not _verify_position_policy():
 		return
-	print("Bot decision policy smoke passed: threat, target, position.")
+	print("Bot decision policy smoke passed: threat, target, engagement, position.")
 	quit(0)
 
 
@@ -68,6 +70,36 @@ func _verify_target_policy() -> bool:
 	var opportunist_profile := {"distance_weight": 0.4, "hp_weight": 0.6}
 	if POLICY.choose_target(candidates, opportunist_profile) != far_wounded:
 		return _fail_bool("Opportunist target policy must preserve wounded-target preference.")
+	return true
+
+
+func _verify_engagement_join_policy() -> bool:
+	var saturated := {
+		"distance": 16.0,
+		"immediate_range": 10.0,
+		"target_commitments": 2,
+		"join_capacity": 2,
+		"local_combatants": 3,
+		"local_combatant_limit": 6,
+	}
+	if POLICY.should_join_engagement(saturated):
+		return _fail_bool("A distant bystander must not join a saturated target.")
+	var direct_threat := saturated.duplicate()
+	direct_threat["direct_threat"] = true
+	if not POLICY.should_join_engagement(direct_threat):
+		return _fail_bool("Saturation must not suppress a direct threat response.")
+	var immediate := saturated.duplicate()
+	immediate["distance"] = 8.0
+	if not POLICY.should_join_engagement(immediate):
+		return _fail_bool("A close confrontation must bypass engagement saturation.")
+	var open_target := saturated.duplicate()
+	open_target["target_commitments"] = 1
+	if not POLICY.should_join_engagement(open_target):
+		return _fail_bool("A target below its join capacity must remain available.")
+	var crowded_area := open_target.duplicate()
+	crowded_area["local_combatants"] = 6
+	if POLICY.should_join_engagement(crowded_area):
+		return _fail_bool("A distant bot must not enter an overfilled local fight.")
 	return true
 
 

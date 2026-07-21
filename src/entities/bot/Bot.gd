@@ -44,6 +44,11 @@ const STRATEGIC_IDLE_START_SECONDS := 3.0
 const STRATEGIC_TARGET_RETRY_MIN := 9.0
 const STRATEGIC_TARGET_RETRY_MAX := 14.0
 const STRATEGIC_TARGET_ARRIVAL_DISTANCE := 4.0
+const ENGAGEMENT_IMMEDIATE_RANGE := 10.0
+const ENGAGEMENT_LOCAL_RADIUS := 18.0
+const ENGAGEMENT_SNAPSHOT_INTERVAL := 0.20
+const ENGAGEMENT_DEFERRAL_MIN := 3.5
+const ENGAGEMENT_DEFERRAL_MAX := 5.0
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -121,6 +126,9 @@ var _doctrine_state_telemetry_delta: float = 0.0
 var _strategic_destination: Dictionary = {}
 var _strategic_target_retry_timer: float = 0.0
 var _strategic_target_cycle: int = 0
+var _engagement_snapshot_timer: float = 0.0
+var _cached_engagement_snapshot: Dictionary = {}
+var _engagement_deferrals: Dictionary = {}
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -250,6 +258,7 @@ func _physics_process(delta):
 	_threat_pressure_timer -= delta
 	_pickup_search_timer -= delta
 	_strategic_target_retry_timer -= delta
+	_engagement_snapshot_timer -= delta
 	_spawn_age += delta
 	state_timer += delta
 	_update_doctrine_state_telemetry(delta)
@@ -496,8 +505,8 @@ func handle_idle_state(delta):
 				change_state(State.CHASE); return
 		var kill_scan_enemy = _find_nearest_target()
 		if kill_scan_enemy:
-			acquire_enemy_target(kill_scan_enemy, "post_kill_scan")
-			change_state(State.CHASE)
+			if acquire_enemy_target(kill_scan_enemy, "post_kill_scan"):
+				change_state(State.CHASE)
 		return
 
 	if _awareness_level >= 2:
@@ -681,7 +690,6 @@ func _maybe_interrupt_objective_for_enemy() -> bool:
 
 	if is_targeting_loot:
 		_log_objective_enemy_interrupt(enemy)
-		_finish_loot_objective("enemy_interrupt")
 	if not acquire_enemy_target(enemy, "objective_interrupt"):
 		return false
 
@@ -836,7 +844,8 @@ func handle_recover_state(delta):
 	recovery_timer += delta
 	var nearest_enemy = _find_nearest_target()
 	if _is_close_player_threat(nearest_enemy):
-		acquire_enemy_target(nearest_enemy, "recover_close_player")
+		if not acquire_enemy_target(nearest_enemy, "recover_close_player"):
+			return
 		if stats.current_ammo <= 0 and reserve_ammo > 0:
 			_try_reload()
 		if stats.current_ammo > 0:
@@ -850,7 +859,8 @@ func handle_recover_state(delta):
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
 		var nearby_enemy = nearest_enemy
 		if nearby_enemy and global_position.distance_to(nearby_enemy.global_position) < BOT_TUNING.MELEE_RANGE * 2.5:
-			acquire_enemy_target(nearby_enemy, "recover_melee")
+			if not acquire_enemy_target(nearby_enemy, "recover_melee"):
+				return
 			_knife_mode = true
 			change_state(State.ATTACK)
 			return
@@ -1039,7 +1049,8 @@ func _try_retreat_counteraction(threat: Entity, delta: float, gun_event: String)
 	if _should_defer_opening_zone_escape_counteraction(threat):
 		return false
 	if target_actor != threat:
-		acquire_enemy_target(threat, "retreat_counteraction")
+		if not acquire_enemy_target(threat, "retreat_counteraction"):
+			return false
 	else:
 		last_known_target_pos = threat.global_position
 	_face_retreat_threat(threat, delta)
@@ -1130,8 +1141,7 @@ func handle_disengage_state(delta):
 		if not still_fragile:
 			if stats.current_ammo > 0:
 				var reload_enemy = _find_nearest_target()
-				if reload_enemy:
-					acquire_enemy_target(reload_enemy, "reload_reengage")
+				if reload_enemy and acquire_enemy_target(reload_enemy, "reload_reengage"):
 					change_state(State.CHASE)
 					return
 			change_state(State.IDLE)
@@ -1954,13 +1964,11 @@ func _check_gunshot_sounds(delta: float):
 		scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
 		_scan_alert = true
 		if direct_noise_lock and current_state in [State.IDLE, State.RECOVER, State.CHASE]:
-			if current_state == State.CHASE and is_targeting_loot:
-				_finish_loot_objective("gunshot_interrupt")
-			acquire_enemy_target(actor, "gunshot_lock")
-			if stats.current_ammo > 0:
-				change_state(State.CHASE)
-			else:
-				change_state(State.RECOVER)
+			if acquire_enemy_target(actor, "gunshot_lock"):
+				if stats.current_ammo > 0:
+					change_state(State.CHASE)
+				else:
+					change_state(State.RECOVER)
 
 # ─── CLOSE RANGE INSTANT DETECTION ─────────────────────────────────────────
 # Any actor within 2m is immediately fully detected. The opening near-bump guard
@@ -2124,6 +2132,104 @@ func _count_ally_attackers() -> int:
 		if bot.get("current_state") == State.ATTACK and bot.get("target_actor") == target_actor:
 			count += 1
 	return count
+
+
+func _can_join_engagement(enemy: Entity, source_name: String, record_deferral: bool) -> bool:
+	if not is_instance_valid(enemy) or enemy.is_dead:
+		return false
+	if target_actor == enemy:
+		return true
+	var distance := global_position.distance_to(enemy.global_position)
+	var forced_response := _is_forced_engagement_source(source_name)
+	var direct_threat := _was_recently_attacked_by(enemy) or _is_pressured_by(enemy)
+	if forced_response or direct_threat or distance <= ENGAGEMENT_IMMEDIATE_RANGE:
+		return true
+	if _has_active_engagement_deferral(enemy):
+		return false
+
+	_ensure_doctrine_profile()
+	var engagement: Dictionary = _doctrine_profile.get("engagement", {})
+	var snapshot := _engagement_snapshot()
+	var commitments: Dictionary = snapshot.get("commitments", {})
+	var active_positions: Array = snapshot.get("active_positions", [])
+	var local_combatants := 0
+	for active_position in active_positions:
+		if typeof(active_position) == TYPE_VECTOR3 \
+				and active_position.distance_to(enemy.global_position) <= ENGAGEMENT_LOCAL_RADIUS:
+			local_combatants += 1
+	var should_join := BOT_DECISION_POLICY.should_join_engagement({
+		"already_targeting": false,
+		"direct_threat": direct_threat,
+		"forced_response": forced_response,
+		"distance": distance,
+		"immediate_range": ENGAGEMENT_IMMEDIATE_RANGE,
+		"target_commitments": int(commitments.get(enemy.get_instance_id(), 0)),
+		"join_capacity": int(engagement.get("join_capacity", 2)),
+		"local_combatants": local_combatants,
+		"local_combatant_limit": int(engagement.get("local_combatant_limit", 6)),
+	})
+	if not should_join and record_deferral:
+		_record_engagement_deferral(enemy)
+	return should_join
+
+
+func _engagement_snapshot() -> Dictionary:
+	if _engagement_snapshot_timer > 0.0 and not _cached_engagement_snapshot.is_empty():
+		return _cached_engagement_snapshot
+	var commitments := {}
+	var active_positions: Array[Vector3] = []
+	for bot in get_tree().get_nodes_in_group("bots"):
+		if not is_instance_valid(bot) or bool(bot.get("is_dead")):
+			continue
+		if bool(bot.get("is_targeting_loot")):
+			continue
+		if int(bot.get("current_state")) not in [State.CHASE, State.ATTACK]:
+			continue
+		var committed_target = bot.get("target_actor")
+		if not is_instance_valid(committed_target):
+			continue
+		var target_id: int = committed_target.get_instance_id()
+		commitments[target_id] = int(commitments.get(target_id, 0)) + 1
+		active_positions.append(bot.global_position)
+	_cached_engagement_snapshot = {
+		"commitments": commitments,
+		"active_positions": active_positions,
+	}
+	_engagement_snapshot_timer = ENGAGEMENT_SNAPSHOT_INTERVAL
+	return _cached_engagement_snapshot
+
+
+func _is_forced_engagement_source(source_name: String) -> bool:
+	return source_name.begins_with("damage_") or source_name in [
+		"arena_squad_probe",
+		"recover_close_player",
+		"recover_melee",
+		"retreat_counteraction",
+	]
+
+
+func _has_active_engagement_deferral(enemy: Entity) -> bool:
+	var target_id := enemy.get_instance_id()
+	var deadline := int(_engagement_deferrals.get(target_id, 0))
+	if deadline <= Time.get_ticks_msec():
+		_engagement_deferrals.erase(target_id)
+		return false
+	return true
+
+
+func _record_engagement_deferral(enemy: Entity) -> void:
+	if _has_active_engagement_deferral(enemy):
+		return
+	var target_id := enemy.get_instance_id()
+	var phase := fposmod(float((get_instance_id() + target_id) % 997) * 0.61803398875, 1.0)
+	var duration := lerpf(ENGAGEMENT_DEFERRAL_MIN, ENGAGEMENT_DEFERRAL_MAX, phase)
+	_engagement_deferrals[target_id] = Time.get_ticks_msec() + int(duration * 1000.0)
+	if _cached_nearest_target == enemy:
+		_cached_nearest_target = null
+	_target_search_timer = 0.0
+	if has_node("/root/Telemetry"):
+		get_node("/root/Telemetry").log_tactics("engagement_join_deferred")
+
 
 # ─── OUTNUMBERED / COVER ─────────────────────────────────────────────────────
 
@@ -2366,6 +2472,8 @@ func _peripheral_check():
 func acquire_enemy_target(enemy: Entity, source_name: String) -> bool:
 	if not is_instance_valid(enemy) or enemy.is_dead:
 		return false
+	if not _can_join_engagement(enemy, source_name, true):
+		return false
 	_threat_pressure_timer = 0.0
 	if is_targeting_loot:
 		_finish_loot_objective("enemy_acquired")
@@ -2517,8 +2625,25 @@ func _select_strategic_destination(main, origin: Vector2) -> Dictionary:
 		float(main.zone.current_radius),
 		String(_doctrine_profile.get("strategic_preference", "mixed")),
 		randf(),
-		int(get_instance_id()) + _strategic_target_cycle
+		int(get_instance_id()) + _strategic_target_cycle,
+		_strategic_occupancy_by_name()
 	)
+
+
+func _strategic_occupancy_by_name() -> Dictionary:
+	var occupancy := {}
+	for bot in get_tree().get_nodes_in_group("bots"):
+		if bot == self or not is_instance_valid(bot) or bool(bot.get("is_dead")):
+			continue
+		var destination = bot.get("_strategic_destination")
+		if not destination is Dictionary:
+			continue
+		var poi_name := String(destination.get("name", ""))
+		if poi_name.is_empty():
+			continue
+		occupancy[poi_name] = int(occupancy.get(poi_name, 0)) + 1
+	return occupancy
+
 
 func _find_nearest_bush() -> Vector3:
 	var main = get_tree().root.get_node_or_null("Main")
@@ -2567,21 +2692,33 @@ func _find_nearest_target() -> Entity:
 	_ensure_doctrine_profile()
 	var actors = get_tree().get_nodes_in_group("actors")
 	var candidates: Array = []
+	var deferred_candidates: Array = []
 	for a in actors:
 		if a == self or not a is Entity or a.is_dead: continue
 		if a.is_revealed_to(self):
 			var d = global_position.distance_to(a.global_position)
 			if d >= stats.vision_range: continue
 			var hp_ratio = a.current_health / maxf(1.0, a.stats.max_health)
-			candidates.append({
+			var candidate_context := {
 				"actor": a,
 				"distance": d,
 				"hp_ratio": hp_ratio,
-			})
+			}
+			if _can_join_engagement(a, "perception", false):
+				candidates.append(candidate_context)
+			else:
+				deferred_candidates.append(candidate_context)
 	var result := BOT_DECISION_POLICY.choose_target(
 		candidates,
 		_doctrine_profile.get("target", {})
 	) as Entity
+	if result == null and not deferred_candidates.is_empty():
+		var deferred_target := BOT_DECISION_POLICY.choose_target(
+			deferred_candidates,
+			_doctrine_profile.get("target", {})
+		) as Entity
+		if is_instance_valid(deferred_target):
+			_record_engagement_deferral(deferred_target)
 	_cached_nearest_target = result
 	_target_search_timer = TARGET_SEARCH_INTERVAL
 	return result

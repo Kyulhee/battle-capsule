@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` 비기본 whitebox |
 | 권장 preset | `xlarge_60` 임시 대표 수동 표면. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 초점 | Cabin Row 3입구 선택, 엄폐 뒤 AI 시야 전환, 칼 분리음, 60인 끊김 |
+| 현재 초점 | Cabin Row 목적 이동, 한 교전으로의 과잉 합류, 칼 분리음, 60인 끊김 |
 
 ## 수동 체크리스트
 
@@ -30,6 +30,8 @@
 - Cabin Row가 도로 진입, 수목 경계, 건물·마당·보급 프롭이 연결된 하나의 장소로 읽히는가?
 - Cabin Row 남·서·동 입구가 서로 다른 접근으로 읽히고 한 입구가 막혀도 자연스럽게 우회할 수 있는가?
 - 오두막·폐벽 뒤에서는 총알과 AI 시야가 함께 끊기고, 외곽 수목 뒤에서는 시야만 끊겨 재배치 선택이 생기는가?
+- 공격형은 마당·입구를 압박하고 방어형·저격형은 외곽과 입구에 머무르는 차이가 보이는가?
+- 멀리서 총성이 나도 모든 봇이 한곳에 몰리지 않으며, 가까이 마주치거나 공격받은 봇은 여전히 즉시 대응하는가?
 
 ```powershell
 .\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=xlarge_60

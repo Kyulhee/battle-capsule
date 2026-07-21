@@ -123,6 +123,17 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	if not _has_poi(definition, "Cabin Row"):
 		_fail("Expanded candidate must expose Cabin Row as a player-facing POI.")
 		return false
+	var cabin_row := _poi_by_name(definition, "Cabin Row")
+	var strategic_anchors: Array = cabin_row.get("strategic_anchors", [])
+	if strategic_anchors.size() != 7:
+		_fail("Cabin Row needs seven AI strategic anchors.")
+		return false
+	var anchor_roles := _anchor_role_counts(strategic_anchors)
+	if int(anchor_roles.get("objective", 0)) != 1 \
+			or int(anchor_roles.get("entry", 0)) != 3 \
+			or int(anchor_roles.get("outer", 0)) != 3:
+		_fail("Cabin Row strategic anchors must expose objective=1, entry=3, outer=3.")
+		return false
 	if definition.get_surface_id_at(Vector2(-82.0, 4.0)) != "grass":
 		_fail("West forest band must resolve to grass.")
 		return false
@@ -186,6 +197,23 @@ func _count_prop_obstacles(definition, prop_id: String) -> int:
 		if String(obstacle.get("prop_id", "")) == prop_id:
 			count += 1
 	return count
+
+
+func _poi_by_name(definition, poi_name: String) -> Dictionary:
+	for poi in definition.get_poi_descriptors():
+		if String(poi.get("name", "")) == poi_name:
+			return poi
+	return {}
+
+
+func _anchor_role_counts(anchors: Array) -> Dictionary:
+	var counts := {}
+	for anchor in anchors:
+		if not anchor is Dictionary:
+			continue
+		var role := String(anchor.get("role", ""))
+		counts[role] = int(counts.get(role, 0)) + 1
+	return counts
 
 
 func _count_compound_cover(definition, cover_class: String) -> int:
