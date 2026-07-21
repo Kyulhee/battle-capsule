@@ -156,6 +156,11 @@
       "role": "loot_hub",
       "item_density": 0.88,
       "rare_bias": 0.24,
+      "identity": {
+        "theme": "forest_settlement",
+        "map_label": "Cabin Row",
+        "map_anchor": [0, 104]
+      },
       "strategic_capacity": 7,
       "strategic_anchors": [
         { "id": "yard_objective", "role": "objective", "pos": [0, 97], "jitter_radius": 1.5 },

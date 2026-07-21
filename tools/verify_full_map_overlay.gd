@@ -99,14 +99,20 @@ func _init():
 	if not overlay.is_open():
 		_fail("FullMapOverlay did not report open after show_map().")
 		return
-	if String(overlay._poi_label({"name": "Cabin Row", "role": "loot_hub"})) != "Cabin Row":
-		_fail("Full map should label player-facing loot hubs.")
+	var cabin_poi: Dictionary = definition.get_poi_descriptors().filter(
+		func(poi: Dictionary) -> bool: return String(poi.get("name", "")) == "Cabin Row"
+	).front()
+	if String(overlay._poi_label(cabin_poi)) != "Cabin Row":
+		_fail("Full map should label explicitly identified physical landmarks.")
 		return
-	if String(overlay._poi_label({"name": "East Pine Lane", "role": "recovery_pocket"})) != "East Pine Lane":
-		_fail("Full map should label player-facing recovery pockets.")
+	if overlay._poi_label_world_pos(cabin_poi).distance_to(Vector2(0.0, 104.0)) > 0.001:
+		_fail("Cabin Row label must use its physical compound anchor.")
 		return
-	if not String(overlay._poi_label({"name": "East Pine Gate", "role": "transit_choke"})).is_empty():
-		_fail("Full map should not expose telemetry-only transit labels.")
+	if not String(overlay._poi_label({"name": "Central Meadow", "role": "loot_hub"})).is_empty():
+		_fail("Full map should not infer labels from internal POI roles.")
+		return
+	if not String(overlay._poi_label({"name": "East Pine Lane", "role": "recovery_pocket"})).is_empty():
+		_fail("Full map should not expose unlabeled analysis POIs.")
 		return
 
 	var projected_north: Vector2 = overlay.world_direction_to_full_map(Vector2(0.0, -1.0))

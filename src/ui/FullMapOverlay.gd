@@ -226,36 +226,44 @@ func _map_title() -> String:
 
 func _draw_pois(map_rect: Rect2) -> void:
 	for poi in _poi_source():
-		var poi_pos := _descriptor_pos_2d(poi)
-		var screen_pos := world_to_full_map(poi_pos, map_rect)
-		var radius := world_size_to_full_map(float(poi.get("radius", 8.0)), map_rect)
-		var colors := _poi_colors(String(poi.get("role", "")))
-		draw_circle(screen_pos, radius, colors["fill"])
-		draw_arc(screen_pos, radius, 0.0, TAU, 48, colors["border"], 1.2)
 		var label := _poi_label(poi)
-		if not label.is_empty():
-			var label_width := minf(180.0, map_rect.size.x * 0.34)
-			var label_pos := screen_pos + Vector2(6.0, -4.0)
-			if label_pos.x + label_width > map_rect.position.x + map_rect.size.x - 6.0:
-				label_pos.x = screen_pos.x - label_width - 6.0
-			label_pos.x = clampf(label_pos.x, map_rect.position.x + 6.0, map_rect.position.x + map_rect.size.x - label_width - 6.0)
-			label_pos.y = clampf(label_pos.y, map_rect.position.y + 14.0, map_rect.position.y + map_rect.size.y - 6.0)
-			draw_string(
-				ThemeDB.fallback_font,
-				label_pos,
-				label,
-				HORIZONTAL_ALIGNMENT_LEFT,
-				label_width,
-				11,
-				Color(0.78, 0.82, 0.78, 0.85)
-			)
+		if label.is_empty():
+			continue
+		var screen_pos := world_to_full_map(_poi_label_world_pos(poi), map_rect)
+		var label_width := minf(180.0, map_rect.size.x * 0.34)
+		var label_pos := screen_pos + Vector2(6.0, -4.0)
+		if label_pos.x + label_width > map_rect.position.x + map_rect.size.x - 6.0:
+			label_pos.x = screen_pos.x - label_width - 6.0
+		label_pos.x = clampf(label_pos.x, map_rect.position.x + 6.0, map_rect.position.x + map_rect.size.x - label_width - 6.0)
+		label_pos.y = clampf(label_pos.y, map_rect.position.y + 14.0, map_rect.position.y + map_rect.size.y - 6.0)
+		draw_string(
+			ThemeDB.fallback_font,
+			label_pos,
+			label,
+			HORIZONTAL_ALIGNMENT_LEFT,
+			label_width,
+			11,
+			Color(0.78, 0.82, 0.78, 0.85)
+		)
 
 
 func _poi_label(poi: Dictionary) -> String:
-	var role := String(poi.get("role", ""))
-	if role not in ["loot_hub", "recovery_pocket"]:
+	var identity = poi.get("identity", null)
+	if typeof(identity) != TYPE_DICTIONARY:
 		return ""
-	return String(poi.get("name", ""))
+	return String(identity.get("map_label", "")).strip_edges()
+
+
+func _poi_label_world_pos(poi: Dictionary) -> Vector2:
+	var identity = poi.get("identity", null)
+	if typeof(identity) == TYPE_DICTIONARY:
+		var normalized_anchor = identity.get("map_anchor_2d", null)
+		if typeof(normalized_anchor) == TYPE_VECTOR2:
+			return normalized_anchor
+		var anchor = identity.get("map_anchor", null)
+		if typeof(anchor) == TYPE_ARRAY and anchor.size() >= 2:
+			return Vector2(float(anchor[0]), float(anchor[1]))
+	return _descriptor_pos_2d(poi)
 
 
 func _draw_features(map_rect: Rect2) -> void:
@@ -383,19 +391,6 @@ func _draw_dashed_circle(center: Vector2, radius: float, color: Color, segments:
 		var start := TAU * float(i) / float(segments)
 		var end := TAU * float(i + 0.65) / float(segments)
 		draw_arc(center, radius, start, end, 8, color, width)
-
-
-func _poi_colors(role: String) -> Dictionary:
-	match role:
-		"loot_hub":
-			return {"fill": Color(0.92, 0.70, 0.18, 0.15), "border": Color(0.92, 0.70, 0.18, 0.42)}
-		"transit_choke":
-			return {"fill": Color(0.85, 0.24, 0.22, 0.13), "border": Color(0.85, 0.24, 0.22, 0.38)}
-		"concealment_field":
-			return {"fill": Color(0.22, 0.72, 0.28, 0.14), "border": Color(0.22, 0.72, 0.28, 0.36)}
-		"recovery_pocket":
-			return {"fill": Color(0.25, 0.42, 0.95, 0.13), "border": Color(0.25, 0.42, 0.95, 0.36)}
-	return {"fill": Color(0.7, 0.7, 0.7, 0.10), "border": Color(0.7, 0.7, 0.7, 0.30)}
 
 
 func _feature_colors(obs_type: String) -> Dictionary:

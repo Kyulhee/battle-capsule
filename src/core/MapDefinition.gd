@@ -174,6 +174,13 @@ func get_poi_descriptors() -> Array[Dictionary]:
 		poi["index"] = i
 		poi["pos_2d"] = _vector2_from_array(poi.get("pos", []), Vector2.ZERO)
 		poi["radius"] = maxf(0.0, float(poi.get("radius", 0.0)))
+		if typeof(poi.get("identity", null)) == TYPE_DICTIONARY:
+			var identity := _dictionary(poi["identity"])
+			identity["map_anchor_2d"] = _vector2_from_array(
+				identity.get("map_anchor", []),
+				poi["pos_2d"]
+			)
+			poi["identity"] = identity
 		descriptors.append(poi)
 	return descriptors
 
@@ -392,6 +399,22 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 			issues.append("POI %d item_density %.2f exceeds %.2f." % [i, item_density, MAX_ITEM_DENSITY])
 		if rare_bias < 0.0 or rare_bias > 1.0:
 			issues.append("POI %d rare_bias %.2f must be within 0..1." % [i, rare_bias])
+		var identity_value = poi.get("identity", null)
+		if identity_value != null:
+			if typeof(identity_value) != TYPE_DICTIONARY:
+				issues.append("POI %d identity must be a Dictionary." % i)
+			else:
+				var identity: Dictionary = identity_value
+				if String(identity.get("theme", "")).strip_edges().is_empty():
+					issues.append("POI %d identity has empty theme." % i)
+				if identity.has("map_label") and String(identity["map_label"]).strip_edges().is_empty():
+					issues.append("POI %d identity has empty map_label." % i)
+				if identity.has("map_anchor"):
+					var map_anchor := _vector2_from_array(identity["map_anchor"], Vector2.INF)
+					if not map_anchor.is_finite():
+						issues.append("POI %d identity has invalid map_anchor." % i)
+					elif absf(map_anchor.x) > half_size or absf(map_anchor.y) > half_size:
+						issues.append("POI %d identity map_anchor extends outside world bounds." % i)
 		var strategic_anchors = poi.get("strategic_anchors", [])
 		if typeof(strategic_anchors) != TYPE_ARRAY:
 			issues.append("POI %d strategic_anchors must be an Array." % i)

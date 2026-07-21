@@ -235,6 +235,11 @@ func _verify_validation_issues(map_definition_script, game_config, parsed: Dicti
 		var invalid_poi: Dictionary = invalid_spec["pois"][0].duplicate(true)
 		invalid_poi["item_density"] = -0.25
 		invalid_poi["rare_bias"] = 1.25
+		invalid_poi["identity"] = {
+			"theme": "",
+			"map_label": "",
+			"map_anchor": [99.0, 0.0],
+		}
 		invalid_poi["strategic_anchors"] = [
 			{"id": "", "role": "ambush", "pos": [99.0, 0.0]},
 		]
@@ -278,6 +283,9 @@ func _verify_validation_issues(map_definition_script, game_config, parsed: Dicti
 	for expected in [
 		"POI 0 has negative item_density.",
 		"POI 0 rare_bias 1.25 must be within 0..1.",
+		"POI 0 identity has empty theme.",
+		"POI 0 identity has empty map_label.",
+		"POI 0 identity map_anchor extends outside world bounds.",
 		"POI 0 strategic anchor 0 has empty id.",
 		"POI 0 strategic anchor 0 role 'ambush' is unknown.",
 		"POI 0 strategic anchor 0 extends outside world bounds.",
