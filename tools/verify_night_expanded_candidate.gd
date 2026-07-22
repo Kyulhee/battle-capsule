@@ -2,8 +2,9 @@ extends SceneTree
 
 
 const CANDIDATE_PATH := "res://data/mapSpec_night_forest_expanded_candidate.json"
-const CANDIDATE_ID := "night_forest_expanded_whitebox"
-const SOURCE_PRESET := "xlarge_60"
+const CANDIDATE_ID := "night_forest_m1_candidate"
+const SOURCE_PRESET := "night_br_m1_60"
+const LEGACY_PRESET := "xlarge_60"
 const TARGET_ENVELOPE := "target_99"
 
 
@@ -39,6 +40,10 @@ func _init():
 
 	var summary: Dictionary = definition.summary(game_config, SOURCE_PRESET)
 	var source := _source_metrics(definition, game_config, runtime_tuning_script, SOURCE_PRESET)
+	var legacy_source := _source_metrics(definition, game_config, runtime_tuning_script, LEGACY_PRESET)
+	if source != legacy_source:
+		_fail("Legacy xlarge_60 preset must remain an exact compatibility alias for night_br_m1_60.")
+		return
 	var envelope: Dictionary = definition.get_scale_envelope(TARGET_ENVELOPE)
 	if not _verify_candidate(definition, summary, source, envelope):
 		return
@@ -240,8 +245,8 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	if int(summary.get("route_count", 0)) < 6:
 		_fail("Candidate needs at least 6 strategic route descriptors.")
 		return false
-	if int(summary.get("scale_preset_count", 0)) != 4:
-		_fail("Candidate should only expose gameplay presets plus the nav_hotspot_1 regression preset.")
+	if int(summary.get("scale_preset_count", 0)) != 5:
+		_fail("Candidate must expose the M1 preset, compatibility alias, baseline, probe, and nav regression presets.")
 		return false
 	return true
 

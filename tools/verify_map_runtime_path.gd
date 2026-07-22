@@ -2,7 +2,7 @@ extends SceneTree
 
 
 const CANDIDATE_PATH := "res://data/mapSpec_night_forest_expanded_candidate.json"
-const SOURCE_PRESET := "xlarge_60"
+const SOURCE_PRESET := "night_br_m1_60"
 
 
 func _init():
@@ -41,7 +41,7 @@ func _init():
 		_fail("Candidate summary source_path mismatch: %s" % summary.get("source_path", ""))
 		return
 	if int(summary.get("bot_count", 0)) != 60:
-		_fail("Candidate CLI smoke did not apply xlarge_60 bot_count.")
+		_fail("Candidate CLI smoke did not apply night_br_m1_60 bot_count.")
 		return
 	if float(summary.get("world_size", 0.0)) != 260.0:
 		_fail("Candidate CLI smoke did not load the 260m map.")

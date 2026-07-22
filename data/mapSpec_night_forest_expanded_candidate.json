@@ -1,9 +1,9 @@
 {
   "metadata": {
-    "id": "night_forest_expanded_whitebox",
+    "id": "night_forest_m1_candidate",
     "name": "Night Artificial Forest",
     "theme": "night_artificial_forest",
-    "version": "0.2-world-identity-slice",
+    "version": "0.3-m1-baseline",
     "world_size": 260,
     "layout": "regional_surface_bands_with_landmark_compounds_and_physical_channels",
     "default_movement_multiplier": 0.92
@@ -59,6 +59,25 @@
         "bot_count": 24,
         "loot_count": 100,
         "spawn_radius": 90.0
+      }
+    },
+    "night_br_m1_60": {
+      "match": {
+        "bot_count": 60,
+        "loot_count": 200,
+        "spawn_radius": 90.0
+      },
+      "runtime": {
+        "spawn": {
+          "safe_spawn_attempts": 180,
+          "inner_radius": 8.0
+        },
+        "loot": {
+          "stage_wave_base_prob": 0.08,
+          "stage_wave_prob_per_stage": 0.08,
+          "stage_wave_count_mult": 8,
+          "hotspot_density_mult": 1.10
+        }
       }
     },
     "xlarge_60": {
@@ -127,7 +146,7 @@
   "scale_envelopes": {
     "target_99": {
       "status": "whitebox_probe",
-      "source_preset": "xlarge_60",
+      "source_preset": "night_br_m1_60",
       "bot_count": 99,
       "total_entities": 100,
       "world_size_min": 240.0,

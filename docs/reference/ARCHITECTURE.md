@@ -1,6 +1,6 @@
 # 아키텍처 개요
 
-> 최종 업데이트: 2026-07-20. 구조 변경 전 읽는 한글 요약 문서다. 세부 구현은 코드와 Git 이력을 우선한다.
+> 최종 업데이트: 2026-07-23. 구조 변경 전 읽는 한글 요약 문서다. 세부 구현은 코드와 Git 이력을 우선한다.
 
 ## 전체 구조
 
@@ -85,11 +85,11 @@ Data
 
 ## MapDefinition
 
-`MapDefinition.gd`는 기존 `MapSpec` JSON 위에 scale preset과 runtime query를 얹는 compatibility layer다.
+`MapDefinition.gd`는 기존 `MapSpec` JSON 위에 scale preset과 runtime query를 얹는 compatibility layer다. 무인자 `Main.tscn` 실행은 M1 개발 기준인 확장 Night 맵의 `night_br_m1_60`을 사용한다.
 
-- `mapSpec_night_forest_candidate.json`은 현재 Night BR 후보 표면이다.
+- `mapSpec_night_forest_expanded_candidate.json`의 `night_br_m1_60`은 일반 실행·수동·후보 페이싱 검증의 공통 표면이다. `xlarge_60`은 과거 명령 호환 alias다.
 - `target_99_probe`는 구조 gate다.
-- `playable_pacing_v4`는 현재 자동 페이싱 후보이며 default promotion이 아니다.
+- 기존 Night 맵의 `playable_pacing_v4-v6`는 과거 비교 자료이며 현재 default promotion 기준이 아니다.
 - `routes`는 현재 텔레메트리 위치 분류 전용 데이터다. bot 이동은 POI loot, zone, cover가 결정하며 route graph를 직접 소비하지 않으므로 플레이어 지도와 월드에는 표시하지 않는다.
 - minimap과 fullmap은 월드 좌표를 45도 회전해 게임 카메라 방향과 맞춘다.
 - `surface_zones`는 rect/ellipse/path 지면 구역의 material ID와 surface ID를 함께 소유한다. `WorldBuilder`, 발걸음 판정, minimap/fullmap이 같은 데이터를 소비하며 뒤에 선언한 구역이 판정 우선권을 가진다.

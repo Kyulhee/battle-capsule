@@ -1,5 +1,8 @@
 extends Node3D
 
+const DEFAULT_MAP_SPEC_PATH := "res://data/mapSpec_night_forest_expanded_candidate.json"
+const DEFAULT_MAP_SCALE_PRESET := "night_br_m1_60"
+
 @export var player_scene: PackedScene = preload("res://src/entities/player/Player.tscn")
 @export var bot_scene: PackedScene = preload("res://src/entities/bot/Bot.tscn")
 @export var bot_count: int = 11
@@ -24,8 +27,8 @@ var _full_map_overlay: Control = null
 
 @export var loot_count: int = 40
 @export var spawn_radius: float = 45.0
-@export var map_scale_preset: String = "baseline"
-@export var map_spec_path: String = "res://data/mapSpec_example.json"
+@export var map_scale_preset: String = DEFAULT_MAP_SCALE_PRESET
+@export var map_spec_path: String = DEFAULT_MAP_SPEC_PATH
 
 var railgun_item: ItemData = null
 var pickup_scene: PackedScene = null
@@ -666,7 +669,7 @@ func _load_map_spec():
 		return
 	var source_path := map_spec_path.strip_edges()
 	if source_path.is_empty():
-		source_path = "res://data/mapSpec_example.json"
+		source_path = DEFAULT_MAP_SPEC_PATH
 	var file = FileAccess.open(source_path, FileAccess.READ)
 	if file:
 		var json_text = file.get_as_text()

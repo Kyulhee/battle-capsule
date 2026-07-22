@@ -1,6 +1,13 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-07-22. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-07-23. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## N2-BASE-01 단일 M1 60봇 개발 기준선
+
+- 통합: 확장 Night 맵의 기존 `xlarge_60` 값을 `night_br_m1_60`으로 승격했다. 기존 이름은 값이 같은 호환 alias만 유지한다.
+- 기본 실행: 무인자 `Main.tscn`이 확장 Night 맵과 새 preset을 사용해 260m·60봇·loot 200을 읽는다. CLI override와 AI Arena 표면은 그대로 유지한다.
+- 검증: MapDefinition·CLI path·실제 Main runtime gate와 전체 `unit_smoke` 통과. 60봇 Forward+ 20초 2회는 p95 13.76-13.80ms, 33ms 초과 0-0.03%, AI 평균 133-138us다.
+- 다음: South Creek을 세 번째 물리 장소로 완성해 Cabin Row-참조 초소와 도로·숲·병목 삼각 루프를 만든다.
 
 ## N2-AI-09 / N2-MAP-15 도로·숲 이동 압력과 자기장 선점
 
@@ -76,14 +83,6 @@
 - 수정: 인공 route 선이나 wall/high rock 없이 중앙에 수목·수풀 각 2개, 남쪽에 각 1개를 추가했다. 고정 좌표 실제 카메라 캡처로 중심 통과 폭과 양측 접근을 조정했다.
 - 검증: 중앙/남쪽 개방률 16.0/17.3%, 60/99봇 POI 피해 45.6/37.3%, stuck 약 0.01/0.00. 60봇 Forward+ p95 15.8-16.1ms, 전체 `unit_smoke` 통과.
 - 다음: N2-PLAY-03에서 중앙·남쪽 pickup 접근과 우회가 자연스러운지 수동 판정한다.
-
-## N2-PERF-02 Minimap 정적 지도 캐시
-
-- 진단: 실제 Minimap 정상 로드 뒤 60봇 Forward+ p95 36.6-39.1ms, 33ms 초과 9.2-13.1%, draw call 평균 502-519로 회귀했다. Minimap 비표시는 p95 21.7ms였다.
-- 원인: 배경·POI·64개 지형 footprint를 `_draw()`에서 매 프레임 다시 만들고 제출했다. navigation p95는 0.03ms 이하라 병목이 아니었다.
-- 수정: 정적 지도는 `SubViewport.UPDATE_ONCE` 텍스처로 굽고 supply·zone·player만 실시간 overlay에 남겼다. profiler에는 Minimap 비표시 대조 옵션을 추가했다.
-- 검증: 반복 2회 p95 15.4-15.8ms, p99 21.1-23.9ms, 33ms 초과 0.14-0.27%. 방향 캡처와 정적 캐시 gate, `unit_smoke`를 통과했다.
-- 다음: N2-MAP-10에서 올바른 260m 월드의 빈 공간·픽업·물리 병목을 감사하고 후보는 하나만 만든다.
 
 ## 기록 보존
 

@@ -1,8 +1,8 @@
 extends SceneTree
 
 
-const DEFAULT_MAP_PATH := "res://data/mapSpec_night_forest_candidate.json"
-const DEFAULT_PRESET := "playable_pacing_v6"
+const DEFAULT_MAP_PATH := "res://data/mapSpec_night_forest_expanded_candidate.json"
+const DEFAULT_PRESET := "night_br_m1_60"
 
 
 func _init() -> void:

@@ -9,8 +9,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GODOT = ROOT / "Godot_v4.6.2-stable_win64_console.exe"
 DEFAULT_OUT_ROOT = Path(os.environ.get("GAME_DEV_VERIFY_OUT", r"C:\tmp"))
-NIGHT_MAP_SPEC = "res://data/mapSpec_night_forest_candidate.json"
-EXPANDED_MAP_SPEC = "res://data/mapSpec_night_forest_expanded_candidate.json"
+LEGACY_NIGHT_MAP_SPEC = "res://data/mapSpec_night_forest_candidate.json"
+M1_MAP_SPEC = "res://data/mapSpec_night_forest_expanded_candidate.json"
+M1_PRESET = "night_br_m1_60"
 
 
 @dataclass(frozen=True)
@@ -59,7 +60,7 @@ def py_compile(paths: list[str]) -> Step:
     return Step("python py_compile", [sys.executable, "-m", "py_compile", *[rel(path) for path in paths]])
 
 
-def simulate_step(runs: int, preset: str, out_dir: Path, map_spec: str = NIGHT_MAP_SPEC) -> Step:
+def simulate_step(runs: int, preset: str, out_dir: Path, map_spec: str = LEGACY_NIGHT_MAP_SPEC) -> Step:
     return Step(
         f"simulate {preset} x{runs}",
         [
@@ -84,7 +85,7 @@ def pacing_steps(
     max_run_duration: float | None = None,
     min_avg_first_upgrade: float = 10.0,
     max_missing_first_upgrade: int | None = None,
-    map_spec: str = NIGHT_MAP_SPEC,
+    map_spec: str = LEGACY_NIGHT_MAP_SPEC,
 ) -> list[Step]:
     out_dir = out_root / f"game_dev_verify_{preset}"
     scale_gate_args = [
@@ -172,6 +173,7 @@ def profile_steps(
             godot_script(godot, "verify_full_map_overlay.gd"),
             godot_script(godot, "verify_simulation_participants.gd"),
             godot_script(godot, "verify_night_expanded_candidate.gd"),
+            godot_script(godot, "verify_default_m1_runtime.gd"),
             godot_script_args(
                 godot,
                 "verify_night_nav_hotspot_runtime.gd",
@@ -303,7 +305,7 @@ def profile_steps(
         return [
             *docs_only,
             godot_script(godot, "verify_candidate_99_probe.gd"),
-            simulate_step(runs, "target_99_probe", out_dir, EXPANDED_MAP_SPEC),
+            simulate_step(runs, "target_99_probe", out_dir, M1_MAP_SPEC),
             Step("analyze scale_99", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
             Step(
                 "scale gate scale_99",
@@ -324,7 +326,7 @@ def profile_steps(
                 "capture map orientation",
                 [godot, "--path", str(ROOT), "--script", "res://tools/capture_map_orientation.gd"],
             ),
-            simulate_step(1, "visual_review", out_dir),
+            simulate_step(1, M1_PRESET, out_dir, M1_MAP_SPEC),
             Step("analyze visual_review", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
         ]
 
