@@ -128,8 +128,17 @@ func _run() -> void:
 	if strategic_role not in ["loot_hub", "transit_choke", "recovery_pocket", "concealment_field"]:
 		_fail("Night nav hotspot bot selected an invalid strategic role: %s." % strategic_role)
 		return
+	if not _has_valid_strategic_score(strategic_destination):
+		_fail("Night roaming destination must expose positive utility and travel time.")
+		return
+	if String(strategic_destination.get("route_mode", "")) not in ["direct", "road"]:
+		_fail("Night roaming destination must expose a route decision.")
+		return
 	if String(preposition_destination.get("planning_mode", "")) != "preposition":
 		_fail("Night bot did not switch from roaming to next-zone preposition planning.")
+		return
+	if not _has_valid_strategic_score(preposition_destination):
+		_fail("Night preposition destination must expose positive utility and travel time.")
 		return
 	if not preposition_target.is_finite() \
 			or preposition_target.distance_to(Vector2(0.0, 96.0)) > 45.01:
@@ -149,6 +158,13 @@ func _run() -> void:
 		final_distance,
 	])
 	quit(0)
+
+
+func _has_valid_strategic_score(destination: Dictionary) -> bool:
+	var utility := float(destination.get("utility", 0.0))
+	var travel_seconds := float(destination.get("estimated_travel_seconds", 0.0))
+	return utility > 0.0 and utility < 10000.0 \
+		and travel_seconds > 0.0 and travel_seconds < 10000.0
 
 
 func _path_snapshot(bot: Node) -> String:

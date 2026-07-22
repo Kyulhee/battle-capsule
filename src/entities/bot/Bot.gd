@@ -2644,6 +2644,7 @@ func _select_strategic_destination(main, origin: Vector2) -> Dictionary:
 	if planning_mode == "preposition":
 		planning_center = main.zone.next_center
 		planning_radius = float(main.zone.next_radius)
+	var utility_context := _strategic_utility_context(main, planning_mode)
 	var selection_ticket := randf()
 	var result := BOT_STRATEGIC_MOVEMENT_POLICY.select_destination(
 		pois,
@@ -2653,20 +2654,18 @@ func _select_strategic_destination(main, origin: Vector2) -> Dictionary:
 		preference,
 		selection_ticket,
 		int(get_instance_id()) + _strategic_target_cycle,
-		_strategic_occupancy_by_name(),
-		planning_mode
+		_strategic_occupancy_by_name(pois),
+		planning_mode,
+		utility_context
 	)
 	if result.is_empty():
 		return result
 	result["planned_zone_stage"] = int(main.zone.stage)
+	result["route_mode"] = "direct"
 	var target: Vector2 = result.get("target", Vector2.INF)
 	if target.is_finite() \
 			and main.map_definition != null \
-			and main.map_definition.has_method("get_road_travel_waypoints") \
-			and BOT_STRATEGIC_MOVEMENT_POLICY.should_use_road(
-				preference,
-				selection_ticket * 3.731
-			):
+			and main.map_definition.has_method("get_road_travel_waypoints"):
 		var waypoints: Array[Vector2] = main.map_definition.get_road_travel_waypoints(origin, target)
 		var in_current_zone: Array[Vector2] = []
 		for waypoint in waypoints:
@@ -2674,8 +2673,27 @@ func _select_strategic_destination(main, origin: Vector2) -> Dictionary:
 					<= float(main.zone.current_radius) - BOT_STRATEGIC_MOVEMENT_POLICY.ZONE_EDGE_MARGIN:
 				in_current_zone.append(waypoint)
 		if not in_current_zone.is_empty():
-			result["travel_waypoints"] = in_current_zone
-			result["travel_index"] = 0
+			var route_context := utility_context.duplicate()
+			route_context["terrain_multiplier"] = _strategic_direct_movement_multiplier(
+				main,
+				origin,
+				target
+			)
+			route_context["road_multiplier"] = 1.0
+			route_context["destination_role"] = String(result.get("role", ""))
+			var route_decision := BOT_STRATEGIC_MOVEMENT_POLICY.choose_route(
+				preference,
+				origin.distance_to(target),
+				_strategic_route_distance(origin, target, in_current_zone),
+				route_context
+			)
+			result["road_seconds"] = float(route_decision.get("road_seconds", 0.0))
+			result["direct_seconds"] = float(route_decision.get("direct_seconds", 0.0))
+			result["route_urgency"] = float(route_decision.get("urgency", 0.0))
+			if bool(route_decision.get("use_road", false)):
+				result["route_mode"] = "road"
+				result["travel_waypoints"] = in_current_zone
+				result["travel_index"] = 0
 	return result
 
 
@@ -2684,7 +2702,10 @@ func _strategic_planning_mode(main) -> String:
 		return "roam"
 	_ensure_doctrine_profile()
 	var preference := String(_doctrine_profile.get("strategic_preference", "mixed"))
-	var lead_seconds := BOT_STRATEGIC_MOVEMENT_POLICY.preposition_lead_seconds(preference)
+	var lead_seconds := BOT_STRATEGIC_MOVEMENT_POLICY.preposition_lead_seconds(
+		preference,
+		_strategic_utility_context(main, "roam", false, false)
+	)
 	var stagger := 0.85 + float(get_instance_id() % 7) * 0.05
 	if main.zone.shrinking or float(main.zone.timer) <= lead_seconds * stagger:
 		return "preposition"
@@ -2719,19 +2740,137 @@ func _strategic_navigation_target(origin: Vector2, final_target: Vector2) -> Vec
 	return final_target
 
 
-func _strategic_occupancy_by_name() -> Dictionary:
+func _strategic_occupancy_by_name(pois: Array[Dictionary]) -> Dictionary:
 	var occupancy := {}
 	for bot in get_tree().get_nodes_in_group("bots"):
 		if bot == self or not is_instance_valid(bot) or bool(bot.get("is_dead")):
 			continue
+		var occupied_names := {}
 		var destination = bot.get("_strategic_destination")
-		if not destination is Dictionary:
-			continue
-		var poi_name := String(destination.get("name", ""))
-		if poi_name.is_empty():
-			continue
-		occupancy[poi_name] = int(occupancy.get(poi_name, 0)) + 1
+		if destination is Dictionary:
+			var destination_name := String(destination.get("name", ""))
+			if not destination_name.is_empty():
+				occupied_names[destination_name] = true
+		var bot_position := Vector2(bot.global_position.x, bot.global_position.z)
+		for poi in pois:
+			var poi_position_value = poi.get("pos_2d", null)
+			var poi_position := Vector2.INF
+			if typeof(poi_position_value) == TYPE_VECTOR2:
+				poi_position = poi_position_value
+			else:
+				var poi_position_array = poi.get("pos", [])
+				if typeof(poi_position_array) == TYPE_ARRAY and poi_position_array.size() >= 2:
+					poi_position = Vector2(
+						float(poi_position_array[0]),
+						float(poi_position_array[1])
+					)
+			if not poi_position.is_finite():
+				continue
+			var poi_radius := maxf(2.0, float(poi.get("radius", 8.0)))
+			if bot_position.distance_to(poi_position) <= poi_radius:
+				var physical_name := String(poi.get("name", ""))
+				if not physical_name.is_empty():
+					occupied_names[physical_name] = true
+				break
+		for poi_name in occupied_names:
+			occupancy[poi_name] = int(occupancy.get(poi_name, 0)) + 1
 	return occupancy
+
+
+func _strategic_utility_context(
+	main,
+	planning_mode: String,
+	include_visible_enemies: bool = true,
+	include_surface_sample: bool = true
+) -> Dictionary:
+	var health_ratio := clampf(current_health / maxf(1.0, stats.max_health), 0.0, 1.0)
+	var shield_ratio := clampf(current_shield / maxf(1.0, stats.max_shield), 0.0, 1.0)
+	var ammo_ratio := 0.0
+	if stats.max_ammo > 0:
+		ammo_ratio = clampf(
+			float(stats.current_ammo + reserve_ammo) / float(stats.max_ammo * 2),
+			0.0,
+			1.0
+		)
+	var weapon_need := 0.15
+	match stats.weapon_type:
+		"", "knife":
+			weapon_need = 1.0
+		"pistol":
+			weapon_need = 0.55
+	var equipment_need := clampf(
+		weapon_need * 0.55 + (1.0 - ammo_ratio) * 0.30 + (1.0 - shield_ratio) * 0.15,
+		0.0,
+		1.0
+	)
+	var survival_need := clampf(
+		(1.0 - health_ratio) * 0.75 + (1.0 - shield_ratio) * 0.25,
+		0.0,
+		1.0
+	)
+	var recent_damage_pressure := 0.0
+	if _last_damage_tick > 0:
+		var damage_age_seconds := float(Time.get_ticks_msec() - _last_damage_tick) / 1000.0
+		recent_damage_pressure = clampf(1.0 - damage_age_seconds / 8.0, 0.0, 1.0)
+	var visible_enemy_pressure := 0.0
+	if include_visible_enemies:
+		visible_enemy_pressure = clampf(float(_count_visible_enemies()) / 3.0, 0.0, 1.0)
+	elif is_instance_valid(target_actor):
+		visible_enemy_pressure = 0.35
+	var threat_pressure := clampf(
+		recent_damage_pressure * 0.65 + visible_enemy_pressure * 0.55,
+		0.0,
+		1.0
+	)
+	var time_budget := 60.0
+	if main != null and main.zone != null:
+		time_budget = maxf(18.0, float(main.zone.timer)) if planning_mode == "preposition" \
+			else maxf(30.0, float(main.zone.timer))
+	var movement_multiplier := get_surface_movement_multiplier() if include_surface_sample else 1.0
+	return {
+		"health_ratio": health_ratio,
+		"shield_ratio": shield_ratio,
+		"ammo_ratio": ammo_ratio,
+		"equipment_need": equipment_need,
+		"survival_need": survival_need,
+		"threat_pressure": threat_pressure,
+		"combat_readiness": clampf(
+			(1.0 - equipment_need) * 0.55 + health_ratio * 0.30 + shield_ratio * 0.15,
+			0.0,
+			1.0
+		),
+		"move_speed": maxf(0.1, stats.move_speed),
+		"movement_multiplier": movement_multiplier,
+		"time_budget_seconds": time_budget,
+	}
+
+
+func _strategic_direct_movement_multiplier(main, origin: Vector2, target: Vector2) -> float:
+	if main == null or main.map_definition == null \
+			or not main.map_definition.has_method("get_surface_movement_multiplier_at"):
+		return 1.0
+	var multiplier_sum := 0.0
+	const SAMPLE_COUNT := 7
+	for sample_index in range(SAMPLE_COUNT):
+		var ratio := float(sample_index) / float(SAMPLE_COUNT - 1)
+		multiplier_sum += clampf(float(main.map_definition.get_surface_movement_multiplier_at(
+			origin.lerp(target, ratio),
+			1.0
+		)), 0.5, 1.2)
+	return multiplier_sum / float(SAMPLE_COUNT)
+
+
+func _strategic_route_distance(
+	origin: Vector2,
+	target: Vector2,
+	waypoints: Array[Vector2]
+) -> float:
+	var distance := 0.0
+	var previous := origin
+	for waypoint in waypoints:
+		distance += previous.distance_to(waypoint)
+		previous = waypoint
+	return distance + previous.distance_to(target)
 
 
 func _find_nearest_bush() -> Vector3:

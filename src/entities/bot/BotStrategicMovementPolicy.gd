@@ -20,11 +20,17 @@ const PREPOSITION_LEAD_SECONDS := {
 	"mixed": 45.0,
 	"loot_hub": 35.0,
 }
-const ROAD_USE_CHANCE := {
-	"transit": 0.85,
-	"mixed": 0.65,
-	"loot_hub": 0.55,
-	"cover": 0.30,
+const ROAD_EXPOSURE_SECONDS := {
+	"transit": 2.0,
+	"mixed": 5.0,
+	"loot_hub": 4.0,
+	"cover": 8.0,
+}
+const ROAD_DOCTRINE_BIAS_SECONDS := {
+	"transit": -1.5,
+	"mixed": 0.0,
+	"loot_hub": -0.5,
+	"cover": 2.0,
 }
 
 
@@ -37,7 +43,8 @@ static func select_destination(
 	selection_ticket: float,
 	spread_phase: int,
 	occupancy_by_name: Dictionary = {},
-	planning_mode: String = "roam"
+	planning_mode: String = "roam",
+	utility_context: Dictionary = {}
 ) -> Dictionary:
 	var candidates: Array[Dictionary] = []
 	var total_weight := 0.0
@@ -60,19 +67,25 @@ static func select_destination(
 			planning_mode
 		):
 			continue
-		var weight := _role_weight(role, preference)
-		if planning_mode == "preposition":
-			weight *= _preposition_role_weight(role)
-		if weight <= 0.0:
-			continue
 		var density := clampf(float(poi.get("item_density", 0.5)), 0.05, 1.5)
-		weight *= 0.55 + density
 		var capacity := maxi(1, int(poi.get(
 			"strategic_capacity",
 			DEFAULT_ROLE_CAPACITY.get(role, 2)
 		)))
 		var occupancy := maxi(0, int(occupancy_by_name.get(String(poi.get("name", "")), 0)))
-		weight *= occupancy_multiplier(occupancy, capacity)
+		var weight := destination_utility(
+			role,
+			preference,
+			density,
+			distance,
+			occupancy,
+			capacity,
+			planning_mode,
+			utility_context
+		)
+		if weight <= 0.0:
+			continue
+		var travel_seconds := _estimated_travel_seconds(distance, utility_context)
 		total_weight += weight
 		candidates.append({
 			"poi": poi,
@@ -81,6 +94,7 @@ static func select_destination(
 			"weight": weight,
 			"capacity": capacity,
 			"occupancy": occupancy,
+			"travel_seconds": travel_seconds,
 		})
 	if candidates.is_empty() or total_weight <= 0.0:
 		return {}
@@ -102,7 +116,8 @@ static func select_destination(
 		spread_phase,
 		zone_center,
 		zone_radius,
-		planning_mode
+		planning_mode,
+		utility_context
 	)
 	var target: Vector2
 	if anchor.is_empty():
@@ -124,6 +139,8 @@ static func select_destination(
 		"target": target,
 		"capacity": int(selected["capacity"]),
 		"occupancy": int(selected["occupancy"]),
+		"utility": float(selected["weight"]),
+		"estimated_travel_seconds": float(selected["travel_seconds"]),
 		"planning_mode": planning_mode,
 	}
 	if not anchor.is_empty():
@@ -139,13 +156,98 @@ static func occupancy_multiplier(occupancy: int, capacity: int) -> float:
 	return 1.0 / pow(1.0 + load_ratio, 2.0)
 
 
-static func preposition_lead_seconds(preference: String) -> float:
-	return float(PREPOSITION_LEAD_SECONDS.get(preference, PREPOSITION_LEAD_SECONDS["mixed"]))
+static func destination_utility(
+	role: String,
+	preference: String,
+	item_density: float,
+	distance: float,
+	occupancy: int,
+	capacity: int,
+	planning_mode: String,
+	context: Dictionary = {}
+) -> float:
+	var utility := _role_weight(role, preference)
+	if planning_mode == "preposition":
+		utility *= _preposition_role_weight(role)
+	if utility <= 0.0:
+		return 0.0
+	utility *= 0.55 + clampf(item_density, 0.05, 1.5)
+	utility *= occupancy_multiplier(occupancy, capacity)
+	if context.is_empty():
+		return utility
+
+	var equipment_need := clampf(float(context.get("equipment_need", 0.0)), 0.0, 1.0)
+	var survival_need := clampf(float(context.get("survival_need", 0.0)), 0.0, 1.0)
+	var threat_pressure := clampf(float(context.get("threat_pressure", 0.0)), 0.0, 1.0)
+	var combat_readiness := clampf(float(context.get("combat_readiness", 1.0)), 0.0, 1.0)
+	match role:
+		"loot_hub":
+			utility *= maxf(0.35, 0.65 + equipment_need * 1.35 - threat_pressure * 0.40)
+		"recovery_pocket":
+			utility *= 0.55 + survival_need * 1.25 + threat_pressure * 0.50
+		"concealment_field":
+			utility *= 0.65 + threat_pressure * 1.05 + survival_need * 0.45
+		"transit_choke":
+			utility *= maxf(0.35, 0.65 + combat_readiness * 0.85 - threat_pressure * 0.35)
+
+	var travel_seconds := _estimated_travel_seconds(distance, context)
+	var time_budget := maxf(12.0, float(context.get("time_budget_seconds", 60.0)))
+	if planning_mode == "preposition" and travel_seconds > time_budget * 1.35:
+		return 0.0
+	var effective_budget := minf(time_budget, 60.0)
+	var arrival_factor := clampf(
+		1.15 - (travel_seconds / maxf(1.0, effective_budget)) * 0.50,
+		0.45,
+		1.10
+	)
+	return utility * arrival_factor
 
 
-static func should_use_road(preference: String, selection_ticket: float) -> bool:
-	var chance := float(ROAD_USE_CHANCE.get(preference, ROAD_USE_CHANCE["mixed"]))
-	return fposmod(selection_ticket, 1.0) < chance
+static func preposition_lead_seconds(preference: String, context: Dictionary = {}) -> float:
+	var lead := float(PREPOSITION_LEAD_SECONDS.get(preference, PREPOSITION_LEAD_SECONDS["mixed"]))
+	var equipment_need := clampf(float(context.get("equipment_need", 0.0)), 0.0, 1.0)
+	var threat_pressure := clampf(float(context.get("threat_pressure", 0.0)), 0.0, 1.0)
+	return clampf(lead - equipment_need * 12.0 + threat_pressure * 8.0, 24.0, 72.0)
+
+
+static func choose_route(
+	preference: String,
+	direct_distance: float,
+	road_distance: float,
+	context: Dictionary = {}
+) -> Dictionary:
+	var move_speed := maxf(0.1, float(context.get("move_speed", 5.0)))
+	var terrain_multiplier := clampf(float(context.get(
+		"terrain_multiplier",
+		context.get("movement_multiplier", 0.84)
+	)), 0.5, 1.0)
+	var road_multiplier := clampf(float(context.get("road_multiplier", 1.0)), 0.5, 1.2)
+	var direct_seconds := maxf(0.0, direct_distance) / (move_speed * terrain_multiplier)
+	var road_seconds := maxf(0.0, road_distance) / (move_speed * road_multiplier)
+	var time_budget := maxf(8.0, float(context.get("time_budget_seconds", 60.0)))
+	var urgency := clampf(direct_seconds / time_budget, 0.0, 1.5)
+	var threat_pressure := clampf(float(context.get("threat_pressure", 0.0)), 0.0, 1.0)
+	var equipment_need := clampf(float(context.get("equipment_need", 0.0)), 0.0, 1.0)
+	var exposure_seconds := float(ROAD_EXPOSURE_SECONDS.get(
+		preference,
+		ROAD_EXPOSURE_SECONDS["mixed"]
+	))
+	var exposure_relief := clampf(urgency / 1.5, 0.0, 1.0) * 0.75
+	var road_score := road_seconds \
+		+ threat_pressure * exposure_seconds * (1.0 - exposure_relief) \
+		+ float(ROAD_DOCTRINE_BIAS_SECONDS.get(
+			preference,
+			ROAD_DOCTRINE_BIAS_SECONDS["mixed"]
+		))
+	if String(context.get("destination_role", "")) == "loot_hub":
+		road_score -= equipment_need * 1.25
+	return {
+		"use_road": road_distance > 0.0 and road_score < direct_seconds,
+		"road_seconds": road_seconds,
+		"direct_seconds": direct_seconds,
+		"road_score": road_score,
+		"urgency": urgency,
+	}
 
 
 static func _select_anchor(
@@ -155,7 +257,8 @@ static func _select_anchor(
 	spread_phase: int,
 	zone_center: Vector2,
 	zone_radius: float,
-	planning_mode: String
+	planning_mode: String,
+	utility_context: Dictionary = {}
 ) -> Dictionary:
 	var raw_anchors = poi.get("strategic_anchors", [])
 	if typeof(raw_anchors) != TYPE_ARRAY or raw_anchors.is_empty():
@@ -173,6 +276,12 @@ static func _select_anchor(
 			continue
 		var role := String(anchor.get("role", ""))
 		var weight := _anchor_role_weight(role, preference, planning_mode)
+		var threat_pressure := clampf(float(utility_context.get("threat_pressure", 0.0)), 0.0, 1.0)
+		var equipment_need := clampf(float(utility_context.get("equipment_need", 0.0)), 0.0, 1.0)
+		if role == "outer":
+			weight *= 1.0 + threat_pressure * 0.55
+		elif role == "objective":
+			weight *= maxf(0.35, 1.0 + equipment_need * 0.45 - threat_pressure * 0.55)
 		if weight <= 0.0:
 			continue
 		total_weight += weight
@@ -215,6 +324,12 @@ static func _poi_position(poi: Dictionary) -> Vector2:
 	if typeof(position_array) == TYPE_ARRAY and position_array.size() >= 2:
 		return Vector2(float(position_array[0]), float(position_array[1]))
 	return Vector2.INF
+
+
+static func _estimated_travel_seconds(distance: float, context: Dictionary) -> float:
+	var move_speed := maxf(0.1, float(context.get("move_speed", 5.0)))
+	var movement_multiplier := clampf(float(context.get("movement_multiplier", 0.92)), 0.5, 1.2)
+	return maxf(0.0, distance) / (move_speed * movement_multiplier)
 
 
 static func _anchor_position(anchor: Dictionary) -> Vector2:

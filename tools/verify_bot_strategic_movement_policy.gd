@@ -160,11 +160,76 @@ func _init() -> void:
 	if POLICY.preposition_lead_seconds("cover") <= POLICY.preposition_lead_seconds("loot_hub"):
 		_fail("Cover doctrines must preposition before loot-focused doctrines.")
 		return
-	if not POLICY.should_use_road("transit", 0.5) or POLICY.should_use_road("cover", 0.5):
-		_fail("Road use must be common for transit bots and selective for cover bots.")
+
+	var ready_context := {
+		"equipment_need": 0.05,
+		"survival_need": 0.05,
+		"threat_pressure": 0.0,
+		"combat_readiness": 0.95,
+		"move_speed": 5.0,
+		"movement_multiplier": 0.8,
+		"time_budget_seconds": 60.0,
+	}
+	var under_equipped_context := ready_context.duplicate()
+	under_equipped_context["equipment_need"] = 1.0
+	under_equipped_context["combat_readiness"] = 0.1
+	var ready_loot_utility := POLICY.destination_utility(
+		"loot_hub", "mixed", 0.8, 40.0, 0, 5, "roam", ready_context
+	)
+	var needy_loot_utility := POLICY.destination_utility(
+		"loot_hub", "mixed", 0.8, 40.0, 0, 5, "roam", under_equipped_context
+	)
+	if needy_loot_utility <= ready_loot_utility:
+		_fail("Equipment need must raise loot-hub utility.")
 		return
 
-	print("Bot strategic movement policy smoke passed: occupancy, roads, and next-zone anchors.")
+	var threatened_context := ready_context.duplicate()
+	threatened_context["survival_need"] = 1.0
+	threatened_context["threat_pressure"] = 1.0
+	threatened_context["combat_readiness"] = 0.15
+	var recovery_utility := POLICY.destination_utility(
+		"recovery_pocket", "mixed", 0.4, 35.0, 0, 2, "roam", threatened_context
+	)
+	var transit_utility := POLICY.destination_utility(
+		"transit_choke", "mixed", 0.6, 35.0, 0, 3, "roam", threatened_context
+	)
+	if recovery_utility <= transit_utility:
+		_fail("Wounded threatened bots must value recovery over exposed transit.")
+		return
+
+	var impossible_context := ready_context.duplicate()
+	impossible_context["time_budget_seconds"] = 20.0
+	var impossible_utility := POLICY.destination_utility(
+		"transit_choke", "transit", 0.7, 120.0, 0, 3, "preposition", impossible_context
+	)
+	if impossible_utility > 0.0:
+		_fail("Preposition utility must reject destinations outside the arrival budget.")
+		return
+
+	var fast_road := POLICY.choose_route("transit", 100.0, 110.0, ready_context)
+	if not bool(fast_road.get("use_road", false)):
+		_fail("A safe transit bot must use a road when its travel time is lower.")
+		return
+	var threatened_cover := POLICY.choose_route("cover", 100.0, 110.0, threatened_context)
+	if bool(threatened_cover.get("use_road", false)):
+		_fail("A threatened cover bot must avoid a marginal exposed road shortcut.")
+		return
+	var urgent_context := threatened_context.duplicate()
+	urgent_context["time_budget_seconds"] = 15.0
+	var urgent_cover := POLICY.choose_route("cover", 100.0, 100.0, urgent_context)
+	if not bool(urgent_cover.get("use_road", false)):
+		_fail("Arrival urgency must outweigh road exposure when the time saving is decisive.")
+		return
+	if POLICY.preposition_lead_seconds("mixed", threatened_context) \
+			<= POLICY.preposition_lead_seconds("mixed", ready_context):
+		_fail("Threat pressure must advance the preposition window.")
+		return
+	if POLICY.preposition_lead_seconds("mixed", under_equipped_context) \
+			>= POLICY.preposition_lead_seconds("mixed", ready_context):
+		_fail("Equipment need must preserve more looting time before prepositioning.")
+		return
+
+	print("Bot strategic movement policy smoke passed: utility, occupancy, routes, and anchors.")
 	quit(0)
 
 
