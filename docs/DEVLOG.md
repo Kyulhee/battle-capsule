@@ -1,6 +1,15 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-07-21. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-07-22. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## N2-AI-09 / N2-MAP-15 도로·숲 이동 압력과 자기장 선점
+
+- 수동 판정: 지면과 지역은 읽혔지만 도로/숲의 이동·위험 차이와 다음 자기장 접근 선점이 없어 N2-PLAY-08은 반복 판정했다.
+- 이동: 물리 surface를 플레이어·봇 속도에 연결해 도로 100%, 일반 지면 92%, 숲 84%로 분리했다. 경로를 화면에 그리지 않고 성향별 봇만 실제 road path를 경유한다.
+- 선점: 축소 35-65초 전부터 다음 원 안 POI의 entry/outer 앵커를 선택하고, 도착한 봇은 적 대응을 우선하면서 다음 stage까지 위치를 유지한다.
+- 지옥: 모든 지옥 플레이의 최대 체력 1 잠금을 제거해 `1/100`에서 회복 가능하게 했다. Zone Battery 같은 회복 불가 유물만 `1/1` 잠금을 유지한다.
+- 검증: 전체 `unit_smoke`, Night zone escape·next-zone 선점 runtime, 표면·도로 waypoint, 체력 정책 smoke 통과. 60봇 Forward+ 20초 2회는 p95 13.94-14.81ms, 33ms 초과 0.09-0.19%, AI 평균 142-144us다. 수동 체감은 N2-PLAY-09에서 판정한다.
+- 보류: 무기 티어와 방어구 종류 확장은 코어 이동 압력 통과 뒤 M3 콘텐츠 후보로 둔다.
 
 ## N2-MAP-14 West Ridge Watch Post
 
@@ -75,30 +84,6 @@
 - 수정: 정적 지도는 `SubViewport.UPDATE_ONCE` 텍스처로 굽고 supply·zone·player만 실시간 overlay에 남겼다. profiler에는 Minimap 비표시 대조 옵션을 추가했다.
 - 검증: 반복 2회 p95 15.4-15.8ms, p99 21.1-23.9ms, 33ms 초과 0.14-0.27%. 방향 캡처와 정적 캐시 gate, `unit_smoke`를 통과했다.
 - 다음: N2-MAP-10에서 올바른 260m 월드의 빈 공간·픽업·물리 병목을 감사하고 후보는 하나만 만든다.
-
-## N2-NAV-03 Minimap 물리 오염 제거
-
-- 재현: 실제 260m 맵의 봇 하나가 `(4.2,44.5)`에서 유효한 9점 경로를 가진 채 반복 정체했다. 충돌 진단은 `/HUD/Minimap/Cabin_South/Wall2`를 지목했다.
-- 원인: `Main.tscn`의 Minimap 외부 리소스 UID가 `TestMap.tscn` UID여서 legacy 테스트 맵 물리가 UI 하위에 로드됐다. 경로 허용치와 high rock proxy 가설은 폐기했다.
-- 수정: Minimap UID를 교정하고 zone 초기화 null guard를 추가했다. 제품 hotspot smoke는 Minimap 하위 충돌체 0개, 8초 내 ZONE_ESCAPE 종료, stuck 1 이하를 요구한다.
-- 검증: hotspot은 약 5.1초·stuck 0, `unit_smoke` 통과. 동일 seed 60봇은 종료 245.6초·stuck 1.4·AI 317.9µs·open 피해 63.0%였다.
-- 확대: 99봇은 종료 239.8초·stuck 1.2·AI 435.6µs·open 피해 69.6%였다. disengage 165.8회는 별도 실패로 유지한다.
-- 다음: 오염된 물리 기준과 수치가 달라졌으므로 N2-PERF-02에서 60봇 Forward+ 프레임을 다시 측정한다.
-
-## N2-NAV-02 실제 내비게이션 메시 복구
-
-- 원인: runtime `NavigationRegion3D`는 `WorldBuilder`의 형제였고 기본 child scan을 사용해 bake 결과가 `polygons=0, vertices=0`이었다. 봇은 실제 경로 없이 direct fallback과 stuck override로만 이동했다.
-- 수정: WorldBuilder와 하위 static collider를 source group으로 명시해 실제 geometry를 bake했다. voxel 양자화 실효값에 맞춰 agent height/radius/climb 기본값도 2.0/0.6/0.25로 정렬했다.
-- Arena: rock 횡단은 stuck 1→0, open traffic은 5/5회 약 5.0초·stuck 0, 강제 wall traffic은 5/5회 11.0초·stuck 4였다. runtime gate는 빈 메시를 즉시 실패시킨다.
-- Night: 동일 seed 60봇은 stuck 39.0→2.8·AI 341.9→260.7µs·종료 225.1→222.5초, 99봇은 53.2→12.4·473.0→353.6µs·199.7→222.9초였다.
-- 잔여: 99봇 정체의 59.7%가 `0,40` ZONE_ESCAPE에 몰렸고 disengage 166.8회는 실패 유지다. 다음은 두 문제를 섞지 않고 hotspot부터 격리한다.
-
-## N2-MAP-09 다중 traffic gate와 wall 후보 기각
-
-- Arena: 기존 진단 구역과 분리된 96m 맵에 open/wall 4봇 traffic preset을 추가했다. open은 5/5회 4.20초·stuck 0이었다.
-- primitive: low log는 1봇도 nav가 상단을 walkable로 보고 11.75m/stuck 3에서 실패했다. 폭 8m·18도 wall도 실패했고 축 정렬 폭 4m wall만 5/5회 6.55초·stuck 2로 통과했다.
-- 제품 60봇: 동일 seed에서 전체 stuck 39.0→26.6, duration 225.1→242.0초였지만 직접 셀 `10,10`은 0→16회, open 피해는 69.7→69.6%였다.
-- 결정: 제품 wall과 전용 계약을 제거하고 99봇 확대를 중단했다. Arena traffic gate만 유지하고 N2-NAV-02에서 wall stuck 0을 요구한다.
 
 ## 기록 보존
 

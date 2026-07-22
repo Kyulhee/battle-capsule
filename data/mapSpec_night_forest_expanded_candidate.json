@@ -5,7 +5,8 @@
     "theme": "night_artificial_forest",
     "version": "0.2-world-identity-slice",
     "world_size": 260,
-    "layout": "regional_surface_bands_with_landmark_compounds_and_physical_channels"
+    "layout": "regional_surface_bands_with_landmark_compounds_and_physical_channels",
+    "default_movement_multiplier": 0.92
   },
   "match": {
     "bot_count": 24,
@@ -210,6 +211,8 @@
       "shape": "rect",
       "surface": "grass",
       "material_id": "ground.forest_grass",
+      "movement_multiplier": 0.84,
+      "travel_role": "terrain",
       "pos": [-82, 4],
       "size": [66, 224],
       "rot": -3
@@ -219,6 +222,8 @@
       "shape": "rect",
       "surface": "grass",
       "material_id": "ground.forest_grass",
+      "movement_multiplier": 0.84,
+      "travel_role": "terrain",
       "pos": [82, 6],
       "size": [66, 222],
       "rot": 3
@@ -228,6 +233,8 @@
       "shape": "ellipse",
       "surface": "grass",
       "material_id": "ground.forest_grass",
+      "movement_multiplier": 0.84,
+      "travel_role": "terrain",
       "pos": [0, 106],
       "size": [150, 50],
       "rot": 0
@@ -237,6 +244,8 @@
       "shape": "ellipse",
       "surface": "grass",
       "material_id": "ground.forest_grass",
+      "movement_multiplier": 0.84,
+      "travel_role": "terrain",
       "pos": [0, -106],
       "size": [154, 48],
       "rot": 0
@@ -246,6 +255,8 @@
       "shape": "ellipse",
       "surface": "grass",
       "material_id": "ground.forest_grass",
+      "movement_multiplier": 0.84,
+      "travel_role": "terrain",
       "pos": [-34, 38],
       "size": [56, 44],
       "rot": -18
@@ -255,6 +266,8 @@
       "shape": "ellipse",
       "surface": "grass",
       "material_id": "ground.forest_grass",
+      "movement_multiplier": 0.84,
+      "travel_role": "terrain",
       "pos": [40, -40],
       "size": [58, 46],
       "rot": 16
@@ -264,6 +277,8 @@
       "shape": "ellipse",
       "surface": "dirt",
       "material_id": "ground.forest_dirt",
+      "movement_multiplier": 0.92,
+      "travel_role": "settlement",
       "pos": [-56, 31],
       "size": [34, 26],
       "rot": -20
@@ -273,6 +288,8 @@
       "shape": "path",
       "surface": "dirt",
       "material_id": "ground.path_dirt",
+      "movement_multiplier": 1.0,
+      "travel_role": "road",
       "points": [[-104, -16], [-89, -3], [-74, 13], [-56, 28]],
       "width": 5.5
     },
@@ -281,6 +298,8 @@
       "shape": "path",
       "surface": "dirt",
       "material_id": "ground.path_dirt",
+      "movement_multiplier": 1.0,
+      "travel_role": "road",
       "points": [[-88, -84], [-56, -62], [-24, -34], [-4, -6], [2, 28], [0, 64], [0, 116]],
       "width": 9.0
     },
@@ -289,6 +308,8 @@
       "shape": "path",
       "surface": "dirt",
       "material_id": "ground.path_dirt",
+      "movement_multiplier": 1.0,
+      "travel_role": "road",
       "points": [[-4, -6], [28, 2], [66, -10], [84, 20], [104, 32]],
       "width": 6.5
     },
@@ -297,6 +318,8 @@
       "shape": "path",
       "surface": "dirt",
       "material_id": "ground.path_dirt",
+      "movement_multiplier": 1.0,
+      "travel_role": "road",
       "points": [[-38, 82], [-20, 91], [0, 96], [20, 92], [38, 82]],
       "width": 6.0
     },
@@ -305,6 +328,8 @@
       "shape": "ellipse",
       "surface": "dirt",
       "material_id": "ground.path_dirt",
+      "movement_multiplier": 0.94,
+      "travel_role": "settlement",
       "pos": [0, 98],
       "size": [46, 34],
       "rot": 0

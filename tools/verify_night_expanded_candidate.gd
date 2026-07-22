@@ -160,6 +160,26 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 			or definition.get_surface_id_at(Vector2(-89.0, -3.0)) != "dirt":
 		_fail("West Ridge needs a dirt clearing and exposed service track.")
 		return false
+	if absf(definition.get_surface_movement_multiplier_at(Vector2(-90.0, 60.0)) - 0.84) > 0.001:
+		_fail("Forest terrain must apply the slower off-road movement contract.")
+		return false
+	if absf(definition.get_surface_movement_multiplier_at(Vector2(0.0, 40.0)) - 1.0) > 0.001:
+		_fail("Main service road must preserve full travel speed.")
+		return false
+	if absf(definition.get_surface_movement_multiplier_at(Vector2(30.0, 70.0)) - 0.92) > 0.001:
+		_fail("Unmarked terrain must use the candidate's intermediate movement speed.")
+		return false
+	var road_waypoints: Array[Vector2] = definition.get_road_travel_waypoints(
+		Vector2(-40.0, -70.0),
+		Vector2(0.0, 100.0)
+	)
+	if road_waypoints.size() < 3:
+		_fail("Long strategic rotations must preserve curved road waypoints, not only entry and exit.")
+		return false
+	for road_waypoint in road_waypoints:
+		if absf(definition.get_surface_movement_multiplier_at(road_waypoint) - 1.0) > 0.001:
+			_fail("Strategic road waypoints must remain on full-speed path surfaces.")
+			return false
 	if _count_prop_obstacles(definition, "landmark.cabin") != 3:
 		_fail("Cabin Row needs three cabin landmarks.")
 		return false

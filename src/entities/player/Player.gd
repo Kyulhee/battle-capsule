@@ -3,6 +3,7 @@ extends Entity
 const PLAYER_MOVEMENT_AUDIO_POLICY = preload(
 	"res://src/entities/player/PlayerMovementAudioPolicy.gd"
 )
+const PLAYER_HEALTH_POLICY = preload("res://src/entities/player/PlayerHealthPolicy.gd")
 
 @onready var camera_pivot = $CameraPivot
 @onready var ray_cast = $RayCast3D
@@ -222,7 +223,10 @@ func _physics_process(delta):
 			_heal_regen = 0.0
 	slots.tick(delta)
 	handle_aiming(delta)
-	var effective_speed = stats.move_speed * (0.45 if is_crouching else 1.0) * _artifact_move_speed_mult()
+	var effective_speed = stats.move_speed \
+		* (0.45 if is_crouching else 1.0) \
+		* _artifact_move_speed_mult() \
+		* get_surface_movement_multiplier()
 
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
 	if input_dir == Vector2.ZERO:
@@ -538,8 +542,17 @@ func _on_shield_changed(_curr, _max): _update_hud()
 func _on_health_changed(_curr, _max): _update_hud()
 
 func apply_health_capacity_lock(max_health: float = 1.0) -> void:
-	stats.max_health = maxf(1.0, max_health)
-	current_health = min(stats.max_health, maxf(1.0, current_health))
+	var state := PLAYER_HEALTH_POLICY.capacity_locked_state(current_health, max_health)
+	stats.max_health = float(state["max_health"])
+	current_health = float(state["current_health"])
+	_heal_regen = 0.0
+	health_changed.emit(current_health, stats.max_health)
+
+
+func apply_starting_health(health: float = 1.0) -> void:
+	var state := PLAYER_HEALTH_POLICY.starting_state(stats.max_health, health)
+	stats.max_health = float(state["max_health"])
+	current_health = float(state["current_health"])
 	_heal_regen = 0.0
 	health_changed.emit(current_health, stats.max_health)
 

@@ -84,6 +84,24 @@ func _run() -> void:
 		await create_timer(0.05).timeout
 		strategic_wait += 0.05
 	var strategic_destination: Dictionary = bot.get("_strategic_destination").duplicate(true)
+	main.zone.next_center = Vector2(0.0, 96.0)
+	main.zone.next_radius = 50.0
+	main.zone.timer = 1.0
+	main.zone.shrinking = false
+	var preposition_destination: Dictionary = bot.call(
+		"_select_strategic_destination",
+		main,
+		Vector2(bot.global_position.x, bot.global_position.z)
+	)
+	var preposition_target: Vector2 = preposition_destination.get("target", Vector2.INF)
+	bot.set("_strategic_destination", preposition_destination)
+	if preposition_target.is_finite():
+		bot.global_position = Vector3(
+			preposition_target.x,
+			bot.global_position.y,
+			preposition_target.y
+		)
+	var holds_preposition := bool(bot.call("_is_holding_strategic_preposition", main))
 	await _cleanup(main)
 	if final_state == "ZONE_ESCAPE":
 		_fail("Night nav hotspot bot did not escape: elapsed=%.2fs stuck=%d pos=(%.1f,%.1f) zone_dist=%.1f %s." % [
@@ -109,6 +127,19 @@ func _run() -> void:
 	var strategic_role := String(strategic_destination.get("role", ""))
 	if strategic_role not in ["loot_hub", "transit_choke", "recovery_pocket", "concealment_field"]:
 		_fail("Night nav hotspot bot selected an invalid strategic role: %s." % strategic_role)
+		return
+	if String(preposition_destination.get("planning_mode", "")) != "preposition":
+		_fail("Night bot did not switch from roaming to next-zone preposition planning.")
+		return
+	if not preposition_target.is_finite() \
+			or preposition_target.distance_to(Vector2(0.0, 96.0)) > 45.01:
+		_fail("Night bot preposition target escaped the next-zone safety margin.")
+		return
+	if String(preposition_destination.get("anchor_role", "")) not in ["entry", "outer"]:
+		_fail("Night bot must preposition on a compound approach anchor.")
+		return
+	if not holds_preposition:
+		_fail("Night bot did not hold its claimed next-zone approach anchor.")
 		return
 	print("Night nav hotspot smoke passed: elapsed=%.2fs stuck=%d pos=(%.1f,%.1f) zone_dist=%.1f." % [
 		elapsed,

@@ -14,6 +14,18 @@ const DEFAULT_ROLE_CAPACITY := {
 	"recovery_pocket": 2,
 	"concealment_field": 2,
 }
+const PREPOSITION_LEAD_SECONDS := {
+	"cover": 65.0,
+	"transit": 55.0,
+	"mixed": 45.0,
+	"loot_hub": 35.0,
+}
+const ROAD_USE_CHANCE := {
+	"transit": 0.85,
+	"mixed": 0.65,
+	"loot_hub": 0.55,
+	"cover": 0.30,
+}
 
 
 static func select_destination(
@@ -24,7 +36,8 @@ static func select_destination(
 	preference: String,
 	selection_ticket: float,
 	spread_phase: int,
-	occupancy_by_name: Dictionary = {}
+	occupancy_by_name: Dictionary = {},
+	planning_mode: String = "roam"
 ) -> Dictionary:
 	var candidates: Array[Dictionary] = []
 	var total_weight := 0.0
@@ -39,10 +52,17 @@ static func select_destination(
 		var distance := origin.distance_to(poi_position)
 		if distance <= maxf(MIN_DEPARTURE_DISTANCE, poi_radius * 0.55):
 			continue
-		if zone_radius > 0.0 \
-				and poi_position.distance_to(zone_center) > zone_radius - ZONE_EDGE_MARGIN:
+		if not _poi_has_in_zone_target(
+			poi,
+			poi_position,
+			zone_center,
+			zone_radius,
+			planning_mode
+		):
 			continue
 		var weight := _role_weight(role, preference)
+		if planning_mode == "preposition":
+			weight *= _preposition_role_weight(role)
 		if weight <= 0.0:
 			continue
 		var density := clampf(float(poi.get("item_density", 0.5)), 0.05, 1.5)
@@ -75,7 +95,15 @@ static func select_destination(
 
 	var poi: Dictionary = selected["poi"]
 	var center: Vector2 = selected["position"]
-	var anchor := _select_anchor(poi, preference, selection_ticket, spread_phase)
+	var anchor := _select_anchor(
+		poi,
+		preference,
+		selection_ticket,
+		spread_phase,
+		zone_center,
+		zone_radius,
+		planning_mode
+	)
 	var target: Vector2
 	if anchor.is_empty():
 		var spread_radius := minf(float(selected["radius"]) * 0.35, 7.0)
@@ -84,6 +112,10 @@ static func select_destination(
 		target = center + Vector2.from_angle(spread_angle) * spread_distance
 	else:
 		target = anchor.get("target", center)
+	var safe_zone_radius := maxf(0.0, zone_radius - ZONE_EDGE_MARGIN)
+	var target_from_zone_center := target - zone_center
+	if safe_zone_radius > 0.0 and target_from_zone_center.length() > safe_zone_radius:
+		target = zone_center + target_from_zone_center.normalized() * safe_zone_radius
 	var result := {
 		"name": String(poi.get("name", "")),
 		"role": String(poi.get("role", "")),
@@ -92,6 +124,7 @@ static func select_destination(
 		"target": target,
 		"capacity": int(selected["capacity"]),
 		"occupancy": int(selected["occupancy"]),
+		"planning_mode": planning_mode,
 	}
 	if not anchor.is_empty():
 		result["anchor_id"] = String(anchor.get("id", ""))
@@ -106,11 +139,23 @@ static func occupancy_multiplier(occupancy: int, capacity: int) -> float:
 	return 1.0 / pow(1.0 + load_ratio, 2.0)
 
 
+static func preposition_lead_seconds(preference: String) -> float:
+	return float(PREPOSITION_LEAD_SECONDS.get(preference, PREPOSITION_LEAD_SECONDS["mixed"]))
+
+
+static func should_use_road(preference: String, selection_ticket: float) -> bool:
+	var chance := float(ROAD_USE_CHANCE.get(preference, ROAD_USE_CHANCE["mixed"]))
+	return fposmod(selection_ticket, 1.0) < chance
+
+
 static func _select_anchor(
 	poi: Dictionary,
 	preference: String,
 	selection_ticket: float,
-	spread_phase: int
+	spread_phase: int,
+	zone_center: Vector2,
+	zone_radius: float,
+	planning_mode: String
 ) -> Dictionary:
 	var raw_anchors = poi.get("strategic_anchors", [])
 	if typeof(raw_anchors) != TYPE_ARRAY or raw_anchors.is_empty():
@@ -124,8 +169,10 @@ static func _select_anchor(
 		var center := _anchor_position(anchor)
 		if not center.is_finite():
 			continue
+		if zone_radius > 0.0 and center.distance_to(zone_center) > zone_radius - ZONE_EDGE_MARGIN:
+			continue
 		var role := String(anchor.get("role", ""))
-		var weight := _anchor_role_weight(role, preference)
+		var weight := _anchor_role_weight(role, preference, planning_mode)
 		if weight <= 0.0:
 			continue
 		total_weight += weight
@@ -177,7 +224,9 @@ static func _anchor_position(anchor: Dictionary) -> Vector2:
 	return Vector2.INF
 
 
-static func _anchor_role_weight(role: String, preference: String) -> float:
+static func _anchor_role_weight(role: String, preference: String, planning_mode: String) -> float:
+	if planning_mode == "preposition":
+		return {"objective": 0.35, "entry": 3.0, "outer": 3.4}.get(role, 0.0)
 	match preference:
 		"loot_hub":
 			return {"objective": 3.2, "entry": 1.7, "outer": 0.5}.get(role, 0.0)
@@ -187,6 +236,40 @@ static func _anchor_role_weight(role: String, preference: String) -> float:
 			return {"objective": 0.45, "entry": 3.0, "outer": 2.2}.get(role, 0.0)
 		_:
 			return {"objective": 1.5, "entry": 2.0, "outer": 1.2}.get(role, 0.0)
+
+
+static func _poi_has_in_zone_target(
+	poi: Dictionary,
+	poi_position: Vector2,
+	zone_center: Vector2,
+	zone_radius: float,
+	planning_mode: String
+) -> bool:
+	if zone_radius <= 0.0 \
+			or poi_position.distance_to(zone_center) <= zone_radius - ZONE_EDGE_MARGIN:
+		return true
+	if planning_mode != "preposition":
+		return false
+	var raw_anchors = poi.get("strategic_anchors", [])
+	if typeof(raw_anchors) != TYPE_ARRAY:
+		return false
+	for raw_anchor in raw_anchors:
+		if typeof(raw_anchor) != TYPE_DICTIONARY:
+			continue
+		var anchor_position := _anchor_position(raw_anchor)
+		if anchor_position.is_finite() \
+				and anchor_position.distance_to(zone_center) <= zone_radius - ZONE_EDGE_MARGIN:
+			return true
+	return false
+
+
+static func _preposition_role_weight(role: String) -> float:
+	return {
+		"loot_hub": 1.25,
+		"transit_choke": 1.55,
+		"recovery_pocket": 1.15,
+		"concealment_field": 0.9,
+	}.get(role, 0.0)
 
 
 static func _role_weight(role: String, preference: String) -> float:

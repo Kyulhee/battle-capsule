@@ -314,13 +314,25 @@ func _clean_bush_areas() -> void:
 func handle_movement(direction: Vector3, delta: float, should_rotate: bool = true):
 	if is_dead: return
 	if direction.length() > 0.01:
-		velocity.x = lerp(velocity.x, direction.x * stats.move_speed, stats.acceleration * delta)
-		velocity.z = lerp(velocity.z, direction.z * stats.move_speed, stats.acceleration * delta)
+		var effective_speed := stats.move_speed * get_surface_movement_multiplier()
+		velocity.x = lerp(velocity.x, direction.x * effective_speed, stats.acceleration * delta)
+		velocity.z = lerp(velocity.z, direction.z * effective_speed, stats.acceleration * delta)
 		if should_rotate:
 			rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), stats.rotation_speed * delta)
 	else:
 		velocity.x = lerp(velocity.x, 0.0, stats.friction * delta)
 		velocity.z = lerp(velocity.z, 0.0, stats.friction * delta)
+
+
+func get_surface_movement_multiplier() -> float:
+	var main = get_tree().root.get_node_or_null("Main")
+	if main and main.map_definition \
+			and main.map_definition.has_method("get_surface_movement_multiplier_at"):
+		return clampf(float(main.map_definition.get_surface_movement_multiplier_at(
+			Vector2(global_position.x, global_position.z),
+			1.0
+		)), 0.5, 1.25)
+	return 1.0
 
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
 	if is_dead: return

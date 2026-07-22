@@ -7,6 +7,9 @@ func _init():
 	if not _verify_health_capacity_lock_paths():
 		quit(1)
 		return
+	if not _verify_hell_starting_health_contract():
+		quit(1)
+		return
 
 	print("Mission health rules smoke passed.")
 	quit(0)
@@ -52,19 +55,39 @@ func _verify_health_capacity_lock_paths() -> bool:
 		return _fail("zone_battery should mark healing as unavailable.")
 
 	var player_source := _read_text("res://src/entities/player/Player.gd")
-	var main_source := _read_text("res://src/Main.gd")
 	if player_source.find("func apply_health_capacity_lock") < 0:
 		return _fail("Player is missing apply_health_capacity_lock().")
-	if player_source.find("stats.max_health = maxf(1.0, max_health)") < 0:
-		return _fail("Health capacity lock should lower max health itself.")
+	if player_source.find("PLAYER_HEALTH_POLICY.capacity_locked_state") < 0:
+		return _fail("Health capacity lock should use the tested health policy.")
 	if player_source.find("_heal_regen = 0.0") < 0:
 		return _fail("Health capacity lock should cancel pending heal regen.")
 	if player_source.find("float(mods.get(\"heal_mult\", 1.0)) == 0.0") < 0:
 		return _fail("Player artifact apply should detect heal_mult=0.")
 	if player_source.find("apply_health_capacity_lock(1.0)") < 0:
 		return _fail("Player artifact apply should lock max HP to 1 for no-heal artifacts.")
-	if main_source.find("p.apply_health_capacity_lock(1.0)") < 0:
-		return _fail("Hell start HP lock should use the same max-health lock path.")
+	return true
+
+
+func _verify_hell_starting_health_contract() -> bool:
+	var health_policy = load("res://src/entities/player/PlayerHealthPolicy.gd")
+	var hell_start: Dictionary = health_policy.starting_state(100.0, 1.0)
+	if not is_equal_approx(float(hell_start.get("current_health", 0.0)), 1.0):
+		return _fail("Hell must start the player at 1 current HP.")
+	if not is_equal_approx(float(hell_start.get("max_health", 0.0)), 100.0):
+		return _fail("Hell start must preserve max HP so healing can raise current HP.")
+	var locked: Dictionary = health_policy.capacity_locked_state(100.0, 1.0)
+	if not is_equal_approx(float(locked.get("current_health", 0.0)), 1.0) \
+			or not is_equal_approx(float(locked.get("max_health", 0.0)), 1.0):
+		return _fail("No-heal artifacts must still lock current and max HP to 1.")
+
+	var player_source := _read_text("res://src/entities/player/Player.gd")
+	var main_source := _read_text("res://src/Main.gd")
+	if player_source.find("PLAYER_HEALTH_POLICY.starting_state") < 0:
+		return _fail("Player starting HP must use the tested health policy.")
+	if main_source.find("p.apply_starting_health(1.0)") < 0:
+		return _fail("Hell spawn must use the recoverable 1 HP start path.")
+	if main_source.find("p.apply_health_capacity_lock(1.0)") >= 0:
+		return _fail("Hell spawn must not lock max HP to 1.")
 	return true
 
 

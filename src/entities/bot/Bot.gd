@@ -44,6 +44,7 @@ const STRATEGIC_IDLE_START_SECONDS := 3.0
 const STRATEGIC_TARGET_RETRY_MIN := 9.0
 const STRATEGIC_TARGET_RETRY_MAX := 14.0
 const STRATEGIC_TARGET_ARRIVAL_DISTANCE := 4.0
+const STRATEGIC_WAYPOINT_ARRIVAL_DISTANCE := 3.0
 const ENGAGEMENT_IMMEDIATE_RANGE := 10.0
 const ENGAGEMENT_LOCAL_RADIUS := 18.0
 const ENGAGEMENT_SNAPSHOT_INTERVAL := 0.20
@@ -555,6 +556,10 @@ func handle_idle_state(delta):
 		return
 	if _pending_target != null:
 		_pending_target = null
+	var main = get_tree().root.get_node_or_null("Main")
+	if _is_holding_strategic_preposition(main):
+		_move_toward_strategic_destination(main, delta)
+		return
 
 	# Wounded bots search wider, but all opportunistic loot uses priority scoring
 	# so unusable ammo and weapon-upgrade preferences stay consistent.
@@ -575,7 +580,6 @@ func handle_idle_state(delta):
 			change_state(State.CHASE)
 		return
 
-	var main = get_tree().root.get_node_or_null("Main")
 	if main and (main.supply_telegraphed or main.supply_spawned):
 		if _should_pursue_supply(main):
 			var dir = (main.supply_pos - global_position).normalized()
@@ -2587,11 +2591,21 @@ func _move_toward_strategic_destination(main, delta: float) -> bool:
 	var target: Vector2 = _strategic_destination.get("target", Vector2.INF)
 	var self_position := Vector2(global_position.x, global_position.z)
 	var target_invalid := not target.is_finite()
-	if not target_invalid:
-		target_invalid = self_position.distance_to(target) <= STRATEGIC_TARGET_ARRIVAL_DISTANCE
+	var expected_mode := _strategic_planning_mode(main)
+	if not target_invalid and String(_strategic_destination.get("planning_mode", "roam")) != expected_mode:
+		target_invalid = true
+	if not target_invalid \
+			and String(_strategic_destination.get("planning_mode", "roam")) == "preposition" \
+			and int(_strategic_destination.get("planned_zone_stage", -1)) != int(main.zone.stage):
+		target_invalid = true
 	if not target_invalid:
 		target_invalid = target.distance_to(main.zone.current_center) \
 			> float(main.zone.current_radius) - BOT_STRATEGIC_MOVEMENT_POLICY.ZONE_EDGE_MARGIN
+	if not target_invalid and self_position.distance_to(target) <= STRATEGIC_TARGET_ARRIVAL_DISTANCE:
+		if String(_strategic_destination.get("planning_mode", "roam")) == "preposition":
+			handle_movement(Vector3.ZERO, delta, false)
+			return true
+		target_invalid = true
 	if target_invalid and target.is_finite():
 		_strategic_destination.clear()
 		_strategic_target_retry_timer = 0.0
@@ -2605,7 +2619,12 @@ func _move_toward_strategic_destination(main, delta: float) -> bool:
 		target = _strategic_destination.get("target", Vector2.INF)
 	if not target.is_finite():
 		return false
-	_nav_move_toward(Vector3(target.x, global_position.y, target.y), delta, true)
+	var navigation_target := _strategic_navigation_target(self_position, target)
+	_nav_move_toward(
+		Vector3(navigation_target.x, global_position.y, navigation_target.y),
+		delta,
+		true
+	)
 	return true
 
 func _select_strategic_destination(main, origin: Vector2) -> Dictionary:
@@ -2618,16 +2637,86 @@ func _select_strategic_destination(main, origin: Vector2) -> Dictionary:
 				pois.append(poi)
 	_ensure_doctrine_profile()
 	_strategic_target_cycle += 1
-	return BOT_STRATEGIC_MOVEMENT_POLICY.select_destination(
+	var preference := String(_doctrine_profile.get("strategic_preference", "mixed"))
+	var planning_mode := _strategic_planning_mode(main)
+	var planning_center: Vector2 = main.zone.current_center
+	var planning_radius := float(main.zone.current_radius)
+	if planning_mode == "preposition":
+		planning_center = main.zone.next_center
+		planning_radius = float(main.zone.next_radius)
+	var selection_ticket := randf()
+	var result := BOT_STRATEGIC_MOVEMENT_POLICY.select_destination(
 		pois,
 		origin,
-		main.zone.current_center,
-		float(main.zone.current_radius),
-		String(_doctrine_profile.get("strategic_preference", "mixed")),
-		randf(),
+		planning_center,
+		planning_radius,
+		preference,
+		selection_ticket,
 		int(get_instance_id()) + _strategic_target_cycle,
-		_strategic_occupancy_by_name()
+		_strategic_occupancy_by_name(),
+		planning_mode
 	)
+	if result.is_empty():
+		return result
+	result["planned_zone_stage"] = int(main.zone.stage)
+	var target: Vector2 = result.get("target", Vector2.INF)
+	if target.is_finite() \
+			and main.map_definition != null \
+			and main.map_definition.has_method("get_road_travel_waypoints") \
+			and BOT_STRATEGIC_MOVEMENT_POLICY.should_use_road(
+				preference,
+				selection_ticket * 3.731
+			):
+		var waypoints: Array[Vector2] = main.map_definition.get_road_travel_waypoints(origin, target)
+		var in_current_zone: Array[Vector2] = []
+		for waypoint in waypoints:
+			if waypoint.distance_to(main.zone.current_center) \
+					<= float(main.zone.current_radius) - BOT_STRATEGIC_MOVEMENT_POLICY.ZONE_EDGE_MARGIN:
+				in_current_zone.append(waypoint)
+		if not in_current_zone.is_empty():
+			result["travel_waypoints"] = in_current_zone
+			result["travel_index"] = 0
+	return result
+
+
+func _strategic_planning_mode(main) -> String:
+	if main == null or main.zone == null:
+		return "roam"
+	_ensure_doctrine_profile()
+	var preference := String(_doctrine_profile.get("strategic_preference", "mixed"))
+	var lead_seconds := BOT_STRATEGIC_MOVEMENT_POLICY.preposition_lead_seconds(preference)
+	var stagger := 0.85 + float(get_instance_id() % 7) * 0.05
+	if main.zone.shrinking or float(main.zone.timer) <= lead_seconds * stagger:
+		return "preposition"
+	return "roam"
+
+
+func _is_holding_strategic_preposition(main) -> bool:
+	if main == null or _strategic_destination.is_empty():
+		return false
+	if String(_strategic_destination.get("planning_mode", "roam")) != "preposition":
+		return false
+	if int(_strategic_destination.get("planned_zone_stage", -1)) != int(main.zone.stage):
+		return false
+	var target: Vector2 = _strategic_destination.get("target", Vector2.INF)
+	return target.is_finite() \
+		and Vector2(global_position.x, global_position.z).distance_to(target) \
+			<= STRATEGIC_TARGET_ARRIVAL_DISTANCE
+
+
+func _strategic_navigation_target(origin: Vector2, final_target: Vector2) -> Vector2:
+	var raw_waypoints = _strategic_destination.get("travel_waypoints", [])
+	if typeof(raw_waypoints) != TYPE_ARRAY or raw_waypoints.is_empty():
+		return final_target
+	var waypoint_index := int(_strategic_destination.get("travel_index", 0))
+	while waypoint_index < raw_waypoints.size():
+		var waypoint: Vector2 = raw_waypoints[waypoint_index]
+		if origin.distance_to(waypoint) > STRATEGIC_WAYPOINT_ARRIVAL_DISTANCE:
+			_strategic_destination["travel_index"] = waypoint_index
+			return waypoint
+		waypoint_index += 1
+	_strategic_destination["travel_index"] = waypoint_index
+	return final_target
 
 
 func _strategic_occupancy_by_name() -> Dictionary:

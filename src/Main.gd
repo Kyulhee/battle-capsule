@@ -763,7 +763,7 @@ func spawn_entities():
 	player_ref = p
 	p.died.connect(_on_player_died)
 	if difficulty == Difficulty.HELL and not is_simulation:
-		p.apply_health_capacity_lock(1.0)
+		p.apply_starting_health(1.0)
 
 	var diff_params = _get_difficulty_params()
 	var runtime_combat = MatchRuntimeTuningScript.combat(match_runtime_tuning)

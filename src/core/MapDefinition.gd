@@ -38,6 +38,13 @@ const VALID_STRATEGIC_ANCHOR_ROLES := {
 	"entry": true,
 	"outer": true,
 }
+const VALID_SURFACE_TRAVEL_ROLES := {
+	"road": true,
+	"settlement": true,
+	"terrain": true,
+}
+const MIN_SURFACE_MOVEMENT_MULTIPLIER := 0.5
+const MAX_SURFACE_MOVEMENT_MULTIPLIER := 1.25
 
 @export var id: String = ""
 @export var display_name: String = ""
@@ -48,6 +55,8 @@ const VALID_STRATEGIC_ANCHOR_ROLES := {
 @export var zone_overrides: Dictionary = {}
 @export var scale_presets: Dictionary = {}
 @export var scale_envelopes: Dictionary = {}
+
+var _surface_zone_descriptors_cache: Array[Dictionary] = []
 
 
 func load_from_json(json_text: String, source_path_value: String = "", game_config = null) -> bool:
@@ -81,6 +90,7 @@ func load_from_data(data: Dictionary, source_path_value: String = "", _game_conf
 	zone_overrides = _dictionary(data.get("zone", {}))
 	scale_presets = _dictionary(data.get("scale_presets", {}))
 	scale_envelopes = _dictionary(data.get("scale_envelopes", {}))
+	_rebuild_surface_zone_cache()
 	return true
 
 
@@ -92,6 +102,7 @@ func load_from_map_spec(spec: Resource, source_path_value: String = "") -> bool:
 	zone_overrides.clear()
 	scale_presets.clear()
 	scale_envelopes.clear()
+	_rebuild_surface_zone_cache()
 	if spec != null:
 		display_name = String(spec.metadata.get("name", "Untitled Map"))
 		id = String(spec.metadata.get("id", _slug(display_name)))
@@ -205,29 +216,87 @@ func get_obstacle_descriptors() -> Array[Dictionary]:
 
 
 func get_surface_zone_descriptors() -> Array[Dictionary]:
-	var descriptors: Array[Dictionary] = []
-	if map_spec == null:
-		return descriptors
-	for i in range(map_spec.surface_zones.size()):
-		var zone := _dictionary(map_spec.surface_zones[i])
-		zone["index"] = i
-		zone["pos_2d"] = _vector2_from_array(zone.get("pos", []), Vector2.ZERO)
-		zone["size_2d"] = _vector2_from_array(zone.get("size", []), Vector2.ZERO)
-		var points_2d: Array[Vector2] = []
-		for point_data in _array(zone.get("points", [])):
-			points_2d.append(_vector2_from_array(point_data, Vector2.INF))
-		zone["points_2d"] = points_2d
-		descriptors.append(zone)
-	return descriptors
+	return _surface_zone_descriptors_cache.duplicate(true)
 
 
 func get_surface_id_at(world_pos: Vector2, fallback: String = "dirt") -> String:
-	var zones := get_surface_zone_descriptors()
-	for i in range(zones.size() - 1, -1, -1):
-		var zone: Dictionary = zones[i]
-		if _surface_zone_contains(zone, world_pos):
-			return String(zone.get("surface", fallback))
+	var zone := _surface_zone_at(world_pos)
+	if not zone.is_empty():
+		return String(zone.get("surface", fallback))
 	return fallback
+
+
+func get_surface_movement_multiplier_at(world_pos: Vector2, fallback: float = 1.0) -> float:
+	var default_multiplier := fallback
+	if map_spec != null:
+		default_multiplier = float(map_spec.metadata.get(
+			"default_movement_multiplier",
+			fallback
+		))
+	var zone := _surface_zone_at(world_pos)
+	if zone.is_empty():
+		return default_multiplier
+	return float(zone.get("movement_multiplier", default_multiplier))
+
+
+func get_road_travel_waypoints(
+	origin: Vector2,
+	target: Vector2,
+	max_detour_ratio: float = 1.45
+) -> Array[Vector2]:
+	var direct_distance := origin.distance_to(target)
+	if direct_distance < 12.0:
+		return []
+	var best_cost := INF
+	var best_route_points: Array = []
+	var best_origin_projection: Dictionary = {}
+	var best_target_projection: Dictionary = {}
+	for zone in _surface_zone_descriptors_cache:
+		if String(zone.get("shape", "")) != "path" \
+				or String(zone.get("travel_role", "")) != "road":
+			continue
+		var points: Array = zone.get("points_2d", [])
+		var origin_projection := _project_point_to_route(origin, points)
+		var target_projection := _project_point_to_route(target, points)
+		if origin_projection.is_empty() or target_projection.is_empty():
+			continue
+		var road_distance := absf(
+			float(target_projection["distance_along"])
+			- float(origin_projection["distance_along"])
+		)
+		if road_distance < 8.0:
+			continue
+		var entry: Vector2 = origin_projection["point"]
+		var exit: Vector2 = target_projection["point"]
+		var travel_cost := origin.distance_to(entry) + road_distance + exit.distance_to(target)
+		if travel_cost > direct_distance * maxf(1.0, max_detour_ratio) + 6.0:
+			continue
+		if travel_cost < best_cost:
+			best_cost = travel_cost
+			best_route_points = points
+			best_origin_projection = origin_projection
+			best_target_projection = target_projection
+	if best_origin_projection.is_empty() or best_target_projection.is_empty():
+		return []
+	var best_entry: Vector2 = best_origin_projection["point"]
+	var best_exit: Vector2 = best_target_projection["point"]
+	var waypoints: Array[Vector2] = []
+	if origin.distance_to(best_entry) > 3.0:
+		waypoints.append(best_entry)
+	var origin_segment := int(best_origin_projection["segment_index"])
+	var target_segment := int(best_target_projection["segment_index"])
+	if float(best_target_projection["distance_along"]) >= float(
+		best_origin_projection["distance_along"]
+	):
+		for point_index in range(origin_segment + 1, target_segment + 1):
+			_append_route_waypoint(waypoints, origin, target, best_route_points[point_index])
+	else:
+		for point_index in range(origin_segment, target_segment, -1):
+			_append_route_waypoint(waypoints, origin, target, best_route_points[point_index])
+	if best_exit.distance_to(target) > 3.0 \
+			and (waypoints.is_empty() or waypoints[-1].distance_to(best_exit) > 3.0):
+		waypoints.append(best_exit)
+	return waypoints
 
 
 func get_route_descriptors() -> Array[Dictionary]:
@@ -469,10 +538,24 @@ func validate(game_config = null, preset_name: String = "") -> Array[String]:
 		var shape := String(zone.get("shape", "rect"))
 		var surface_id := String(zone.get("surface", "")).strip_edges()
 		var material_id := String(zone.get("material_id", "")).strip_edges()
+		var movement_multiplier := float(zone.get("movement_multiplier", 1.0))
+		var travel_role := String(zone.get("travel_role", "")).strip_edges().to_lower()
 		if surface_id.is_empty():
 			issues.append("Surface zone %d has empty surface id." % i)
 		if material_id.is_empty():
 			issues.append("Surface zone %d has empty material_id." % i)
+		if movement_multiplier < MIN_SURFACE_MOVEMENT_MULTIPLIER \
+				or movement_multiplier > MAX_SURFACE_MOVEMENT_MULTIPLIER:
+			issues.append("Surface zone %d movement_multiplier %.2f must be within %.2f..%.2f." % [
+				i,
+				movement_multiplier,
+				MIN_SURFACE_MOVEMENT_MULTIPLIER,
+				MAX_SURFACE_MOVEMENT_MULTIPLIER,
+			])
+		if not travel_role.is_empty() and not VALID_SURFACE_TRAVEL_ROLES.has(travel_role):
+			issues.append("Surface zone %d travel_role '%s' is unknown." % [i, travel_role])
+		if travel_role == "road" and shape != "path":
+			issues.append("Surface zone %d road travel_role requires path shape." % i)
 		if shape == "path":
 			var points := _array(zone.get("points", []))
 			if points.size() < 2:
@@ -700,6 +783,30 @@ static func _surface_zone_contains(zone: Dictionary, world_pos: Vector2) -> bool
 	return absf(local.x) <= size.x * 0.5 and absf(local.y) <= size.y * 0.5
 
 
+func _rebuild_surface_zone_cache() -> void:
+	_surface_zone_descriptors_cache.clear()
+	if map_spec == null:
+		return
+	for i in range(map_spec.surface_zones.size()):
+		var zone := _dictionary(map_spec.surface_zones[i])
+		zone["index"] = i
+		zone["pos_2d"] = _vector2_from_array(zone.get("pos", []), Vector2.ZERO)
+		zone["size_2d"] = _vector2_from_array(zone.get("size", []), Vector2.ZERO)
+		var points_2d: Array[Vector2] = []
+		for point_data in _array(zone.get("points", [])):
+			points_2d.append(_vector2_from_array(point_data, Vector2.INF))
+		zone["points_2d"] = points_2d
+		_surface_zone_descriptors_cache.append(zone)
+
+
+func _surface_zone_at(world_pos: Vector2) -> Dictionary:
+	for i in range(_surface_zone_descriptors_cache.size() - 1, -1, -1):
+		var zone: Dictionary = _surface_zone_descriptors_cache[i]
+		if _surface_zone_contains(zone, world_pos):
+			return zone
+	return {}
+
+
 static func _merge_dict(target: Dictionary, source: Dictionary) -> Dictionary:
 	if typeof(source) != TYPE_DICTIONARY:
 		return target
@@ -766,6 +873,55 @@ static func _route_distance(point: Vector2, points: Array) -> float:
 			continue
 		best = minf(best, _distance_to_segment(point, a, b))
 	return best
+
+
+static func _project_point_to_route(point: Vector2, points: Array) -> Dictionary:
+	if points.size() < 2:
+		return {}
+	var best_distance := INF
+	var best_point := Vector2.INF
+	var best_distance_along := 0.0
+	var best_segment_index := -1
+	var distance_before_segment := 0.0
+	for i in range(points.size() - 1):
+		var a: Vector2 = points[i]
+		var b: Vector2 = points[i + 1]
+		if not a.is_finite() or not b.is_finite():
+			continue
+		var ab := b - a
+		var segment_length := ab.length()
+		if segment_length <= 0.0001:
+			continue
+		var t := clampf((point - a).dot(ab) / ab.length_squared(), 0.0, 1.0)
+		var projected := a + ab * t
+		var distance := point.distance_to(projected)
+		if distance < best_distance:
+			best_distance = distance
+			best_point = projected
+			best_distance_along = distance_before_segment + segment_length * t
+			best_segment_index = i
+		distance_before_segment += segment_length
+	if not best_point.is_finite():
+		return {}
+	return {
+		"point": best_point,
+		"distance": best_distance,
+		"distance_along": best_distance_along,
+		"segment_index": best_segment_index,
+	}
+
+
+static func _append_route_waypoint(
+	waypoints: Array[Vector2],
+	origin: Vector2,
+	target: Vector2,
+	waypoint: Vector2
+) -> void:
+	if origin.distance_to(waypoint) <= 3.0 or target.distance_to(waypoint) <= 3.0:
+		return
+	if not waypoints.is_empty() and waypoints[-1].distance_to(waypoint) <= 3.0:
+		return
+	waypoints.append(waypoint)
 
 
 static func _distance_to_segment(point: Vector2, a: Vector2, b: Vector2) -> float:

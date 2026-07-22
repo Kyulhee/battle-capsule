@@ -23,6 +23,20 @@ const ANCHORED_POIS: Array[Dictionary] = [
 		],
 	},
 ]
+const PREPOSITION_POIS: Array[Dictionary] = [
+	{
+		"name": "Edge Compound",
+		"pos": [62.0, 0.0],
+		"radius": 18.0,
+		"role": "transit_choke",
+		"item_density": 0.7,
+		"strategic_anchors": [
+			{"id": "yard", "role": "objective", "pos": [62.0, 0.0], "jitter_radius": 0.0},
+			{"id": "safe_gate", "role": "entry", "pos": [42.0, 0.0], "jitter_radius": 0.0},
+			{"id": "safe_outer", "role": "outer", "pos": [38.0, 5.0], "jitter_radius": 0.0},
+		],
+	},
+]
 
 
 func _init() -> void:
@@ -121,7 +135,36 @@ func _init() -> void:
 		_fail("Strategic anchor jitter escaped its local navigation pocket.")
 		return
 
-	print("Bot strategic movement policy smoke passed: occupancy and tactical anchors.")
+	var preposition_destination := POLICY.select_destination(
+		PREPOSITION_POIS,
+		Vector2.ZERO,
+		Vector2.ZERO,
+		50.0,
+		"transit",
+		0.42,
+		4,
+		{},
+		"preposition"
+	)
+	var preposition_target: Vector2 = preposition_destination.get("target", Vector2.INF)
+	if preposition_destination.is_empty() \
+			or String(preposition_destination.get("planning_mode", "")) != "preposition":
+		_fail("Preposition planning must select an eligible next-zone anchor.")
+		return
+	if String(preposition_destination.get("anchor_role", "")) not in ["entry", "outer"]:
+		_fail("Preposition planning must occupy an entry or outer approach anchor.")
+		return
+	if not preposition_target.is_finite() or preposition_target.length() > 45.01:
+		_fail("Preposition target must stay inside the next zone safety margin.")
+		return
+	if POLICY.preposition_lead_seconds("cover") <= POLICY.preposition_lead_seconds("loot_hub"):
+		_fail("Cover doctrines must preposition before loot-focused doctrines.")
+		return
+	if not POLICY.should_use_road("transit", 0.5) or POLICY.should_use_road("cover", 0.5):
+		_fail("Road use must be common for transit bots and selective for cover bots.")
+		return
+
+	print("Bot strategic movement policy smoke passed: occupancy, roads, and next-zone anchors.")
 	quit(0)
 
 
