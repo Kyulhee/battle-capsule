@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 초점 | Cabin Row-참조 초소-South Creek의 장소 전환과 도로·숲·병목 선택 |
+| 현재 초점 | Cabin Row-참조 초소-Logging Ford 전환과 AI의 상황 기반 도로·숲·선점 선택 |
 
 ## 수동 체크리스트
 
@@ -31,7 +31,7 @@
 - 공격형은 마당·입구를 압박하고 방어형·저격형은 외곽과 입구에 머무르는 차이가 보이는가?
 - 멀리서 총성이 나도 모든 봇이 한곳에 몰리지 않으며, 가까이 마주치거나 공격받은 봇은 여전히 즉시 대응하는가?
 
-N2-PLAY-09에서는 도로와 숲을 각각 20초 이상 이동해 속도 차이가 조작 방해가 아니라 경로 선택으로 느껴지는지 본다. 첫 자기장 축소 전후에는 다음 원 안의 Cabin Row 또는 Watch Post 접근부에서 이미 자리를 잡은 봇과 마주치는지, 그렇더라도 모든 봇이 한 지점에 겹치지 않는지 확인한다. 지옥은 `HP 1/100`으로 시작해 회복 아이템 사용 후 현재 HP가 오르고, Zone Battery만 `1/1`로 유지되어야 한다.
+N2-PLAY-09에서는 도로와 숲을 각각 20초 이상 이동해 속도 차이가 조작 방해가 아니라 경로 선택으로 느껴지는지 본다. 첫 자기장 축소 전후에는 Cabin Row·Watch Post·Logging Ford 접근부에서 먼저 자리를 잡은 봇과 마주치는지, 그렇더라도 모든 봇이 한 지점에 겹치지 않는지 확인한다. Logging Ford 동쪽은 좁은 나루, 서쪽은 느린 숲 우회로 읽혀야 한다. 지옥은 `HP 1/100`으로 시작해 회복 아이템 사용 후 현재 HP가 오르고, Zone Battery만 `1/1`로 유지되어야 한다.
 
 ```powershell
 .\Godot_v4.6.2-stable_win64_console.exe --path . -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=night_br_m1_60

@@ -117,6 +117,15 @@ func _init():
 	if overlay._poi_label_world_pos(watch_poi).distance_to(Vector2(-56.0, 32.0)) > 0.001:
 		_fail("West Ridge label must use its watchtower anchor.")
 		return
+	var south_poi: Dictionary = definition.get_poi_descriptors().filter(
+		func(poi: Dictionary) -> bool: return String(poi.get("name", "")) == "South Creek Bend"
+	).front()
+	if String(overlay._poi_label(south_poi)) != "Logging Ford":
+		_fail("Full map should label the identified South Creek landmark.")
+		return
+	if overlay._poi_label_world_pos(south_poi).distance_to(Vector2(22.0, -107.0)) > 0.001:
+		_fail("Logging Ford label must use its physical compound anchor.")
+		return
 	if not String(overlay._poi_label({"name": "Central Meadow", "role": "loot_hub"})).is_empty():
 		_fail("Full map should not infer labels from internal POI roles.")
 		return
@@ -159,6 +168,12 @@ func _init():
 		return
 	if absf(minimap.world_size_to_minimap(60.0) - 140.0) > 0.001:
 		_fail("Local minimap must show 120m across its 280px display.")
+		return
+	if String(minimap._poi_label(south_poi)) != "Logging Ford":
+		_fail("Minimap must prefer player-facing landmark labels over internal POI names.")
+		return
+	if String(minimap._poi_label({"name": "Central Meadow"})) != "Central Meadow":
+		_fail("Minimap must retain the POI name when no landmark identity exists.")
 		return
 	var sample_world := Vector2(18.0, -12.0)
 	var full_direction: Vector2 = (

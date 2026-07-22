@@ -164,6 +164,15 @@ func _verify_position_classification(definition) -> bool:
 	if String(central.get("route_role", "")) != "loot_flow":
 		_fail("Central meadow should classify as loot_flow route, got %s." % central.get("route_role", ""))
 		return false
+
+	var south_ford: Dictionary = definition.describe_strategic_position(Vector2(20.0, -98.0))
+	if String(south_ford.get("poi_name", "")) != "South Creek Bend":
+		_fail("Logging Ford should classify as South Creek Bend, got %s." % south_ford.get("poi_name", ""))
+		return false
+	if String(south_ford.get("route_id", "")) != "south_creek_ford_choke" \
+			or String(south_ford.get("route_role", "")) != "primary_choke":
+		_fail("Logging Ford objective should classify as its primary choke.")
+		return false
 	return true
 
 

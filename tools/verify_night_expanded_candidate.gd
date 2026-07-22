@@ -162,8 +162,22 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 		_fail("Cabin Row yard must override the forest edge as dirt.")
 		return false
 	if definition.get_surface_id_at(Vector2(-56.0, 31.0)) != "dirt" \
-			or definition.get_surface_id_at(Vector2(-89.0, -3.0)) != "dirt":
+			or definition.get_surface_id_at(Vector2(-68.0, -5.0)) != "dirt":
 		_fail("West Ridge needs a dirt clearing and exposed service track.")
+		return false
+	var south_creek := _poi_by_name(definition, "South Creek Bend")
+	var south_identity: Dictionary = south_creek.get("identity", {})
+	if String(south_identity.get("theme", "")) != "logging_ford" \
+			or String(south_identity.get("map_label", "")) != "Logging Ford":
+		_fail("South Creek Bend needs the player-facing Logging Ford identity.")
+		return false
+	var south_anchors: Array = south_creek.get("strategic_anchors", [])
+	var south_anchor_roles := _anchor_role_counts(south_anchors)
+	if south_anchors.size() != 7 \
+			or int(south_anchor_roles.get("objective", 0)) != 1 \
+			or int(south_anchor_roles.get("entry", 0)) != 3 \
+			or int(south_anchor_roles.get("outer", 0)) != 3:
+		_fail("South Creek strategic anchors must expose objective=1, entry=3, outer=3.")
 		return false
 	if absf(definition.get_surface_movement_multiplier_at(Vector2(-90.0, 60.0)) - 0.84) > 0.001:
 		_fail("Forest terrain must apply the slower off-road movement contract.")
@@ -173,6 +187,15 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 		return false
 	if absf(definition.get_surface_movement_multiplier_at(Vector2(30.0, 70.0)) - 0.92) > 0.001:
 		_fail("Unmarked terrain must use the candidate's intermediate movement speed.")
+		return false
+	if absf(definition.get_surface_movement_multiplier_at(Vector2(14.0, -84.0)) - 1.0) > 0.001:
+		_fail("South Creek haul road must preserve full travel speed.")
+		return false
+	if absf(definition.get_surface_movement_multiplier_at(Vector2(-20.0, -103.0)) - 0.84) > 0.001:
+		_fail("South Creek forest flank must preserve the slower terrain contract.")
+		return false
+	if absf(definition.get_surface_movement_multiplier_at(Vector2(20.0, -109.0)) - 0.94) > 0.001:
+		_fail("South Creek log yard must preserve settlement travel speed.")
 		return false
 	var road_waypoints: Array[Vector2] = definition.get_road_travel_waypoints(
 		Vector2(-40.0, -70.0),
@@ -200,10 +223,10 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 		"forest.fallen.tree",
 		"forest.log.pile",
 	]:
-		if _count_prop_obstacles(definition, prop_id) != 1:
+		if _count_compound_prop(definition, "west_ridge_watch_post", prop_id) != 1:
 			_fail("West Ridge needs one '%s' landmark prop." % prop_id)
 			return false
-	if _count_prop_obstacles(definition, "forest.rock.large") != 2:
+	if _count_compound_prop(definition, "west_ridge_watch_post", "forest.rock.large") != 2:
 		_fail("West Ridge needs two large ridge rocks.")
 		return false
 	if _count_named_compound_cover(definition, "west_ridge_watch_post", "hard") != 5:
@@ -215,6 +238,30 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	var tarp := _obstacle_by_prop(definition, "landmark.camp.tarp")
 	if String(tarp.get("cover_class", "")) != "screen":
 		_fail("West Ridge tarp must block vision without blocking ballistics.")
+		return false
+	if _count_named_compound_cover(definition, "south_creek_logging_ford", "hard") != 8:
+		_fail("Logging Ford needs eight hard-cover masses around its open lanes.")
+		return false
+	if _count_named_compound_cover(definition, "south_creek_logging_ford", "screen") != 5:
+		_fail("Logging Ford needs five vision screens around its forest approaches.")
+		return false
+	if _count_named_compound_cover(definition, "south_creek_logging_ford", "soft") != 3:
+		_fail("Logging Ford needs three soft supply props in the yard.")
+		return false
+	for compound_prop in [
+		{"id": "forest.log.pile", "count": 4},
+		{"id": "forest.fallen.tree", "count": 2},
+		{"id": "forest.rock.large", "count": 2},
+		{"id": "landmark.camp.tarp", "count": 1},
+	]:
+		var prop_id := String(compound_prop["id"])
+		if _count_compound_prop(definition, "south_creek_logging_ford", prop_id) != int(compound_prop["count"]):
+			_fail("Logging Ford prop contract failed for '%s'." % prop_id)
+			return false
+	var ford_route := _route_by_id(definition, "south_creek_ford_choke")
+	if String(ford_route.get("role", "")) != "primary_choke" \
+			or String(ford_route.get("alternate_route_id", "")) != "south_creek_flank":
+		_fail("Logging Ford needs an exposed primary choke with a forest alternate.")
 		return false
 	if _count_compound_cover(definition, "hard") != 9:
 		_fail("Cabin Row needs nine explicit hard-cover masses.")
@@ -236,11 +283,23 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 		_fail("Central Meadow needs two close concealment shoulders.")
 		return false
 	var south_center := Vector2(20.0, -98.0)
-	if _count_obstacles_near(definition, "tree_cluster", south_center, 12.0) < 1:
-		_fail("South Creek Bend needs close physical cover.")
+	if _count_compound_cover_near(
+			definition,
+			"south_creek_logging_ford",
+			"hard",
+			south_center,
+			12.0
+		) < 4:
+		_fail("Logging Ford needs at least four hard-cover masses near its objective.")
 		return false
-	if _count_obstacles_near(definition, "bush_patch", south_center, 12.0) < 1:
-		_fail("South Creek Bend needs close concealment.")
+	if _count_compound_cover_near(
+			definition,
+			"south_creek_logging_ford",
+			"screen",
+			south_center,
+			14.0
+		) < 1:
+		_fail("Logging Ford needs close vision screening.")
 		return false
 	if int(summary.get("route_count", 0)) < 6:
 		_fail("Candidate needs at least 6 strategic route descriptors.")
@@ -266,6 +325,15 @@ func _count_prop_obstacles(definition, prop_id: String) -> int:
 	return count
 
 
+func _count_compound_prop(definition, compound_id: String, prop_id: String) -> int:
+	var count := 0
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("compound_id", "")) == compound_id \
+				and String(obstacle.get("prop_id", "")) == prop_id:
+			count += 1
+	return count
+
+
 func _obstacle_by_prop(definition, prop_id: String) -> Dictionary:
 	for obstacle in definition.get_obstacle_descriptors():
 		if String(obstacle.get("prop_id", "")) == prop_id:
@@ -282,10 +350,35 @@ func _count_named_compound_cover(definition, compound_id: String, cover_class: S
 	return count
 
 
+func _count_compound_cover_near(
+	definition,
+	compound_id: String,
+	cover_class: String,
+	center: Vector2,
+	radius: float
+) -> int:
+	var count := 0
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("compound_id", "")) != compound_id \
+				or String(obstacle.get("cover_class", "")) != cover_class:
+			continue
+		var position: Vector2 = obstacle.get("pos_2d", Vector2.INF)
+		if position.distance_to(center) <= radius:
+			count += 1
+	return count
+
+
 func _poi_by_name(definition, poi_name: String) -> Dictionary:
 	for poi in definition.get_poi_descriptors():
 		if String(poi.get("name", "")) == poi_name:
 			return poi
+	return {}
+
+
+func _route_by_id(definition, route_id: String) -> Dictionary:
+	for route in definition.get_route_descriptors():
+		if String(route.get("id", "")) == route_id:
+			return route
 	return {}
 
 

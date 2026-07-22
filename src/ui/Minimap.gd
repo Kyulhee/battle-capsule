@@ -210,7 +210,7 @@ func _draw_local_poi_labels() -> void:
 	for poi in _pois:
 		if String(poi.get("role", "")) not in ["loot_hub", "recovery_pocket"]:
 			continue
-		var label := String(poi.get("name", "")).strip_edges()
+		var label := _poi_label(poi)
 		if label.is_empty():
 			continue
 		var mini_position := world_to_minimap(_descriptor_pos_2d(poi))
@@ -234,6 +234,15 @@ func _draw_local_poi_labels() -> void:
 			11,
 			Color(0.84, 0.86, 0.80, 0.90)
 		)
+
+
+func _poi_label(poi: Dictionary) -> String:
+	var identity = poi.get("identity", null)
+	if typeof(identity) == TYPE_DICTIONARY:
+		var map_label := String(identity.get("map_label", "")).strip_edges()
+		if not map_label.is_empty():
+			return map_label
+	return String(poi.get("name", "")).strip_edges()
 
 func _poi_source() -> Array[Dictionary]:
 	if map_definition != null and map_definition.has_method("get_poi_descriptors"):

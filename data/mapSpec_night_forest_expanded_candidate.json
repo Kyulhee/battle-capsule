@@ -3,7 +3,7 @@
     "id": "night_forest_m1_candidate",
     "name": "Night Artificial Forest",
     "theme": "night_artificial_forest",
-    "version": "0.3-m1-baseline",
+    "version": "0.4-south-creek-loop",
     "world_size": 260,
     "layout": "regional_surface_bands_with_landmark_compounds_and_physical_channels",
     "default_movement_multiplier": 0.92
@@ -192,7 +192,29 @@
         { "id": "east_outer", "role": "outer", "pos": [33, 98], "jitter_radius": 2.0 }
       ]
     },
-    { "name": "South Creek Bend", "pos": [20, -98], "radius": 20, "role": "loot_hub", "item_density": 0.86, "rare_bias": 0.22 },
+    {
+      "name": "South Creek Bend",
+      "pos": [20, -98],
+      "radius": 20,
+      "role": "loot_hub",
+      "item_density": 0.86,
+      "rare_bias": 0.22,
+      "identity": {
+        "theme": "logging_ford",
+        "map_label": "Logging Ford",
+        "map_anchor": [22, -107]
+      },
+      "strategic_capacity": 6,
+      "strategic_anchors": [
+        { "id": "log_yard_objective", "role": "objective", "pos": [20, -98], "jitter_radius": 1.5 },
+        { "id": "north_road_entry", "role": "entry", "pos": [13, -79], "jitter_radius": 1.5 },
+        { "id": "west_forest_entry", "role": "entry", "pos": [-7, -99], "jitter_radius": 1.5 },
+        { "id": "east_ford_entry", "role": "entry", "pos": [48, -97], "jitter_radius": 1.5 },
+        { "id": "north_outer", "role": "outer", "pos": [5, -67], "jitter_radius": 2.0 },
+        { "id": "west_outer", "role": "outer", "pos": [-20, -103], "jitter_radius": 2.0 },
+        { "id": "east_outer", "role": "outer", "pos": [60, -94], "jitter_radius": 2.0 }
+      ]
+    },
     { "name": "West Ridge Gap", "pos": [-104, -16], "radius": 18, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.18 },
     {
       "name": "West Ridge Watch Post",
@@ -309,7 +331,7 @@
       "material_id": "ground.path_dirt",
       "movement_multiplier": 1.0,
       "travel_role": "road",
-      "points": [[-104, -16], [-89, -3], [-74, 13], [-56, 28]],
+      "points": [[-24, -34], [-47, -23], [-68, -5], [-74, 13], [-56, 28]],
       "width": 5.5
     },
     {
@@ -319,7 +341,7 @@
       "material_id": "ground.path_dirt",
       "movement_multiplier": 1.0,
       "travel_role": "road",
-      "points": [[-88, -84], [-56, -62], [-24, -34], [-4, -6], [2, 28], [0, 64], [0, 116]],
+      "points": [[20, -98], [14, -84], [2, -66], [-10, -50], [-24, -34], [-4, -6], [2, 28], [0, 64], [0, 116]],
       "width": 9.0
     },
     {
@@ -352,6 +374,37 @@
       "pos": [0, 98],
       "size": [46, 34],
       "rot": 0
+    },
+    {
+      "id": "south_creek_logging_yard",
+      "shape": "ellipse",
+      "surface": "dirt",
+      "material_id": "ground.forest_dirt",
+      "movement_multiplier": 0.94,
+      "travel_role": "settlement",
+      "pos": [20, -98],
+      "size": [46, 30],
+      "rot": -6
+    },
+    {
+      "id": "south_creek_haul_entry",
+      "shape": "path",
+      "surface": "dirt",
+      "material_id": "ground.path_dirt",
+      "movement_multiplier": 1.0,
+      "travel_role": "road",
+      "points": [[2, -66], [14, -84], [20, -98]],
+      "width": 8.0
+    },
+    {
+      "id": "south_creek_ford_track",
+      "shape": "path",
+      "surface": "dirt",
+      "material_id": "ground.path_dirt",
+      "movement_multiplier": 1.0,
+      "travel_role": "road",
+      "points": [[20, -98], [40, -98], [60, -94]],
+      "width": 6.0
     }
   ],
   "obstacles": [
@@ -387,8 +440,6 @@
     { "type": "tree_cluster", "pos": [22, 72], "scale": [5.8, 5.0, 5.2], "rot": 18, "jitter": [1.3, 1.3], "rot_jitter": 12 },
     { "type": "tree_cluster", "pos": [-11, -6], "scale": [4.8, 4.8, 4.0], "rot": 28, "jitter": [0.6, 0.6], "rot_jitter": 8 },
     { "type": "tree_cluster", "pos": [12, 7], "scale": [4.8, 4.8, 4.0], "rot": -28, "jitter": [0.6, 0.6], "rot_jitter": 8 },
-    { "type": "tree_cluster", "pos": [13, -103], "scale": [4.8, 4.8, 4.0], "rot": 18, "jitter": [0.6, 0.6], "rot_jitter": 8 },
-
     { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "west_ridge_watch_post", "compound_role": "forest_flank", "pos": [-76, 42], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 18 },
     { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "west_ridge_watch_post", "compound_role": "forest_flank", "pos": [-66, 51], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -22 },
     { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "west_ridge_watch_post", "compound_role": "forest_flank", "pos": [-57, 49], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 28 },
@@ -406,10 +457,10 @@
     { "type": "bush_patch", "pos": [-66, 0], "scale": [4.4, 1.0, 4.2], "rot": 24 },
     { "type": "bush_patch", "pos": [68, 6], "scale": [4.4, 1.0, 4.2], "rot": -24 },
     { "type": "bush_patch", "pos": [-10, 70], "scale": [4.2, 1.0, 4.0], "rot": 10 },
-    { "type": "bush_patch", "pos": [12, -76], "scale": [4.2, 1.0, 4.0], "rot": -10 },
+    { "type": "bush_patch", "pos": [-4, -82], "scale": [4.2, 1.0, 4.0], "rot": -10 },
     { "type": "bush_patch", "pos": [-5, 9], "scale": [3.8, 1.0, 3.4], "rot": 18 },
     { "type": "bush_patch", "pos": [6, -10], "scale": [3.8, 1.0, 3.4], "rot": -18 },
-    { "type": "bush_patch", "pos": [14, -88], "scale": [3.8, 1.0, 3.4], "rot": 12 },
+    { "type": "bush_patch", "pos": [52, -108], "scale": [3.8, 1.0, 3.4], "rot": 12 },
     { "type": "bush_patch", "compound_id": "west_ridge_watch_post", "compound_role": "forest_flank", "pos": [-75, 35], "scale": [2.4, 0.8, 2.2], "rot": 24 },
     { "type": "bush_patch", "compound_id": "west_ridge_watch_post", "compound_role": "forest_flank", "pos": [-59, 42], "scale": [2.2, 0.8, 2.0], "rot": -18 },
 
@@ -418,7 +469,6 @@
     { "type": "ridge_rock", "prop_id": "forest.rock.large", "cover_class": "hard", "compound_id": "west_ridge_watch_post", "compound_role": "ridge_cover", "pos": [-65, 24], "scale": [2.50, 1.50, 2.00], "visual_scale": [1.0, 1.0, 1.0], "rot": 12, "map_size": [5.9, 4.4] },
     { "type": "rock_cluster", "pos": [66, -10], "scale": [3.8, 3.2, 3.5], "rot": 18, "jitter": [0.8, 0.8], "rot_jitter": 14 },
     { "type": "rock_cluster", "pos": [-28, 92], "scale": [3.6, 3.0, 3.4], "rot": 12, "jitter": [0.8, 0.8], "rot_jitter": 14 },
-    { "type": "rock_cluster", "pos": [30, -98], "scale": [3.6, 3.0, 3.4], "rot": -12, "jitter": [0.8, 0.8], "rot_jitter": 14 },
     { "type": "rock_cluster", "pos": [-72, -46], "scale": [3.8, 3.2, 3.4], "rot": 28, "jitter": [0.8, 0.8], "rot_jitter": 14 },
     { "type": "rock_cluster", "pos": [78, 58], "scale": [3.8, 3.2, 3.4], "rot": -28, "jitter": [0.8, 0.8], "rot_jitter": 14 },
     { "type": "rock_cluster", "pos": [-6, -48], "scale": [3.5, 3.0, 3.2], "rot": -8, "jitter": [0.8, 0.8], "rot_jitter": 14 },
@@ -426,8 +476,6 @@
 
     { "type": "log_pile", "pos": [0, 84], "scale": [5.2, 1.4, 1.6], "rot": 22 },
     { "type": "log_pile", "pos": [20, 104], "scale": [4.8, 1.4, 1.6], "rot": -34 },
-    { "type": "log_pile", "pos": [-18, -100], "scale": [5.2, 1.4, 1.6], "rot": 30 },
-    { "type": "log_pile", "pos": [38, -90], "scale": [4.8, 1.4, 1.6], "rot": -28 },
     { "type": "log_pile", "pos": [-24, 8], "scale": [5.0, 1.4, 1.6], "rot": 12 },
     { "type": "log_pile", "pos": [28, -2], "scale": [5.0, 1.4, 1.6], "rot": -12 },
     { "type": "log_pile", "pos": [-78, 30], "scale": [4.8, 1.4, 1.6], "rot": 58 },
@@ -441,6 +489,24 @@
     { "type": "log_pile", "prop_id": "forest.log.pile", "cover_class": "hard", "compound_id": "west_ridge_watch_post", "compound_role": "camp_cover", "pos": [-48, 38], "scale": [1.30, 0.55, 0.90], "visual_scale": [1.0, 1.0, 1.0], "rot": 28, "map_size": [2.6, 1.8] },
     { "type": "ridge_rock", "prop_id": "forest.rock.large", "cover_class": "hard", "compound_id": "west_ridge_watch_post", "compound_role": "ridge_cover", "pos": [-47, 16], "scale": [2.05, 1.25, 1.65], "visual_scale": [0.82, 0.82, 0.82], "rot": -22, "map_size": [4.8, 3.6] },
     { "type": "camp_crate", "prop_id": "landmark.crate", "cover_class": "soft", "compound_id": "west_ridge_watch_post", "compound_role": "camp_supply", "pos": [-52, 25], "scale": [0.69, 0.69, 0.69], "visual_scale": [1.0, 1.0, 1.0], "rot": -12, "map_size": [1.38, 1.38] },
+
+    { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "south_creek_logging_ford", "compound_role": "forest_flank", "entry_id": "west", "pos": [-9, -110], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 18 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "south_creek_logging_ford", "compound_role": "forest_flank", "entry_id": "west", "pos": [-10, -88], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -22 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "south_creek_logging_ford", "compound_role": "ford_shoulder", "entry_id": "east", "pos": [48, -111], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 26 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "south_creek_logging_ford", "compound_role": "ford_shoulder", "entry_id": "east", "pos": [50, -84], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -28 },
+    { "type": "camp_tarp", "prop_id": "landmark.camp.tarp", "cover_class": "screen", "compound_id": "south_creek_logging_ford", "compound_role": "yard_landmark", "pos": [20, -109], "scale": [2.30, 1.25, 1.90], "visual_scale": [1.0, 1.0, 1.0], "rot": 4, "map_size": [4.6, 3.8] },
+
+    { "type": "ridge_rock", "prop_id": "forest.rock.large", "cover_class": "hard", "compound_id": "south_creek_logging_ford", "compound_role": "ford_shoulder", "entry_id": "east", "pos": [34, -104], "scale": [2.15, 1.35, 1.75], "visual_scale": [0.88, 0.88, 0.88], "rot": 18, "map_size": [5.0, 3.8] },
+    { "type": "ridge_rock", "prop_id": "forest.rock.large", "cover_class": "hard", "compound_id": "south_creek_logging_ford", "compound_role": "ford_shoulder", "entry_id": "east", "pos": [35, -92], "scale": [2.05, 1.30, 1.65], "visual_scale": [0.84, 0.84, 0.84], "rot": -16, "map_size": [4.8, 3.6] },
+    { "type": "fallen_tree", "prop_id": "forest.fallen.tree", "cover_class": "hard", "compound_id": "south_creek_logging_ford", "compound_role": "ford_shoulder", "entry_id": "east", "pos": [29, -106], "scale": [2.80, 0.60, 0.65], "visual_scale": [1.0, 1.0, 1.0], "rot": 8, "map_size": [5.6, 1.3] },
+    { "type": "fallen_tree", "prop_id": "forest.fallen.tree", "cover_class": "hard", "compound_id": "south_creek_logging_ford", "compound_role": "ford_shoulder", "entry_id": "east", "pos": [30, -90], "scale": [2.80, 0.60, 0.65], "visual_scale": [1.0, 1.0, 1.0], "rot": -10, "map_size": [5.6, 1.3] },
+    { "type": "log_pile", "prop_id": "forest.log.pile", "cover_class": "hard", "compound_id": "south_creek_logging_ford", "compound_role": "yard_stack", "pos": [11, -105], "scale": [1.65, 0.62, 0.95], "visual_scale": [1.15, 1.15, 1.15], "rot": 18, "map_size": [3.3, 1.9] },
+    { "type": "log_pile", "prop_id": "forest.log.pile", "cover_class": "hard", "compound_id": "south_creek_logging_ford", "compound_role": "yard_stack", "pos": [11, -91], "scale": [1.65, 0.62, 0.95], "visual_scale": [1.15, 1.15, 1.15], "rot": -16, "map_size": [3.3, 1.9] },
+    { "type": "log_pile", "prop_id": "forest.log.pile", "cover_class": "hard", "compound_id": "south_creek_logging_ford", "compound_role": "yard_stack", "pos": [26, -104], "scale": [1.45, 0.58, 0.90], "visual_scale": [1.0, 1.0, 1.0], "rot": -8, "map_size": [2.9, 1.8] },
+    { "type": "log_pile", "prop_id": "forest.log.pile", "cover_class": "hard", "compound_id": "south_creek_logging_ford", "compound_role": "yard_stack", "pos": [26, -92], "scale": [1.45, 0.58, 0.90], "visual_scale": [1.0, 1.0, 1.0], "rot": 10, "map_size": [2.9, 1.8] },
+    { "type": "camp_crate", "prop_id": "landmark.crate", "cover_class": "soft", "compound_id": "south_creek_logging_ford", "compound_role": "yard_supply", "pos": [16, -104], "scale": [0.58, 0.68, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": 12, "map_size": [1.15, 1.0] },
+    { "type": "camp_crate", "prop_id": "landmark.crate", "cover_class": "soft", "compound_id": "south_creek_logging_ford", "compound_role": "yard_supply", "pos": [19, -104], "scale": [0.58, 0.68, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": -18, "map_size": [1.15, 1.0] },
+    { "type": "barrel_cluster", "prop_id": "landmark.barrels", "cover_class": "soft", "compound_id": "south_creek_logging_ford", "compound_role": "yard_supply", "pos": [23, -105], "scale": [0.89, 0.39, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": 8, "map_size": [1.78, 1.0] },
 
     { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "cabin_row", "compound_role": "outer_screen", "pos": [-38, 88], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 12 },
     { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "cabin_row", "compound_role": "outer_screen", "pos": [-32, 115], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -24 },
@@ -493,11 +559,21 @@
       "id": "central_meadow_cross",
       "name": "Central Meadow Cross",
       "role": "loot_flow",
-      "points": [[20, -98], [8, -56], [0, 0], [-4, 52], [0, 96]],
+      "points": [[13, -79], [8, -56], [0, 0], [-4, 52], [0, 96]],
       "width": 14.0,
       "connects": ["South Creek Bend", "Central Meadow", "Cabin Row"],
       "alternate_route_id": "north_slope_flank",
       "strategic_value": "low_density_center_between_outer_loot"
+    },
+    {
+      "id": "south_creek_ford_choke",
+      "name": "South Creek Ford",
+      "role": "primary_choke",
+      "points": [[-20, -103], [-7, -100], [20, -98], [40, -98], [60, -94]],
+      "width": 9.0,
+      "connects": ["Southwest Brush", "South Creek Bend", "Southeast Brush"],
+      "alternate_route_id": "south_creek_flank",
+      "strategic_value": "logging_loot_gate_with_exposed_ford"
     },
     {
       "id": "north_slope_flank",
