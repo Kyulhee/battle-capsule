@@ -73,10 +73,34 @@
           "inner_radius": 8.0
         },
         "loot": {
-          "stage_wave_base_prob": 0.08,
-          "stage_wave_prob_per_stage": 0.08,
-          "stage_wave_count_mult": 8,
-          "hotspot_density_mult": 1.10
+          "stage_wave_base_prob": 0.045,
+          "stage_wave_prob_per_stage": 0.055,
+          "stage_wave_count_mult": 6,
+          "hotspot_density_mult": 1.04,
+          "rare_bias_mult": 1.15,
+          "initial_non_pistol_weapon_weight_mult": 0.0,
+          "role_weapon_chance_mult": {
+            "concealment_field": 0.55,
+            "loot_hub": 0.75
+          }
+        },
+        "combat": {
+          "bot_vs_bot_damage_mult": 0.55
+        },
+        "bot": {
+          "stage1_inside_zone_escape_release_ratio": 0.90
+        }
+      },
+      "zone": {
+        "initial_timer": 190.0,
+        "wait_time": 190.0,
+        "shrink_time": 70.0,
+        "damage_per_second": 1.0,
+        "stages": {
+          "2": { "wait_time": 180.0, "shrink_time": 100.0, "damage_per_second": 1.5 },
+          "3": { "wait_time": 80.0, "shrink_time": 55.0, "damage_per_second": 3.0 },
+          "4": { "wait_time": 55.0, "shrink_time": 40.0, "damage_per_second": 10.0 },
+          "5": { "wait_time": 55.0, "shrink_time": 40.0, "damage_per_second": 12.0 }
         }
       }
     },
@@ -92,10 +116,34 @@
           "inner_radius": 8.0
         },
         "loot": {
-          "stage_wave_base_prob": 0.08,
-          "stage_wave_prob_per_stage": 0.08,
-          "stage_wave_count_mult": 8,
-          "hotspot_density_mult": 1.10
+          "stage_wave_base_prob": 0.045,
+          "stage_wave_prob_per_stage": 0.055,
+          "stage_wave_count_mult": 6,
+          "hotspot_density_mult": 1.04,
+          "rare_bias_mult": 1.15,
+          "initial_non_pistol_weapon_weight_mult": 0.0,
+          "role_weapon_chance_mult": {
+            "concealment_field": 0.55,
+            "loot_hub": 0.75
+          }
+        },
+        "combat": {
+          "bot_vs_bot_damage_mult": 0.55
+        },
+        "bot": {
+          "stage1_inside_zone_escape_release_ratio": 0.90
+        }
+      },
+      "zone": {
+        "initial_timer": 190.0,
+        "wait_time": 190.0,
+        "shrink_time": 70.0,
+        "damage_per_second": 1.0,
+        "stages": {
+          "2": { "wait_time": 180.0, "shrink_time": 100.0, "damage_per_second": 1.5 },
+          "3": { "wait_time": 80.0, "shrink_time": 55.0, "damage_per_second": 3.0 },
+          "4": { "wait_time": 55.0, "shrink_time": 40.0, "damage_per_second": 10.0 },
+          "5": { "wait_time": 55.0, "shrink_time": 40.0, "damage_per_second": 12.0 }
         }
       }
     },

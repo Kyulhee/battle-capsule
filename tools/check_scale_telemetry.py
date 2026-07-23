@@ -57,6 +57,7 @@ def main() -> int:
     parser.add_argument("run_dir", nargs="?", default="tools/sim_runs_current")
     parser.add_argument("--min-runs", type=int, default=5)
     parser.add_argument("--min-avg-duration", type=float, default=70.0)
+    parser.add_argument("--max-avg-duration", type=float, default=-1.0)
     parser.add_argument("--min-run-duration", type=float, default=-1.0)
     parser.add_argument("--max-run-duration", type=float, default=-1.0)
     parser.add_argument("--max-runs-under-60", type=int, default=0)
@@ -104,6 +105,8 @@ def main() -> int:
     failures: list[str] = []
     if avg(durations) < args.min_avg_duration:
         failures.append(f"avg duration {avg(durations):.1f}s < {args.min_avg_duration:.1f}s")
+    if args.max_avg_duration >= 0.0 and avg(durations) > args.max_avg_duration:
+        failures.append(f"avg duration {avg(durations):.1f}s > {args.max_avg_duration:.1f}s")
     if args.min_run_duration >= 0.0:
         short_runs = [idx + 1 for idx, duration in enumerate(durations) if duration < args.min_run_duration]
         if short_runs:

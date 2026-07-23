@@ -60,7 +60,13 @@ def py_compile(paths: list[str]) -> Step:
     return Step("python py_compile", [sys.executable, "-m", "py_compile", *[rel(path) for path in paths]])
 
 
-def simulate_step(runs: int, preset: str, out_dir: Path, map_spec: str = LEGACY_NIGHT_MAP_SPEC) -> Step:
+def simulate_step(
+    runs: int,
+    preset: str,
+    out_dir: Path,
+    map_spec: str = LEGACY_NIGHT_MAP_SPEC,
+    timeout_seconds: int = 300,
+) -> Step:
     return Step(
         f"simulate {preset} x{runs}",
         [
@@ -70,6 +76,7 @@ def simulate_step(runs: int, preset: str, out_dir: Path, map_spec: str = LEGACY_
             f"map_spec_path={map_spec}",
             f"scale_preset={preset}",
             f"out_dir={out_dir}",
+            f"timeout_seconds={timeout_seconds}",
         ],
     )
 
@@ -81,6 +88,7 @@ def pacing_steps(
     runs: int,
     out_root: Path,
     min_avg_duration: float | None = None,
+    max_avg_duration: float | None = None,
     min_run_duration: float | None = None,
     max_run_duration: float | None = None,
     min_avg_first_upgrade: float = 10.0,
@@ -99,6 +107,8 @@ def pacing_steps(
     ]
     if min_avg_duration is not None:
         scale_gate_args.extend(["--min-avg-duration", f"{min_avg_duration:.1f}"])
+    if max_avg_duration is not None:
+        scale_gate_args.extend(["--max-avg-duration", f"{max_avg_duration:.1f}"])
     if min_run_duration is not None:
         scale_gate_args.extend(["--min-run-duration", f"{min_run_duration:.1f}"])
     if max_run_duration is not None:
@@ -107,7 +117,7 @@ def pacing_steps(
         scale_gate_args.extend(["--max-missing-first-upgrade", str(max_missing_first_upgrade)])
     return [
         *profile_steps("unit_smoke", godot, runs, out_root),
-        simulate_step(runs, preset, out_dir, map_spec),
+        simulate_step(runs, preset, out_dir, map_spec, 600),
         Step(f"analyze {label}", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
         Step(f"summarize {label}", [sys.executable, rel("tools/summarize_pacing_baseline.py"), str(out_dir)]),
         Step(f"scale gate {label}", scale_gate_args),
@@ -314,17 +324,18 @@ def profile_steps(
         if runs < 5:
             raise ValueError("pacing_candidate requires at least 5 runs because fixed RNG seeds are not physics-deterministic.")
         return pacing_steps(
-            "pacing_candidate",
-            pacing_preset,
-            godot,
-            runs,
-            out_root,
-            540.0,
-            None,
-            None,
-            120.0,
-            0,
-            map_spec_path,
+            label="pacing_candidate",
+            preset=pacing_preset,
+            godot=godot,
+            runs=runs,
+            out_root=out_root,
+            min_avg_duration=600.0,
+            max_avg_duration=900.0,
+            min_run_duration=480.0,
+            max_run_duration=960.0,
+            min_avg_first_upgrade=120.0,
+            max_missing_first_upgrade=0,
+            map_spec=map_spec_path,
         )
 
     if profile == "scale_99":

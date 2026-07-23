@@ -11,6 +11,8 @@ NUM_MATCHES = int(sys.argv[1]) if len(sys.argv) > 1 else 20
 DIFFICULTY = ""
 EXTRA_ARGS = []
 OUT_DIR = Path("tools") / "sim_runs_current"
+timeout_env = os.environ.get("GAME_DEV_SIM_TIMEOUT_SECONDS", "")
+TIMEOUT_PER_MATCH = float(timeout_env) if timeout_env else 300.0
 seed_base_env = os.environ.get("GAME_DEV_SIM_SEED_BASE", "")
 SEED_BASE = int(seed_base_env) if seed_base_env else int.from_bytes(os.urandom(4), "little") & 0x7FFFFFFF
 for raw_arg in sys.argv[2:]:
@@ -18,13 +20,14 @@ for raw_arg in sys.argv[2:]:
         OUT_DIR = Path(raw_arg.split("=", 1)[1])
     elif raw_arg.startswith("seed_base="):
         SEED_BASE = int(raw_arg.split("=", 1)[1])
+    elif raw_arg.startswith("timeout_seconds="):
+        TIMEOUT_PER_MATCH = max(1.0, float(raw_arg.split("=", 1)[1]))
     elif "=" in raw_arg:
         EXTRA_ARGS.append(raw_arg)
     elif not DIFFICULTY:
         DIFFICULTY = raw_arg
     else:
         EXTRA_ARGS.append(raw_arg)
-TIMEOUT_PER_MATCH = 300
 
 APPDATA = Path(os.environ.get("APPDATA", ""))
 SIM_RESULT_PATH = APPDATA / "Godot" / "app_userdata" / "BattleRoyalePrototype" / "sim_result_latest.json"
@@ -41,15 +44,23 @@ def run_match(match_id: int) -> dict:
         cmd.append(f"difficulty={DIFFICULTY}")
     cmd.extend(EXTRA_ARGS)
     cmd.append(f"simulation_seed={simulation_seed}")
-    proc = subprocess.run(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        timeout=TIMEOUT_PER_MATCH,
-    )
+    try:
+        proc = subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=TIMEOUT_PER_MATCH,
+        )
+    except subprocess.TimeoutExpired as exc:
+        output = exc.stdout or ""
+        if isinstance(output, bytes):
+            output = output.decode("utf-8", errors="replace")
+        raise RuntimeError(
+            f"Godot match exceeded {TIMEOUT_PER_MATCH:.0f}s wall-clock timeout.\n{output[-4000:]}"
+        ) from exc
     if proc.returncode != 0:
         raise RuntimeError(f"Godot exited with code {proc.returncode}\n{proc.stdout[-4000:]}")
     for line in proc.stdout.splitlines():

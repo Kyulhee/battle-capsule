@@ -62,6 +62,10 @@ func _source_metrics(definition, game_config, runtime_tuning_script, preset_name
 	var match_tuning: Dictionary = definition.get_match_tuning(game_config, {}, preset_name)
 	var runtime_tuning: Dictionary = definition.get_runtime_tuning(game_config, {}, preset_name)
 	var spawn_tuning: Dictionary = runtime_tuning_script.spawn(runtime_tuning)
+	var loot_tuning: Dictionary = runtime_tuning_script.loot(runtime_tuning)
+	var combat_tuning: Dictionary = runtime_tuning_script.combat(runtime_tuning)
+	var bot_tuning: Dictionary = runtime_tuning_script.bot(runtime_tuning)
+	var zone_tuning: Dictionary = definition.get_zone_tuning(game_config, {}, preset_name)
 	var world_size := float(definition.get_world_size())
 	var spawn_radius := float(match_tuning.get("spawn_radius", 0.0))
 	var inner_radius := float(spawn_tuning.get("inner_radius", 0.0))
@@ -75,6 +79,10 @@ func _source_metrics(definition, game_config, runtime_tuning_script, preset_name
 		"entity_clearance": clearance,
 		"safe_spawn_attempts": int(spawn_tuning.get("safe_spawn_attempts", 0)),
 		"boundary_margin": world_size * 0.5 - spawn_radius - clearance,
+		"loot": loot_tuning,
+		"combat": combat_tuning,
+		"bot": bot_tuning,
+		"zone": zone_tuning,
 		"target_saturation": 0.0,
 	}
 
@@ -115,6 +123,35 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 		return false
 	if target_saturation > target_saturation_limit:
 		_fail("Candidate target saturation %.3f exceeds %.3f." % [target_saturation, target_saturation_limit])
+		return false
+	var loot_tuning: Dictionary = source.get("loot", {})
+	if not is_equal_approx(float(loot_tuning.get("stage_wave_base_prob", 0.0)), 0.045) \
+			or not is_equal_approx(float(loot_tuning.get("stage_wave_prob_per_stage", 0.0)), 0.055) \
+			or int(loot_tuning.get("stage_wave_count_mult", 0)) != 6 \
+			or not is_zero_approx(float(loot_tuning.get("initial_non_pistol_weapon_weight_mult", 1.0))):
+		_fail("M1 loot pacing must preserve delayed initial upgrades and bounded stage waves.")
+		return false
+	var combat_tuning: Dictionary = source.get("combat", {})
+	if not is_equal_approx(float(combat_tuning.get("bot_vs_bot_damage_mult", 1.0)), 0.55):
+		_fail("M1 bot-vs-bot damage must preserve the bounded duration candidate.")
+		return false
+	var bot_tuning: Dictionary = source.get("bot", {})
+	if not is_equal_approx(
+		float(bot_tuning.get("stage1_inside_zone_escape_release_ratio", 0.0)),
+		0.90
+	):
+		_fail("M1 bots must preserve early inside-zone return pressure.")
+		return false
+	var zone_tuning: Dictionary = source.get("zone", {})
+	var zone_stages: Dictionary = zone_tuning.get("stages", {})
+	var stage2_tuning: Dictionary = zone_stages.get("2", {})
+	var stage2_time := float(zone_tuning.get("initial_timer", 0.0)) \
+		+ float(zone_tuning.get("shrink_time", 0.0))
+	var stage3_time := stage2_time \
+		+ float(stage2_tuning.get("wait_time", 0.0)) \
+		+ float(stage2_tuning.get("shrink_time", 0.0))
+	if not is_equal_approx(stage2_time, 260.0) or not is_equal_approx(stage3_time, 540.0):
+		_fail("M1 zone schedule must reach stage 2 at 260s and stage 3 at 540s.")
 		return false
 	if int(summary.get("poi_count", 0)) < 10:
 		_fail("Candidate needs at least 10 POIs.")
