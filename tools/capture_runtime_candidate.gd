@@ -2,6 +2,7 @@ extends SceneTree
 
 
 const DEFAULT_OUTPUT_PATH := "C:/tmp/runtime_candidate.png"
+const ITEM_CATALOG = preload("res://src/core/ItemResourceCatalog.gd")
 
 
 func _init() -> void:
@@ -29,6 +30,10 @@ func _capture() -> void:
 	if capture_position.is_finite() and is_instance_valid(main.player_ref):
 		main.player_ref.global_position = Vector3(capture_position.x, 0.5, capture_position.y)
 		main.player_ref.velocity = Vector3.ZERO
+	if bool(options["equip_armor"]) \
+			and is_instance_valid(main.player_ref) \
+			and main.player_ref.has_method("receive_armor_equipment"):
+		main.player_ref.receive_armor_equipment(ITEM_CATALOG.BALLISTIC_VEST)
 	await create_timer(float(options["settle_seconds"])).timeout
 	await process_frame
 	await process_frame
@@ -54,6 +59,7 @@ func _capture_options() -> Dictionary:
 		"output_path": DEFAULT_OUTPUT_PATH,
 		"player_position": Vector2.INF,
 		"settle_seconds": 4.0,
+		"equip_armor": false,
 	}
 	for arg in OS.get_cmdline_user_args():
 		var value := String(arg)
@@ -71,4 +77,6 @@ func _capture_options() -> Dictionary:
 				0.0,
 				float(value.trim_prefix("capture_settle_seconds="))
 			)
+		elif value.begins_with("capture_equip_armor="):
+			options["equip_armor"] = value.trim_prefix("capture_equip_armor=") == "true"
 	return options

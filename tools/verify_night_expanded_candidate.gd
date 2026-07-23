@@ -129,7 +129,17 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 			or not is_equal_approx(float(loot_tuning.get("stage_wave_prob_per_stage", 0.0)), 0.055) \
 			or int(loot_tuning.get("stage_wave_count_mult", 0)) != 6 \
 			or not is_zero_approx(float(loot_tuning.get("initial_non_pistol_weapon_weight_mult", 1.0))):
-		_fail("M1 loot pacing must preserve delayed initial upgrades and bounded stage waves.")
+		_fail("M1 loot pacing must preserve bounded stage waves and disable legacy global initial weighting.")
+		return false
+	var initial_weapon_chance: Dictionary = loot_tuning.get("role_initial_weapon_chance", {})
+	var initial_weapon_pool: Dictionary = loot_tuning.get("role_initial_weapon_pool", {})
+	var initial_equipment_chance: Dictionary = loot_tuning.get("role_initial_equipment_chance", {})
+	if not is_equal_approx(float(initial_weapon_chance.get("loot_hub", 0.0)), 0.65) \
+			or not is_equal_approx(float(initial_weapon_chance.get("transit_choke", 0.0)), 0.40) \
+			or String(initial_weapon_pool.get("loot_hub", "")) != "field" \
+			or String(initial_weapon_pool.get("concealment_field", "")) != "scavenged" \
+			or not is_equal_approx(float(initial_equipment_chance.get("loot_hub", 0.0)), 0.34):
+		_fail("M1 loot roles must separate contested field gear from scavenged outer gear.")
 		return false
 	var combat_tuning: Dictionary = source.get("combat", {})
 	if not is_equal_approx(float(combat_tuning.get("bot_vs_bot_damage_mult", 1.0)), 0.55):

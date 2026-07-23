@@ -28,6 +28,7 @@ static func spawn_initial_loot(
 	loot_spawner,
 	weapon_templates: Array,
 	consumable_templates: Array,
+	equipment_templates: Array,
 	random_position: Callable
 ) -> int:
 	if not pickup_scene or not loot_parent or not loot_spawner or hotspots.is_empty():
@@ -37,10 +38,26 @@ static func spawn_initial_loot(
 		var weapon_chance = loot_spawner.initial_weapon_chance(hotspot)
 		if not weapon_templates.is_empty() and randf() < weapon_chance:
 			var weapon_pos = _call_random_position(random_position, hotspot)
-			var weapon_template = loot_spawner.choose_initial_weapon_template(weapon_templates) if loot_spawner.has_method("choose_initial_weapon_template") else _random_item(weapon_templates)
+			var weapon_template = loot_spawner.choose_initial_weapon_template(
+				weapon_templates,
+				hotspot
+			) if loot_spawner.has_method("choose_initial_weapon_template") else _random_item(weapon_templates)
 			if weapon_template:
 				_spawn_pickup(pickup_scene, loot_parent, Vector3(weapon_pos.x, 0.5, weapon_pos.y), weapon_template, true, "initial_loot")
 				spawned += 1
+		var equipment_chance = loot_spawner.initial_equipment_chance(hotspot) \
+			if loot_spawner.has_method("initial_equipment_chance") else 0.0
+		if not equipment_templates.is_empty() and randf() < equipment_chance:
+			var equipment_pos = _call_random_position(random_position, hotspot)
+			_spawn_pickup(
+				pickup_scene,
+				loot_parent,
+				Vector3(equipment_pos.x, 0.5, equipment_pos.y),
+				_random_item(equipment_templates),
+				true,
+				"initial_loot"
+			)
+			spawned += 1
 		var consumable_count = loot_spawner.initial_consumable_count(hotspot)
 		for _i in range(consumable_count):
 			if consumable_templates.is_empty():
@@ -70,7 +87,9 @@ static func spawn_loot_wave(
 		var spawn_pos = _call_random_position(random_position, hotspot)
 		var weapon_chance = loot_spawner.wave_weapon_chance(hotspot) if loot_spawner and loot_spawner.has_method("wave_weapon_chance") else float(hotspot.get("rare_bias", 0.0))
 		var use_weapon = randf() < weapon_chance and not weapon_templates.is_empty()
-		var template = _random_item(weapon_templates if use_weapon else item_templates)
+		var template = loot_spawner.choose_wave_weapon_template(weapon_templates) \
+			if use_weapon and loot_spawner and loot_spawner.has_method("choose_wave_weapon_template") \
+			else _random_item(weapon_templates if use_weapon else item_templates)
 		if not template:
 			continue
 		_spawn_pickup(pickup_scene, loot_parent, Vector3(spawn_pos.x, 0.5, spawn_pos.y), template, use_weapon, "stage_wave")

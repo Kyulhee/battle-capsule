@@ -3,24 +3,22 @@
 [ext_resource type="Script" path="res://src/core/StatsData.gd" id="1_stats"]
 [ext_resource type="Script" path="res://src/core/ItemData.gd" id="2_item"]
 
-[sub_resource type="Resource" id="Resource_ar"]
+[sub_resource type="Resource" id="Resource_ar_worn"]
 script = ExtResource("1_stats")
-move_speed = 5.0
-rotation_speed = 12.0
-attack_damage = 15.0
-fire_rate = 0.15
-attack_range = 20.0
+attack_damage = 12.0
+fire_rate = 0.18
+attack_range = 18.0
 weapon_type = "ar"
-weapon_tier = 2
+weapon_tier = 1
 pellet_count = 1
-current_ammo = 10
-max_ammo = 30
+current_ammo = 8
+max_ammo = 24
 
 [resource]
 script = ExtResource("2_item")
 type = 0
-rarity = 1
-item_name = "돌격소총"
+rarity = 0
+item_name = "노후 돌격소총"
 amount = 1
-weapon_stats = SubResource("Resource_ar")
-color = Color(0.2, 0.4, 1, 1) # Blue
+weapon_stats = SubResource("Resource_ar_worn")
+color = Color(0.48, 0.55, 0.42, 1)

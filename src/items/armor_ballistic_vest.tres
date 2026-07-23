@@ -1,10 +1,15 @@
 [gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+
 [ext_resource type="Script" path="res://src/core/ItemData.gd" id="1_item"]
 
 [resource]
 script = ExtResource("1_item")
 type = 3
 rarity = 1
-item_name = "실드 충전"
-amount = 20
-color = Color(0, 0.8, 1, 1)
+item_name = "방탄 조끼"
+amount = 0
+equipment_id = "ballistic_vest"
+equipment_tier = 1
+damage_reduction = 0.15
+movement_multiplier = 0.96
+color = Color(0.42, 0.52, 0.28, 1)

@@ -14,6 +14,7 @@ fire_rate = 2.8
 attack_range = 60.0
 vision_range = 40.0
 weapon_type = "railgun"
+weapon_tier = 3
 pellet_count = 1
 current_ammo = 1
 max_ammo = 2

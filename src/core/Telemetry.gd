@@ -1469,8 +1469,8 @@ func _norm_weapon(w: String) -> String:
 	var n = w.to_lower().strip_edges()
 	match n:
 		"pistol", "피스톨": return "pistol"
-		"ar", "assault rifle", "assault_rifle", "돌격소총", "소총": return "ar"
-		"shotgun", "샷건": return "shotgun"
+		"ar", "assault rifle", "assault_rifle", "돌격소총", "노후 돌격소총", "소총": return "ar"
+		"shotgun", "샷건", "낡은 산탄총": return "shotgun"
 		"railgun", "rail gun", "레일건": return "railgun"
 		"knife", "melee", "칼": return "knife"
 		_: return n

@@ -82,6 +82,24 @@
           "role_weapon_chance_mult": {
             "concealment_field": 0.55,
             "loot_hub": 0.75
+          },
+          "role_initial_weapon_chance": {
+            "loot_hub": 0.65,
+            "transit_choke": 0.40,
+            "recovery_pocket": 0.24,
+            "concealment_field": 0.18
+          },
+          "role_initial_weapon_pool": {
+            "loot_hub": "field",
+            "transit_choke": "field",
+            "recovery_pocket": "scavenged",
+            "concealment_field": "scavenged"
+          },
+          "role_initial_equipment_chance": {
+            "loot_hub": 0.34,
+            "transit_choke": 0.18,
+            "recovery_pocket": 0.10,
+            "concealment_field": 0.06
           }
         },
         "combat": {
@@ -125,6 +143,24 @@
           "role_weapon_chance_mult": {
             "concealment_field": 0.55,
             "loot_hub": 0.75
+          },
+          "role_initial_weapon_chance": {
+            "loot_hub": 0.65,
+            "transit_choke": 0.40,
+            "recovery_pocket": 0.24,
+            "concealment_field": 0.18
+          },
+          "role_initial_weapon_pool": {
+            "loot_hub": "field",
+            "transit_choke": "field",
+            "recovery_pocket": "scavenged",
+            "concealment_field": "scavenged"
+          },
+          "role_initial_equipment_chance": {
+            "loot_hub": 0.34,
+            "transit_choke": 0.18,
+            "recovery_pocket": 0.10,
+            "concealment_field": 0.06
           }
         },
         "combat": {

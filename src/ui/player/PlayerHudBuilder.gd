@@ -1,5 +1,7 @@
 extends RefCounted
 
+const ARMOR_ICON: Texture2D = preload("res://assets/icons/items/armor.png")
+
 static func build_top_hud(root: Control) -> Dictionary:
 	var zone_timer_label = Label.new()
 	zone_timer_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -183,6 +185,7 @@ static func build_status_hud(root: Control) -> Dictionary:
 
 	var stat_heal_val = _stat_pair(stat_row, "♥", Color(0.95, 0.25, 0.25))
 	var stat_mk_val = _stat_pair(stat_row, "◆", Color(1.0, 0.85, 0.1))
+	var stat_armor_val = _stat_pair_icon(stat_row, ARMOR_ICON, Color(0.64, 0.76, 0.42))
 	var sp1 = Label.new()
 	sp1.text = "  "
 	stat_row.add_child(sp1)
@@ -203,6 +206,7 @@ static func build_status_hud(root: Control) -> Dictionary:
 		"artifact_label": artifact_label,
 		"stat_heal_val": stat_heal_val,
 		"stat_mk_val": stat_mk_val,
+		"stat_armor_val": stat_armor_val,
 		"stat_kill_val": stat_kill_val,
 		"stat_asst_val": stat_asst_val,
 		"stat_alive_val": stat_alive_val,
@@ -291,7 +295,7 @@ static func _stat_pair(container: HBoxContainer, symbol: String, col: Color) -> 
 	container.add_child(val)
 	return val
 
-static func _stat_pair_icon(container: HBoxContainer, icon_tex: ImageTexture, col: Color) -> Label:
+static func _stat_pair_icon(container: HBoxContainer, icon_tex: Texture2D, col: Color) -> Label:
 	var icon = TextureRect.new()
 	icon.texture = icon_tex
 	icon.custom_minimum_size = Vector2(14, 14)

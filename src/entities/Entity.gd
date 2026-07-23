@@ -28,6 +28,10 @@ var kill_streak: int = 0
 
 var current_health: float = 0.0
 var current_shield: float = 0.0
+var equipped_armor_id: String = ""
+var equipped_armor_tier: int = 0
+var armor_damage_reduction: float = 0.0
+var armor_movement_multiplier: float = 1.0
 var is_dead: bool = false
 var last_damage_source: String = "unknown"
 var last_damage_weapon: String = ""
@@ -63,7 +67,7 @@ func _ready():
 	if stats:
 		stats = stats.duplicate()
 		current_health = stats.max_health
-		current_shield = 0.0  # No starting shield — must be gained from armor pickups
+		current_shield = 0.0  # No starting shield; shield charges are found as loot.
 		emit_signal("health_changed", current_health, stats.max_health)
 		emit_signal("shield_changed", current_shield, stats.max_shield)
 	add_to_group("actors")
@@ -314,7 +318,9 @@ func _clean_bush_areas() -> void:
 func handle_movement(direction: Vector3, delta: float, should_rotate: bool = true):
 	if is_dead: return
 	if direction.length() > 0.01:
-		var effective_speed := stats.move_speed * get_surface_movement_multiplier()
+		var effective_speed := stats.move_speed \
+			* get_equipment_movement_multiplier() \
+			* get_surface_movement_multiplier()
 		velocity.x = lerp(velocity.x, direction.x * effective_speed, stats.acceleration * delta)
 		velocity.z = lerp(velocity.z, direction.z * effective_speed, stats.acceleration * delta)
 		if should_rotate:
@@ -334,6 +340,53 @@ func get_surface_movement_multiplier() -> float:
 		)), 0.5, 1.25)
 	return 1.0
 
+
+func get_equipment_movement_multiplier() -> float:
+	return clampf(armor_movement_multiplier, 0.5, 1.0)
+
+
+func can_receive_weapon(wstats: StatsData) -> bool:
+	if wstats == null or stats == null:
+		return false
+	if stats.weapon_type == wstats.weapon_type:
+		return wstats.weapon_tier > stats.weapon_tier
+	if stats.weapon_type in ["", "knife", "pistol"]:
+		return true
+	return wstats.weapon_tier >= stats.weapon_tier
+
+
+func receive_weapon(wstats: StatsData) -> bool:
+	if not can_receive_weapon(wstats):
+		return false
+	stats.weapon_type = wstats.weapon_type
+	stats.weapon_tier = wstats.weapon_tier
+	stats.pellet_count = wstats.pellet_count
+	stats.attack_damage = wstats.attack_damage
+	stats.fire_rate = wstats.fire_rate
+	stats.attack_range = wstats.attack_range
+	stats.max_ammo = wstats.max_ammo
+	stats.current_ammo = wstats.current_ammo
+	return true
+
+
+func receive_armor_equipment(item_data: ItemData) -> bool:
+	if item_data == null or item_data.equipment_id.is_empty():
+		return false
+	if item_data.equipment_tier <= equipped_armor_tier:
+		return false
+	equipped_armor_id = item_data.equipment_id
+	equipped_armor_tier = item_data.equipment_tier
+	armor_damage_reduction = clampf(item_data.damage_reduction, 0.0, 0.8)
+	armor_movement_multiplier = clampf(item_data.movement_multiplier, 0.5, 1.0)
+	return true
+
+
+func can_equip_armor(item_data: ItemData) -> bool:
+	return item_data != null \
+		and not item_data.equipment_id.is_empty() \
+		and item_data.equipment_tier > equipped_armor_tier
+
+
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
 	if is_dead: return
 	last_damage_source = source
@@ -350,6 +403,8 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 		amount -= s_dmg
 		shield_changed.emit(current_shield, stats.max_shield)
 	if amount > 0:
+		if _is_combat_damage_source(source):
+			amount *= 1.0 - armor_damage_reduction
 		current_health -= amount
 		health_changed.emit(current_health, stats.max_health)
 	if has_node("/root/Telemetry"):

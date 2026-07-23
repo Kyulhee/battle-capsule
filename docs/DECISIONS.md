@@ -9,14 +9,14 @@
 | D-001 | 릴리즈 작업은 보류 | 현재는 v2-dev 프로토타입 방향 | 사용자가 릴리즈/빌드를 명시 요청 |
 | D-002 | 99명 기본값 승격 금지 | 후보 맵/페이싱은 아직 비기본 테스트 표면 | M1 첫 플레이 가능 Night BR gate 통과 |
 | D-003 | `target_99_probe`는 체감 목표가 아니라 구조 gate | 규모 안전성과 회귀 감시용 | 대체 구조 프로필이 생김 |
-| D-004 | `night_br_m1_60`의 자동 페이싱 gate는 평균 600-900초, 개별 480-960초, first upgrade 120초 이상이다 | 비결정적 실행에서 평균만 보면 짧은 붕괴나 긴 이상치를 놓치며, N2-PACE-44 5-run이 세 조건을 함께 통과 | 수동 3판이 10-15분 흐름을 거부하거나 결정적 실행기가 도입됨 |
+| D-004 | `night_br_m1_60`의 자동 페이싱 gate는 평균 600-900초, 개별 480-960초, first non-pistol 2-30초다 | 비결정적 실행에서 평균만 보면 이상치를 놓친다. 초기 총기 부족을 해결한 N2-EQUIP-01 5-run이 평균 746.7초·first 4.5초로 세 조건을 함께 통과 | 수동 3판이 초기 즉사 또는 10-15분 흐름을 거부하거나 결정적 실행기가 도입됨 |
 | D-005 | 단순 global loot/hotspot/rare 감소는 다음 lever가 아님 | N2-PACE-26에서 duration/stage3 회귀 | 글로벌 경제가 병목이라는 새 증거 |
 | D-006 | 1m hard-bump 예외는 4초 opening brush 뒤에는 허용 | 충돌 가독성은 유지하고 즉시 전투 승격만 줄임 | 별도 opening collision 설계가 들어감 |
 | D-007 | 생성 원본 풀은 untracked 유지 | `asset_generator/`, `plan_report/`는 런타임 콘텐츠가 아님 | 사용자가 특정 자산 통합 요청 |
 | D-008 | 활성 문서는 다음 행동을 빠르게 만드는 용도 | 장문 로그가 개발 속도를 늦춤 | 과거 감사가 명시적으로 필요 |
-| D-009 | role별 initial weapon multiplier는 비기본 실험만 허용 | v3는 진단용이고 승격 기준 미달 | 수동/자동 증거를 갖춘 승격 후보 |
+| D-009 | M1 초기 총기는 `loot_hub`·`transit_choke` T2, `recovery_pocket`·`concealment_field` T1 지역 풀로 나눈다 | global 확률 조정은 starvation과 후반 과잉을 함께 해결하지 못했다. 지역 풀은 first 4.5초와 10-15분 gate를 함께 보존했다 | 수동 플레이에서 지역 차이가 안 읽히거나 중심 스폰이 무작위 즉사를 만듦 |
 | D-010 | 모든 페이싱 시간의 canonical 기준은 `Main.match_timer` | N2-PACE-34에서 wall-clock에 동기 초기화 시간이 섞인 것을 확인 | game loop 외 별도 canonical clock이 필요해짐 |
-| D-011 | first-upgrade는 broad weapon chance가 아니라 initial non-pistol pool로 제어 | broad cut은 spike 또는 starvation을 만들었음 | 더 나은 지연 소스 설계 |
+| D-011 | M1 장비 성장은 T1 노후·T2 표준·T3 보급 무기와 단일 방탄 조끼까지만 유지한다 | 파밍 선택을 만들 최소 깊이는 확보했지만 다중 티어·부위 장비는 맵 압력 검증을 늦춘다 | N2-MAP-17과 장비 수동 판정 통과 뒤 콘텐츠 깊이가 다음 병목이 됨 |
 | D-012 | 기본 문서는 한글로 유지 | 사용자 확인과 1인 개발 속도를 높이기 위해 | 외부 협업자가 영어 문서를 요구 |
 | D-013 | `HANDOFF.md`는 폐기하고 재개 상태는 `CURRENT.md`에 둔다 | handoff는 1회용이라 금방 낡고 기본 문서 수를 늘림 | 장기 자동 재개에 필요한 구조화된 상태 파일이 새로 필요 |
 | D-015 | 고정 RNG seed는 재현 보장이 아니라 입력 추적값으로만 사용 | nav bake 대기 뒤에도 같은 seed가 525.4초와 909.6초로 갈림 | physics/timer 순서를 결정적으로 고정하는 실행기가 생김 |

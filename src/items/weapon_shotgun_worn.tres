@@ -3,22 +3,22 @@
 [ext_resource type="Script" path="res://src/core/StatsData.gd" id="1_stats"]
 [ext_resource type="Script" path="res://src/core/ItemData.gd" id="2_item"]
 
-[sub_resource type="Resource" id="Resource_shotgun"]
+[sub_resource type="Resource" id="Resource_shotgun_worn"]
 script = ExtResource("1_stats")
-attack_damage = 12.0
-fire_rate = 0.8
-attack_range = 10.0
+attack_damage = 9.0
+fire_rate = 1.0
+attack_range = 8.5
 weapon_type = "shotgun"
-weapon_tier = 2
+weapon_tier = 1
 pellet_count = 5
 current_ammo = 2
-max_ammo = 6
+max_ammo = 5
 
 [resource]
 script = ExtResource("2_item")
 type = 0
-rarity = 1
-item_name = "샷건"
+rarity = 0
+item_name = "낡은 산탄총"
 amount = 1
-weapon_stats = SubResource("Resource_shotgun")
-color = Color(1, 0.5, 0, 1)
+weapon_stats = SubResource("Resource_shotgun_worn")
+color = Color(0.58, 0.48, 0.32, 1)

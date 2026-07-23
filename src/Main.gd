@@ -34,6 +34,7 @@ var railgun_item: ItemData = null
 var pickup_scene: PackedScene = null
 var item_templates: Array[ItemData] = []
 var extra_consumable_templates: Array[ItemData] = []
+var equipment_templates: Array[ItemData] = []
 var weapon_templates: Array[ItemData] = []
 var consumable_templates: Array[ItemData] = []
 
@@ -509,6 +510,7 @@ func _configure_item_resources():
 	railgun_item = ItemResourceCatalogScript.supply_railgun_item()
 	item_templates = ItemResourceCatalogScript.default_item_templates()
 	extra_consumable_templates = ItemResourceCatalogScript.extra_consumable_templates()
+	equipment_templates = ItemResourceCatalogScript.equipment_templates()
 
 func _apply_game_config():
 	_apply_match_tuning(MatchTuningScript.from_game_config(game_config, _current_match_tuning()))
@@ -895,6 +897,12 @@ func _register_loot_hotspots():
 			loot_spawner.configure_role_weapon_chance_multipliers(loot_tuning.get("role_weapon_chance_mult", {}))
 		if loot_spawner.has_method("configure_role_wave_weapon_chance_multipliers"):
 			loot_spawner.configure_role_wave_weapon_chance_multipliers(loot_tuning.get("role_wave_weapon_chance_mult", {}))
+		if loot_spawner.has_method("configure_role_initial_weapon_chances"):
+			loot_spawner.configure_role_initial_weapon_chances(loot_tuning.get("role_initial_weapon_chance", {}))
+		if loot_spawner.has_method("configure_role_initial_weapon_pools"):
+			loot_spawner.configure_role_initial_weapon_pools(loot_tuning.get("role_initial_weapon_pool", {}))
+		if loot_spawner.has_method("configure_role_initial_equipment_chances"):
+			loot_spawner.configure_role_initial_equipment_chances(loot_tuning.get("role_initial_equipment_chance", {}))
 	loot_spawner.register_from_map_spec(map_spec)
 	loot_hotspots = loot_spawner.hotspots.duplicate(true)
 
@@ -919,6 +927,7 @@ func _spawn_initial_loot():
 		loot_spawner,
 		weapon_templates,
 		consumable_templates,
+		equipment_templates,
 		Callable(self, "_random_loot_pos")
 	)
 

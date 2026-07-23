@@ -21,6 +21,7 @@ class_name StatsData
 
 @export_group("Weapon Config")
 @export var weapon_type: String = "pistol" # pistol, ar, shotgun
+@export_range(1, 3, 1) var weapon_tier: int = 1
 @export var pellet_count: int = 1 # 1 for standard, 5+ for shotgun
 @export var max_shield: float = 50.0
 @export var current_shield: float = 0.0

@@ -22,7 +22,8 @@ static func base_color(item: ItemData) -> Color:
 		ItemData.Type.HEAL:
 			return Color(0.25, 0.95, 0.45, 1.0) if item.rarity != ItemData.Rarity.RARE else Color(0.30, 1.0, 0.72, 1.0)
 		ItemData.Type.ARMOR:
-			return Color(0.35, 0.62, 1.0, 1.0)
+			return item.color.darkened(0.05) if not item.equipment_id.is_empty() \
+				else Color(0.35, 0.62, 1.0, 1.0)
 	return item.color
 
 
@@ -44,6 +45,8 @@ static func visual_params(item: ItemData) -> Dictionary:
 				return {"emission": 0.34, "light_energy": 1.25, "light_range": 2.5}
 			return {"emission": 0.20, "light_energy": 0.75, "light_range": 2.0}
 		ItemData.Type.ARMOR:
+			if not item.equipment_id.is_empty():
+				return {"emission": 0.22, "light_energy": 0.8, "light_range": 2.1}
 			return {"emission": 0.34, "light_energy": 1.25, "light_range": 2.5}
 	return {"emission": 0.18, "light_energy": 0.6, "light_range": 2.0}
 

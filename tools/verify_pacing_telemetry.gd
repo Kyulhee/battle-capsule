@@ -145,6 +145,7 @@ func _verify_pacing_schema_and_hooks() -> bool:
 		"nearest_route_edge_distance": 0.0,
 	}, "bot_drop")
 	tel.log_pickup("shotgun", "weapon", false)
+	tel.log_pickup("노후 돌격소총", "weapon", false)
 	tel.set_stage(2)
 	tel.log_doctrine_chase_location(
 		"AGGRESSIVE",
@@ -255,6 +256,9 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if String(pacing.first_non_pistol_upgrade_weapon) != "shotgun":
 		tel.free()
 		return _fail("Pacing did not mirror first non-pistol upgrade.")
+	if int(tel.metrics.economy.weapon_pickups.get("ar", 0)) != 1:
+		tel.free()
+		return _fail("Economy did not normalize the worn AR display name.")
 	if String(pacing.first_non_pistol_upgrade_source) != "bot_drop":
 		tel.free()
 		return _fail("Pacing did not record first upgrade source.")

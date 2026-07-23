@@ -85,6 +85,7 @@ var _hp_val:        Label        = null
 var _sh_val:        Label        = null
 var _stat_heal_val: Label        = null
 var _stat_mk_val:   Label        = null
+var _stat_armor_val: Label       = null
 var _stat_kill_val: Label        = null
 var _stat_asst_val: Label        = null
 var _stat_alive_val: Label       = null
@@ -128,6 +129,7 @@ func _ready():
 	_artifact_label = status_hud["artifact_label"] as Label
 	_stat_heal_val = status_hud["stat_heal_val"] as Label
 	_stat_mk_val = status_hud["stat_mk_val"] as Label
+	_stat_armor_val = status_hud["stat_armor_val"] as Label
 	_stat_kill_val = status_hud["stat_kill_val"] as Label
 	_stat_asst_val = status_hud["stat_asst_val"] as Label
 	_stat_alive_val = status_hud["stat_alive_val"] as Label
@@ -234,6 +236,7 @@ func _physics_process(delta):
 		* (0.45 if is_crouching else 1.0) \
 		* _artifact_move_speed_mult() \
 		* health_movement_multiplier() \
+		* get_equipment_movement_multiplier() \
 		* get_surface_movement_multiplier()
 
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -573,6 +576,9 @@ func notify_survival_pickup_blocked(kind: String) -> void:
 	match kind:
 		"medkit_full": show_status_flash("MEDKIT FULL", false)
 		"shield_combat": show_status_flash("COMBAT: SHIELD BLOCKED", false)
+		"armor_combat": show_status_flash("COMBAT: ARMOR BLOCKED", false)
+		"armor_not_better": show_status_flash("ARMOR NOT BETTER", false)
+		"weapon_not_better": show_status_flash("WEAPON NOT BETTER", false)
 
 
 func health_movement_multiplier() -> float:
@@ -645,6 +651,9 @@ func _update_status_hud(alive: int, total: int = 0):
 		_sh_val.text = "%d" % int(current_shield)
 	if _stat_heal_val:  _stat_heal_val.text  = "×%d" % stats.heal_items
 	if _stat_mk_val:    _stat_mk_val.text    = "×%d" % stats.advanced_heals
+	if _stat_armor_val:
+		_stat_armor_val.text = "%d%%" % int(round(armor_damage_reduction * 100.0)) \
+			if equipped_armor_tier > 0 else "0"
 	if _stat_kill_val:  _stat_kill_val.text  = "%d" % kills
 	if _stat_asst_val:  _stat_asst_val.text  = "%d" % assists
 	if _stat_alive_val: _stat_alive_val.text = "%d/%d" % [alive, total] if total > 0 else "%d" % alive
@@ -654,12 +663,29 @@ func _update_status_hud(alive: int, total: int = 0):
 func receive_weapon(wstats: StatsData) -> bool:
 	return slots.receive_weapon(wstats)
 
+func can_receive_weapon(wstats: StatsData) -> bool:
+	return slots.can_receive_weapon(wstats)
+
+func receive_armor_equipment(item_data: ItemData) -> bool:
+	var equipped := super.receive_armor_equipment(item_data)
+	if equipped:
+		show_status_flash(
+			"%s  -%d%% DMG" % [
+				item_data.item_name,
+				int(round(item_data.damage_reduction * 100.0)),
+			],
+			true
+		)
+		_update_hud()
+	return equipped
+
 func receive_ammo(weapon_type: String, amount: int):
 	slots.receive_ammo(weapon_type, amount)
 
 func _on_slot_switched(slot: int, wdata, ammo: int):
 	if slot >= 1 and wdata:
 		stats.weapon_type   = wdata.weapon_type
+		stats.weapon_tier   = wdata.weapon_tier
 		stats.pellet_count  = wdata.pellet_count
 		stats.attack_damage = wdata.attack_damage
 		stats.fire_rate     = wdata.fire_rate
@@ -817,8 +843,8 @@ func _drop_on_death():
 		var item = ItemData.new()
 		item.type = ItemData.Type.WEAPON
 		item.rarity = ItemData.Rarity.COMMON
-		item.item_name = DropDisplayCatalogScript.weapon_name(wdata.weapon_type)
-		item.color = DropDisplayCatalogScript.weapon_color(wdata.weapon_type)
+		item.item_name = DropDisplayCatalogScript.weapon_name(wdata.weapon_type, wdata.weapon_tier)
+		item.color = DropDisplayCatalogScript.weapon_color(wdata.weapon_type, wdata.weapon_tier)
 		var wstats = wdata.duplicate() as StatsData
 		wstats.current_ammo = wstats.max_ammo / 3
 		item.weapon_stats = wstats

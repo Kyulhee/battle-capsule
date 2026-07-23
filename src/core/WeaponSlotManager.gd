@@ -19,6 +19,17 @@ var reload_total_time: float = 0.0
 var reload_ammo_start: int   = 0
 var reload_ammo_target: int  = 0
 
+func can_receive_weapon(wstats: StatsData) -> bool:
+	if wstats == null:
+		return false
+	for i in range(1, 5):
+		if weapon_slots[i] != null and weapon_slots[i].weapon_type == wstats.weapon_type:
+			return wstats.weapon_tier > weapon_slots[i].weapon_tier
+	for i in range(1, 5):
+		if weapon_slots[i] == null:
+			return true
+	return active_slot >= 1
+
 func switch_to(slot: int) -> void:
 	if slot < 0 or slot > 4: return
 	reload_timer = 0.0
@@ -28,9 +39,16 @@ func switch_to(slot: int) -> void:
 	slot_switched.emit(slot, wdata, ammo)
 
 func receive_weapon(wstats: StatsData) -> bool:
+	if not can_receive_weapon(wstats):
+		return false
 	for i in range(1, 5):
 		if weapon_slots[i] != null and weapon_slots[i].weapon_type == wstats.weapon_type:
-			return false
+			weapon_slots[i] = wstats
+			slot_ammo[i] = wstats.current_ammo
+			slot_reserve[i] = 0
+			switch_to(i)
+			_emit_gun_count()
+			return true
 	for i in range(1, 5):
 		if weapon_slots[i] == null:
 			weapon_slots[i] = wstats

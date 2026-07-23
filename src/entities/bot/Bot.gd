@@ -119,6 +119,8 @@ var _cached_pickup_max_health: float = -1.0
 var _cached_pickup_shield: float = -1.0
 var _cached_pickup_max_shield: float = -1.0
 var _cached_pickup_weapon_type: String = ""
+var _cached_pickup_weapon_tier: int = -1
+var _cached_pickup_armor_tier: int = -1
 var _cached_pickup_current_ammo: int = -1
 var _cached_pickup_max_ammo: int = -1
 var _cached_pickup_reserve_ammo: int = -1
@@ -1613,13 +1615,17 @@ func _pickup_match_for(candidate) -> String:
 			return "ammo_mismatch"
 		ItemData.Type.WEAPON:
 			var weapon_type := ""
+			var weapon_tier := 0
 			if pickup.item.weapon_stats != null:
 				weapon_type = pickup.item.weapon_stats.weapon_type
+				weapon_tier = pickup.item.weapon_stats.weapon_tier
 			if weapon_type == "":
 				return "weapon_unknown"
 			if stats.weapon_type == "" or stats.weapon_type == "knife":
 				return "weapon_unarmed"
 			if weapon_type == stats.weapon_type:
+				if weapon_tier > stats.weapon_tier:
+					return "weapon_upgrade"
 				return "weapon_same_type"
 			return "weapon_new_type"
 		ItemData.Type.HEAL:
@@ -1627,7 +1633,8 @@ func _pickup_match_for(candidate) -> String:
 				return "heal_wounded"
 			return "heal_healthy"
 		ItemData.Type.ARMOR:
-			return "armor"
+			return "armor_equipment" if not pickup.item.equipment_id.is_empty() \
+				else "shield_charge"
 	return "unknown"
 
 func _start_loot_objective(loot_target: Node3D, source_name: String, recovering: bool) -> void:
@@ -2048,6 +2055,8 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 		and is_equal_approx(current_shield, _cached_pickup_shield) \
 		and is_equal_approx(stats.max_shield, _cached_pickup_max_shield) \
 		and stats.weapon_type == _cached_pickup_weapon_type \
+		and stats.weapon_tier == _cached_pickup_weapon_tier \
+		and equipped_armor_tier == _cached_pickup_armor_tier \
 		and stats.current_ammo == _cached_pickup_current_ammo \
 		and stats.max_ammo == _cached_pickup_max_ammo \
 		and reserve_ammo == _cached_pickup_reserve_ammo
@@ -2085,14 +2094,20 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 					elif reserve_ammo == 0 and ammo_ratio <= 0.5:
 						score *= 0.7
 				ItemData.Type.WEAPON:
+					if item.weapon_stats == null or not can_receive_weapon(item.weapon_stats):
+						continue
 					if stats.weapon_type == "knife" or stats.weapon_type == "":
 						score *= 0.5
-					elif item.weapon_stats != null:
+					else:
 						if stats.weapon_type == "pistol" and item.weapon_stats.weapon_type != "pistol":
 							score *= 1.0 if prefer_immediate_value else 0.35
-						elif item.weapon_stats.weapon_type == stats.weapon_type \
-								and reserve_ammo == 0 and ammo_ratio <= 0.25:
-							score *= 0.9 if stats.weapon_type == "pistol" else 0.75
+						elif item.weapon_stats.weapon_type == stats.weapon_type:
+							score *= 0.3
+				ItemData.Type.ARMOR:
+					if not item.equipment_id.is_empty():
+						if item.equipment_tier <= equipped_armor_tier:
+							continue
+						score *= 0.45
 			if prefer_immediate_value:
 				score *= _immediate_value_pickup_score_mult(item)
 		if score < best_score:
@@ -2106,6 +2121,8 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 	_cached_pickup_shield = current_shield
 	_cached_pickup_max_shield = stats.max_shield
 	_cached_pickup_weapon_type = stats.weapon_type
+	_cached_pickup_weapon_tier = stats.weapon_tier
+	_cached_pickup_armor_tier = equipped_armor_tier
 	_cached_pickup_current_ammo = stats.current_ammo
 	_cached_pickup_max_ammo = stats.max_ammo
 	_cached_pickup_reserve_ammo = reserve_ammo
@@ -2121,7 +2138,10 @@ func _immediate_value_pickup_score_mult(item) -> float:
 			if hp_ratio >= HEALTHY_HEAL_PICKUP_RATIO:
 				return LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT
 		ItemData.Type.ARMOR:
-			if stats.max_shield <= 0.0 or current_shield >= stats.max_shield - 0.5:
+			if not item.equipment_id.is_empty():
+				if item.equipment_tier <= equipped_armor_tier:
+					return LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT
+			elif stats.max_shield <= 0.0 or current_shield >= stats.max_shield - 0.5:
 				return LOW_IMMEDIATE_VALUE_PICKUP_SCORE_MULT
 	return 1.0
 
@@ -2785,6 +2805,7 @@ func _strategic_utility_context(
 ) -> Dictionary:
 	var health_ratio := clampf(current_health / maxf(1.0, stats.max_health), 0.0, 1.0)
 	var shield_ratio := clampf(current_shield / maxf(1.0, stats.max_shield), 0.0, 1.0)
+	var armor_ratio := 1.0 if equipped_armor_tier > 0 else 0.0
 	var ammo_ratio := 0.0
 	if stats.max_ammo > 0:
 		ammo_ratio = clampf(
@@ -2798,8 +2819,13 @@ func _strategic_utility_context(
 			weapon_need = 1.0
 		"pistol":
 			weapon_need = 0.55
+		_:
+			weapon_need = 0.30 if stats.weapon_tier <= 1 else 0.10
 	var equipment_need := clampf(
-		weapon_need * 0.55 + (1.0 - ammo_ratio) * 0.30 + (1.0 - shield_ratio) * 0.15,
+		weapon_need * 0.50 \
+			+ (1.0 - ammo_ratio) * 0.25 \
+			+ (1.0 - shield_ratio) * 0.15 \
+			+ (1.0 - armor_ratio) * 0.10,
 		0.0,
 		1.0
 	)
@@ -2826,7 +2852,9 @@ func _strategic_utility_context(
 	if main != null and main.zone != null:
 		time_budget = maxf(18.0, float(main.zone.timer)) if planning_mode == "preposition" \
 			else maxf(30.0, float(main.zone.timer))
-	var movement_multiplier := get_surface_movement_multiplier() if include_surface_sample else 1.0
+	var movement_multiplier := get_equipment_movement_multiplier()
+	if include_surface_sample:
+		movement_multiplier *= get_surface_movement_multiplier()
 	return {
 		"health_ratio": health_ratio,
 		"shield_ratio": shield_ratio,
@@ -2835,7 +2863,10 @@ func _strategic_utility_context(
 		"survival_need": survival_need,
 		"threat_pressure": threat_pressure,
 		"combat_readiness": clampf(
-			(1.0 - equipment_need) * 0.55 + health_ratio * 0.30 + shield_ratio * 0.15,
+			(1.0 - equipment_need) * 0.50 \
+				+ health_ratio * 0.28 \
+				+ shield_ratio * 0.12 \
+				+ armor_ratio * 0.10,
 			0.0,
 			1.0
 		),
@@ -2988,6 +3019,7 @@ func die(killer: Node3D = null):
 	_drop_weapon()
 	_drop_ammo()
 	_drop_heals()
+	_drop_armor_equipment()
 	super.die(killer)
 
 func get_telemetry_state() -> String:
@@ -2999,8 +3031,8 @@ func _drop_weapon():
 	var item = ItemData.new()
 	item.type = ItemData.Type.WEAPON
 	item.rarity = ItemData.Rarity.COMMON
-	item.item_name = DropDisplayCatalogScript.weapon_name(stats.weapon_type)
-	item.color = DropDisplayCatalogScript.weapon_color(stats.weapon_type)
+	item.item_name = DropDisplayCatalogScript.weapon_name(stats.weapon_type, stats.weapon_tier)
+	item.color = DropDisplayCatalogScript.weapon_color(stats.weapon_type, stats.weapon_tier)
 	var wstats = stats.duplicate() as StatsData
 	wstats.current_ammo = wstats.max_ammo / 3  # partial load only — actual ammo drops separately
 	item.weapon_stats = wstats
@@ -3049,6 +3081,28 @@ func _drop_heals():
 		get_tree().root.add_child(pickup)
 		pickup.global_position = global_position + Vector3(randf_range(-0.5, 0.5), 0.3, randf_range(-0.5, 0.5))
 		pickup.init(item, "bot_drop")
+
+
+func _drop_armor_equipment() -> void:
+	if equipped_armor_tier <= 0 or equipped_armor_id.is_empty():
+		return
+	var item := ItemData.new()
+	item.type = ItemData.Type.ARMOR
+	item.rarity = ItemData.Rarity.RARE
+	item.item_name = "방탄 조끼" if equipped_armor_id == "ballistic_vest" else "방어구"
+	item.equipment_id = equipped_armor_id
+	item.equipment_tier = equipped_armor_tier
+	item.damage_reduction = armor_damage_reduction
+	item.movement_multiplier = armor_movement_multiplier
+	item.color = Color(0.42, 0.52, 0.28, 1.0)
+	var pickup = PICKUP_SCN.instantiate()
+	get_tree().root.add_child(pickup)
+	pickup.global_position = global_position + Vector3(
+		randf_range(-0.8, 0.8),
+		0.3,
+		randf_range(-0.8, 0.8)
+	)
+	pickup.init(item, "bot_drop")
 
 # ─── DAMAGE OVERRIDE ─────────────────────────────────────────────────────────
 # Force immediate RECOVER when hit with no ammo left — prevents bots from

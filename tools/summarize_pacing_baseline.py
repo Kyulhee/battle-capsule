@@ -8,7 +8,7 @@ DEFAULT_TARGET_MIN_SECONDS = 600.0
 DEFAULT_TARGET_MAX_SECONDS = 900.0
 FIRST_CONTACT_BAND_SECONDS = (45.0, 150.0)
 FIRST_KILL_BAND_SECONDS = (60.0, 210.0)
-FIRST_UPGRADE_BAND_SECONDS = (120.0, 300.0)
+FIRST_UPGRADE_BAND_SECONDS = (2.0, 30.0)
 STAGE2_BAND_SECONDS = (240.0, 420.0)
 STAGE3_BAND_SECONDS = (540.0, 720.0)
 
@@ -332,8 +332,8 @@ def print_phase_gap_read(
         )
     if first_upgrade and avg(first_upgrade) < FIRST_UPGRADE_BAND_SECONDS[0]:
         print(
-            "  read: first upgrade is early; delay non-pistol access carefully "
-            "without recreating no-first-upgrade starvation."
+            "  read: first non-pistol access is nearly immediate; inspect spawn "
+            "overlap before changing regional loot chances."
         )
     if first_contact and avg(first_contact) < FIRST_CONTACT_BAND_SECONDS[0]:
         print(

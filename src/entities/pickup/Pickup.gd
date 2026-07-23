@@ -230,7 +230,8 @@ func _cluster_key() -> String:
 		ItemData.Type.HEAL:
 			return "heal:%d" % item.rarity
 		ItemData.Type.ARMOR:
-			return "armor"
+			return "equipment:%s" % item.equipment_id \
+				if not item.equipment_id.is_empty() else "shield"
 	return "%d:%s" % [item.type, item.item_name]
 
 func _update_icon_decal():
@@ -308,12 +309,18 @@ func collect(collector: Entity) -> bool:
 				collector.stats.heal_items += item.amount
 				print("Collected Heal: ", item.amount)
 		ItemData.Type.ARMOR:
-			if collector.has_method("receive_shield"):
+			if not item.equipment_id.is_empty():
+				if not collector.has_method("receive_armor_equipment") \
+						or not collector.receive_armor_equipment(item):
+					return false
+				print("Equipped Armor: ", item.item_name)
+			elif collector.has_method("receive_shield"):
 				collector.receive_shield(item.amount)
+				print("Collected Shield: ", item.amount)
 			else:
 				collector.current_shield = min(collector.stats.max_shield, collector.current_shield + item.amount)
 				collector.shield_changed.emit(collector.current_shield, collector.stats.max_shield)
-			print("Collected Armor: ", item.amount)
+				print("Collected Shield: ", item.amount)
 		ItemData.Type.WEAPON:
 			if item.weapon_stats:
 				if collector.has_method("receive_weapon"):
@@ -337,6 +344,21 @@ func collect(collector: Entity) -> bool:
 
 
 func _can_player_collect(collector: Entity) -> bool:
+	if item.type == ItemData.Type.WEAPON \
+			and collector.has_method("can_receive_weapon") \
+			and not collector.can_receive_weapon(item.weapon_stats):
+		if collector.is_in_group("players") \
+				and collector.has_method("notify_survival_pickup_blocked"):
+			collector.notify_survival_pickup_blocked("weapon_not_better")
+		return false
+	if item.type == ItemData.Type.ARMOR \
+			and not item.equipment_id.is_empty() \
+			and collector.has_method("can_equip_armor") \
+			and not collector.can_equip_armor(item):
+		if collector.is_in_group("players") \
+				and collector.has_method("notify_survival_pickup_blocked"):
+			collector.notify_survival_pickup_blocked("armor_not_better")
+		return false
 	if not collector.is_in_group("players"):
 		return true
 	var main = collector.get_tree().root.get_node_or_null("Main")
@@ -353,7 +375,9 @@ func _can_player_collect(collector: Entity) -> bool:
 			and collector.has_method("can_collect_shield_pickup") \
 			and not collector.can_collect_shield_pickup():
 		if collector.has_method("notify_survival_pickup_blocked"):
-			collector.notify_survival_pickup_blocked("shield_combat")
+			collector.notify_survival_pickup_blocked(
+				"armor_combat" if not item.equipment_id.is_empty() else "shield_combat"
+			)
 		return false
 	return true
 

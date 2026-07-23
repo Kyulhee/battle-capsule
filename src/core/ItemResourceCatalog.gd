@@ -9,9 +9,12 @@ const AMMO_RAILGUN: ItemData = preload("res://src/items/ammo_railgun.tres")
 const HEAL_PICKUP: ItemData = preload("res://src/items/heal_pickup.tres")
 const HEAL_ADVANCED_PICKUP: ItemData = preload("res://src/items/heal_advanced_pickup.tres")
 const WEAPON_AR: ItemData = preload("res://src/items/weapon_ar.tres")
+const WEAPON_AR_WORN: ItemData = preload("res://src/items/weapon_ar_worn.tres")
 const WEAPON_SHOTGUN: ItemData = preload("res://src/items/weapon_shotgun.tres")
+const WEAPON_SHOTGUN_WORN: ItemData = preload("res://src/items/weapon_shotgun_worn.tres")
 const WEAPON_RAILGUN: ItemData = preload("res://src/items/weapon_railgun.tres")
-const ARMOR_PICKUP: ItemData = preload("res://src/items/armor_pickup.tres")
+const SHIELD_PICKUP: ItemData = preload("res://src/items/armor_pickup.tres")
+const BALLISTIC_VEST: ItemData = preload("res://src/items/armor_ballistic_vest.tres")
 
 static func pickup_scene() -> PackedScene:
 	return PICKUP_SCENE
@@ -22,9 +25,11 @@ static func default_item_templates() -> Array[ItemData]:
 		AMMO_SHOTGUN,
 		AMMO_RAILGUN,
 		HEAL_PICKUP,
+		WEAPON_AR_WORN,
 		WEAPON_AR,
+		WEAPON_SHOTGUN_WORN,
 		WEAPON_SHOTGUN,
-		ARMOR_PICKUP,
+		SHIELD_PICKUP,
 	]
 
 static func extra_consumable_templates() -> Array[ItemData]:
@@ -34,3 +39,6 @@ static func extra_consumable_templates() -> Array[ItemData]:
 
 static func supply_railgun_item() -> ItemData:
 	return WEAPON_RAILGUN
+
+static func equipment_templates() -> Array[ItemData]:
+	return [BALLISTIC_VEST]

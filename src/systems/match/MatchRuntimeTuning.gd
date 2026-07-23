@@ -29,6 +29,9 @@ const DEFAULTS := {
 		"initial_spawn_enabled": true,
 		"role_weapon_chance_mult": {},
 		"role_wave_weapon_chance_mult": {},
+		"role_initial_weapon_chance": {},
+		"role_initial_weapon_pool": {},
+		"role_initial_equipment_chance": {},
 	},
 	"combat": {
 		"bot_vs_bot_damage_mult": 1.0,
@@ -130,6 +133,9 @@ static func _sanitize_loot(loot_tuning: Dictionary) -> Dictionary:
 		"initial_spawn_enabled": bool(loot_tuning.get("initial_spawn_enabled", true)),
 		"role_weapon_chance_mult": _sanitize_role_float_dict(loot_tuning.get("role_weapon_chance_mult", {})),
 		"role_wave_weapon_chance_mult": _sanitize_role_float_dict(loot_tuning.get("role_wave_weapon_chance_mult", {})),
+		"role_initial_weapon_chance": _sanitize_role_float_dict(loot_tuning.get("role_initial_weapon_chance", {})),
+		"role_initial_weapon_pool": _sanitize_role_string_dict(loot_tuning.get("role_initial_weapon_pool", {})),
+		"role_initial_equipment_chance": _sanitize_role_float_dict(loot_tuning.get("role_initial_equipment_chance", {})),
 	}
 
 static func _sanitize_role_float_dict(source) -> Dictionary:
@@ -141,6 +147,18 @@ static func _sanitize_role_float_dict(source) -> Dictionary:
 		if role.is_empty():
 			continue
 		sanitized[role] = maxf(0.0, float(source[key]))
+	return sanitized
+
+static func _sanitize_role_string_dict(source) -> Dictionary:
+	var sanitized: Dictionary = {}
+	if typeof(source) != TYPE_DICTIONARY:
+		return sanitized
+	for key in source.keys():
+		var role := String(key).strip_edges()
+		var value := String(source[key]).strip_edges().to_lower()
+		if role.is_empty() or value.is_empty():
+			continue
+		sanitized[role] = value
 	return sanitized
 
 static func _sanitize_combat(combat_tuning: Dictionary) -> Dictionary:

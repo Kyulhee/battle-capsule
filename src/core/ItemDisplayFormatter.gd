@@ -23,7 +23,13 @@ static func pickup_detail(item: ItemData) -> String:
 		ItemData.Type.HEAL:
 			display_text += " ×%d" % item.amount
 		ItemData.Type.ARMOR:
-			display_text += " +%d" % item.amount
+			if item.equipment_id.is_empty():
+				display_text += " +%d" % item.amount
+			else:
+				display_text += "\n방어 %d%% · 이동 %d%%" % [
+					int(round(item.damage_reduction * 100.0)),
+					int(round(item.movement_multiplier * 100.0)),
+				]
 	return display_text
 
 static func pickup_prefix(item: ItemData) -> String:

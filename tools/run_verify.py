@@ -92,6 +92,7 @@ def pacing_steps(
     min_run_duration: float | None = None,
     max_run_duration: float | None = None,
     min_avg_first_upgrade: float = 10.0,
+    max_avg_first_upgrade: float | None = None,
     max_missing_first_upgrade: int | None = None,
     map_spec: str = LEGACY_NIGHT_MAP_SPEC,
 ) -> list[Step]:
@@ -113,6 +114,8 @@ def pacing_steps(
         scale_gate_args.extend(["--min-run-duration", f"{min_run_duration:.1f}"])
     if max_run_duration is not None:
         scale_gate_args.extend(["--max-run-duration", f"{max_run_duration:.1f}"])
+    if max_avg_first_upgrade is not None:
+        scale_gate_args.extend(["--max-avg-first-upgrade", f"{max_avg_first_upgrade:.1f}"])
     if max_missing_first_upgrade is not None:
         scale_gate_args.extend(["--max-missing-first-upgrade", str(max_missing_first_upgrade)])
     return [
@@ -172,6 +175,15 @@ def profile_steps(
                 [
                     "map_spec_path=res://data/mapSpec_ai_test_arena.json",
                     "scale_preset=duel_1",
+                    "simulation_seed=41000",
+                ],
+            ),
+            godot_script_args(
+                godot,
+                "verify_regional_equipment_runtime.gd",
+                [
+                    "map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json",
+                    "scale_preset=night_br_m1_60",
                     "simulation_seed=41000",
                 ],
             ),
@@ -342,7 +354,8 @@ def profile_steps(
             max_avg_duration=900.0,
             min_run_duration=480.0,
             max_run_duration=960.0,
-            min_avg_first_upgrade=120.0,
+            min_avg_first_upgrade=2.0,
+            max_avg_first_upgrade=30.0,
             max_missing_first_upgrade=0,
             map_spec=map_spec_path,
         )
