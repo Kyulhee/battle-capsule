@@ -168,6 +168,15 @@ def profile_steps(
             godot_script(godot, "verify_mission_health_rules.gd"),
             godot_script_args(
                 godot,
+                "verify_player_survival_runtime.gd",
+                [
+                    "map_spec_path=res://data/mapSpec_ai_test_arena.json",
+                    "scale_preset=duel_1",
+                    "simulation_seed=41000",
+                ],
+            ),
+            godot_script_args(
+                godot,
                 "verify_hell_start_health_runtime.gd",
                 [
                     "map_spec_path=res://data/mapSpec_ai_test_arena.json",

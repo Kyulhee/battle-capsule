@@ -92,9 +92,9 @@
         }
       },
       "zone": {
-        "initial_timer": 190.0,
+        "initial_timer": 120.0,
         "wait_time": 190.0,
-        "shrink_time": 70.0,
+        "shrink_time": 140.0,
         "damage_per_second": 1.0,
         "stages": {
           "2": { "wait_time": 180.0, "shrink_time": 100.0, "damage_per_second": 1.5 },
@@ -135,9 +135,9 @@
         }
       },
       "zone": {
-        "initial_timer": 190.0,
+        "initial_timer": 120.0,
         "wait_time": 190.0,
-        "shrink_time": 70.0,
+        "shrink_time": 140.0,
         "damage_per_second": 1.0,
         "stages": {
           "2": { "wait_time": 180.0, "shrink_time": 100.0, "damage_per_second": 1.5 },

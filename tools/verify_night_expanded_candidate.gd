@@ -145,6 +145,10 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	var zone_tuning: Dictionary = source.get("zone", {})
 	var zone_stages: Dictionary = zone_tuning.get("stages", {})
 	var stage2_tuning: Dictionary = zone_stages.get("2", {})
+	if not is_equal_approx(float(zone_tuning.get("initial_timer", 0.0)), 120.0) \
+			or not is_equal_approx(float(zone_tuning.get("shrink_time", 0.0)), 140.0):
+		_fail("M1 opening zone must begin at 120s and preserve a 140s rotation window.")
+		return false
 	var stage2_time := float(zone_tuning.get("initial_timer", 0.0)) \
 		+ float(zone_tuning.get("shrink_time", 0.0))
 	var stage3_time := stage2_time \

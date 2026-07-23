@@ -4,6 +4,9 @@ const PLAYER_MOVEMENT_AUDIO_POLICY = preload(
 	"res://src/entities/player/PlayerMovementAudioPolicy.gd"
 )
 const PLAYER_HEALTH_POLICY = preload("res://src/entities/player/PlayerHealthPolicy.gd")
+const PLAYER_SURVIVAL_POLICY = preload(
+	"res://src/entities/player/PlayerSurvivalPolicy.gd"
+)
 
 @onready var camera_pivot = $CameraPivot
 @onready var ray_cast = $RayCast3D
@@ -31,6 +34,7 @@ var _zone_warning_style: StyleBoxFlat = null
 var _zone_warning_pulse: float = 0.0
 
 var _heal_regen: float = 0.0
+var _last_combat_activity_msec: int = -1
 
 # ── Artifact System ──────────────────────────────────────────────────────────
 var active_artifact: Dictionary = {}
@@ -164,6 +168,7 @@ func _input(event):
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_C: is_crouching = not is_crouching
+			KEY_Q: handle_healing()
 			KEY_QUOTELEFT: slots.switch_to(0)
 			KEY_1: slots.switch_to(1)
 			KEY_2: slots.switch_to(2)
@@ -190,6 +195,8 @@ func set_in_bush(value: bool):
 		show_status_flash("%s ACTIVE" % String(result.get("label", "Ghost Grass")), false)
 
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
+	if _is_combat_damage_source(source):
+		_mark_combat_activity()
 	if source == "zone":
 		amount *= _artifact_mods.get("zone_dmg_mult", 1.0)
 	elif source == "gun" and _artifact_runtime.is_ghost_grass_active():
@@ -226,6 +233,7 @@ func _physics_process(delta):
 	var effective_speed = stats.move_speed \
 		* (0.45 if is_crouching else 1.0) \
 		* _artifact_move_speed_mult() \
+		* health_movement_multiplier() \
 		* get_surface_movement_multiplier()
 
 	var input_dir = Input.get_vector("ui_left", "ui_right", "ui_up", "ui_down")
@@ -292,7 +300,6 @@ func _physics_process(delta):
 		footstep_timer = 0.0
 	_update_pickup_focus()
 	if Input.is_action_just_pressed("interact"): handle_interaction()
-	if Input.is_key_pressed(KEY_Q): handle_healing()
 	super._physics_process(delta)
 	_artifact_runtime.tick(delta)
 	if _artifact_runtime.is_ghost_grass_active() and reveal_timer <= 0:
@@ -474,9 +481,12 @@ func _get_interaction_pickup() -> Pickup:
 	return closest
 
 func handle_healing():
+	if is_dead:
+		return
 	var main = get_tree().root.get_node_or_null("Main")
 	var is_hell = main != null and main.difficulty == 3
 	var scarcity_mult = 0.5 if (is_hell and main != null and main.hell_modifier == main.HellModifier.SCARCITY) else 1.0
+	var medkit_locked := is_in_recent_combat()
 
 	# Armor Sponge: 힐 → 쉴드 전환 모드 (HP 회복 없음)
 	if _artifact_mods.get("heal_to_shield", false):
@@ -485,7 +495,7 @@ func handle_healing():
 			shield_cap = stats.max_shield
 		if current_shield >= shield_cap: return
 		var conversion_ratio = maxf(0.0, float(_artifact_mods.get("heal_to_shield_ratio", 1.0)))
-		if stats.advanced_heals > 0:
+		if stats.advanced_heals > 0 and not medkit_locked:
 			stats.advanced_heals -= 1
 			var advanced_base_amount = float(_artifact_mods.get("heal_to_shield_advanced_base", 60.0)) * (0.55 if is_hell else 1.0)
 			_receive_shield_capped(advanced_base_amount * conversion_ratio * scarcity_mult, shield_cap)
@@ -503,15 +513,21 @@ func handle_healing():
 			if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 			if main and main.mission_tracker: main.mission_tracker.on_pressure_heal_used()
 			_refresh_slot_hud()
+		elif stats.advanced_heals > 0:
+			show_status_flash("COMBAT: MEDKIT BLOCKED", false)
 		return
 
 	# Zone Battery: 힐 완전 봉인
 	if _artifact_mods.get("heal_mult", 1.0) == 0.0: return
 
 	if current_health >= stats.max_health: return
-	if stats.advanced_heals > 0:
+	if stats.advanced_heals > 0 and not medkit_locked:
 		stats.advanced_heals -= 1
-		var amount = 60.0 * (0.55 if is_hell else 1.0) * scarcity_mult * _artifact_mods.get("heal_mult", 1.0)
+		var amount := PLAYER_SURVIVAL_POLICY.medkit_heal_amount(
+			is_hell,
+			scarcity_mult,
+			float(_artifact_mods.get("heal_mult", 1.0))
+		)
 		current_health = min(stats.max_health, current_health + amount)
 		health_changed.emit(current_health, stats.max_health)
 		if Sfx: Sfx.play("heal", global_position)
@@ -527,6 +543,47 @@ func handle_healing():
 		if has_node("/root/Telemetry"): get_node("/root/Telemetry").log_economy("heals_used")
 		if main and main.mission_tracker: main.mission_tracker.on_pressure_heal_used()
 		_refresh_slot_hud()
+	elif stats.advanced_heals > 0:
+		show_status_flash("COMBAT: MEDKIT BLOCKED", false)
+
+
+func is_in_recent_combat() -> bool:
+	return PLAYER_SURVIVAL_POLICY.is_in_combat(
+		Time.get_ticks_msec(),
+		_last_combat_activity_msec
+	)
+
+
+func can_collect_advanced_heal() -> bool:
+	return PLAYER_SURVIVAL_POLICY.can_collect_medkit(stats.advanced_heals)
+
+
+func receive_advanced_heal(amount: int) -> void:
+	stats.advanced_heals = PLAYER_SURVIVAL_POLICY.clamped_medkit_count(
+		stats.advanced_heals,
+		amount
+	)
+
+
+func can_collect_shield_pickup() -> bool:
+	return not is_in_recent_combat()
+
+
+func notify_survival_pickup_blocked(kind: String) -> void:
+	match kind:
+		"medkit_full": show_status_flash("MEDKIT FULL", false)
+		"shield_combat": show_status_flash("COMBAT: SHIELD BLOCKED", false)
+
+
+func health_movement_multiplier() -> float:
+	return PLAYER_SURVIVAL_POLICY.health_movement_multiplier(
+		current_health,
+		stats.max_health
+	)
+
+
+func _mark_combat_activity() -> void:
+	_last_combat_activity_msec = Time.get_ticks_msec()
 
 func handle_aiming(delta):
 	var camera = camera_pivot.get_node("Camera3D")
@@ -629,6 +686,7 @@ func _notify_mission_tracker_fire(weapon_type: String):
 		main.mission_tracker.on_player_fire(weapon_type)
 
 func _melee_attack():
+	_mark_combat_activity()
 	reveal()
 	_notify_mission_tracker_fire("knife")
 	fire_cooldown = PlayerTuningScript.MELEE_RATE
@@ -917,6 +975,7 @@ func shoot():
 	_play_weapon_shot_sfx(stats.weapon_type)
 
 func _play_weapon_shot_sfx(weapon_type: String) -> void:
+	_mark_combat_activity()
 	if not Sfx:
 		return
 	if Sfx.has_method("play_weapon_shot"):

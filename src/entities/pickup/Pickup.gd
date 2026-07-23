@@ -270,6 +270,8 @@ func _asset_catalog():
 
 func collect(collector: Entity) -> bool:
 	if not item: return false
+	if not _can_player_collect(collector):
+		return false
 
 	print(collector.name, " collected ", item.item_name)
 	_debug_log("loot", "%s collected %s type=%s pos=(%.1f,%.1f)" % [
@@ -296,11 +298,11 @@ func collect(collector: Entity) -> bool:
 				collector.stats.current_ammo = min(collector.stats.max_ammo, collector.stats.current_ammo + item.amount)
 			print("Collected Ammo: ", item.amount, " (", item.ammo_weapon_type, ")")
 		ItemData.Type.HEAL:
-			var _main = collector.get_tree().root.get_node_or_null("Main")
-			if _main and _main.heal_pickup_banned and collector.is_in_group("players"):
-				return false  # 힐 픽업 금지 패널티 중
 			if item.rarity == ItemData.Rarity.RARE:
-				collector.stats.advanced_heals += item.amount
+				if collector.has_method("receive_advanced_heal"):
+					collector.receive_advanced_heal(item.amount)
+				else:
+					collector.stats.advanced_heals += item.amount
 				print("Collected MedKit: ", item.amount)
 			else:
 				collector.stats.heal_items += item.amount
@@ -331,6 +333,28 @@ func collect(collector: Entity) -> bool:
 
 	_log_pickup_location("collect")
 	queue_free()
+	return true
+
+
+func _can_player_collect(collector: Entity) -> bool:
+	if not collector.is_in_group("players"):
+		return true
+	var main = collector.get_tree().root.get_node_or_null("Main")
+	if item.type == ItemData.Type.HEAL:
+		if main and main.heal_pickup_banned:
+			return false
+		if item.rarity == ItemData.Rarity.RARE \
+				and collector.has_method("can_collect_advanced_heal") \
+				and not collector.can_collect_advanced_heal():
+			if collector.has_method("notify_survival_pickup_blocked"):
+				collector.notify_survival_pickup_blocked("medkit_full")
+			return false
+	if item.type == ItemData.Type.ARMOR \
+			and collector.has_method("can_collect_shield_pickup") \
+			and not collector.can_collect_shield_pickup():
+		if collector.has_method("notify_survival_pickup_blocked"):
+			collector.notify_survival_pickup_blocked("shield_combat")
+		return false
 	return true
 
 func _log_pickup_location(event_name: String) -> void:

@@ -15,10 +15,10 @@ const DEFAULT_ROLE_CAPACITY := {
 	"concealment_field": 2,
 }
 const PREPOSITION_LEAD_SECONDS := {
-	"cover": 65.0,
-	"transit": 55.0,
-	"mixed": 45.0,
-	"loot_hub": 35.0,
+	"cover": 80.0,
+	"transit": 70.0,
+	"mixed": 60.0,
+	"loot_hub": 50.0,
 }
 const ROAD_EXPOSURE_SECONDS := {
 	"transit": 2.0,
@@ -207,7 +207,7 @@ static func preposition_lead_seconds(preference: String, context: Dictionary = {
 	var lead := float(PREPOSITION_LEAD_SECONDS.get(preference, PREPOSITION_LEAD_SECONDS["mixed"]))
 	var equipment_need := clampf(float(context.get("equipment_need", 0.0)), 0.0, 1.0)
 	var threat_pressure := clampf(float(context.get("threat_pressure", 0.0)), 0.0, 1.0)
-	return clampf(lead - equipment_need * 12.0 + threat_pressure * 8.0, 24.0, 72.0)
+	return clampf(lead - equipment_need * 12.0 + threat_pressure * 8.0, 36.0, 87.0)
 
 
 static func choose_route(
