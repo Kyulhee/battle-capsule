@@ -19,16 +19,16 @@ const REQUIRED_PROPS := {
 }
 
 const EXPECTED_WORLD_PROP_COUNTS := {
-	"forest.tree": 13,
+	"forest.tree": 17,
 	"forest.rock.large": 4,
-	"forest.log.pile": 5,
-	"forest.fallen.tree": 3,
-	"landmark.cabin": 3,
-	"landmark.wall": 6,
-	"landmark.crate": 8,
-	"landmark.barrels": 4,
-	"landmark.fire_pit": 1,
-	"landmark.camp.tarp": 2,
+	"forest.log.pile": 7,
+	"forest.fallen.tree": 5,
+	"landmark.cabin": 4,
+	"landmark.wall": 8,
+	"landmark.crate": 11,
+	"landmark.barrels": 6,
+	"landmark.fire_pit": 2,
+	"landmark.camp.tarp": 3,
 	"landmark.watchtower": 1,
 }
 

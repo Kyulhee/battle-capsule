@@ -230,6 +230,30 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 			or int(south_anchor_roles.get("outer", 0)) != 3:
 		_fail("South Creek strategic anchors must expose objective=1, entry=3, outer=3.")
 		return false
+	var brush_camp := _poi_by_name(definition, "Inner Brush North")
+	var brush_identity: Dictionary = brush_camp.get("identity", {})
+	var brush_anchors: Array = brush_camp.get("strategic_anchors", [])
+	var brush_anchor_roles := _anchor_role_counts(brush_anchors)
+	if String(brush_identity.get("theme", "")) != "brush_camp" \
+			or String(brush_identity.get("map_label", "")) != "Brush Camp" \
+			or brush_anchors.size() != 4 \
+			or int(brush_anchor_roles.get("objective", 0)) != 1 \
+			or int(brush_anchor_roles.get("entry", 0)) != 2 \
+			or int(brush_anchor_roles.get("outer", 0)) != 1:
+		_fail("Inner Brush North must expose a readable camp and four occupation anchors.")
+		return false
+	var survey_camp := _poi_by_name(definition, "Survey Camp")
+	var survey_identity: Dictionary = survey_camp.get("identity", {})
+	var survey_anchors: Array = survey_camp.get("strategic_anchors", [])
+	var survey_anchor_roles := _anchor_role_counts(survey_anchors)
+	if String(survey_camp.get("role", "")) != "transit_choke" \
+			or String(survey_identity.get("theme", "")) != "roadside_survey_camp" \
+			or survey_anchors.size() != 4 \
+			or int(survey_anchor_roles.get("objective", 0)) != 1 \
+			or int(survey_anchor_roles.get("entry", 0)) != 2 \
+			or int(survey_anchor_roles.get("outer", 0)) != 1:
+		_fail("Survey Camp must be a four-anchor roadside transit choke.")
+		return false
 	if absf(definition.get_surface_movement_multiplier_at(Vector2(-90.0, 60.0)) - 0.84) > 0.001:
 		_fail("Forest terrain must apply the slower off-road movement contract.")
 		return false
@@ -248,6 +272,17 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	if absf(definition.get_surface_movement_multiplier_at(Vector2(20.0, -109.0)) - 0.94) > 0.001:
 		_fail("South Creek log yard must preserve settlement travel speed.")
 		return false
+	if definition.get_surface_id_at(Vector2(-31.0, 38.0)) != "dirt" \
+			or absf(definition.get_surface_movement_multiplier_at(Vector2(-31.0, 38.0)) - 0.92) > 0.001:
+		_fail("Brush Camp needs a readable dirt clearing inside the slow woods.")
+		return false
+	if definition.get_surface_id_at(Vector2(-27.0, -53.0)) != "dirt" \
+			or absf(definition.get_surface_movement_multiplier_at(Vector2(-27.0, -53.0)) - 0.94) > 0.001:
+		_fail("Survey Camp needs a settlement-speed dirt clearing.")
+		return false
+	if absf(definition.get_surface_movement_multiplier_at(Vector2(-10.0, -50.0)) - 1.0) > 0.001:
+		_fail("Survey Camp must preserve the full-speed main road lane.")
+		return false
 	var road_waypoints: Array[Vector2] = definition.get_road_travel_waypoints(
 		Vector2(-40.0, -70.0),
 		Vector2(0.0, 100.0)
@@ -259,10 +294,10 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 		if absf(definition.get_surface_movement_multiplier_at(road_waypoint) - 1.0) > 0.001:
 			_fail("Strategic road waypoints must remain on full-speed path surfaces.")
 			return false
-	if _count_prop_obstacles(definition, "landmark.cabin") != 3:
+	if _count_compound_prop(definition, "cabin_row", "landmark.cabin") != 3:
 		_fail("Cabin Row needs three cabin landmarks.")
 		return false
-	if _count_prop_obstacles(definition, "landmark.wall") != 6:
+	if _count_compound_prop(definition, "cabin_row", "landmark.wall") != 6:
 		_fail("Cabin Row needs six wall segments around three open entries.")
 		return false
 	if _count_prop_obstacles(definition, "forest.tree") < 6:
@@ -299,6 +334,20 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	if _count_named_compound_cover(definition, "south_creek_logging_ford", "soft") != 3:
 		_fail("Logging Ford needs three soft supply props in the yard.")
 		return false
+	if _count_named_compound_cover(definition, "inner_brush_north_camp", "hard") != 3 \
+			or _count_named_compound_cover(definition, "inner_brush_north_camp", "screen") != 3 \
+			or _count_named_compound_cover(definition, "inner_brush_north_camp", "soft") != 2:
+		_fail("Brush Camp needs hard=3, screen=3, soft=2 around an open objective.")
+		return false
+	if _count_named_compound_cover(definition, "survey_camp", "hard") != 4 \
+			or _count_named_compound_cover(definition, "survey_camp", "screen") != 2 \
+			or _count_named_compound_cover(definition, "survey_camp", "soft") != 3:
+		_fail("Survey Camp needs hard=4, screen=2, soft=3 without blocking the road.")
+		return false
+	if _count_compound_prop(definition, "inner_brush_north_camp", "landmark.camp.tarp") != 1 \
+			or _count_compound_prop(definition, "survey_camp", "landmark.cabin") != 1:
+		_fail("The new micro-compounds need distinct tarp and cabin landmarks.")
+		return false
 	for compound_prop in [
 		{"id": "forest.log.pile", "count": 4},
 		{"id": "forest.fallen.tree", "count": 2},
@@ -313,6 +362,11 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	if String(ford_route.get("role", "")) != "primary_choke" \
 			or String(ford_route.get("alternate_route_id", "")) != "south_creek_flank":
 		_fail("Logging Ford needs an exposed primary choke with a forest alternate.")
+		return false
+	var central_route := _route_by_id(definition, "central_meadow_cross")
+	var central_connections: Array = central_route.get("connects", [])
+	if not central_connections.has("Survey Camp"):
+		_fail("Central Meadow Cross must identify Survey Camp as a roadside destination.")
 		return false
 	if _count_compound_cover(definition, "hard") != 9:
 		_fail("Cabin Row needs nine explicit hard-cover masses.")

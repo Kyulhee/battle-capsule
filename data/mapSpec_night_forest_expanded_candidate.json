@@ -327,7 +327,46 @@
     { "name": "Northeast Slope", "pos": [82, 90], "radius": 18, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.18 },
     { "name": "Southwest Brush", "pos": [-88, -84], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
     { "name": "Southeast Brush", "pos": [92, -80], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
-    { "name": "Inner Brush North", "pos": [-34, 38], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
+    {
+      "name": "Inner Brush North",
+      "pos": [-34, 38],
+      "radius": 18,
+      "role": "concealment_field",
+      "item_density": 0.34,
+      "rare_bias": 0.06,
+      "identity": {
+        "theme": "brush_camp",
+        "map_label": "Brush Camp",
+        "map_anchor": [-31, 38]
+      },
+      "strategic_capacity": 4,
+      "strategic_anchors": [
+        { "id": "brush_fire_objective", "role": "objective", "pos": [-31, 36], "jitter_radius": 1.2 },
+        { "id": "brush_road_entry", "role": "entry", "pos": [-17, 38], "jitter_radius": 1.5 },
+        { "id": "brush_forest_entry", "role": "entry", "pos": [-51, 42], "jitter_radius": 1.5 },
+        { "id": "brush_north_outer", "role": "outer", "pos": [-31, 52], "jitter_radius": 1.8 }
+      ]
+    },
+    {
+      "name": "Survey Camp",
+      "pos": [-27, -53],
+      "radius": 16,
+      "role": "transit_choke",
+      "item_density": 0.58,
+      "rare_bias": 0.14,
+      "identity": {
+        "theme": "roadside_survey_camp",
+        "map_label": "Survey Camp",
+        "map_anchor": [-18, -48]
+      },
+      "strategic_capacity": 4,
+      "strategic_anchors": [
+        { "id": "survey_yard_objective", "role": "objective", "pos": [-27, -51], "jitter_radius": 1.2 },
+        { "id": "survey_road_entry", "role": "entry", "pos": [-16, -50], "jitter_radius": 1.4 },
+        { "id": "survey_forest_entry", "role": "entry", "pos": [-38, -58], "jitter_radius": 1.5 },
+        { "id": "survey_south_outer", "role": "outer", "pos": [-33, -74], "jitter_radius": 1.8 }
+      ]
+    },
     { "name": "Inner Brush South", "pos": [40, -40], "radius": 18, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.06 }
   ],
   "surface_zones": [
@@ -396,6 +435,28 @@
       "pos": [40, -40],
       "size": [58, 46],
       "rot": 16
+    },
+    {
+      "id": "inner_brush_camp_clearing",
+      "shape": "ellipse",
+      "surface": "dirt",
+      "material_id": "ground.forest_dirt",
+      "movement_multiplier": 0.92,
+      "travel_role": "settlement",
+      "pos": [-31, 38],
+      "size": [30, 22],
+      "rot": -10
+    },
+    {
+      "id": "survey_camp_clearing",
+      "shape": "ellipse",
+      "surface": "dirt",
+      "material_id": "ground.forest_dirt",
+      "movement_multiplier": 0.94,
+      "travel_role": "settlement",
+      "pos": [-27, -53],
+      "size": [32, 24],
+      "rot": -16
     },
     {
       "id": "west_ridge_clearing",
@@ -592,6 +653,26 @@
     { "type": "camp_crate", "prop_id": "landmark.crate", "cover_class": "soft", "compound_id": "south_creek_logging_ford", "compound_role": "yard_supply", "pos": [19, -104], "scale": [0.58, 0.68, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": -18, "map_size": [1.15, 1.0] },
     { "type": "barrel_cluster", "prop_id": "landmark.barrels", "cover_class": "soft", "compound_id": "south_creek_logging_ford", "compound_role": "yard_supply", "pos": [23, -105], "scale": [0.89, 0.39, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": 8, "map_size": [1.78, 1.0] },
 
+    { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "inner_brush_north_camp", "compound_role": "forest_screen", "entry_id": "west", "pos": [-46, 44], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 22 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "inner_brush_north_camp", "compound_role": "forest_screen", "entry_id": "west", "pos": [-42, 26], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -18 },
+    { "type": "camp_tarp", "prop_id": "landmark.camp.tarp", "cover_class": "screen", "compound_id": "inner_brush_north_camp", "compound_role": "camp_landmark", "pos": [-35, 42], "scale": [2.30, 1.25, 1.90], "visual_scale": [1.0, 1.0, 1.0], "rot": -12, "map_size": [4.6, 3.8] },
+    { "type": "fallen_tree", "prop_id": "forest.fallen.tree", "cover_class": "hard", "compound_id": "inner_brush_north_camp", "compound_role": "forest_cover", "entry_id": "west", "pos": [-42, 34], "scale": [2.80, 0.60, 0.65], "visual_scale": [1.0, 1.0, 1.0], "rot": 18, "map_size": [5.6, 1.3] },
+    { "type": "log_pile", "prop_id": "forest.log.pile", "cover_class": "hard", "compound_id": "inner_brush_north_camp", "compound_role": "camp_cover", "entry_id": "north", "pos": [-25, 44], "scale": [1.45, 0.58, 0.90], "visual_scale": [1.0, 1.0, 1.0], "rot": -8, "map_size": [2.9, 1.8] },
+    { "type": "ruined_wall", "prop_id": "landmark.wall", "cover_class": "hard", "compound_id": "inner_brush_north_camp", "compound_role": "road_shoulder", "entry_id": "east", "pos": [-24, 33], "scale": [2.87, 0.78, 0.56], "visual_scale": [1.0, 1.0, 1.0], "rot": 72, "map_size": [5.74, 1.12] },
+    { "type": "camp_crate", "prop_id": "landmark.crate", "cover_class": "soft", "compound_id": "inner_brush_north_camp", "compound_role": "camp_supply", "pos": [-30, 45], "scale": [0.58, 0.68, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": 14, "map_size": [1.15, 1.0] },
+    { "type": "barrel_cluster", "prop_id": "landmark.barrels", "cover_class": "soft", "compound_id": "inner_brush_north_camp", "compound_role": "road_supply", "entry_id": "east", "pos": [-20, 40], "scale": [0.89, 0.39, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": -18, "map_size": [1.78, 1.0] },
+    { "type": "fire_pit", "prop_id": "landmark.fire_pit", "collision": false, "compound_id": "inner_brush_north_camp", "compound_role": "yard_anchor", "pos": [-31, 36], "scale": [0.53, 0.13, 0.47], "visual_scale": [1.0, 1.0, 1.0], "rot": 0, "map_size": [1.1, 1.0], "map_shape": "ellipse" },
+
+    { "type": "cabin", "prop_id": "landmark.cabin", "cover_class": "hard", "compound_id": "survey_camp", "compound_role": "landmark", "pos": [-32, -56], "scale": [2.92, 2.37, 2.47], "visual_scale": [1.0, 1.0, 1.0], "rot": -16, "map_size": [5.84, 4.94] },
+    { "type": "ruined_wall", "prop_id": "landmark.wall", "cover_class": "hard", "compound_id": "survey_camp", "compound_role": "road_shoulder", "entry_id": "east", "pos": [-22, -44], "scale": [2.87, 0.78, 0.56], "visual_scale": [1.0, 1.0, 1.0], "rot": -20, "map_size": [5.74, 1.12] },
+    { "type": "fallen_tree", "prop_id": "forest.fallen.tree", "cover_class": "hard", "compound_id": "survey_camp", "compound_role": "forest_cover", "entry_id": "west", "pos": [-41, -47], "scale": [2.80, 0.60, 0.65], "visual_scale": [1.0, 1.0, 1.0], "rot": 28, "map_size": [5.6, 1.3] },
+    { "type": "log_pile", "prop_id": "forest.log.pile", "cover_class": "hard", "compound_id": "survey_camp", "compound_role": "south_cover", "entry_id": "south", "pos": [-22, -61], "scale": [1.45, 0.58, 0.90], "visual_scale": [1.0, 1.0, 1.0], "rot": 12, "map_size": [2.9, 1.8] },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "survey_camp", "compound_role": "forest_screen", "entry_id": "west", "pos": [-45, -59], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 18 },
+    { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "survey_camp", "compound_role": "forest_screen", "entry_id": "south", "pos": [-37, -69], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -24 },
+    { "type": "camp_crate", "prop_id": "landmark.crate", "cover_class": "soft", "compound_id": "survey_camp", "compound_role": "yard_supply", "pos": [-23, -53], "scale": [0.58, 0.68, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": 10, "map_size": [1.15, 1.0] },
+    { "type": "camp_crate", "prop_id": "landmark.crate", "cover_class": "soft", "compound_id": "survey_camp", "compound_role": "road_supply", "entry_id": "east", "pos": [-18, -56], "scale": [0.58, 0.68, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": -14, "map_size": [1.15, 1.0] },
+    { "type": "barrel_cluster", "prop_id": "landmark.barrels", "cover_class": "soft", "compound_id": "survey_camp", "compound_role": "south_supply", "entry_id": "south", "pos": [-27, -65], "scale": [0.89, 0.39, 0.50], "visual_scale": [1.0, 1.0, 1.0], "rot": 16, "map_size": [1.78, 1.0] },
+
     { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "cabin_row", "compound_role": "outer_screen", "pos": [-38, 88], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 12 },
     { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "cabin_row", "compound_role": "outer_screen", "pos": [-32, 115], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": -24 },
     { "type": "tree_cluster", "prop_id": "forest.tree", "cover_class": "screen", "compound_id": "cabin_row", "compound_role": "outer_screen", "pos": [35, 114], "scale": [2.48, 1.88, 2.08], "visual_scale": [1.0, 1.0, 1.0], "rot": 26 },
@@ -645,7 +726,7 @@
       "role": "loot_flow",
       "points": [[13, -79], [8, -56], [0, 0], [-4, 52], [0, 96]],
       "width": 14.0,
-      "connects": ["South Creek Bend", "Central Meadow", "Cabin Row"],
+      "connects": ["South Creek Bend", "Survey Camp", "Central Meadow", "Cabin Row"],
       "alternate_route_id": "north_slope_flank",
       "strategic_value": "low_density_center_between_outer_loot"
     },

@@ -1,6 +1,6 @@
 # 마스터플랜
 
-> 최종 업데이트: 2026-07-23. 남은 작업은 마일스톤 -> 트랙 -> 종료 조건 -> 다음 slice 순서로 관리한다.
+> 최종 업데이트: 2026-07-26. 남은 작업은 마일스톤 -> 트랙 -> 종료 조건 -> 다음 slice 순서로 관리한다.
 
 ## 현재 제품 목표
 
@@ -22,11 +22,11 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale 프로�
 - 기존 `mapSpec_night_forest_candidate.json`과 `playable_pacing_v4-v6`는 과거 비교 기준으로만 유지
 - 구조 gate: `target_99_probe`
 - 자동·수동 gameplay 기준: `night_br_m1_60`
-- 자동 페이싱 기준: `night_br_m1_60` 5-run 평균 746.7초, 개별 606.0-857.9초
-- 존 기준: 첫 축소 120초, stage2 260초, stage3 540초. first upgrade 평균 4.5초
+- 자동 페이싱 기준: `night_br_m1_60` 5-run 평균 787.2초, 개별 688.1-855.1초
+- 존 기준: 첫 축소 120초, stage2 260초, stage3 540초. first upgrade 평균 4.9초
 - 최신 gameplay slice: N2-PLAY-09 지역 구분·AI 잠복 개선, 빈 평지·초기 압력·지역별 파밍 차이는 반복
 - 최신 AI slice: N2-AI-10 상태·도착 시간·점유·노출 효용 기반 목적지/도로/선점 선택
-- 최신 map/world slice: N2-MAP-16 Cabin Row-참조 초소-Logging Ford 3거점 이동 루프
+- 최신 map/world slice: N2-MAP-17 Brush Camp 은폐 거점과 Survey Camp 도로 병목 자동 후보
 - 최신 UI slice: N2-UI-01 플레이어 중심 120m/280px 미니맵과 Main 단일 소유권
 - 최신 asset slice: N2-ASSET-05 감시탑·천막·대형 바위·통나무·쓰러진 나무 GLB 승격
 - 최신 검증 기반: N2-PACE-34부터 `Main.match_timer`를 canonical time으로 사용하고 navigation bake 완료 뒤 시뮬레이션 시작
@@ -55,15 +55,16 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale 프로�
 - N2-HELL-01: 지옥은 `현재 HP 1/최대 HP 100`으로 시작해 회복할 수 있다. `heal_mult=0` 유물만 최대 체력까지 `1/1`로 잠근다
 - N2-BASE-01: 확장 Night 맵의 기존 60봇 수치를 `night_br_m1_60`으로 승격하고 무인자 `Main.tscn` 실행, 수동 플레이, 후보 페이싱 명령을 같은 표면으로 통합했다. `xlarge_60`은 과거 명령 호환 alias만 유지한다
 - N2-EQUIP-01: 중심·도로 T2, 외곽 T1, 보급 T3의 최소 무기 등급을 연결하고 실드 충전과 15% 방어·이동 96% 방탄 조끼를 분리했다. 5-run 평균 746.7초, 범위 606.0-857.9초, first upgrade 4.5초, 정체 0.01/개체·분이며 60봇 p95 15.55ms다
+- N2-MAP-17: `Brush Camp`와 `Survey Camp`에 흙 공터·프롭 18개·점유 앵커를 묶고 실제 앵커 jitter와 6개 진입 경로를 고정했다. 최종 5-run 평균 787.2초, open 피해/킬 41.9%/33.9%, 정체 0.01·이탈 0.18/개체·분, AI 평균 322.3µs로 구조·페이싱 후보를 통과했다. `-50,30` 국소 정체는 6/33→1/41로 줄었고 focused runtime 4.85초·stuck 0, `unit_smoke`를 통과했다. Forward+는 2회 정상·1회 이상치여서 수동 승격과 함께 재확인한다
 
 ## Night BR 페이싱 판정 창
 
 | 지표 | 목표 창 | 현재 | 판단 |
 |---|---|---|---|
-| first upgrade | 2-30초 | 4.5초 | 자동 통과, 초기 즉시 무장 체감은 수동 확인 필요 |
-| stage2 | 240-420초 | 260.0초 | 자동 통과 |
+| first upgrade | 2-30초 | 4.9초 | 자동 통과, 초기 즉시 무장 체감은 수동 확인 필요 |
+| stage2 | 240-420초 | 260.1초 | 자동 통과 |
 | stage3 | 540-720초 | 540.1초 | 자동 통과 |
-| match duration | 평균 600-900초, 개별 480-960초 | 평균 746.7초, 606.0-857.9초 | 자동 통과, 장비·생존 제약 수동 확인 필요 |
+| match duration | 평균 600-900초, 개별 480-960초 | 평균 787.2초, 688.1-855.1초 | 자동 통과, 장비·생존·맵 압력 수동 확인 필요 |
 
 첫 1분은 즉사나 랜덤 충돌보다 위험을 읽고 선택하는 느낌이어야 한다. bot-only는 stage1 과소모지만 실제 플레이어는 정지 시 접촉이 적고 4봇이 견제 후 이탈해 오히려 너무 덜 죽었다. 두 현상을 같은 피해 수치로 묶지 않고 대인 교전 종료와 맵 encounter 구조를 분리한다.
 
@@ -71,11 +72,11 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale 프로�
 
 | 영역 | 구현됨 | 후보/검증 신호 | 아직 아님 | 다음 판단 |
 |---|---|---|---|---|
-| 매치/preset | `night_br_m1_60` 일반·수동·자동 공통 표면, bot-only simulation participant | 5-run 평균 746.7초와 개별 상·하한 gate 통과 | 장비·생존 제약 수동 체감, 99명 default 승격 | N2-EQUIP-01 수동 회귀 |
+| 매치/preset | `night_br_m1_60` 일반·수동·자동 공통 표면, bot-only simulation participant | 최신 5-run 평균 787.2초와 개별 상·하한 gate 통과 | 장비·생존·맵 압력 수동 체감, 99명 default 승격 | N2-MAP-17 통합 수동 회귀 |
 | 전투/AI | bot doctrine, player 위협/5초 기억, 국소 분산, 상태 기반 POI·도로·다음 원 선점 | 효용 정책·Arena 상태 변환·Night 선점 runtime 통과 | 도로 교통량과 선점 조우 수동 승격, flashlight/fear/battery 전술 | 지역 보상 연결 뒤 압력 재판정 |
 | loot/economy | 중심·도로 T2, 외곽 T1, 보급 T3, 같은 계열 업그레이드, 실드 충전과 방탄 조끼 | first upgrade 평균 4.5초, 누락 0/5, 무기 획득 69.7%가 loot hub·transit | 다중 방어구·세부 티어, 지역 차이 수동 승격 | N2-EQUIP-01 수동 회귀 |
 | zone/pacing | canonical match clock, 첫 축소 120초, stage2/3 260/540초, 선축소 점유 | 평균 727.0초, next-zone 접근 선점 runtime 통과 | 실제 플레이의 첫 축소·선점·후반 체감 | N2-SURV-01 수동 회귀 |
-| 맵/경로 | 260m 후보, Cabin Row·West Ridge·Logging Ford, 실제 landmark 지도, 표면 이동 경제와 road waypoint | 세 장소와 빠른 도로·느린 엄폐 숲·동쪽 나루 NavMesh 통과 | 저밀도 개방 구역의 장소 문법과 최종 맵 승격 | N2-MAP-17 |
+| 맵/경로 | 260m 후보, Cabin Row·West Ridge·Logging Ford·Brush Camp·Survey Camp, 실제 landmark 지도, 표면 이동 경제와 road waypoint | 실제 jitter를 포함한 6개 경로, open 피해 41.9%, 정체 0.01/개체·분 통과. Forward+ 3회 중 1회 p95 이상치 | 장소 문법·도로/숲 압력과 프레임 이상치의 수동 판정, 최종 맵 승격 | N2-MAP-17 수동 판정 |
 | 화면/UI | HUD, 120m 로컬 minimap, `M` 전체 지도, inventory, pickup label/glow, Night 가독성 | 단일 미니맵·768px 정적 캐시, POI 원 없는 전체 지도 방향/캡처 통과 | 장시간 매치에서 지역 이동감 유지 | N2-PLAY-09 수동 3판 |
 | 자산/audio | 실사 총성·칼 분리음·발걸음, Cabin Row와 West Ridge GLB | catalog 누락 0, 프롭 수량·엄폐 계약, 60봇 p95 13.14-13.15ms | 칼 재청취, 검증되지 않은 나머지 지역 자산 | N2-PLAY-09에서 회귀만 기록 |
 | 운영/문서 | 한글 활성 문서 7개, 기술/자산 참조 분리 | 재개 경로와 검증 루틴 정리 | 장문 로그와 날짜별 사본 운영 | 문서 예산과 Git 이력 원칙 유지 |
@@ -84,10 +85,10 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale 프로�
 
 | 트랙 | 목표 | 현재 신호 | 종료 조건 | 다음 slice |
 |---|---|---|---|---|
-| T1 페이싱 안정화 | 안정된 10-15분 match 분포 확보 | 평균 746.7초·개별 606.0-857.9초로 자동 상하한 통과 | 실제 플레이에서도 지나친 공백·즉사·후반 지연이 없음 | 장비·생존 수동 회귀 |
-| T2 오프닝 체감 | 첫 2분에 이동·파밍·교전 선택이 생김 | first upgrade 4.5초, 첫 접촉 6.9초, 지역 장비 분포 자동 통과 | 지역별 초기 보상이 무작위 즉사 없이 이동 이유를 만듦 | N2-EQUIP-01 수동 회귀 |
+| T1 페이싱 안정화 | 안정된 10-15분 match 분포 확보 | 평균 787.2초·개별 688.1-855.1초로 자동 상하한 통과 | 실제 플레이에서도 지나친 공백·즉사·후반 지연이 없음 | N2-MAP-17 통합 수동 회귀 |
+| T2 오프닝 체감 | 첫 2분에 이동·파밍·교전 선택이 생김 | first upgrade 4.9초, 첫 접촉 7.0초, 지역 장비 분포 자동 통과 | 지역별 초기 보상이 무작위 즉사 없이 이동 이유를 만듦 | N2-MAP-17 통합 수동 회귀 |
 | T3 야간 가독성 | 플레이어/픽업/cover가 실제 화면에서 읽힘 | route 표현 제거, Night/지도 deterministic 캡처 통과 | `night_br_m1_60` 수동 기록에서 cover·픽업·위협 판독 가능 | first-minute read |
-| T4 맵/경로 체감 | pickup과 지형이 자연스러운 이동·병목 선택을 만듦 | 세 장소와 지역 장비 보상은 연결됐지만 open 피해 53.2% | 구조물 군집이 도로·숲·선점 압력을 만들고 정체를 늘리지 않음 | N2-MAP-17 |
+| T4 맵/경로 체감 | pickup과 지형이 자연스러운 이동·병목 선택을 만듦 | 두 소형 거점 뒤 open 피해 41.9%·킬 33.9%, 상위 셀 5.4%, 문제 셀 정체 6/33→1/41 | 구조물 군집이 실제 도로·숲·선점 압력으로 읽히고 정체를 늘리지 않음 | N2-MAP-17 수동 판정 |
 | T5 자산 승격 | gameplay를 돕는 자산만 런타임으로 승격 | 총성·발걸음, 칼 분리음, tree·landmark 후보 | 현재 수동 판정 중 오디오·가독성 회귀 없음 | N2-PLAY-09 회귀 감시 |
 | T6 기술 부채 | 큰 파일과 문서 부채를 작업 흐름을 막지 않는 수준으로 유지 | `Bot.gd`, `Main.gd`, `Player.gd`, `Telemetry.gd` 큼 | slice가 닿는 도메인만 작은 추출, 기본 문서 부하 유지 | 변경 도메인별 opportunistic extraction |
 
@@ -99,7 +100,7 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale 프로�
 
 ## 우선순위 원칙
 
-1. 생존·자기장과 지역별 장비 자동 gate는 통과했다. 다음은 저밀도 개방 구역을 역할이 있는 군집으로 채운다.
+1. 생존·자기장·지역별 장비와 N2-MAP-17의 구조·페이싱 gate는 통과했다. 다음은 한 표면에서 장소·이동·파밍 압력과 단발 성능 이상치의 재현 여부를 수동 판정한다.
 2. T2는 수치만으로 승격하지 않는다. `PLAYTEST.md`에 첫 2분 파밍·이동 체감 기록이 필요하다.
 3. T3/T4는 함께 본다. 어두워서 route가 안 읽히면 맵 구조가 좋아도 체감되지 않는다.
 4. T5는 cosmetic backlog가 아니라 gameplay readability/feedback 문제를 줄이는 순서로 진행한다.

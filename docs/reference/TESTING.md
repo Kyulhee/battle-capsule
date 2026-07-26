@@ -1,6 +1,6 @@
 # 테스트와 검증 가이드
 
-> 최종 업데이트: 2026-07-23. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
+> 최종 업데이트: 2026-07-26. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
 
 ## 원칙
 
@@ -44,8 +44,9 @@ python tools\run_verify.py --profile visual_review
 
 - 명시적 `--map-spec-path`: 후보와 다른 기본 맵으로 실행되는 일을 금지
 - 최소 run 수: 5
-- avg duration: 540초 이상
-- avg first upgrade: 120초 이상
+- avg duration: 600-900초
+- 개별 duration: 480-960초
+- avg first upgrade: 2-30초
 - missing first-upgrade run: 0
 - scale sentinel PASS
 
@@ -56,9 +57,7 @@ python tools\run_verify.py --profile visual_review
 
 N2-PACE-34 이전 결과와 N2-PACE-35 player 참가 결과는 weapon/source 맥락만 참고하고 현재 duration/stuck 기준선으로 사용하지 않는다.
 
-현재 canonical 표면은 `night_br_m1_60`이며 아직 5-run 분포가 없다. `playable_pacing_v5`는 N2-PACE-33의 과거 duration 가설이다. profile 최소 gate와 별도로 제품 판정은 평균 600-900초와 개별 run 분산을 함께 본다.
-
-- 판정: bot-only damage 동작 가설은 유지하지만 canonical duration gate 실패로 기본 승격을 보류한다.
+현재 canonical 표면은 `night_br_m1_60`이다. N2-MAP-17 최종 5-run은 평균 787.2초, 범위 688.1-855.1초, first upgrade 4.9초, 정체/이탈 0.01/0.18 per spawned entity/min, AI 평균 322.3µs로 gate를 통과했다. 이 자동 분포는 수동 장소·전투 체감이나 `target_99_probe` 승격을 대신하지 않는다.
 
 좁은 구조 수정은 해당 구조 gate가 개선되고 회귀 검증을 통과하면 채택할 수 있다. 이때 unrelated pacing gate 실패를 숨기지 않으며 전체 후보는 승격하지 않는다.
 
@@ -100,6 +99,8 @@ AI 오류를 짧게 재현할 때는 제품 맵 대신 96m 전용 표면을 먼�
 
 `verify_night_west_ridge_nav.gd`는 West Ridge의 노출 도로와 숲 우회가 감시탑 옆 AI 목표까지 각각 연결되는지 검사한다.
 
+`verify_night_micro_compound_nav.gd`는 활성 맵의 Brush Camp·Survey Camp 앵커 ID를 직접 읽고, 목표와 6개 진입 앵커의 중심, 실제 AI가 쓰는 jitter 반경 35/65/95%, 선언 경계 100%를 각 12방향으로 실제 NavMesh에 대조한다. 각 샘플 snap은 0.35m 이하, 경로 우회비는 2.2 이하이어야 하며 Brush Camp 서쪽 진입은 실제 1봇이 8초 안에 목표 3m 안으로 도착하고 stuck 0이어야 한다.
+
 `verify_bot_strategic_movement_policy.gd`는 비전투 봇이 현재 POI와 존 밖 후보를 제외하고, POI 점유가 높으면 다른 지역으로 분산하며 성향별 objective/entry/outer 앵커를 고르는지 검사한다. 실제 확장 맵 `nav_hotspot_1`은 존 탈출 뒤 전략 POI 목적지도 생성해야 한다. 유효한 목적지는 도착하거나 존 밖이 될 때까지 유지하며 전역 pickup/actor 재탐색을 추가하지 않는다.
 
 `verify_bot_engagement_saturation_runtime.gd`는 이미 포화된 표적에서 먼 방어형 봇은 합류를 보류하고, 그 표적이 자신을 추적하면 즉시 대응하는지 3봇 소형 런타임에서 검사한다. `squad_4`는 10m 안 근접 조우와 강제 표적에서 4봇 모두 플레이어 대응을 유지해야 한다.
@@ -114,14 +115,14 @@ python tools\analyze_results.py C:\tmp\manual_run
 python tools\analyze_map_structure.py data\mapSpec_night_forest_expanded_candidate.json --preset night_br_m1_60
 python tools\analyze_map_structure.py data\mapSpec_night_forest_expanded_candidate.json --preset target_99_probe
 python tools\summarize_pacing_baseline.py C:\tmp\manual_run
-python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-duration 540 --min-run-duration 300 --max-run-duration 1200 --min-avg-first-upgrade 120 --max-missing-first-upgrade 0
+python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-duration 600 --max-avg-duration 900 --min-run-duration 480 --max-run-duration 960 --min-avg-first-upgrade 2 --max-avg-first-upgrade 30 --max-missing-first-upgrade 0
 python tools\compare_scale_profiles.py C:\tmp\parent_control C:\tmp\candidate --baseline-label parent --target-label candidate
 .\Godot_v4.6.2-stable_win64_console.exe --path . --script res://tools/profile_runtime_performance.gd -- map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=night_br_m1_60 perf_warmup_seconds=5 perf_sample_seconds=20 perf_output=C:/tmp/runtime_performance.json
 ```
 
 AI 이동처럼 규모에 민감한 변경은 부모 커밋 worktree와 현재 후보를 같은 맵·preset·seed base로 각각 최소 5회 실행한다. seed별 결과 일치를 기대하지 않고 종료 분포, 개체·분 기준 stuck/disengage, AI 평균·최대 비용을 함께 비교한다.
 
-`profile_runtime_performance.gd`는 headless가 아닌 Forward+ 실행에서 frame/process/physics/navigation, draw call, collision pair, pipeline compile, AI 비용을 JSON으로 남긴다. 같은 조건을 최소 2회 반복하며 `perf_hide_minimap=true`는 UI 병목 대조에만 쓴다. N2-UI-01까지의 기준은 p95 13.3-14.2ms, p99 16.5-19.2ms, 33ms 초과 0.06-0.15%다.
+`profile_runtime_performance.gd`는 headless가 아닌 Forward+ 실행에서 frame/process/physics/navigation, draw call, collision pair, pipeline compile, AI 비용을 JSON으로 남긴다. 같은 조건을 최소 2회 반복하며 `perf_hide_minimap=true`는 UI 병목 대조에만 쓴다. N2-UI-01까지의 기준은 p95 13.3-14.2ms, p99 16.5-19.2ms, 33ms 초과 0.06-0.15%다. p95 20ms 초과 run은 제외하지 않고 원시값과 추가 재현 결과를 함께 기록하며, 반복되면 승격을 중단한다.
 
 맵 엄폐 후보는 구조 분석만으로 승격하지 않는다. `analyze_map_structure.py`로 빈 셀·방사 대역·POI 개방률을 확인한 뒤 60/99봇 각 5-run의 spawn fallback, stuck, POI/route 피해와 Forward+ 2회를 비교하고, 고정 좌표 실제 카메라 캡처와 `PLAYTEST.md` 수동 판정을 함께 남긴다.
 

@@ -241,6 +241,15 @@ def profile_steps(
                     "simulation_seed=41000",
                 ],
             ),
+            godot_script_args(
+                godot,
+                "verify_night_micro_compound_nav.gd",
+                [
+                    "map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json",
+                    "scale_preset=nav_hotspot_1",
+                    "simulation_seed=41000",
+                ],
+            ),
             godot_script(godot, "verify_strategic_flow_map.gd"),
             godot_script(godot, "verify_map_runtime_path.gd"),
             godot_script(godot, "verify_ai_test_arena.gd"),
