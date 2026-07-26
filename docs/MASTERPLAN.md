@@ -13,7 +13,7 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 | ID | 이름 | 상태 | 완료 기준 |
 |---|---|---|---|
 | M0 | 운영 기반 | 지원 중 | 현재 상태를 빠르게 재개하고 검증·빌드·푸쉬 결과를 반복 가능하게 유지 |
-| M1 | 첫 플레이 가능한 Night BR | 종료 판정 중 | `night_br_m1_60` 자동 gate와 N2-PLAY-10 수동 3판, 성능 재측정을 통과 |
+| M1 | 첫 플레이 가능한 Night BR | 종료 판정 중 | 통과한 `night_br_m1_60` 자동·성능·99 구조 gate를 보존하고 N2-PLAY-10 수동 3판을 통과 |
 | M2 | 릴리즈 버티컬 슬라이스 | 다음 | 캐릭터·전투·야간·HUD·오디오·온보딩이 대표 한 판에서 설득력 있게 동작 |
 | M3 | Windows 공개 데모 RC | 계획 | 실제 패키지·저장·호환성·외부 테스트·고지 gate를 통과하고 P0/P1 결함이 없음 |
 | M4 | 오프라인 유료 EA 판단 | 이후 | 데모 반응 뒤 콘텐츠 반복성·운영·업데이트 범위에 대해 Go/No-Go |
@@ -36,8 +36,8 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 - 자동 페이싱 기준: `night_br_m1_60` 5-run 평균 787.2초, 개별 688.1-855.1초
 - 존 기준: 첫 축소 120초, stage2 260초, stage3 540초. first upgrade 평균 4.9초
 - 최신 gameplay 증거: N2-PLAY-09는 지역·AI 잠복을 채택했지만 N2-SURV-01/N2-EQUIP-01/N2-MAP-17 이후 수동 기록은 아직 없음
-- 최신 자동 후보: N2-MAP-17의 Brush Camp·Survey Camp, 6개 진입 경로, focused runtime 4.85초·stuck 0, `unit_smoke` 통과
-- 최신 성능: Forward+ p95/p99 14.147/16.755, 32.695/46.437, 13.846/16.541ms; 단발 이상치 재측정 전 승격 보류
+- 최신 자동 후보: N2-MAP-17의 Brush Camp·Survey Camp, release persistence/identity/settings를 포함한 `unit_smoke`, 고정 입력 `target_99_probe` 5-run 통과
+- 최신 성능: windowed 1280×720 Forward+ p95/p99 15.429/19.948, 15.059/17.641, 15.197/17.924ms; p95 20ms 초과 0/3
 - 과거 채택·폐기 상세는 `DEVLOG.md`, `EXPERIMENTS.md`, Git 이력이 소유함
 
 ## Night BR 페이싱 판정 창
@@ -66,8 +66,8 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 | 매치/AI/맵 | 60봇 공통 표면, 10-15분 자동 분포, 실제 NavMesh·전투·전략 gate | N2-MAP-17 이후 수동 재미·장소·오프닝 판정 | N2-PLAY-10 |
 | 비주얼/오디오 | 일관된 low-poly 프롭, 픽업 glow·아이콘, 총성·발걸음 일부 | 겹친 수관, procedural capsule, 약한 전투 피드백, 핵심 fallback audio | N2-M2-VIS-01 |
 | UI/첫 사용자 | 메뉴·HUD·지도·아티팩트·결과·기록 골격 | HUD 위계, 혼합 언어, 밝기·감도·해상도·UI scale·첫 판 안내 | N2-M2-UX-01 |
-| 기록/저장 | 설정·기록·배지 로컬 저장 | 미션 점수 불일치, simulation 오염, 비원자·무버전·손상 복구 부재 | N2-REL-01 |
-| 빌드/법적 고지 | Windows/macOS preset과 과거 GitHub Release 이력 | dirty export 위험, 제품명·버전 불일치, artifact smoke·LICENSE/NOTICE/CREDITS 부재 | N2-REL-01/02 |
+| 기록/저장 | Result/Records 동일 점수, simulation 격리, schema v1 원자 저장·backup/corrupt 복구·legacy/현재 공개판 rollback bridge·future schema 보존·기록 50개 제한 | clean 패키지 재실행과 실제 future migration/rollback matrix | N2-REL-01/02 |
+| 빌드/법적 고지 | `Battle Capsule`·`v2.1.0-demo-dev`, 기존 save 경로, Windows metadata/icon, 명시적 export 경계와 identity verifier | clean PCK inventory·전체 루프·manifest/checksum·LICENSE/NOTICE/CREDITS·지원/서명 범위 | N2-REL-01/02 |
 | 호환성/외부 QA | 1280x720 개발 머신의 짧은 profile | 전체 매치·restart soak, 저사양·다중 해상도·실제 Mac·지원 경로 부재 | N2-REL-02 |
 | 콘텐츠 반복성 | 한 맵, 5개 무기, 6개 artifact, 4개 난이도, 미션 | 배지 노출·장기 진행·두 번째 콘텐츠 축 부족 | 공개 데모 반응 뒤 M4 |
 
@@ -75,8 +75,8 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 
 | 순서 | 트랙 | 종료 조건 | 다음 slice |
 |---|---|---|---|
-| 1 | M1 종료 | 실제 3판과 성능/99 구조 회귀가 자동 후보를 승인 | N2-PLAY-10 |
-| 2 | 릴리즈 기반 | 기록·저장·패키지 경계·브랜드/버전·실행 smoke를 고정 | N2-REL-01 |
+| 1A | M1 종료 | 통과한 자동·성능·99 구조 상태를 보존하며 실제 3판이 후보를 승인 | N2-PLAY-10 |
+| 1B | 릴리즈 기반 마감 | 구현된 기록·저장·패키지 경계·브랜드/버전을 clean artifact 전체 루프와 manifest로 고정 | N2-REL-01, 1A와 병행 |
 | 3 | M2 비주얼 슬라이스 | 수관·야간·캡슐/무기·전투 피드백·HUD/지도가 대표 구간에서 수동 통과 | N2-M2-VIS-01 |
 | 4 | M2 첫 사용자 UX | 무설명 사용자가 설정→첫 판→결과→재시작을 완료 | N2-M2-UX-01 |
 | 5 | M3 데모 RC | 실제 artifact와 외부/호환성 matrix가 R1 gate 통과 | N2-REL-02 |

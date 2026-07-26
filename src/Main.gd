@@ -1096,7 +1096,12 @@ func _end_match(final_rank: int = 1):
 		final_rank = 1
 	
 	if has_node("/root/Telemetry"):
-		get_node("/root/Telemetry").end_match(final_rank, "Player" if is_victory else "Bot", zone.stage)
+		get_node("/root/Telemetry").end_match(
+			final_rank,
+			"Player" if is_victory else "Bot",
+			zone.stage,
+			false
+		)
 		
 	# Hide Player HUD
 	if is_instance_valid(player_ref):
@@ -1114,9 +1119,13 @@ func _end_match(final_rank: int = 1):
 		mission_success = mission_tracker.evaluate(tel_node, final_rank, player_hp, player_max_hp, difficulty as int)
 		var mid = mission_tracker.active_mission.id
 		if mission_success:
-			mission_tracker.save_badge(mid)
+			var badge_saved := true
+			if not is_simulation:
+				badge_saved = mission_tracker.save_badge(mid)
 			mission_bonus_score = mission_tracker.active_mission.score_bonus
 			mission_result_text = "★ MISSION CLEAR  %s  (+%d pt)" % [mission_tracker.active_mission.title, mission_bonus_score]
+			if not badge_saved:
+				mission_result_text += "\n⚠ 배지 저장 실패"
 		else:
 			mission_result_text = "✗ MISSION FAILED  %s" % mission_tracker.active_mission.title
 		if tel_node:
@@ -1128,10 +1137,15 @@ func _end_match(final_rank: int = 1):
 	var result_stats_text = ""
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
-		result_score = tel.calculate_score(
-			final_rank, tel.metrics.session.kills,
-			tel.metrics.session.assists, is_victory, difficulty as int
-		) + mission_bonus_score
+		result_score = tel.calculate_current_score(mission_bonus_score)
+		if not is_simulation:
+			var saved_score: int = tel.save_current_match_history(mission_bonus_score)
+			if saved_score >= 0:
+				result_score = saved_score
+			else:
+				if not mission_result_text.is_empty():
+					mission_result_text += "\n"
+				mission_result_text += "⚠ 경기 기록 저장 실패"
 		result_stats_text = "KILLS  %d    ASSISTS  %d    DAMAGE  %.0f    TIME  %ds" % [
 			tel.metrics.session.kills, tel.metrics.session.assists,
 			tel.metrics.combat.total_damage_dealt, int(match_timer)

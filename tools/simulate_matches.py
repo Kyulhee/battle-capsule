@@ -44,6 +44,13 @@ def run_match(match_id: int) -> dict:
         cmd.append(f"difficulty={DIFFICULTY}")
     cmd.extend(EXTRA_ARGS)
     cmd.append(f"simulation_seed={simulation_seed}")
+    if SIM_RESULT_PATH.exists():
+        try:
+            SIM_RESULT_PATH.unlink()
+        except OSError as exc:
+            raise RuntimeError(
+                f"Could not remove stale telemetry result before match: {SIM_RESULT_PATH}"
+            ) from exc
     try:
         proc = subprocess.run(
             cmd,

@@ -35,7 +35,7 @@ python tools\run_verify.py --profile visual_review
 | `pacing_v2` | v2 late-zone 기준 재확인 | 3-run + analyze/summarize + scale gate |
 | `pacing_v3` | v3 first-upgrade 진단 후보 | 3-run + gate |
 | `pacing_candidate` | 현재 후보 승격/회귀 판단 | unit smoke + 최소 5-run + duration/upgrade gate |
-| `scale_99` | 99명 구조 변경 | 확장 Night 후보 `target_99_probe` 최소 5-run + scale gate |
+| `scale_99` | 99명 구조 변경 | 확장 Night `target_99_probe`, 입력 41000-41004 최소 5-run + 개체·분 scale gate |
 | `visual_review` | UI/가독성/체감 변경 | Night/player, 전체맵/미니맵 capture + 1-run + `PLAYTEST.md` 기록 |
 
 ## 현재 pacing candidate gate
@@ -59,6 +59,8 @@ N2-PACE-34 이전 결과와 N2-PACE-35 player 참가 결과는 weapon/source 맥
 
 현재 canonical 표면은 `night_br_m1_60`이다. N2-MAP-17 최종 5-run은 평균 787.2초, 범위 688.1-855.1초, first upgrade 4.9초, 정체/이탈 0.01/0.18 per spawned entity/min, AI 평균 322.3µs로 gate를 통과했다. 이 자동 분포는 수동 장소·전투 체감이나 `target_99_probe` 승격을 대신하지 않는다.
 
+`scale_99`는 입력 추적값 41000-41004를 사용하고 match 길이와 무관하게 stuck/disengage를 spawned entity/min 0.15/0.45로 판정한다. raw count는 진단값이다. 이는 threshold 완화가 아니라 300초 경계의 단위 불연속 제거이며, 과거 확장 후보 0.47은 실패하고 현재 후보 0.44는 통과한다. 최신 5-run은 평균 239.1초, spawn 99/99·fallback 0, stuck/disengage 0.01/0.44, AI 평균 519.6µs로 구조 gate를 통과했다.
+
 좁은 구조 수정은 해당 구조 gate가 개선되고 회귀 검증을 통과하면 채택할 수 있다. 이때 unrelated pacing gate 실패를 숨기지 않으며 전체 후보는 승격하지 않는다.
 
 고정 seed는 결과 재현 보장이 아니다. `simulate_matches.py`는 seed를 JSON에 남겨 입력을 추적하지만 physics/timer 순서가 달라질 수 있으므로 최소 5-run 분포로 판단한다. `seed_base=41000`처럼 실행 입력을 명시할 수 있다.
@@ -69,6 +71,9 @@ N2-PACE-34 이전 결과와 N2-PACE-35 player 참가 결과는 weapon/source 맥
 git diff --check
 python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py tools\check_scale_telemetry.py tools\simulate_matches.py tools\run_verify.py
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_pacing_telemetry.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_release_identity.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_release_persistence.gd
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_settings_manager.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_playable_pacing_preset.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_zone_initial_radius_tuning.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_bot_opening_loot_rules.gd
@@ -114,6 +119,7 @@ python tools\simulate_matches.py 5 map_spec_path=res://data/mapSpec_night_forest
 python tools\analyze_results.py C:\tmp\manual_run
 python tools\analyze_map_structure.py data\mapSpec_night_forest_expanded_candidate.json --preset night_br_m1_60
 python tools\analyze_map_structure.py data\mapSpec_night_forest_expanded_candidate.json --preset target_99_probe
+python tools\check_scale_telemetry.py C:\tmp\release_scale_99 --min-runs 5 --long-run-normalized-after 0
 python tools\summarize_pacing_baseline.py C:\tmp\manual_run
 python tools\check_scale_telemetry.py C:\tmp\manual_run --min-runs 5 --min-avg-duration 600 --max-avg-duration 900 --min-run-duration 480 --max-run-duration 960 --min-avg-first-upgrade 2 --max-avg-first-upgrade 30 --max-missing-first-upgrade 0
 python tools\compare_scale_profiles.py C:\tmp\parent_control C:\tmp\candidate --baseline-label parent --target-label candidate
@@ -122,7 +128,7 @@ python tools\compare_scale_profiles.py C:\tmp\parent_control C:\tmp\candidate --
 
 AI 이동처럼 규모에 민감한 변경은 부모 커밋 worktree와 현재 후보를 같은 맵·preset·seed base로 각각 최소 5회 실행한다. seed별 결과 일치를 기대하지 않고 종료 분포, 개체·분 기준 stuck/disengage, AI 평균·최대 비용을 함께 비교한다.
 
-`profile_runtime_performance.gd`는 headless가 아닌 Forward+ 실행에서 frame/process/physics/navigation, draw call, collision pair, pipeline compile, AI 비용을 JSON으로 남긴다. 같은 조건을 최소 2회 반복하며 `perf_hide_minimap=true`는 UI 병목 대조에만 쓴다. N2-UI-01까지의 기준은 p95 13.3-14.2ms, p99 16.5-19.2ms, 33ms 초과 0.06-0.15%다. p95 20ms 초과 run은 제외하지 않고 원시값과 추가 재현 결과를 함께 기록하며, 반복되면 승격을 중단한다.
+`profile_runtime_performance.gd`는 Main이 저장 설정을 적용한 뒤 다시 windowed 1280×720으로 고정하고, headless가 아닌 Forward+ 실행에서 frame/process/physics/navigation, draw call, collision pair, pipeline compile, AI 비용을 JSON으로 남긴다. 같은 조건을 최소 3회 반복하며 `perf_hide_minimap=true`는 UI 병목 대조에만 쓴다. 최신 3회 p95/p99는 15.429/19.948, 15.059/17.641, 15.197/17.924ms이고 p95 20ms 초과는 0/3이다. 초과 run은 제외하지 않고 원시값과 추가 재현 결과를 함께 기록하며, 반복되면 승격을 중단한다.
 
 맵 엄폐 후보는 구조 분석만으로 승격하지 않는다. `analyze_map_structure.py`로 빈 셀·방사 대역·POI 개방률을 확인한 뒤 60/99봇 각 5-run의 spawn fallback, stuck, POI/route 피해와 Forward+ 2회를 비교하고, 고정 좌표 실제 카메라 캡처와 `PLAYTEST.md` 수동 판정을 함께 남긴다.
 

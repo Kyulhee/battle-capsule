@@ -12,6 +12,7 @@ DEFAULT_OUT_ROOT = Path(os.environ.get("GAME_DEV_VERIFY_OUT", r"C:\tmp"))
 LEGACY_NIGHT_MAP_SPEC = "res://data/mapSpec_night_forest_candidate.json"
 M1_MAP_SPEC = "res://data/mapSpec_night_forest_expanded_candidate.json"
 M1_PRESET = "night_br_m1_60"
+DEFAULT_SEED_BASE = 41000
 
 
 @dataclass(frozen=True)
@@ -66,18 +67,22 @@ def simulate_step(
     out_dir: Path,
     map_spec: str = LEGACY_NIGHT_MAP_SPEC,
     timeout_seconds: int = 300,
+    seed_base: int | None = None,
 ) -> Step:
+    sim_args = [
+        sys.executable,
+        rel("tools/simulate_matches.py"),
+        str(runs),
+        f"map_spec_path={map_spec}",
+        f"scale_preset={preset}",
+        f"out_dir={out_dir}",
+        f"timeout_seconds={timeout_seconds}",
+    ]
+    if seed_base is not None:
+        sim_args.append(f"seed_base={seed_base}")
     return Step(
         f"simulate {preset} x{runs}",
-        [
-            sys.executable,
-            rel("tools/simulate_matches.py"),
-            str(runs),
-            f"map_spec_path={map_spec}",
-            f"scale_preset={preset}",
-            f"out_dir={out_dir}",
-            f"timeout_seconds={timeout_seconds}",
-        ],
+        sim_args,
     )
 
 
@@ -155,7 +160,10 @@ def profile_steps(
         return [
             *docs_only,
             py_compile(report_scripts),
+            godot_script(godot, "verify_release_identity.gd"),
             godot_script(godot, "verify_pacing_telemetry.gd"),
+            godot_script(godot, "verify_release_persistence.gd"),
+            godot_script(godot, "verify_settings_manager.gd"),
             godot_script(godot, "verify_playable_pacing_preset.gd"),
             godot_script(godot, "verify_zone_initial_radius_tuning.gd"),
             godot_script(godot, "verify_spawn_distribution_metrics.gd"),
@@ -374,11 +382,25 @@ def profile_steps(
         return [
             *docs_only,
             godot_script(godot, "verify_candidate_99_probe.gd"),
-            simulate_step(runs, "target_99_probe", out_dir, M1_MAP_SPEC),
+            simulate_step(
+                runs,
+                "target_99_probe",
+                out_dir,
+                M1_MAP_SPEC,
+                seed_base=DEFAULT_SEED_BASE,
+            ),
             Step("analyze scale_99", [sys.executable, rel("tools/analyze_results.py"), str(out_dir)]),
             Step(
                 "scale gate scale_99",
-                [sys.executable, rel("tools/check_scale_telemetry.py"), str(out_dir), "--min-runs", str(runs)],
+                [
+                    sys.executable,
+                    rel("tools/check_scale_telemetry.py"),
+                    str(out_dir),
+                    "--min-runs",
+                    str(runs),
+                    "--long-run-normalized-after",
+                    "0",
+                ],
             ),
         ]
 

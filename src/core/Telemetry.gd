@@ -20,6 +20,8 @@ extends Node
 #   "doctrine" — merged bot AI profiles and selected combat plans
 #   "pacing"   — first contact/upgrade/stage timings and route/POI dwell
 
+const VersionedJsonStoreScript = preload("res://src/core/VersionedJsonStore.gd")
+
 # ── Group toggles ─────────────────────────────────────────────────────────────
 
 var enabled_groups: Dictionary = {
@@ -55,6 +57,10 @@ var match_history: Dictionary = {}  # key = str(difficulty 0-3) → Array of rec
 var current_difficulty: int = 1
 const HISTORY_PATH = "user://match_history.json"
 const SIM_RESULT_PATH = "user://sim_result_latest.json"
+const HISTORY_SCHEMA_VERSION := 1
+const HISTORY_LIMIT_PER_DIFFICULTY := 50
+var history_path: String = HISTORY_PATH
+var sim_result_path: String = SIM_RESULT_PATH
 
 const DIFF_MULT: Array = [1.0, 1.5, 2.5, 4.0]
 
@@ -63,12 +69,19 @@ func calculate_score(rank: int, kills: int, assists: int, win: bool, diff: int) 
 	var raw  = base + kills * 100 + assists * 40 + (300 if win else 0)
 	return int(raw * DIFF_MULT[clamp(diff, 0, 3)])
 
-func clear_history():
+func clear_history() -> bool:
 	match_history = {}
-	var file = FileAccess.open(HISTORY_PATH, FileAccess.WRITE)
-	if file:
-		file.store_string("{}")
-		file.close()
+	if not VersionedJsonStoreScript.save_dictionary(
+		history_path,
+		match_history,
+		HISTORY_SCHEMA_VERSION
+	):
+		push_error("Telemetry: failed to clear match history.")
+		return false
+	if not VersionedJsonStoreScript.refresh_backup(history_path):
+		push_error("Telemetry: failed to finalize the cleared history backup.")
+		return false
+	return true
 
 func get_history_for_difficulty(diff: int) -> Array:
 	load_history()
@@ -401,14 +414,21 @@ func set_stage(stage: int):
 		if not metrics.pacing.stage_times.has(key):
 			metrics.pacing.stage_times[key] = _elapsed_seconds()
 
-func end_match(rank: int, winner_name: String, zone_stage: int):
+func end_match(
+	rank: int,
+	winner_name: String,
+	zone_stage: int,
+	persist_history: bool = false,
+	history_score_bonus: int = 0
+):
 	if not match_in_progress: return
 	metrics.core.duration = _elapsed_seconds()
 	match_in_progress = false
 	metrics.core.zone_stage_reached = zone_stage
 	metrics.session.rank = rank
 	metrics.session.win = winner_name == "Player"
-	_save_history()
+	if persist_history:
+		save_current_match_history(history_score_bonus)
 	call_deferred("_save_sim_result")
 	call_deferred("_print_report")
 
@@ -1201,11 +1221,15 @@ func log_spawn_metrics(summary: Dictionary):
 
 # ── Persistence ───────────────────────────────────────────────────────────────
 
-func _save_history():
-	var score = calculate_score(
+func calculate_current_score(score_bonus: int = 0) -> int:
+	return calculate_score(
 		metrics.session.rank, metrics.session.kills,
 		metrics.session.assists, metrics.session.win, current_difficulty
-	)
+	) + max(0, score_bonus)
+
+
+func save_current_match_history(score_bonus: int = 0) -> int:
+	var score := calculate_current_score(score_bonus)
 	var record = {
 		"date":       Time.get_datetime_string_from_system().split("T")[0],
 		"rank":       metrics.session.rank,
@@ -1215,17 +1239,28 @@ func _save_history():
 		"win":        metrics.session.win,
 		"difficulty": current_difficulty,
 		"score":      score,
+		"mission_bonus": max(0, score_bonus),
 	}
 	load_history()
+	var updated_history := match_history.duplicate(true)
 	var key = str(current_difficulty)
-	if not match_history.has(key):
-		match_history[key] = []
-	match_history[key].append(record)
-	match_history[key].sort_custom(func(a, b): return a.score > b.score)
-	var file = FileAccess.open(HISTORY_PATH, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(match_history, "\t"))
-		file.close()
+	if not updated_history.has(key):
+		updated_history[key] = []
+	updated_history[key].append(record)
+	updated_history[key].sort_custom(
+		func(a, b): return int(a.get("score", 0)) > int(b.get("score", 0))
+	)
+	if updated_history[key].size() > HISTORY_LIMIT_PER_DIFFICULTY:
+		updated_history[key].resize(HISTORY_LIMIT_PER_DIFFICULTY)
+	if not VersionedJsonStoreScript.save_dictionary(
+		history_path,
+		updated_history,
+		HISTORY_SCHEMA_VERSION
+	):
+		push_error("Telemetry: failed to save match history.")
+		return -1
+	match_history = updated_history
+	return score
 
 func _save_sim_result():
 	# Writes only enabled groups so QA scripts know what was measured
@@ -1248,21 +1283,90 @@ func _save_sim_result():
 	if _g("ai"):         out["ai"]         = metrics.ai.duplicate(true)
 	if _g("doctrine"):   out["doctrine"]   = metrics.doctrine.duplicate(true)
 	if _g("pacing"):     out["pacing"]     = metrics.pacing.duplicate(true)
-	var file = FileAccess.open(SIM_RESULT_PATH, FileAccess.WRITE)
+	var file = FileAccess.open(sim_result_path, FileAccess.WRITE)
 	if file:
 		file.store_string(JSON.stringify(out, "\t"))
 		file.close()
 
-func load_history():
-	if not FileAccess.file_exists(HISTORY_PATH):
-		match_history = {}; return
-	var file = FileAccess.open(HISTORY_PATH, FileAccess.READ)
-	var parsed = JSON.parse_string(file.get_as_text())
-	file.close()
-	if parsed is Dictionary:
-		match_history = parsed
-	else:
-		match_history = {}  # old Array format — discard (incompatible)
+func load_history() -> Dictionary:
+	var loaded := VersionedJsonStoreScript.load_dictionary(
+		history_path,
+		HISTORY_SCHEMA_VERSION,
+		{}
+	)
+	match_history = _normalize_history(loaded)
+	if match_history != loaded:
+		if not VersionedJsonStoreScript.save_dictionary(
+			history_path,
+			match_history,
+			HISTORY_SCHEMA_VERSION
+		):
+			push_warning("Telemetry: normalized history could not be persisted.")
+	return match_history
+
+
+func _normalize_history(raw_history: Dictionary) -> Dictionary:
+	var normalized: Dictionary = {}
+	for diff in range(DIFF_MULT.size()):
+		var key := str(diff)
+		var raw_records = raw_history.get(key, [])
+		if not (raw_records is Array):
+			continue
+		var records: Array = []
+		for raw_record in raw_records:
+			if not (raw_record is Dictionary):
+				continue
+			var record := _normalize_history_record(raw_record, diff)
+			if record.is_empty():
+				continue
+			if not records.has(record):
+				records.append(record)
+		if not records.is_empty():
+			records.sort_custom(
+				func(a, b): return int(a.get("score", 0)) > int(b.get("score", 0))
+			)
+			if records.size() > HISTORY_LIMIT_PER_DIFFICULTY:
+				records.resize(HISTORY_LIMIT_PER_DIFFICULTY)
+			normalized[key] = records
+	return normalized
+
+
+func _normalize_history_record(raw_record: Dictionary, diff: int) -> Dictionary:
+	if not _is_history_number(raw_record.get("rank")) \
+			or not _is_history_number(raw_record.get("score")):
+		return {}
+	var rank := maxi(1, int(raw_record.get("rank", 1)))
+	var score := maxi(0, int(raw_record.get("score", 0)))
+	var record := raw_record.duplicate(true)
+	record["date"] = (
+		String(raw_record.get("date"))
+		if typeof(raw_record.get("date")) == TYPE_STRING
+		else "unknown"
+	)
+	record["rank"] = rank
+	record["kills"] = _nonnegative_history_int(raw_record.get("kills"), 0)
+	record["assists"] = _nonnegative_history_int(raw_record.get("assists"), 0)
+	record["duration"] = _nonnegative_history_int(raw_record.get("duration"), 0)
+	record["win"] = (
+		bool(raw_record.get("win"))
+		if typeof(raw_record.get("win")) == TYPE_BOOL
+		else false
+	)
+	record["difficulty"] = diff
+	record["score"] = score
+	record["mission_bonus"] = _nonnegative_history_int(
+		raw_record.get("mission_bonus"),
+		0
+	)
+	return record
+
+
+func _nonnegative_history_int(value, fallback: int) -> int:
+	return maxi(0, int(value)) if _is_history_number(value) else fallback
+
+
+func _is_history_number(value) -> bool:
+	return typeof(value) == TYPE_INT or typeof(value) == TYPE_FLOAT
 
 # ── Report ────────────────────────────────────────────────────────────────────
 

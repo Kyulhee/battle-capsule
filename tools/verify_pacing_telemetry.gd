@@ -320,7 +320,7 @@ func _verify_pacing_uses_game_seconds() -> bool:
 	main.match_timer = 3.0
 	tel.log_shot()
 	tel.set_stage(2)
-	tel.end_match(1, "Bot", 2)
+	tel.end_match(1, "Bot", 2, false)
 
 	var first_shot := float(tel.metrics.pacing.first_shot_time)
 	var stage2 := float(tel.metrics.pacing.stage_times.get("2", 0.0))

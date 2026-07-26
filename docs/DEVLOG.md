@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-07-26. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## N2-REL-01 릴리즈 저장·식별·export 기반
+
+- 저장: 미션 판정 뒤 Result와 Records가 같은 점수를 커밋하고 simulation은 기록·배지를 남기지 않는다. 설정·기록·배지는 schema v1, 원자 교체, last-good backup, corrupt fallback과 legacy migration을 쓰며 기록은 난이도별 50개로 제한한다. 현재 공개판 rollback root write를 병합하고 지원하지 않는 미래 schema는 덮어쓰지 않는다.
+- 식별: 공개 이름 `Battle Capsule`, 실행 파일 `BattleCapsule.exe`, 내부 채널 `v2.1.0-demo-dev`, Windows metadata `2.1.0.0`을 고정했다. 보이는 브랜드는 바꾸되 기존 `BattleRoyalePrototype` user data 경로는 유지한다.
+- export: runtime JSON만 명시적으로 포함하고 도구·테스트·문서·로컬 생성 원본·debug 산출물을 제외했다. 메뉴 버전과 project/export 계약은 release identity verifier가 함께 검사한다.
+- 자동 검증: release persistence/identity/settings가 포함된 `unit_smoke` 통과. windowed 1280×720 Forward+ 3회 p95 15.059-15.429ms·p99 17.641-19.948ms로 p95 20ms 초과 0/3, 고정 입력 99봇 구조 5-run은 정체/이탈 0.01/0.44 per entity/min로 통과했다.
+- 잔여 gate: clean tracked commit의 EXE/PCK 전체 simulation·hash/manifest, 사람이 직접 하는 메뉴→한 판→결과→재시작→재실행, 라이선스/지원/서명 범위는 아직 닫지 않았다.
+
 ## N2-PLAN-01 릴리즈 로드맵 통합
 
 - 범위: 첫 공개 목표를 Windows x64·오프라인·한국어·키보드/마우스·`night_br_m1_60` 한 맵 무료 데모로 고정했다.
@@ -68,21 +76,6 @@
 - 지옥: 모든 지옥 플레이의 최대 체력 1 잠금을 제거해 `1/100`에서 회복 가능하게 했다. Zone Battery 같은 회복 불가 유물만 `1/1` 잠금을 유지한다.
 - 검증: 전체 `unit_smoke`, Night zone escape·next-zone 선점 runtime, 표면·도로 waypoint, 체력 정책 smoke 통과. 60봇 Forward+ 20초 2회는 p95 13.94-14.81ms, 33ms 초과 0.09-0.19%, AI 평균 142-144us다. 수동 체감은 N2-PLAY-09에서 판정한다.
 - 보류: 무기 티어와 방어구 종류 확장은 공개 데모 이후 콘텐츠 부족이 실제 이탈 원인으로 확인될 때 다시 본다.
-
-## N2-MAP-14 West Ridge Watch Post
-
-- 장소: 기존 West Ridge 통과 지점에 감시탑·천막·쓰러진 나무·통나무·대형 바위와 dirt clearing을 묶어 Cabin Row와 다른 감시 능선 문법을 만들었다.
-- 선택: 남서 서비스 트랙은 노출된 빠른 진입, 북쪽 수목·수풀은 은폐 우회다. AI objective 1개, entry 2개, outer 2개를 실제 점유 가능한 위치에 연결했다.
-- 자산: GLB 5종만 런타임에 승격했다. 감시탑·바위·벌목 프롭은 hard, 수목과 천막은 screen이며 천막 탄도는 통과한다.
-- 검증: 도로/숲 NavMesh 경로 25.8/15.4m, identity·프롭·엄폐·지도 smoke와 실제 세 방향 캡처 통과. 60봇 p95 13.14-13.15ms, AI 119-123µs다.
-- 다음: N2-PLAY-08에서 지도 원 없이 Cabin Row와 Watch Post가 미리 구분되고 서로 다른 진입 선택을 만드는지 판정한다.
-
-## N2-MAP-13 암시적 지역 지도 계약
-
-- 분리: POI 반경은 loot·AI·텔레메트리 계산에 유지하고 전체 지도의 반경 fill/arc만 제거했다. 현재·다음 안전구역 원은 게임 규칙이므로 유지한다.
-- 표현: 물리 장소가 완성된 Cabin Row에 `forest_settlement` identity와 실제 건물군 앵커를 부여했다. 지도는 기존 지형·건물 실루엣과 선택적 이름만 표시한다.
-- 검증: identity 형식·경계 검증, 전체 지도 orientation smoke, 실제 1280x720 전체 지도·미니맵 캡처와 `unit_smoke`를 통과했다.
-- 다음: West Ridge Watch Post를 두 번째 지역 문법으로 구현하고 노출된 도로 진입과 숲 우회 선택을 AI 앵커에 연결한다.
 
 ## 기록 보존
 

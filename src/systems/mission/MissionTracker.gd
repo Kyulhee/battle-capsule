@@ -293,8 +293,8 @@ func get_early_fail_status(tel: Node) -> bool:
 	return MissionEvaluatorScript.early_fail_status(active_mission, _bonus_state_context(tel))
 
 # ── 배지 저장 ─────────────────────────────────────────────────────────────
-func save_badge(mission_id: String):
-	MissionBadgeStoreScript.save_badge(mission_id)
+func save_badge(mission_id: String) -> bool:
+	return MissionBadgeStoreScript.save_badge(mission_id)
 
 func has_badge(mission_id: String) -> bool:
 	return MissionBadgeStoreScript.has_badge(mission_id)

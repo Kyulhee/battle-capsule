@@ -1,8 +1,9 @@
-[gd_scene load_steps=7 format=3 uid="uid://b1m8x8v5u5m4i"]
+[gd_scene load_steps=8 format=3 uid="uid://b1m8x8v5u5m4i"]
 
 [ext_resource type="Script" path="res://src/Main.gd" id="1_script"]
 [ext_resource type="Script" path="res://src/maps/WorldBuilder.gd" id="2_builder"]
 [ext_resource type="PackedScene" uid="uid://c6m8x5u5m4i3c" path="res://src/ui/Minimap.tscn" id="3_minimap"]
+[ext_resource type="Script" path="res://src/ui/BuildVersionLabel.gd" id="4_build_version"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_1"]
 sky_top_color = Color(0.384314, 0.454902, 0.54902, 1)
@@ -148,7 +149,7 @@ grow_vertical = 2
 	anchor_top = 1.0
 	anchor_right = 1.0
 	anchor_bottom = 1.0
-	offset_left = -72.0
+offset_left = -168.0
 	offset_top = -28.0
 	offset_right = -8.0
 	offset_bottom = -8.0
@@ -156,7 +157,7 @@ grow_vertical = 2
 	grow_vertical = 0
 	theme_override_font_sizes/font_size = 12
 	theme_override_colors/font_color = Color(0.45, 0.45, 0.45, 1)
-	text = "v1.7.3.1"
+	script = ExtResource("4_build_version")
 	horizontal_alignment = 2
 
 	[node name="ResultPanel" type="ColorRect" parent="CanvasLayer/Control"]

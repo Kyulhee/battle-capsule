@@ -26,11 +26,13 @@
 - 미션 보너스와 Result/Records 점수가 일치하고 simulation은 사용자 기록을 남기지 않음
 - `settings.cfg`, `match_history.json`, `achievements.json`에 schema version, 원자적 교체, backup, corrupt fallback이 있음
 - `asset_generator/**`, `plan_report/**`, debug·test·tool 원본이 export에 들어가지 않음
-- 제품명, 실행 파일, 아이콘, 메뉴 버전, Windows metadata, archive, tag가 `Battle Capsule`과 한 버전을 공유
+- 제품명, 실행 파일, 아이콘, 메뉴 버전, Windows metadata, archive/manifest release identifier가 `Battle Capsule`과 한 버전을 공유하고, tag를 만들 경우 같은 버전에 매핑
 - clean source에서 만든 EXE/PCK가 첫 실행→한 판→결과→재시작→재실행 저장 확인을 통과
 - archive 파일 목록·크기, SHA-256, source commit, Godot 버전, known issues를 manifest에 기록
 
-이 단계의 산출물은 공개판이 아니라 `v2-demo-dev` 계열 내부 RC다.
+이 단계의 산출물은 공개판이 아니라 `v2.1.0-demo-dev` 내부 build다.
+
+현재 자동 완료 범위는 점수/기록 일치, simulation 격리, 세 save의 schema v1·원자 교체·backup/corrupt/legacy fixture, 현재 공개판 rollback bridge와 future-schema 보존, `Battle Capsule`·`v2.1.0-demo-dev` identity와 명시적 export 경계다. `unit_smoke`, Forward+ 3-run, 고정 입력 `target_99_probe` 5-run도 통과했다. workspace export의 PE metadata/headless boot는 사전 smoke일 뿐이며 `.godot` cache가 없는 clean tracked PCK inventory·전체 루프·manifest가 잔여 gate다. 사람이 직접 하는 재시작/재실행, LICENSES/CREDITS·회사/저작권 정책·지원 경로도 공개 전 필요하고 signing은 현재 꺼져 있다.
 
 ## 1. 소스 검증
 
@@ -61,11 +63,11 @@ R1에는 짧은 profile 외에 실제 10-15분 전체 매치, 반복 재시작, 
 
 ## 3. 버전·브랜드
 
-단일 version source가 구현되기 전에는 다음 위치를 한 번에 갱신하고 verifier로 불일치를 막는다.
+`src/core/BuildInfo.gd`가 제품명·제품 버전·채널·표시 버전·Windows 버전·실행 파일명 계약을 소유한다. Godot export preset 자체를 생성하지는 않으므로 release identity verifier가 다음 중복 위치의 불일치를 막는다. archive/manifest/tag 매핑은 패키징 단계에서 별도로 검증한다.
 
 - `project.godot`의 application name
 - `export_presets.cfg`의 file/product version, product/company/description/copyright, icon
-- `Main.tscn` 또는 런타임 About의 표시 버전
+- `BuildVersionLabel.gd`가 그리는 메뉴 표시 버전
 - EXE/PCK 이름, archive 이름, manifest, release note, Git tag
 
 공개 이름은 `Battle Capsule`, 실행 파일은 `BattleCapsule.exe`를 사용한다.
@@ -134,7 +136,7 @@ gh release create $ReleaseVersion `
 [ ] clean source와 candidate commit 고정
 [ ] 저장·기록·migration/corrupt fixture 통과
 [ ] 제품명·버전·아이콘·metadata 일치
-[ ] runtime-only export 경계와 archive 내용 검사
+[ ] 명시적 export 경계와 clean PCK/archive 내용 검사
 [ ] packaged EXE 전체 루프·재실행·호환성 확인
 [ ] 전체 매치·restart soak·외부 테스트 통과
 [ ] LICENSES/CREDITS·로컬 데이터·지원 경로 포함

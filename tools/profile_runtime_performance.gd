@@ -4,6 +4,7 @@ extends SceneTree
 const DEFAULT_OUTPUT_PATH := "C:/tmp/runtime_performance.json"
 const DEFAULT_WARMUP_SECONDS := 5.0
 const DEFAULT_SAMPLE_SECONDS := 20.0
+const PROFILE_VIEWPORT_SIZE := Vector2i(1280, 720)
 const TARGET_FRAME_SECONDS := 1.0 / 60.0
 const HITCH_FRAME_SECONDS := 1.0 / 30.0
 
@@ -14,7 +15,7 @@ func _init() -> void:
 
 func _run() -> void:
 	var options := _parse_options()
-	root.size = Vector2i(1280, 720)
+	root.size = PROFILE_VIEWPORT_SIZE
 	var main_scene: PackedScene = load("res://src/Main.tscn")
 	if main_scene == null:
 		_fail("Could not load Main.tscn for runtime performance profiling.")
@@ -22,6 +23,11 @@ func _run() -> void:
 
 	var main = main_scene.instantiate()
 	root.add_child(main)
+	await process_frame
+	# Main applies the user's saved fullscreen preference during _ready().
+	# Restore the documented profile condition so local settings cannot skew runs.
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	root.size = PROFILE_VIEWPORT_SIZE
 	await process_frame
 	await _wait_for_navigation(main)
 	main.start_game()
@@ -68,6 +74,8 @@ func _run() -> void:
 		"warmup_seconds": options["warmup_seconds"],
 		"sample_seconds": options["sample_seconds"],
 		"hide_minimap": options["hide_minimap"],
+		"viewport_size": [root.size.x, root.size.y],
+		"window_mode": DisplayServer.window_get_mode(),
 		"sample_count": samples.frame_interval_seconds.size(),
 		"population": {
 			"bots": get_nodes_in_group("bots").size(),
