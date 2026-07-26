@@ -1,6 +1,6 @@
 # 문서 안내
 
-> 최종 업데이트: 2026-07-16. 루트 문서는 현재 작업에 직접 쓰는 문서만 둔다.
+> 최종 업데이트: 2026-07-26. 루트 문서는 현재 작업에 직접 쓰는 문서만 둔다.
 
 ## 기본 읽기 경로
 
@@ -30,7 +30,7 @@
 | [reference/ARCHITECTURE.md](reference/ARCHITECTURE.md) | 구조, 소유 경계, 변경 영향 |
 | [reference/TESTING.md](reference/TESTING.md) | 검증 profile과 gate |
 | [reference/MAP_TILE_GROUPS.md](reference/MAP_TILE_GROUPS.md) | 맵 배치 역할 |
-| [reference/RELEASE.md](reference/RELEASE.md) | 명시적 릴리즈 절차 |
+| [reference/RELEASE.md](reference/RELEASE.md) | 릴리즈 단계 gate, clean artifact 검증, tag·공개 절차 |
 | [assets/ASSET_BRIEF.md](assets/ASSET_BRIEF.md) | 자산 스타일과 포맷 |
 | [assets/ASSET_STATUS.md](assets/ASSET_STATUS.md) | 자산 통합 상태 |
 | [assets/ASSET_GENERATION_PROMPTS.md](assets/ASSET_GENERATION_PROMPTS.md) | 외부 생성기용 프롬프트 |

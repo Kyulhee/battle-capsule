@@ -8,12 +8,13 @@ Repository: `https://github.com/Kyulhee/battle-capsule`
 
 | 항목 | 상태 |
 |---|---|
-| 개발 라인 | v2-dev: Night BR 후보, 99명 구조 gate, playable pacing |
+| 개발 라인 | v2-dev: M1 Night BR 종료 판정과 Windows 공개 데모 준비 |
 | 활성 트래커 | [CURRENT.md](docs/CURRENT.md) |
-| 최신 검증 gameplay slice | N2-AI-01 플레이어 표적 위협 판정 분리 |
-| 최신 검증 운영 slice | N2-MAP-04 route 표현 철회와 전체맵 45도 정렬 |
-| 현재 운영 slice | N2-MAP-05 Night 맵 규모·지형 밀도 재설계 |
-| 릴리즈 정책 | 명시 요청 전까지 릴리즈/빌드 금지 |
+| 최신 검증 개발 slice | N2-MAP-17 Brush Camp·Survey Camp 구조/페이싱 자동 후보 |
+| 최신 수동 gameplay | N2-PLAY-09 지역·압력·파밍 판정; 이후 변경은 N2-PLAY-10 재판정 대기 |
+| 현재 작업 slice | N2-PLAY-10 M1 종료 3판 → N2-REL-01 Windows release foundation |
+| 첫 공개 범위 | Windows x64·오프라인·한국어·키보드/마우스·`night_br_m1_60` 한 맵 무료 데모 |
+| 릴리즈 정책 | 저장·패키징·브랜딩·검증 기반은 활성화. 실제 tag·GitHub Release 공개는 명시 지시 뒤 수행 |
 | 외부 원본 풀 | `asset_generator/`, `plan_report/`는 통합 요청 전까지 커밋하지 않음 |
 
 이 프로젝트는 더 이상 작은 기능을 하나씩 붙이는 정리 단계가 아니다. 먼저 milestone tracker를 보고, 현재 마일스톤을 전진시키는 가장 작은 검증 가능한 작업 단위를 고른다.

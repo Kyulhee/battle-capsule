@@ -4,58 +4,41 @@
 
 ## 현재 제품 목표
 
-Battle Capsule은 low-poly quarter-view tactical roguelite battle royale 프로토타입이다. 현재 목표는 “많은 봇이 도는 시뮬레이션”이 아니라, 플레이어가 읽고 판단할 수 있는 10-15분 Night BR 한 판을 만드는 것이다.
+Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 현재 목표는 “많은 봇이 도는 시뮬레이션”을 넘어, 외부 사용자가 설명 없이 설치하고 10-15분 Night BR 한 판을 완주·재시작할 수 있는 Windows 무료 데모를 만드는 것이다.
+
+첫 공개 범위는 Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵이다. 99봇 기본값, 온라인, macOS 공개 지원, 영어·controller, 완전한 flashlight/fear/battery는 이 범위에 포함하지 않는다.
 
 ## 마일스톤
 
 | ID | 이름 | 상태 | 완료 기준 |
 |---|---|---|---|
-| M0 | 운영 정리 | 진행 중 | 기본 문서 3개 중심으로 재개 가능하고, 검증/푸쉬 루틴이 반복 가능 |
-| M1 | 첫 플레이 가능한 Night BR | 진행 중 | `night_br_m1_60` 한 표면이 자동 gate와 수동 체감 기준을 모두 통과 |
-| M2 | 버티컬 슬라이스 | 계획 | 맵, 전투, 루트, 존, UI, 자산이 한 화면에서 설득력 있게 동작 |
-| M3 | 콘텐츠 안정화 | 이후 | 검증된 코어 루프 위에서 밸런스/자산/시스템 확장 |
+| M0 | 운영 기반 | 지원 중 | 현재 상태를 빠르게 재개하고 검증·빌드·푸쉬 결과를 반복 가능하게 유지 |
+| M1 | 첫 플레이 가능한 Night BR | 종료 판정 중 | `night_br_m1_60` 자동 gate와 N2-PLAY-10 수동 3판, 성능 재측정을 통과 |
+| M2 | 릴리즈 버티컬 슬라이스 | 다음 | 캐릭터·전투·야간·HUD·오디오·온보딩이 대표 한 판에서 설득력 있게 동작 |
+| M3 | Windows 공개 데모 RC | 계획 | 실제 패키지·저장·호환성·외부 테스트·고지 gate를 통과하고 P0/P1 결함이 없음 |
+| M4 | 오프라인 유료 EA 판단 | 이후 | 데모 반응 뒤 콘텐츠 반복성·운영·업데이트 범위에 대해 Go/No-Go |
+
+## 릴리즈 단계
+
+| 단계 | 제품 마일스톤 연결 | 목표 창 | 승격 결과 |
+|---|---|---|---|
+| R0 폐쇄 알파 후보 | M1 + `N2-REL-01` | 2026-08 중·하순 | 제한을 명시한 Windows 내부 RC와 외부 테스트 시작 |
+| R1 공개 무료 데모 후보 | M2 + M3 | 2026-10 말~11월 | clean artifact, 공개 페이지, 지원 경로를 갖춘 Windows 데모 |
+| R2 유료 오프라인 EA 판단 | M4 | 2027 Q1 말 | 데모 지표를 근거로 EA 진행·연기·중단 결정 |
+
+날짜는 1인 풀타임 개발 기준 계획 창이며 약속된 출시일이 아니다. gate 실패 시 날짜보다 원인 수정과 재검증을 우선한다.
 
 ## 현재 기준선
 
 - M1 개발 맵: `data/mapSpec_night_forest_expanded_candidate.json`
 - M1 공통 preset: `night_br_m1_60` (일반 실행·수동 플레이·후보 페이싱 검증)
-- 기존 `mapSpec_night_forest_candidate.json`과 `playable_pacing_v4-v6`는 과거 비교 기준으로만 유지
-- 구조 gate: `target_99_probe`
-- 자동·수동 gameplay 기준: `night_br_m1_60`
+- 구조 부하 gate: `target_99_probe`; 제품 gameplay·출시 규모의 근거로 사용하지 않음
 - 자동 페이싱 기준: `night_br_m1_60` 5-run 평균 787.2초, 개별 688.1-855.1초
 - 존 기준: 첫 축소 120초, stage2 260초, stage3 540초. first upgrade 평균 4.9초
-- 최신 gameplay slice: N2-PLAY-09 지역 구분·AI 잠복 개선, 빈 평지·초기 압력·지역별 파밍 차이는 반복
-- 최신 AI slice: N2-AI-10 상태·도착 시간·점유·노출 효용 기반 목적지/도로/선점 선택
-- 최신 map/world slice: N2-MAP-17 Brush Camp 은폐 거점과 Survey Camp 도로 병목 자동 후보
-- 최신 UI slice: N2-UI-01 플레이어 중심 120m/280px 미니맵과 Main 단일 소유권
-- 최신 asset slice: N2-ASSET-05 감시탑·천막·대형 바위·통나무·쓰러진 나무 GLB 승격
-- 최신 검증 기반: N2-PACE-34부터 `Main.match_timer`를 canonical time으로 사용하고 navigation bake 완료 뒤 시뮬레이션 시작
-- N2-VIS-01: Night 전용 월드 주변광 0.38과 달빛 0.32를 Main/캡처에서 공유하고 cover·수풀 픽셀 대비 gate를 추가. `unit_smoke`, `visual_review` 통과
-- N2-MAP-04: minimap/fullmap/world route 표현을 제거하고 전체 지도를 미니맵과 같은 45도 좌표계로 정렬. 방향 smoke와 실제 캡처 통과
-- N2-AI-02: `BotDecisionPolicy`로 추가 위협, 표적 점수, 엄폐 위치 효용을 scene/state 실행에서 분리. 기존 수치를 보존하고 정책 smoke, Arena, `unit_smoke` 통과
-- N2-TOOLS-02: 실제 Main의 `duel_1`을 3초 실행해 고정 스폰, 초기 loot 격리, 플레이어 표적 획득과 HP 100→90을 검증하는 runtime smoke를 `ai_test_arena`/`unit_smoke`에 연결
-- N2-AI-04: 일반 표적 기억은 2.5초로 보존하고 플레이어 표적만 5초로 연장. 격리된 `squad_4` 3초 구간에서 유지율 100%, 동시 표적 4명, 공격 참여 4명
-- N2-AI-05: 기존 perception 순회에서 LOS가 있는 3m 근접 캐시를 만들고 ATTACK/비loot CHASE에만 2.75m 분리 조향 적용. 자연 5-run의 1.5m 미만 접촉이 3회에서 0회로 감소했고, 강제 1.1m 쌍은 5/5회 0.15-0.25초 안에 분리
-- N2-AI-06: 전체 bot 교전 분리는 60봇에서 평균 종료 261.5→195.7초와 정체 0.14→0.22/개체·분으로 흐름을 바꿔 폐기. player-target 전투에만 캐시·분리를 적용한 최종안은 99봇 종료 220.6→217.1초, 정체 0.14→0.12, 이탈 0.42→0.43, AI 평균 비용 +6.1%로 회귀 통과
-- N2-PERF-01/02: AI 검색·텔레메트리를 분산·캐시해 60봇 p95 45.5→13.5ms로 줄였다. 실제 Minimap 정상 로드 뒤 정적 지형의 매 프레임 draw가 p95 36.6-39.1ms를 만들자 배경·POI·지형을 1회 텍스처로 캐시해 15.4-15.8ms, 33ms 초과 0.14-0.27%로 복구했다
-- N2-AI-07: spawn 반경·POI·route 점유와 loot 목적지 POI 이름을 계측했다. 60/99봇 spawn은 POI 내부 25.7/26.5%지만 IDLE loot 목표는 66.3/67.2%가 내부이고 약 90%가 route 위였다. 피해 70-71%가 open이라 AI 목적지 부재보다 POI 교전 유출을 다음 원인으로 판정
-- N2-MAP-06/08/09: 중앙 high rock은 ramp 제거 뒤에도 셀 정체가 재발했다. 비-rock 폭 4m wall은 Arena 4봇 5/5회 6.55초·stuck 2였지만 제품 60봇 `10,10` 셀 0→16회, open 피해 69.7→69.6%라 기각하고 traffic 재현기만 유지했다
-- N2-MAP-07: open 피해를 10m 셀·인접 POI·경계 대역 복합 키로 계측했다. 60/99봇 상위 셀은 6.7% 이하로 분산됐고 기존 바위 `(-6,-48)`, `(8,46)` 셀이 open 피해 약 10-11%와 정체 약 15-23%를 함께 차지해 단일 POI 입구 가설을 기각했다
-- N2-NAV-01/02/03: 실제 geometry bake와 빈 nav gate를 복구한 뒤 `0,40` 정체를 추적해, 잘못된 Minimap UID가 `TestMap/Wall2` 물리를 UI 아래에 주입한 사실을 확인했다. UID 교정과 물리 UI 금지 gate 뒤 60/99봇 stuck은 1.4/1.2, 반복 `0,40` 정체는 0이 됐다
-- N2-MAP-10: 260m 구조를 카메라 크기·방사 대역·POI 엄폐로 감사하고 중앙·남쪽 loot hub에 수목 3개와 수풀 3개를 배치했다. 중앙/남쪽 개방률은 80.2/39.5%→16.0/17.3%, 60/99봇 POI 피해는 37.0/30.4%→45.6/37.3%로 이동했으며 stuck·성능 회귀는 없었다
-- N2-ASSET-01/02/03: 핵심 오디오 8종을 연결했다. 총성은 CC0 실사 CZ/SKS/shotgun/Mosin, 칼은 CC0 swish Foley로 교체하고 권총 -8.5dB, 앉기 발걸음 -10dB·AI 청취 45%를 적용했다
-- N2-UI-01: 260m 전역을 압축하던 상시 미니맵을 플레이어 중심 120m/280px로 바꾸고 주요 지명을 표시했다. Main/Player 중복 미니맵을 Main 하나로 정리해 60봇 p95 13.3-14.2ms로 개선했다
-- N2-AI-08: POI 메타데이터가 근거리 pickup 배치에는 쓰였지만 loot가 없어진 IDLE은 정지했다. 전투 정책을 보존하고 POI 13개만 저빈도로 선택하는 아키타입별 장기 목적지를 추가했다. 60봇 p95 12.9ms, 3-run 평균 231.1초이며 수동 승격은 보류한다
-- N2-MAP-11/N2-ASSET-04: 지면 10구역으로 도로·숲·마당을 구분하고 Cabin Row에 cabin 3동, 외곽 수목, 벽·crate·barrel·fire pit을 묶었다. 칼은 휘두름 3종과 피격음을 분리했다. `unit_smoke`와 실제 캡처를 통과했고 지면은 렌더 노드 2개로 병합했다
-- N2-MAP-12: 높이 추정 엄폐를 `hard/screen/soft` 계약으로 교체했다. Cabin Row는 건물 3동과 남·서·동 입구, 입구별 벽 어깨·접근 엄폐·외곽 시야 차폐를 가진 compound로 재배치했다. 세 입구 NavMesh 경로 25.7/32.1/32.1m와 60봇 p95 12.71-12.86ms를 확인했다
-- N2-MAP-13: loot·AI용 POI 반경은 유지하되 전체 지도 반경 원을 제거했다. `identity`가 있는 실제 landmark만 물리 앵커에 이름을 표시하며 안전구역 원은 보존한다
-- N2-MAP-14/N2-ASSET-05: West Ridge에 감시탑·천막·벌목 프롭·바위 능선을 묶고 노출 도로와 숲 우회에 AI 앵커 5개를 연결했다. 두 NavMesh 경로와 60봇 p95 13.14-13.15ms를 확인했다
-- N2-AI-09/N2-MAP-15: surface를 실제 이동 속도에 연결하고 일부 봇이 물리 도로 waypoint를 사용한다. 축소 35-65초 전부터 다음 원 안 접근 앵커를 선점해 다음 stage까지 유지하며 Night runtime gate를 통과했다
-- N2-AI-10: 고정 도로 확률을 제거하고 장비·생존·위협·도착 시간·실제 점유로 목적지와 경로를 고른다. Arena/Night/전체 회귀와 60봇 p95 13.82-13.87ms를 통과했다
-- N2-HELL-01: 지옥은 `현재 HP 1/최대 HP 100`으로 시작해 회복할 수 있다. `heal_mult=0` 유물만 최대 체력까지 `1/1`로 잠근다
-- N2-BASE-01: 확장 Night 맵의 기존 60봇 수치를 `night_br_m1_60`으로 승격하고 무인자 `Main.tscn` 실행, 수동 플레이, 후보 페이싱 명령을 같은 표면으로 통합했다. `xlarge_60`은 과거 명령 호환 alias만 유지한다
-- N2-EQUIP-01: 중심·도로 T2, 외곽 T1, 보급 T3의 최소 무기 등급을 연결하고 실드 충전과 15% 방어·이동 96% 방탄 조끼를 분리했다. 5-run 평균 746.7초, 범위 606.0-857.9초, first upgrade 4.5초, 정체 0.01/개체·분이며 60봇 p95 15.55ms다
-- N2-MAP-17: `Brush Camp`와 `Survey Camp`에 흙 공터·프롭 18개·점유 앵커를 묶고 실제 앵커 jitter와 6개 진입 경로를 고정했다. 최종 5-run 평균 787.2초, open 피해/킬 41.9%/33.9%, 정체 0.01·이탈 0.18/개체·분, AI 평균 322.3µs로 구조·페이싱 후보를 통과했다. `-50,30` 국소 정체는 6/33→1/41로 줄었고 focused runtime 4.85초·stuck 0, `unit_smoke`를 통과했다. Forward+는 2회 정상·1회 이상치여서 수동 승격과 함께 재확인한다
+- 최신 gameplay 증거: N2-PLAY-09는 지역·AI 잠복을 채택했지만 N2-SURV-01/N2-EQUIP-01/N2-MAP-17 이후 수동 기록은 아직 없음
+- 최신 자동 후보: N2-MAP-17의 Brush Camp·Survey Camp, 6개 진입 경로, focused runtime 4.85초·stuck 0, `unit_smoke` 통과
+- 최신 성능: Forward+ p95/p99 14.147/16.755, 32.695/46.437, 13.846/16.541ms; 단발 이상치 재측정 전 승격 보류
+- 과거 채택·폐기 상세는 `DEVLOG.md`, `EXPERIMENTS.md`, Git 이력이 소유함
 
 ## Night BR 페이싱 판정 창
 
@@ -66,57 +49,62 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale 프로�
 | stage3 | 540-720초 | 540.1초 | 자동 통과 |
 | match duration | 평균 600-900초, 개별 480-960초 | 평균 787.2초, 688.1-855.1초 | 자동 통과, 장비·생존·맵 압력 수동 확인 필요 |
 
-첫 1분은 즉사나 랜덤 충돌보다 위험을 읽고 선택하는 느낌이어야 한다. bot-only는 stage1 과소모지만 실제 플레이어는 정지 시 접촉이 적고 4봇이 견제 후 이탈해 오히려 너무 덜 죽었다. 두 현상을 같은 피해 수치로 묶지 않고 대인 교전 종료와 맵 encounter 구조를 분리한다.
+첫 1분은 즉사나 랜덤 충돌보다 위험을 읽고 선택하는 느낌이어야 한다. bot-only 지표와 실제 플레이 감각을 같은 피해 수치로 묶지 않고 N2-PLAY-10의 수동 기록으로 판정한다.
+
+## 단계별 필수 gate
+
+| 단계 | 필수 gate |
+|---|---|
+| R0 폐쇄 알파 후보 | N2-PLAY-10 수동 3판, `unit_smoke`, 명시적 M1 5-run, Forward+ 이상치 재측정, 최종 `target_99_probe` 구조 회귀, 점수/기록·저장·clean Windows 패키지 전체 루프 smoke |
+| R1 공개 데모 후보 | M2 비주얼·UX exit, 무설명 테스터 5-10명의 첫 판 완주, 외부 20회 이상 완주, Win10/11·다중 해상도·최소 3개 하드웨어 등급·전체 매치/재시작 soak, P0/P1 0, 브랜드·버전·라이선스·고지·manifest/checksum |
+| R2 유료 EA 판단 | 의미 있는 진행 또는 두 번째 콘텐츠 축, 20-30명·100회 이상 beta, 두 연속 RC의 save upgrade/rollback, keybind·독립 음량·접근성 범위, 자동 릴리즈·서명·업데이트/롤백 계획, P0/P1 0 |
 
 ## 현재 구현 상황
 
-| 영역 | 구현됨 | 후보/검증 신호 | 아직 아님 | 다음 판단 |
-|---|---|---|---|---|
-| 매치/preset | `night_br_m1_60` 일반·수동·자동 공통 표면, bot-only simulation participant | 최신 5-run 평균 787.2초와 개별 상·하한 gate 통과 | 장비·생존·맵 압력 수동 체감, 99명 default 승격 | N2-MAP-17 통합 수동 회귀 |
-| 전투/AI | bot doctrine, player 위협/5초 기억, 국소 분산, 상태 기반 POI·도로·다음 원 선점 | 효용 정책·Arena 상태 변환·Night 선점 runtime 통과 | 도로 교통량과 선점 조우 수동 승격, flashlight/fear/battery 전술 | 지역 보상 연결 뒤 압력 재판정 |
-| loot/economy | 중심·도로 T2, 외곽 T1, 보급 T3, 같은 계열 업그레이드, 실드 충전과 방탄 조끼 | first upgrade 평균 4.5초, 누락 0/5, 무기 획득 69.7%가 loot hub·transit | 다중 방어구·세부 티어, 지역 차이 수동 승격 | N2-EQUIP-01 수동 회귀 |
-| zone/pacing | canonical match clock, 첫 축소 120초, stage2/3 260/540초, 선축소 점유 | 평균 727.0초, next-zone 접근 선점 runtime 통과 | 실제 플레이의 첫 축소·선점·후반 체감 | N2-SURV-01 수동 회귀 |
-| 맵/경로 | 260m 후보, Cabin Row·West Ridge·Logging Ford·Brush Camp·Survey Camp, 실제 landmark 지도, 표면 이동 경제와 road waypoint | 실제 jitter를 포함한 6개 경로, open 피해 41.9%, 정체 0.01/개체·분 통과. Forward+ 3회 중 1회 p95 이상치 | 장소 문법·도로/숲 압력과 프레임 이상치의 수동 판정, 최종 맵 승격 | N2-MAP-17 수동 판정 |
-| 화면/UI | HUD, 120m 로컬 minimap, `M` 전체 지도, inventory, pickup label/glow, Night 가독성 | 단일 미니맵·768px 정적 캐시, POI 원 없는 전체 지도 방향/캡처 통과 | 장시간 매치에서 지역 이동감 유지 | N2-PLAY-09 수동 3판 |
-| 자산/audio | 실사 총성·칼 분리음·발걸음, Cabin Row와 West Ridge GLB | catalog 누락 0, 프롭 수량·엄폐 계약, 60봇 p95 13.14-13.15ms | 칼 재청취, 검증되지 않은 나머지 지역 자산 | N2-PLAY-09에서 회귀만 기록 |
-| 운영/문서 | 한글 활성 문서 7개, 기술/자산 참조 분리 | 재개 경로와 검증 루틴 정리 | 장문 로그와 날짜별 사본 운영 | 문서 예산과 Git 이력 원칙 유지 |
+| 영역 | 현재 강점 | 릴리즈 공백 | 다음 gate |
+|---|---|---|---|
+| 매치/AI/맵 | 60봇 공통 표면, 10-15분 자동 분포, 실제 NavMesh·전투·전략 gate | N2-MAP-17 이후 수동 재미·장소·오프닝 판정 | N2-PLAY-10 |
+| 비주얼/오디오 | 일관된 low-poly 프롭, 픽업 glow·아이콘, 총성·발걸음 일부 | 겹친 수관, procedural capsule, 약한 전투 피드백, 핵심 fallback audio | N2-M2-VIS-01 |
+| UI/첫 사용자 | 메뉴·HUD·지도·아티팩트·결과·기록 골격 | HUD 위계, 혼합 언어, 밝기·감도·해상도·UI scale·첫 판 안내 | N2-M2-UX-01 |
+| 기록/저장 | 설정·기록·배지 로컬 저장 | 미션 점수 불일치, simulation 오염, 비원자·무버전·손상 복구 부재 | N2-REL-01 |
+| 빌드/법적 고지 | Windows/macOS preset과 과거 GitHub Release 이력 | dirty export 위험, 제품명·버전 불일치, artifact smoke·LICENSE/NOTICE/CREDITS 부재 | N2-REL-01/02 |
+| 호환성/외부 QA | 1280x720 개발 머신의 짧은 profile | 전체 매치·restart soak, 저사양·다중 해상도·실제 Mac·지원 경로 부재 | N2-REL-02 |
+| 콘텐츠 반복성 | 한 맵, 5개 무기, 6개 artifact, 4개 난이도, 미션 | 배지 노출·장기 진행·두 번째 콘텐츠 축 부족 | 공개 데모 반응 뒤 M4 |
 
 ## 남은 작업 구조
 
-| 트랙 | 목표 | 현재 신호 | 종료 조건 | 다음 slice |
-|---|---|---|---|---|
-| T1 페이싱 안정화 | 안정된 10-15분 match 분포 확보 | 평균 787.2초·개별 688.1-855.1초로 자동 상하한 통과 | 실제 플레이에서도 지나친 공백·즉사·후반 지연이 없음 | N2-MAP-17 통합 수동 회귀 |
-| T2 오프닝 체감 | 첫 2분에 이동·파밍·교전 선택이 생김 | first upgrade 4.9초, 첫 접촉 7.0초, 지역 장비 분포 자동 통과 | 지역별 초기 보상이 무작위 즉사 없이 이동 이유를 만듦 | N2-MAP-17 통합 수동 회귀 |
-| T3 야간 가독성 | 플레이어/픽업/cover가 실제 화면에서 읽힘 | route 표현 제거, Night/지도 deterministic 캡처 통과 | `night_br_m1_60` 수동 기록에서 cover·픽업·위협 판독 가능 | first-minute read |
-| T4 맵/경로 체감 | pickup과 지형이 자연스러운 이동·병목 선택을 만듦 | 두 소형 거점 뒤 open 피해 41.9%·킬 33.9%, 상위 셀 5.4%, 문제 셀 정체 6/33→1/41 | 구조물 군집이 실제 도로·숲·선점 압력으로 읽히고 정체를 늘리지 않음 | N2-MAP-17 수동 판정 |
-| T5 자산 승격 | gameplay를 돕는 자산만 런타임으로 승격 | 총성·발걸음, 칼 분리음, tree·landmark 후보 | 현재 수동 판정 중 오디오·가독성 회귀 없음 | N2-PLAY-09 회귀 감시 |
-| T6 기술 부채 | 큰 파일과 문서 부채를 작업 흐름을 막지 않는 수준으로 유지 | `Bot.gd`, `Main.gd`, `Player.gd`, `Telemetry.gd` 큼 | slice가 닿는 도메인만 작은 추출, 기본 문서 부하 유지 | 변경 도메인별 opportunistic extraction |
+| 순서 | 트랙 | 종료 조건 | 다음 slice |
+|---|---|---|---|
+| 1 | M1 종료 | 실제 3판과 성능/99 구조 회귀가 자동 후보를 승인 | N2-PLAY-10 |
+| 2 | 릴리즈 기반 | 기록·저장·패키지 경계·브랜드/버전·실행 smoke를 고정 | N2-REL-01 |
+| 3 | M2 비주얼 슬라이스 | 수관·야간·캡슐/무기·전투 피드백·HUD/지도가 대표 구간에서 수동 통과 | N2-M2-VIS-01 |
+| 4 | M2 첫 사용자 UX | 무설명 사용자가 설정→첫 판→결과→재시작을 완료 | N2-M2-UX-01 |
+| 5 | M3 데모 RC | 실제 artifact와 외부/호환성 matrix가 R1 gate 통과 | N2-REL-02 |
+| 6 | M4 EA 판단 | 데모 지표로 콘텐츠·플랫폼·운영 투자를 결정 | R1 공개 후 |
 
-## 장비 확장 경계
+## 범위 확장 경계
 
-- N2-EQUIP-01의 T1 노후/T2 표준/T3 보급과 실드/방탄 조끼 분리는 완료했다. 다수 티어와 부위별 장비는 M2 후반 후보로 둔다.
-- 무기 변형은 단순 수치 복제가 아니라 획득 지역·위험·화면 식별성을 함께 가져야 한다.
-- 방어구는 용량 증가 반복보다 피해 감소와 이동·소음 trade-off가 분명한 소수 archetype부터 시작한다.
+- 신규 장소·무기·방어구 티어보다 현재 한 판의 가독성·피드백·첫 사용자 완주를 먼저 닫는다.
+- 공개 데모 이후 반복성 부족이 실제 이탈 원인일 때만 두 번째 콘텐츠 축이나 보이는 진행을 추가한다.
+- online/99 default/macOS/영어/controller는 각자의 비용·QA·운영 gate를 가진 별도 범위 결정으로 다룬다.
 
 ## 우선순위 원칙
 
-1. 생존·자기장·지역별 장비와 N2-MAP-17의 구조·페이싱 gate는 통과했다. 다음은 한 표면에서 장소·이동·파밍 압력과 단발 성능 이상치의 재현 여부를 수동 판정한다.
-2. T2는 수치만으로 승격하지 않는다. `PLAYTEST.md`에 첫 2분 파밍·이동 체감 기록이 필요하다.
-3. T3/T4는 함께 본다. 어두워서 route가 안 읽히면 맵 구조가 좋아도 체감되지 않는다.
-4. T5는 cosmetic backlog가 아니라 gameplay readability/feedback 문제를 줄이는 순서로 진행한다.
-5. T6는 별도 대형 리팩터링으로 시작하지 않는다. 실제 slice가 닿을 때만 분리한다.
+1. N2-PLAY-10으로 M1을 짧게 닫고 실패 증거 없이 AI·경제·맵 수치를 다시 미세조정하지 않는다.
+2. 점수·저장·export·버전·고지는 화면 폴리시와 별개의 release blocker이므로 M2 전에 N2-REL-01로 제거한다.
+3. M2는 신규 콘텐츠가 아니라 플레이어가 실제로 보는 수관·캐릭터·전투·HUD·오디오·온보딩을 우선한다.
+4. 공개 승격은 소스 실행이 아니라 clean packaged artifact와 외부 사용자의 무설명 완주를 기준으로 한다.
+5. 큰 파일 리팩터링은 release slice가 닿는 경계에서만 작게 수행한다.
 
 ## 금지된 빠른 해결책
 
 - 99명 default promotion.
-- release/build 작업 선행.
+- M1 수동 판정 전 공개 릴리즈 또는 M2 품질 gate 전 공개 데모 승격.
+- dirty workspace에서 만든 artifact 공개, manifest/checksum 없는 archive 승격.
+- 저장 손실·기록 오염·제품 식별 불일치를 known issue로만 남기고 공개.
+- 데모 critical path보다 신규 장소·장비·온라인·macOS 범위를 우선.
 - broad economy cut으로 first upgrade 해결.
 - broad weapon chance cut.
-- hard-bump threshold-only fix.
-- 5초 이상 opening hard-bump brush.
-- opponent 구분 없는 텔레메트리 상태에서 bot-only opening grace 추가.
-- 이동 수렴 원인을 그대로 둔 채 non-hard-bump opening guard 시간만 연장.
-- stage1 사망이 변하지 않은 상태에서 opening 이동 예외를 계속 추가.
 - stuck 원인 분리 없이 장애물 위치만 반복 이동.
 - gate 완화로 candidate 통과.
 
