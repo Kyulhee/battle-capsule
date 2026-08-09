@@ -1,6 +1,6 @@
 # 테스트와 검증 가이드
 
-> 최종 업데이트: 2026-07-26. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
+> 최종 업데이트: 2026-08-09. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
 
 ## 원칙
 
@@ -83,6 +83,20 @@ python -m py_compile tools\analyze_results.py tools\summarize_pacing_baseline.py
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_audio_catalog_assets.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --script res://tools/verify_mission_health_rules.gd
 ```
+
+## 패키지 경계 검증
+
+export된 PCK는 workspace와 분리된 빈 host directory에 mount해 검사한다.
+
+```powershell
+$ProbePath = "C:\tmp\empty_release_probe"
+$VerifierPath = (Resolve-Path "tools\verify_release_package.gd").Path
+$PckPath = (Resolve-Path "C:\tmp\release\BattleCapsule.pck").Path
+New-Item -ItemType Directory -Force -Path $ProbePath | Out-Null
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path $ProbePath --script $VerifierPath -- "pck_path=$PckPath"
+```
+
+`verify_release_package.gd`는 catalog 자산 44개(20 PNG·11 audio·13 GLB), 검토된 JSON 3개, runtime 논리 경로 124개, 핵심 load probe 20개가 PCK에서 실제 load되고 import/remap generated payload closure가 exact인지 검사한다. test/probe/tool/doc 경로도 없어야 한다. packaged headless 전체 simulation 통과는 UI·입력·가독성·정상 기록 생성·OS/해상도 matrix를 대신하지 않는다.
 
 AI 오류를 짧게 재현할 때는 제품 맵 대신 96m 전용 표면을 먼저 쓴다.
 

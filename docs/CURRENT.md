@@ -1,6 +1,6 @@
 # 현재 트래커
 
-> 최종 업데이트: 2026-07-26. 작업 시작 전 이 문서를 먼저 읽는다.
+> 최종 업데이트: 2026-08-09. 작업 시작 전 이 문서를 먼저 읽는다.
 
 ## 큰 틀
 
@@ -16,9 +16,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | `N2-REL-01` 저장·식별·export 자동 기반 통과. clean tracked commit 패키지 smoke와 `N2-PLAY-10` 수동 3판이 R0 잔여 gate |
-| 바로 다음 단위 | clean Windows EXE/PCK의 전체 simulation·hash/manifest를 고정하고, 패키지 메뉴→매치→결과→재시작→재실행을 수동 확인 |
-| 최신 검증 개발 단위 | release persistence/identity/settings가 포함된 `unit_smoke`, Forward+ 3-run, 고정 입력 `target_99_probe` 5-run 통과 |
+| 현재 단위 | `N2-REL-01` clean artifact 자동 gate 통과. `N2-PLAY-10` 수동 3판, 사람이 조작하는 packaged 전체 루프, cold PCK byte 재현성이 R0 잔여 gate |
+| 바로 다음 단위 | `N2-PLAY-10` 수동 3판과 clean 패키지 메뉴→설정→매치→결과→재시작→재실행을 사람이 확인하고, 정상 기록·배지 저장과 cold PCK 비결정성을 마감 |
+| 최신 검증 개발 단위 | `ac9fff8` clean Windows PCK exact inventory, 전체 headless simulation, migration/reboot, PE identity, internal archive hash/extract smoke와 `unit_smoke` 통과 |
 | 최신 검증 게임플레이 단위 | N2-PLAY-09: 지역 구분·구조물 품질·AI 잠복은 개선, 빈 평지·초기 대기·지역별 파밍 차이는 반복 필요 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 목표 창 | 폐쇄 알파 2026-08 중·하순, 공개 데모 후보 2026-10 말~11월, 유료 EA Go/No-Go 2027 Q1 말 |
@@ -38,7 +38,7 @@
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
 | P0 | `N2-PLAY-10` M1 종료 판정 | 수동 3판에서 첫 2분·거점/경로·10-15분 완주를 기록. 통과한 Forward+ 3-run과 `target_99_probe` 구조 회귀 상태를 보존 |
-| P1 | `N2-REL-01` Windows 릴리즈 기반 마감 | 자동 검증을 통과한 점수·기록·simulation 격리·versioned atomic save·export 경계·브랜드/버전을 clean 패키지 전체 루프와 checksum/manifest로 확인 |
+| P1 | `N2-REL-01` Windows 릴리즈 기반 마감 | 통과한 clean PCK inventory·PE identity·전체 headless simulation·checksum/manifest/reboot 근거를 보존하고, 사람이 조작하는 전체 루프·정상 기록/배지 저장·cold PCK byte 재현성을 확인 |
 | P2 | `N2-M2-VIS-01` 대표 교전 슬라이스 | 수관 가림·야간 명도·캡슐 방향/무기/피격/사망·핵심 효과음·HUD/지도 위계를 한 구간에서 수동 통과 |
 | P3 | `N2-M2-UX-01` 첫 사용자 경험 | 밝기·감도·해상도/창 모드·UI 배율, 입력 안내, 언어 일관성, 메뉴→매치→결과→재시작 흐름을 무설명 테스터가 완주 |
 | P4 | `N2-REL-02` 공개 데모 RC | clean artifact 재현, 전체 매치/반복 재시작 soak, 다중 해상도·하드웨어, 외부 20회 이상 완주, P0/P1 0, 고지·지원·릴리즈 노트 완료 |
@@ -50,11 +50,11 @@
 |---|---|---|
 | M1 수동 미검증 | 자동 gate는 통과했지만 N2-MAP-17 이후 실제 3판 기록이 없음 | P0에서 첫 2분·장소·생존·완주를 판정하고 실패 증거가 있는 부분만 좁게 수정 |
 | 화면이 프로토타입으로 보임 | 겹친 수관, procedural capsule, 평면적 야간 재질, HUD 정보 경쟁 | 신규 콘텐츠보다 P2 대표 슬라이스를 우선하고 캡슐을 의도된 제품 정체성으로 승격 |
-| 기록·저장 무결성 | 점수 일치·simulation 격리·schema v1·원자 교체·backup/corrupt·50개 제한은 자동 통과 | clean 패키지에서 기존/손상/재실행 save를 확인하고 future schema migration은 R1 전에 별도 fixture로 확장 |
-| 패키지 오염·식별 불일치 | `Battle Capsule`·`v2.1.0-demo-dev`, 기존 save 경로, 명시적 export 경계는 identity/workspace export smoke 통과 | clean tracked PCK의 파일 목록·크기·hash/manifest와 법적 고지·서명 범위를 확인하기 전 공개 승격 금지 |
-| 60봇 성능 | 재측정 3회 p95/p99는 15.429/19.948, 15.059/17.641, 15.197/17.924ms. p95 20ms 초과 0/3, AI 평균 154.0-165.6µs | 짧은 1280×720 profile은 자동 통과. 수동 끊김·전체 매치·restart soak·다중 해상도는 P0/P4에서 별도 확인 |
+| 기록·저장 무결성 | packaged smoke에서 legacy settings schema v1 migration·backup·재실행 멱등성과 simulation 중 기존 기록·배지 불변 확인 | 사람이 정상 매치 기록·배지 생성/재실행과 corrupt/empty/future-schema 화면 동작을 확인 |
+| 패키지 오염·식별 불일치 | clean PCK의 catalog 자산 44개·JSON 3개·runtime 경로 124개·payload closure exact, Windows x64 GUI identity, internal archive hash/extract/reboot 통과 | 독립 clean export의 EXE는 동일하지만 PCK hash/크기가 달라 byte 재현성 미해결. LICENSES/CREDITS·지원·unsigned 정책 전 공개 승격 금지 |
+| 60봇 성능 | 재측정 3회 p95/p99 통과에 더해 packaged headless 전체 simulation 651.038초, spawn 60/60·fallback 0·오류 0 통과 | 수동 끊김·사람 플레이 전체 매치·restart soak·다중 해상도는 P0/P4에서 별도 확인 |
 | 99봇 구조 여유 | 고정 입력 5-run은 통과했지만 disengage 0.44가 한계 0.45에 가까움 | 99봇은 gameplay로 승격하지 않고 규모 민감 변경마다 구조 profile을 다시 실행 |
-| 첫 사용자·호환성 공백 | 설정·온보딩·exported binary·장시간/다중 해상도/저사양 검증이 없음 | P3/P4에서 무설명 완주와 실제 패키지 matrix를 gate로 추가 |
+| 첫 사용자·호환성 공백 | exported binary 자동 부팅·전체 simulation은 통과했지만 UI·입력·가독성·정상 저장 생성은 사람이 확인하지 않음 | P3/P4에서 무설명 완주와 Win10/11·한글 경로·읽기 전용 설치·해상도/하드웨어 matrix를 gate로 유지 |
 | 범위 팽창 | 온라인·99봇·macOS·신규 콘텐츠가 공개 데모 critical path와 경쟁 | 첫 공개 범위 밖 기능은 M4 Go/No-Go 전까지 보류 |
 | 작업 트리 노이즈 | Godot UID가 일부만 추적되어 상태 출력에 100개 이상 노출 | 별도 운영 단위에서 UID 정책을 통일하고 gameplay 커밋과 섞지 않음 |
 

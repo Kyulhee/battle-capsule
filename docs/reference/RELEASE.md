@@ -1,6 +1,6 @@
 # 릴리즈 가이드
 
-> 최종 업데이트: 2026-07-26. 릴리즈 준비는 활성 작업이지만 실제 tag·GitHub Release 공개는 사용자 명시 지시 뒤에만 진행한다.
+> 최종 업데이트: 2026-08-09. 릴리즈 준비는 활성 작업이지만 실제 tag·GitHub Release 공개는 사용자 명시 지시 뒤에만 진행한다.
 
 ## 현재 범위
 
@@ -32,7 +32,9 @@
 
 이 단계의 산출물은 공개판이 아니라 `v2.1.0-demo-dev` 내부 build다.
 
-현재 자동 완료 범위는 점수/기록 일치, simulation 격리, 세 save의 schema v1·원자 교체·backup/corrupt/legacy fixture, 현재 공개판 rollback bridge와 future-schema 보존, `Battle Capsule`·`v2.1.0-demo-dev` identity와 명시적 export 경계다. `unit_smoke`, Forward+ 3-run, 고정 입력 `target_99_probe` 5-run도 통과했다. workspace export의 PE metadata/headless boot는 사전 smoke일 뿐이며 `.godot` cache가 없는 clean tracked PCK inventory·전체 루프·manifest가 잔여 gate다. 사람이 직접 하는 재시작/재실행, LICENSES/CREDITS·회사/저작권 정책·지원 경로도 공개 전 필요하고 signing은 현재 꺼져 있다.
+source `ac9fff8fc115c86003da7a5685fbce0dc0b48d58`의 fresh clean worktree artifact 자동 smoke까지 통과했다. PCK는 catalog 자산 44개·검토된 JSON 3개·runtime 논리 경로 124개·핵심 load probe 20개와 generated payload closure exact를 확인했고 테스트 맵·probe 데이터·도구·문서가 없었다. packaged headless 전체 simulation은 651.038초, spawn 60/60·fallback 0·최종 1위·오류 0이었으며 legacy settings migration·backup·재실행 멱등성, simulation 중 기존 기록·배지 불변, Windows x64 GUI·`2.1.0.0` metadata, internal archive 압축 해제 hash·재부팅도 통과했다.
+
+이는 자동 package gate 근거이며 사람이 조작하는 Result/Records 흐름을 대신하지 않는다. 독립 clean worktree 두 곳의 EXE는 byte-identical이었지만 PCK는 2,060,916/2,060,900 bytes로 hash가 달랐으므로 cold PCK byte 재현성도 미해결이다. `N2-REL-01` 잔여 gate는 `N2-PLAY-10` 수동 3판, 메뉴→설정→매치→결과→재시작→재실행과 정상 기록·배지 저장, PCK 비결정성·반복 restart soak·호환성 matrix, LICENSES/CREDITS·회사/저작권·지원·unsigned 정책이다.
 
 ## 1. 소스 검증
 
@@ -59,7 +61,7 @@ R1에는 짧은 profile 외에 실제 10-15분 전체 매치, 반복 재시작, 
 - `git status --porcelain`이 비어 있지 않으면 release build를 중단한다.
 - source commit과 tag 후보를 manifest에 먼저 기록한다.
 - export preset은 runtime resource만 포함하고 로컬 생성 원본·테스트·도구·문서·debug screenshot·console wrapper를 제외한다.
-- 같은 commit을 두 번 export했을 때 archive 내용과 예상 크기가 허용 범위 안에서 같아야 한다.
+- 같은 commit을 독립 clean 환경에서 두 번 export해 EXE/PCK hash를 비교한다. 차이가 나면 두 artifact의 exact package contract가 같아도 byte 재현성 gate는 실패로 남기고 원인을 기록한다.
 
 ## 3. 버전·브랜드
 
@@ -83,9 +85,16 @@ $ArchivePath = "builds\BattleCapsule_${ReleaseVersion}_win64.zip"
 
 New-Item -ItemType Directory -Force -Path $StagePath | Out-Null
 .\Godot_v4.6.2-stable_win64_console.exe --headless --path . --export-release "Windows Desktop" "$StagePath\BattleCapsule.exe"
+$ProbePath = "C:\tmp\empty_release_probe"
+$VerifierPath = (Resolve-Path "tools\verify_release_package.gd").Path
+$PckPath = (Resolve-Path "$StagePath\BattleCapsule.pck").Path
+New-Item -ItemType Directory -Force -Path $ProbePath | Out-Null
+.\Godot_v4.6.2-stable_win64_console.exe --headless --path $ProbePath --script $VerifierPath -- "pck_path=$PckPath"
 Compress-Archive -Path "$StagePath\*" -DestinationPath $ArchivePath
 Get-FileHash -Algorithm SHA256 $ArchivePath
 ```
+
+package verifier는 workspace 파일로 우연히 통과하지 않도록 빈 host directory에서 실행한다. 현재 계약은 catalog 자산 44개, JSON 3개, runtime 논리 경로 124개, 핵심 load probe 20개와 import/remap generated payload closure의 exact 일치다.
 
 archive에는 EXE/PCK, `README`, `KNOWN_ISSUES`, `LICENSES/CREDITS`, build manifest만 둔다. 원본 프로젝트·도구·텔레메트리 결과는 넣지 않는다.
 
