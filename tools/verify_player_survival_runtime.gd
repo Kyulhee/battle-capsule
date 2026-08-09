@@ -29,6 +29,29 @@ func _run() -> void:
 		_fail("Survival runtime did not spawn a player.")
 		return
 	player.set_physics_process(false)
+	var kill_context: Dictionary = player.get_kill_context()
+	var active_slot := int(player.slots.active_slot)
+	var expected_mag := int(player.slots.slot_ammo[active_slot]) if active_slot >= 1 else 0
+	var expected_reserve := int(player.slots.slot_reserve[active_slot]) if active_slot >= 1 else 0
+	if String(kill_context.get("state", "")) != "player_control" \
+			or String(kill_context.get("weapon", "")) != player._current_weapon_type() \
+			or int(kill_context.get("mag", -1)) != expected_mag \
+			or int(kill_context.get("reserve", -1)) != expected_reserve:
+		await _cleanup(main)
+		_fail("Player kill context must use the live active-slot weapon and ammunition.")
+		return
+	var previous_slot := active_slot
+	player.slots.active_slot = 4
+	player.slots.weapon_slots[4] = null
+	var empty_slot_context: Dictionary = player.get_kill_context()
+	player.slots.active_slot = previous_slot
+	if String(empty_slot_context.get("weapon", "")) != "none" \
+			or int(empty_slot_context.get("mag", 0)) != -1 \
+			or int(empty_slot_context.get("reserve", 0)) != -1 \
+			or String(empty_slot_context.get("attack_origin", "")) != "none":
+		await _cleanup(main)
+		_fail("An empty active ranged slot must not leak fallback weapon or ammo context.")
+		return
 
 	player.current_health = 20.0
 	player.stats.advanced_heals = 1

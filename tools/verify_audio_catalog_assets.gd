@@ -119,6 +119,21 @@ func _init() -> void:
 		_fail("Standing footsteps must preserve AI hearing radius.")
 		return
 
+	var shutdown_stream = sound_manager._try_load_file("melee.hit")
+	var shutdown_player := AudioStreamPlayer.new()
+	shutdown_player.stream = shutdown_stream
+	sound_manager._track_audio_player(shutdown_player)
+	if sound_manager.active_player_count() != 1:
+		_fail("SoundManager must track live playback for deterministic shutdown.")
+		return
+	sound_manager.stop_all_for_shutdown()
+	if sound_manager.active_player_count() != 0:
+		_fail("SoundManager shutdown must clear its active playback registry.")
+		return
+	if is_instance_valid(shutdown_player):
+		_fail("SoundManager shutdown must free active players after detaching streams.")
+		return
+
 	weapon_profile_probe.free()
 	pistol_profile_probe.free()
 	melee_swing_profile_probe.free()

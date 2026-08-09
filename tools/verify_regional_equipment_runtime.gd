@@ -6,6 +6,24 @@ const MATCH_RUNTIME_TUNING = preload("res://src/systems/match/MatchRuntimeTuning
 const PICKUP_SCENE = preload("res://src/entities/pickup/Pickup.tscn")
 const WEAPON_SLOTS = preload("res://src/core/WeaponSlotManager.gd")
 const ENTITY = preload("res://src/entities/Entity.gd")
+const LOOT_SPAWNER = preload("res://src/systems/loot/LootSpawner.gd")
+const LOOT_SPAWN_DIRECTOR = preload("res://src/systems/loot/LootSpawnDirector.gd")
+const EXPECTED_POI_WEAPON_SLOTS := {
+	"Central Meadow": 1,
+	"Cabin Row": 4,
+	"South Creek Bend": 4,
+	"West Ridge Gap": 1,
+	"West Ridge Watch Post": 1,
+	"East Pine Lane": 1,
+	"East Pine Gate": 1,
+	"Northwest Slope": 1,
+	"Northeast Slope": 1,
+	"Southwest Brush": 0,
+	"Southeast Brush": 0,
+	"Inner Brush North": 1,
+	"Survey Camp": 2,
+	"Inner Brush South": 0,
+}
 
 
 func _init() -> void:
@@ -13,6 +31,8 @@ func _init() -> void:
 
 
 func _run() -> void:
+	if not _verify_optional_slot_compatibility():
+		return
 	if not _verify_catalog_and_weapon_upgrade():
 		return
 	var main_scene: PackedScene = load("res://src/Main.tscn")
@@ -29,9 +49,15 @@ func _run() -> void:
 	if regional_counts.is_empty():
 		await _cleanup(main)
 		return
-	if int(regional_counts["field"]) < 1:
+	if int(regional_counts["field"]) != 15 \
+			or int(regional_counts["scavenged"]) != 3 \
+			or int(regional_counts["total"]) != 18:
 		await _cleanup(main)
-		_fail("M1 initial loot must expose at least one contested field-grade weapon.")
+		_fail("M1 initial loot must spawn exactly field=15 scavenged=3 total=18 long guns.")
+		return
+	if regional_counts.get("by_poi", {}) != EXPECTED_POI_WEAPON_SLOTS:
+		await _cleanup(main)
+		_fail("M1 runtime weapon placement no longer matches the authored per-POI slot budget.")
 		return
 
 	var player = main.player_ref
@@ -82,10 +108,54 @@ func _run() -> void:
 
 	await _cleanup(main)
 	print(
-		"Regional equipment runtime smoke passed: field=%d scavenged=%d armor=15%% move=96%%."
-		% [regional_counts["field"], regional_counts["scavenged"]]
+		"Regional equipment runtime smoke passed: field=%d scavenged=%d total=%d armor=15%% move=96%%."
+		% [regional_counts["field"], regional_counts["scavenged"], regional_counts["total"]]
 	)
 	quit(0)
+
+
+func _verify_optional_slot_compatibility() -> bool:
+	var spawner = LOOT_SPAWNER.new()
+	spawner.configure_role_initial_weapon_chances({"legacy_test": 1.0})
+	var legacy_hotspot := {
+		"pos": Vector2.ZERO,
+		"radius": 8.0,
+		"density": 0.5,
+		"rare_bias": 0.0,
+		"role": "legacy_test",
+	}
+	if spawner.initial_weapon_slots(legacy_hotspot) != -1:
+		_fail("POIs without initial_weapon_slots must preserve probability-based spawning.")
+		return false
+	var loot_parent := Node3D.new()
+	root.add_child(loot_parent)
+	var legacy_spawned := LOOT_SPAWN_DIRECTOR.spawn_initial_loot(
+		PICKUP_SCENE,
+		loot_parent,
+		[legacy_hotspot],
+		spawner,
+		[ITEM_CATALOG.WEAPON_AR],
+		[],
+		[],
+		Callable(self, "_fixed_runtime_loot_position")
+	)
+	var explicit_zero := legacy_hotspot.duplicate(true)
+	explicit_zero["initial_weapon_slots"] = 0
+	var zero_spawned := LOOT_SPAWN_DIRECTOR.spawn_initial_loot(
+		PICKUP_SCENE,
+		loot_parent,
+		[explicit_zero],
+		spawner,
+		[ITEM_CATALOG.WEAPON_AR],
+		[],
+		[],
+		Callable(self, "_fixed_runtime_loot_position")
+	)
+	loot_parent.free()
+	if legacy_spawned != 1 or zero_spawned != 0:
+		_fail("Optional initial weapon slots no longer distinguish legacy chance from explicit zero.")
+		return false
+	return true
 
 
 func _verify_catalog_and_weapon_upgrade() -> bool:
@@ -121,7 +191,15 @@ func _verify_catalog_and_weapon_upgrade() -> bool:
 
 
 func _regional_weapon_counts(main) -> Dictionary:
-	var counts := {"field": 0, "scavenged": 0}
+	var by_poi := {}
+	for poi_name in EXPECTED_POI_WEAPON_SLOTS.keys():
+		by_poi[String(poi_name)] = 0
+	var counts := {
+		"field": 0,
+		"scavenged": 0,
+		"total": 0,
+		"by_poi": by_poi,
+	}
 	var field_roles := ["loot_hub", "transit_choke"]
 	for child in main.get_node("Loot").get_children():
 		if not child is Pickup or child.item == null \
@@ -131,7 +209,19 @@ func _regional_weapon_counts(main) -> Dictionary:
 			Vector2(child.global_position.x, child.global_position.z)
 		)
 		var role := String(context.get("nearest_poi_role", "none"))
+		var poi_name := String(context.get("nearest_poi_name", "none"))
 		var tier := int(child.item.weapon_stats.weapon_tier)
+		var weapon_type := String(child.item.weapon_stats.weapon_type).strip_edges().to_lower()
+		if weapon_type in ["", "knife", "pistol"]:
+			_fail("Initial POI weapon slots must contain long guns, got '%s'." % weapon_type)
+			return {}
+		if not _is_at_authored_loot_anchor(
+			main,
+			poi_name,
+			Vector2(child.global_position.x, child.global_position.z)
+		):
+			_fail("Initial weapon at '%s' did not use an authored loot anchor." % poi_name)
+			return {}
 		if field_roles.has(role):
 			if tier != 2:
 				_fail("Contested initial weapon must be field grade, role=%s tier=%d." % [role, tier])
@@ -142,7 +232,31 @@ func _regional_weapon_counts(main) -> Dictionary:
 				_fail("Outer initial weapon must be scavenged grade, role=%s tier=%d." % [role, tier])
 				return {}
 			counts["scavenged"] += 1
+		counts["total"] += 1
+		by_poi[poi_name] = int(by_poi.get(poi_name, 0)) + 1
 	return counts
+
+
+func _is_at_authored_loot_anchor(main, poi_name: String, position: Vector2) -> bool:
+	for poi in main.map_definition.get_poi_descriptors():
+		if String(poi.get("name", "")) != poi_name:
+			continue
+		var anchors = poi.get("loot_anchors", [])
+		if not anchors is Array:
+			return false
+		for anchor_value in anchors:
+			if not anchor_value is Dictionary:
+				continue
+			var anchor: Dictionary = anchor_value
+			var raw_pos = anchor.get("pos", [])
+			if not raw_pos is Array or raw_pos.size() < 2:
+				continue
+			var anchor_pos := Vector2(float(raw_pos[0]), float(raw_pos[1]))
+			var jitter_radius := maxf(0.0, float(anchor.get("jitter_radius", 0.0)))
+			if position.distance_to(anchor_pos) <= jitter_radius + 0.01:
+				return true
+		return false
+	return false
 
 
 func _verify_regional_tuning(loot_tuning: Dictionary) -> bool:
@@ -164,6 +278,10 @@ func _spawn_pickup(item: ItemData):
 	root.add_child(pickup)
 	pickup.init(item.duplicate(true), "equipment_runtime")
 	return pickup
+
+
+func _fixed_runtime_loot_position(_hotspot: Dictionary) -> Vector2:
+	return Vector2(3.0, 4.0)
 
 
 func _wait_for_navigation(main: Node) -> void:

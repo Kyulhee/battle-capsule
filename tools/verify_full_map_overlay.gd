@@ -1,5 +1,12 @@
 extends SceneTree
 
+class CombatProbe:
+	extends Node3D
+	var recent_combat: bool = false
+
+	func is_in_recent_combat() -> bool:
+		return recent_combat
+
 
 func _init():
 	var game_config_script = load("res://src/core/GameConfig.gd")
@@ -7,6 +14,9 @@ func _init():
 	var world_builder_script = load("res://src/maps/WorldBuilder.gd")
 	var overlay_script = load("res://src/ui/FullMapOverlay.gd")
 	var minimap_script = load("res://src/ui/Minimap.gd")
+
+	if not _verify_full_map_hud_visibility_wiring():
+		return
 
 	var game_config = game_config_script.new()
 	game_config.load_or_default()
@@ -139,7 +149,7 @@ func _init():
 		return
 
 	var minimap = minimap_script.new()
-	minimap.minimap_size = Vector2(280.0, 280.0)
+	minimap.minimap_size = Vector2(220.0, 220.0)
 	minimap.local_view_size_m = 120.0
 	root.add_child(minimap)
 	minimap.set_map_spec(spec, features, definition)
@@ -166,9 +176,32 @@ func _init():
 	if int(static_layer.get("_features").size()) != features.size():
 		_fail("Minimap static cache did not receive all generated map features.")
 		return
-	if absf(minimap.world_size_to_minimap(60.0) - 140.0) > 0.001:
-		_fail("Local minimap must show 120m across its 280px display.")
+	if absf(minimap.world_size_to_minimap(60.0) - 110.0) > 0.001:
+		_fail("Local minimap must show 120m across its 220px display.")
 		return
+	if absf(float(static_texture.modulate.a) - 0.86) > 0.001:
+		_fail("Minimap static terrain must start at the normal 0.86 alpha.")
+		return
+	if absf(float(minimap._target_static_alpha(true)) - 0.46) > 0.001:
+		_fail("Minimap combat terrain alpha must be 0.46.")
+		return
+	var combat_probe := CombatProbe.new()
+	minimap.player = combat_probe
+	combat_probe.recent_combat = true
+	minimap._update_static_texture_alpha(0.2)
+	if absf(float(static_texture.modulate.a) - 0.46) > 0.001:
+		_fail("Minimap static terrain did not finish its 0.2s combat fade.")
+		return
+	if absf(float(minimap.modulate.a) - 1.0) > 0.001:
+		_fail("Minimap combat fade must not dim dynamic zone and player markings.")
+		return
+	combat_probe.recent_combat = false
+	minimap._update_static_texture_alpha(0.2)
+	if absf(float(static_texture.modulate.a) - 0.86) > 0.001:
+		_fail("Minimap static terrain did not recover its normal alpha in 0.2s.")
+		return
+	minimap.player = null
+	combat_probe.free()
 	if String(minimap._poi_label(south_poi)) != "Logging Ford":
 		_fail("Minimap must prefer player-facing landmark labels over internal POI names.")
 		return
@@ -195,6 +228,24 @@ func _init():
 		projected_north,
 	])
 	quit(0)
+
+
+func _verify_full_map_hud_visibility_wiring() -> bool:
+	var main_source := FileAccess.get_file_as_string("res://src/Main.gd")
+	var required_fragments := [
+		"_full_map_hud_visibility[hud] = hud.visible",
+		"hud.visible = false",
+		"hud.visible = bool(_full_map_hud_visibility[hud])",
+		"get_node_or_null(\"CanvasLayer/Control/HUD\")",
+		"player_ref.get_node_or_null(\"CanvasLayer/Control\")",
+		"_release_full_map_hud_suppression(restore_hud)",
+		"_hide_full_map(false)",
+	]
+	for fragment in required_fragments:
+		if main_source.find(fragment) < 0:
+			_fail("Full-map HUD visibility wiring is missing: %s" % fragment)
+			return false
+	return true
 
 
 func _fail(message: String) -> void:

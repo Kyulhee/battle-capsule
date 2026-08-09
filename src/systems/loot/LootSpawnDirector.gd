@@ -35,9 +35,18 @@ static func spawn_initial_loot(
 		return 0
 	var spawned = 0
 	for hotspot in hotspots:
-		var weapon_chance = loot_spawner.initial_weapon_chance(hotspot)
-		if not weapon_templates.is_empty() and randf() < weapon_chance:
-			var weapon_pos = _call_random_position(random_position, hotspot)
+		var placement_index := 0
+		var weapon_slots: int = loot_spawner.initial_weapon_slots(hotspot) \
+			if loot_spawner.has_method("initial_weapon_slots") else -1
+		var weapon_spawn_count: int = weapon_slots
+		if weapon_slots < 0:
+			var weapon_chance: float = loot_spawner.initial_weapon_chance(hotspot)
+			weapon_spawn_count = 1 if randf() < weapon_chance else 0
+		for _weapon_slot in range(weapon_spawn_count):
+			if weapon_templates.is_empty():
+				break
+			var weapon_pos = _call_initial_position(random_position, hotspot, placement_index)
+			placement_index += 1
 			var weapon_template = loot_spawner.choose_initial_weapon_template(
 				weapon_templates,
 				hotspot
@@ -48,7 +57,8 @@ static func spawn_initial_loot(
 		var equipment_chance = loot_spawner.initial_equipment_chance(hotspot) \
 			if loot_spawner.has_method("initial_equipment_chance") else 0.0
 		if not equipment_templates.is_empty() and randf() < equipment_chance:
-			var equipment_pos = _call_random_position(random_position, hotspot)
+			var equipment_pos = _call_initial_position(random_position, hotspot, placement_index)
+			placement_index += 1
 			_spawn_pickup(
 				pickup_scene,
 				loot_parent,
@@ -62,7 +72,8 @@ static func spawn_initial_loot(
 		for _i in range(consumable_count):
 			if consumable_templates.is_empty():
 				break
-			var consumable_pos = _call_random_position(random_position, hotspot)
+			var consumable_pos = _call_initial_position(random_position, hotspot, placement_index)
+			placement_index += 1
 			_spawn_pickup(pickup_scene, loot_parent, Vector3(consumable_pos.x, 0.5, consumable_pos.y), _random_item(consumable_templates), false, "initial_loot")
 			spawned += 1
 	return spawned
@@ -75,11 +86,12 @@ static func spawn_loot_wave(
 	choose_hotspot: Callable,
 	random_position: Callable,
 	weapon_templates: Array,
-	item_templates: Array
+	consumable_templates: Array
 ) -> int:
 	if total_to_spawn <= 0 or not pickup_scene or not loot_parent:
 		return 0
 	var spawned = 0
+	var non_weapon_pool := wave_consumable_pool(consumable_templates)
 	for _i in range(total_to_spawn):
 		var hotspot: Dictionary = choose_hotspot.call() if choose_hotspot.is_valid() else {}
 		if hotspot.is_empty():
@@ -89,12 +101,19 @@ static func spawn_loot_wave(
 		var use_weapon = randf() < weapon_chance and not weapon_templates.is_empty()
 		var template = loot_spawner.choose_wave_weapon_template(weapon_templates) \
 			if use_weapon and loot_spawner and loot_spawner.has_method("choose_wave_weapon_template") \
-			else _random_item(weapon_templates if use_weapon else item_templates)
+			else _random_item(weapon_templates if use_weapon else non_weapon_pool)
 		if not template:
 			continue
 		_spawn_pickup(pickup_scene, loot_parent, Vector3(spawn_pos.x, 0.5, spawn_pos.y), template, use_weapon, "stage_wave")
 		spawned += 1
 	return spawned
+
+static func wave_consumable_pool(consumable_templates: Array) -> Array:
+	var result: Array = []
+	for template in consumable_templates:
+		if template and template.type != ItemDataScript.Type.WEAPON:
+			result.append(template)
+	return result
 
 static func create_supply_pillar(parent: Node, supply_pos: Vector3) -> MeshInstance3D:
 	if not parent:
@@ -166,6 +185,18 @@ static func _call_random_position(random_position: Callable, hotspot: Dictionary
 	if random_position.is_valid():
 		return random_position.call(hotspot)
 	return hotspot.get("pos", Vector2.ZERO)
+
+static func _call_initial_position(
+	random_position: Callable,
+	hotspot: Dictionary,
+	placement_index: int
+) -> Vector2:
+	var anchors = hotspot.get("loot_anchors", [])
+	if not anchors is Array or anchors.is_empty():
+		return _call_random_position(random_position, hotspot)
+	var anchored_hotspot := hotspot.duplicate(true)
+	anchored_hotspot["_loot_anchor_index"] = placement_index
+	return _call_random_position(random_position, anchored_hotspot)
 
 static func _call_cluster_offset(cluster_offset: Callable) -> Vector3:
 	if cluster_offset.is_valid():

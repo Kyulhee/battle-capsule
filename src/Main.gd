@@ -24,6 +24,8 @@ var _hell_announce_active: bool = false
 var _hell_announce_panel: Control = null
 var _pause_panel: Control = null
 var _full_map_overlay: Control = null
+var _full_map_hud_visibility: Dictionary = {}
+var _full_map_hud_suppressed: bool = false
 
 @export var loot_count: int = 40
 @export var spawn_radius: float = 45.0
@@ -326,6 +328,7 @@ func start_game():
 		tel.log_mission_start(mission_tracker.active_mission.id)  # start_match 이후에 호출
 		
 	alive_count = SimulationParticipantsScript.initial_alive_count(bot_count, is_simulation)
+	_log_alive_sample("start")
 	_categorize_templates()
 	spawn_entities()
 	_spawn_initial_loot()
@@ -405,7 +408,7 @@ func return_to_menu():
 	get_tree().reload_current_scene()
 
 func _toggle_pause():
-	if _is_full_map_open():
+	if _is_full_map_open() or _full_map_hud_suppressed:
 		_hide_full_map()
 	if is_instance_valid(_pause_panel):
 		_pause_panel.queue_free()
@@ -425,22 +428,64 @@ func _create_pause_panel() -> Control:
 	)
 
 func _toggle_full_map():
-	if current_state != GameState.PLAYING:
-		return
 	if _is_full_map_open():
 		_hide_full_map()
-	else:
-		_show_full_map()
+		return
+	if (
+		current_state != GameState.PLAYING
+		or game_over
+		or is_instance_valid(_pause_panel)
+		or get_tree().paused
+	):
+		return
+	_show_full_map()
 
 func _show_full_map():
+	if current_state != GameState.PLAYING or game_over:
+		return
 	_ensure_full_map_overlay()
 	_configure_full_map_overlay()
 	if is_instance_valid(_full_map_overlay) and _full_map_overlay.has_method("show_map"):
 		_full_map_overlay.show_map()
+		if _is_full_map_open():
+			_suppress_gameplay_hud_for_full_map()
 
-func _hide_full_map():
+func _hide_full_map(restore_hud: bool = true):
 	if is_instance_valid(_full_map_overlay) and _full_map_overlay.has_method("hide_map"):
 		_full_map_overlay.hide_map()
+	_release_full_map_hud_suppression(restore_hud)
+
+func _suppress_gameplay_hud_for_full_map() -> void:
+	if _full_map_hud_suppressed:
+		return
+	_full_map_hud_visibility.clear()
+	for hud in _full_map_background_huds():
+		_full_map_hud_visibility[hud] = hud.visible
+		hud.visible = false
+	_full_map_hud_suppressed = true
+
+func _release_full_map_hud_suppression(restore_hud: bool = true) -> void:
+	if not _full_map_hud_suppressed:
+		_full_map_hud_visibility.clear()
+		return
+	var can_restore := restore_hud and current_state == GameState.PLAYING and not game_over
+	if can_restore:
+		for hud in _full_map_hud_visibility:
+			if is_instance_valid(hud):
+				hud.visible = bool(_full_map_hud_visibility[hud])
+	_full_map_hud_visibility.clear()
+	_full_map_hud_suppressed = false
+
+func _full_map_background_huds() -> Array[CanvasItem]:
+	var huds: Array[CanvasItem] = []
+	var main_hud := get_node_or_null("CanvasLayer/Control/HUD") as CanvasItem
+	if is_instance_valid(main_hud):
+		huds.append(main_hud)
+	if is_instance_valid(player_ref):
+		var player_hud := player_ref.get_node_or_null("CanvasLayer/Control") as CanvasItem
+		if is_instance_valid(player_hud):
+			huds.append(player_hud)
+	return huds
 
 func _is_full_map_open() -> bool:
 	return is_instance_valid(_full_map_overlay) and _full_map_overlay.has_method("is_open") and bool(_full_map_overlay.is_open())
@@ -735,6 +780,7 @@ func _on_zone_stage_changed(new_stage: int):
 	])
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").set_stage(new_stage)
+		_log_alive_sample("zone_stage")
 		if new_stage == 2:
 			var dist: Dictionary = {}
 			for b in get_tree().get_nodes_in_group("actors"):
@@ -822,7 +868,11 @@ func _get_safe_spawn_pos() -> Vector3:
 	for attempt in range(safe_attempts):
 		_spawn_attempt_total += 1
 		var angle = randf() * TAU
-		var dist = randf_range(float(spawn_tuning["inner_radius"]), spawn_radius)
+		var dist = BotSpawnPlannerScript.sample_annulus_distance(
+			float(spawn_tuning["inner_radius"]),
+			spawn_radius,
+			randf()
+		)
 		var candidate = Vector2(cos(angle) * dist, sin(angle) * dist)
 		if _is_clear_of_obstacles(candidate) and _is_clear_of_entities(candidate):
 			var pos = Vector3(candidate.x, spawn_height, candidate.y)
@@ -957,7 +1007,7 @@ func spawn_loot(prob: float, count_mult: int = 1):
 		Callable(self, "_choose_loot_hotspot"),
 		Callable(self, "_random_loot_pos"),
 		weapon_templates,
-		item_templates
+		consumable_templates
 	)
 
 func telegraph_supply_zone():
@@ -1023,6 +1073,11 @@ func _on_bot_died(bot: Entity = null):
 			"bot_hp":           snappedf(bot.current_health, 0.1),
 		})
 	alive_count -= 1
+	_log_alive_sample(
+		"death",
+		"bot",
+		String(bot.last_damage_source) if is_instance_valid(bot) else "unknown"
+	)
 	if bot:
 		zone.on_entity_died(bot.get_instance_id())
 		if has_node("/root/Telemetry"):
@@ -1077,6 +1132,11 @@ func _on_player_died():
 	# Capture rank BEFORE decrementing alive_count
 	var death_rank = alive_count
 	alive_count -= 1
+	_log_alive_sample(
+		"death",
+		"player",
+		String(player_ref.last_damage_source) if is_instance_valid(player_ref) else "unknown"
+	)
 	if is_simulation:
 		return  # In headless sim, let bots fight to the end — don't cut match short
 	if not game_over:
@@ -1088,8 +1148,28 @@ func _check_match_end():
 		game_over = true
 		_end_match(1)
 
+func _log_alive_sample(
+	reason: String,
+	victim_kind: String = "none",
+	cause: String = "none"
+) -> void:
+	var tel = get_node_or_null("/root/Telemetry")
+	if tel == null or not tel.has_method("log_alive_sample"):
+		return
+	var zone_stage := int(zone.stage) if zone != null else 1
+	var zone_shrinking := bool(zone.shrinking) if zone != null else false
+	tel.log_alive_sample(
+		alive_count,
+		zone_stage,
+		reason,
+		zone_shrinking,
+		victim_kind,
+		cause
+	)
+
 func _end_match(final_rank: int = 1):
 	current_state = GameState.RESULT
+	_hide_full_map(false)
 	var player_survived = is_instance_valid(player_ref) and not player_ref.is_dead
 	var is_victory = player_survived and not is_simulation
 	if is_victory:
@@ -1160,7 +1240,20 @@ func _end_match(final_rank: int = 1):
 	})
 
 	if is_simulation:
-		get_tree().quit()
+		_quit_simulation_after_frame()
+
+func _quit_simulation_after_frame() -> void:
+	# A fatal melee stack can still add its impact effect and hit sound after
+	# _end_match() returns. Let that stack finish before requesting shutdown so
+	# newly-created audio playback resources join normal SceneTree cleanup.
+	await get_tree().process_frame
+	var sfx = get_node_or_null("/root/Sfx")
+	if sfx != null and sfx.has_method("stop_all_for_shutdown"):
+		sfx.stop_all_for_shutdown()
+	# Catalog combat clips are shorter than one second. Give the audio thread a
+	# full real-time second to release detached playback objects deterministically.
+	await get_tree().create_timer(1.0, true, false, true).timeout
+	get_tree().quit()
 
 func _print_bot_state_snapshot():
 	var counts = {}

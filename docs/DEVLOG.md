@@ -1,6 +1,17 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-08-09. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-08-10. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## N2-PLAY-11 수동 실패 진단과 후보 폐기
+
+- 근거: N2-PLAY-10 packaged 6판은 16-240초, 88초 `25/61`, 92초 우승과 초기 무기 5개·주울 수 없는 권총 드랍 55개·전체 지도 HUD 중첩으로 M1을 거부했다.
+- 경제/스폰: 14개 POI에 초기 장총 18개와 오브젝트 앵커를 명시하고 기본 권총 무기 드랍을 제거했다. 반경 스폰은 면적 균등화하고 `bot_drop` soft/hard 120/150초, `stage_wave` 180/210초 TTL과 비무기 pool을 적용했다.
+- 화면/계측: 전체 지도에서 gameplay HUD를 격리하고 미니맵을 220px로 줄여 최근 교전 중 정적 배경만 흐리게 했다. 사망별 alive event staircase, 절대 50명/10명과 중앙값·완료 carry/수동 censor 분석을 추가했다.
+- 범위: stage1 broad damage, opening grace, zone 일정은 바꾸지 않았다. 가방/악세서리, 무기군+Tab, 더블배럴과 대형 hard block은 메모 또는 다음 대표 슬라이스로 보류했다.
+- 자동 판정: `C:\tmp\n2_play_11_survival_20260809` 5-run은 평균 692.3초·범위 641.8-781.0초·first upgrade 3.3초·fallback 0·AI 342µs로 D-004를 통과했지만 alive@30/60/90/120/180/260 `52/35/27/22/20/15`, T50/T10 `32.7/286.8초`로 생존 gate를 실패했다. gameplay PASS가 아니다.
+- 진단 기준선: behavior-unchanged `C:\tmp\n2_play_11_kill_context_baseline_20260809\run_1.json`은 845.8초, alive `53/38/26/26/21/15`, T50/T10 `36.2/415.1초`, first upgrade 12.2초였다. 60초 내 사망 22건은 gun/melee `14/8`, 생존 상태 피해자 19건, 최근 보복 19건, pressure 14건으로 교전 종료 실패 가설을 지지한다.
+- 폐기: bot-v-bot immediate 2m와 층화 스폰은 이미 revert했다. ceasefire 1-run은 사망 16건·생존 상태 피해자 0건으로 줄였지만 release 345회, 1초 내 같은 대상 재획득 90회(26.1%), stuck/disengage `53/823` 대 기준 `6/384`로 방향 gate를 실패해 완전 revert하고 5-run을 금지했다.
+- 패키지 스모크: 마지막 근접 공격 뒤 생성되는 audio playback과 즉시 simulation quit의 비결정적 종료 race를 활성 player 정리+1초 headless 전용 flush로 닫았다(source 비verbose 10회·verbose 3회, packaged 3회, 오류 0). 최종 exact PCK·quick boot·Vulkan HUD/전체 지도와 seed 41000 자동 1-run도 clean 통과했고 652.8초, alive `55/38/30/27/24/17`, T50/T10 `35.1/333.0초`, first upgrade 12.1초, spawn `60/60`·fallback 0이었다. 실행 계약만 PASS이며 생존 gate·gameplay PASS·packaged 수동 승격은 계속 보류한다.
 
 ## N2-REL-01 릴리즈 저장·식별·export 기반
 
@@ -11,7 +22,7 @@
 - clean artifact: source `ac9fff8fc115c86003da7a5685fbce0dc0b48d58`의 fresh worktree PCK에서 catalog 자산 44개·JSON 3개·runtime 경로 124개·핵심 load probe 20개와 generated payload closure exact를 확인했다. packaged headless 전체 simulation은 651.038초, spawn 60/60·fallback 0·최종 1위·오류 0이었고 legacy settings migration/backup·재실행 멱등성, 기존 기록·배지 불변, Windows x64 GUI·`2.1.0.0` metadata를 통과했다.
 - internal archive: EXE `B241A13…`, PCK `560CFD44…` SHA-256을 manifest에 기록하고 archive `92891081…` SHA-256을 산출했다. 압축 해제 뒤 세 파일 hash와 EXE 재부팅·오류 0도 확인했다. 이 archive는 공개 고지가 없는 internal smoke다.
 - 재현성: 독립 clean worktree 두 곳의 EXE는 byte-identical이었지만 PCK는 2,060,916/2,060,900 bytes와 서로 다른 hash였다. 두 PCK 모두 exact contract를 통과했으나 cold PCK byte 재현성은 닫지 않았다.
-- 잔여 gate: `N2-PLAY-10` 수동 3판, 사람이 조작하는 메뉴→설정→매치→결과→재시작→재실행과 정상 기록·배지 저장, cold PCK 비결정성·반복 restart soak·호환성 matrix, LICENSES/CREDITS·지원·unsigned 정책은 아직 닫지 않았다.
+- 잔여 gate: `N2-PLAY-11` 새 단일 후보 1-run→효과와 정체/이탈 비회귀가 있을 때만 M1 5-run→packaged 수동 3판, 사람이 조작하는 전체 루프·정상 기록/배지 저장, cold PCK 비결정성·restart soak·호환성 matrix, LICENSES/CREDITS·지원·unsigned 정책은 아직 닫지 않았다.
 
 ## N2-PLAN-01 릴리즈 로드맵 통합
 

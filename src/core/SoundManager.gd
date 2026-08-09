@@ -21,6 +21,7 @@ var asset_catalog = null
 var _stream_cache: Dictionary = {}
 var _audio_rng := RandomNumberGenerator.new()
 var _last_melee_swing_index := -1
+var _active_players: Array[Node] = []
 
 func _ready() -> void:
 	_audio_rng.randomize()
@@ -111,8 +112,8 @@ func _play_3d(
 	player.unit_size = 10.0
 	player.max_distance = 60.0
 	_apply_playback_profile(player, sound_name, volume_offset_db)
+	_track_audio_player(player)
 	player.play()
-	player.finished.connect(player.queue_free)
 
 func _play_2d(
 	stream: AudioStream,
@@ -123,8 +124,38 @@ func _play_2d(
 	get_tree().root.add_child(player)
 	player.stream = stream
 	_apply_playback_profile(player, sound_name, volume_offset_db)
+	_track_audio_player(player)
 	player.play()
-	player.finished.connect(player.queue_free)
+
+func _track_audio_player(player: Node) -> void:
+	_active_players.append(player)
+	player.connect(
+		"finished",
+		Callable(self, "_on_audio_player_finished").bind(player),
+		CONNECT_ONE_SHOT
+	)
+
+func _on_audio_player_finished(player: Node) -> void:
+	_active_players.erase(player)
+	if is_instance_valid(player) and not player.is_queued_for_deletion():
+		player.queue_free()
+
+func active_player_count() -> int:
+	var count := 0
+	for player in _active_players:
+		if is_instance_valid(player) and not player.is_queued_for_deletion():
+			count += 1
+	return count
+
+func stop_all_for_shutdown() -> void:
+	for player in _active_players.duplicate():
+		if not is_instance_valid(player):
+			continue
+		player.call("stop")
+		player.set("stream", null)
+		player.free()
+	_active_players.clear()
+	_stream_cache.clear()
 
 func _apply_playback_profile(
 	player,

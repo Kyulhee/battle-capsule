@@ -252,7 +252,19 @@
     }
   },
   "pois": [
-    { "name": "Central Meadow", "pos": [0, 0], "radius": 20, "role": "loot_hub", "item_density": 0.48, "rare_bias": 0.12 },
+    {
+      "name": "Central Meadow",
+      "pos": [0, 0],
+      "radius": 20,
+      "role": "loot_hub",
+      "item_density": 0.48,
+      "rare_bias": 0.12,
+      "initial_weapon_slots": 1,
+      "loot_anchors": [
+        { "id": "north_brush_cache", "pos": [0, 6], "jitter_radius": 0.8 },
+        { "id": "south_brush_cache", "pos": [0, -6], "jitter_radius": 0.8 }
+      ]
+    },
     {
       "name": "Cabin Row",
       "pos": [0, 96],
@@ -260,6 +272,13 @@
       "role": "loot_hub",
       "item_density": 0.88,
       "rare_bias": 0.24,
+      "initial_weapon_slots": 4,
+      "loot_anchors": [
+        { "id": "west_cabin_crates", "pos": [-16, 99], "jitter_radius": 0.8 },
+        { "id": "east_cabin_crates", "pos": [17, 100], "jitter_radius": 0.8 },
+        { "id": "yard_supply", "pos": [5, 101], "jitter_radius": 0.8 },
+        { "id": "north_barrels", "pos": [-5, 106], "jitter_radius": 0.8 }
+      ],
       "identity": {
         "theme": "forest_settlement",
         "map_label": "Cabin Row",
@@ -283,6 +302,13 @@
       "role": "loot_hub",
       "item_density": 0.86,
       "rare_bias": 0.22,
+      "initial_weapon_slots": 4,
+      "loot_anchors": [
+        { "id": "west_crates", "pos": [14, -101], "jitter_radius": 0.7 },
+        { "id": "yard_barrels", "pos": [21, -101], "jitter_radius": 0.7 },
+        { "id": "north_log_lane", "pos": [17, -96], "jitter_radius": 0.7 },
+        { "id": "east_log_lane", "pos": [24, -98], "jitter_radius": 0.7 }
+      ],
       "identity": {
         "theme": "logging_ford",
         "map_label": "Logging Ford",
@@ -299,7 +325,18 @@
         { "id": "east_outer", "role": "outer", "pos": [60, -94], "jitter_radius": 2.0 }
       ]
     },
-    { "name": "West Ridge Gap", "pos": [-104, -16], "radius": 18, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.18 },
+    {
+      "name": "West Ridge Gap",
+      "pos": [-104, -16],
+      "radius": 18,
+      "role": "transit_choke",
+      "item_density": 0.62,
+      "rare_bias": 0.18,
+      "initial_weapon_slots": 1,
+      "loot_anchors": [
+        { "id": "east_rock_cache", "pos": [-97, -10], "jitter_radius": 0.8 }
+      ]
+    },
     {
       "name": "West Ridge Watch Post",
       "pos": [-54, 28],
@@ -307,6 +344,11 @@
       "role": "transit_choke",
       "item_density": 0.60,
       "rare_bias": 0.18,
+      "initial_weapon_slots": 1,
+      "loot_anchors": [
+        { "id": "tower_crate", "pos": [-55, 27], "jitter_radius": 0.6 },
+        { "id": "north_log_cache", "pos": [-52, 38], "jitter_radius": 0.6 }
+      ],
       "identity": {
         "theme": "ridge_watch_post",
         "map_label": "Watch Post",
@@ -321,12 +363,78 @@
         { "id": "north_overwatch", "role": "outer", "pos": [-43, 42], "jitter_radius": 1.5 }
       ]
     },
-    { "name": "East Pine Lane", "pos": [104, 32], "radius": 18, "role": "recovery_pocket", "item_density": 0.44, "rare_bias": 0.10 },
-    { "name": "East Pine Gate", "pos": [66, -10], "radius": 16, "role": "transit_choke", "item_density": 0.64, "rare_bias": 0.18 },
-    { "name": "Northwest Slope", "pos": [-80, 82], "radius": 18, "role": "recovery_pocket", "item_density": 0.44, "rare_bias": 0.10 },
-    { "name": "Northeast Slope", "pos": [82, 90], "radius": 18, "role": "transit_choke", "item_density": 0.62, "rare_bias": 0.18 },
-    { "name": "Southwest Brush", "pos": [-88, -84], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
-    { "name": "Southeast Brush", "pos": [92, -80], "radius": 18, "role": "concealment_field", "item_density": 0.34, "rare_bias": 0.06 },
+    {
+      "name": "East Pine Lane",
+      "pos": [104, 32],
+      "radius": 18,
+      "role": "recovery_pocket",
+      "item_density": 0.44,
+      "rare_bias": 0.10,
+      "initial_weapon_slots": 1,
+      "loot_anchors": [
+        { "id": "west_rock_cache", "pos": [98, 39], "jitter_radius": 0.8 }
+      ]
+    },
+    {
+      "name": "East Pine Gate",
+      "pos": [66, -10],
+      "radius": 16,
+      "role": "transit_choke",
+      "item_density": 0.64,
+      "rare_bias": 0.18,
+      "initial_weapon_slots": 1,
+      "loot_anchors": [
+        { "id": "northeast_rock_cache", "pos": [72, -4], "jitter_radius": 0.8 }
+      ]
+    },
+    {
+      "name": "Northwest Slope",
+      "pos": [-80, 82],
+      "radius": 18,
+      "role": "recovery_pocket",
+      "item_density": 0.44,
+      "rare_bias": 0.10,
+      "initial_weapon_slots": 1,
+      "loot_anchors": [
+        { "id": "brush_stash", "pos": [-72, 88], "jitter_radius": 0.8 }
+      ]
+    },
+    {
+      "name": "Northeast Slope",
+      "pos": [82, 90],
+      "radius": 18,
+      "role": "transit_choke",
+      "item_density": 0.62,
+      "rare_bias": 0.18,
+      "initial_weapon_slots": 1,
+      "loot_anchors": [
+        { "id": "brush_stash", "pos": [82, 90], "jitter_radius": 0.8 }
+      ]
+    },
+    {
+      "name": "Southwest Brush",
+      "pos": [-88, -84],
+      "radius": 18,
+      "role": "concealment_field",
+      "item_density": 0.34,
+      "rare_bias": 0.06,
+      "initial_weapon_slots": 0,
+      "loot_anchors": [
+        { "id": "brush_supply", "pos": [-92, -84], "jitter_radius": 0.8 }
+      ]
+    },
+    {
+      "name": "Southeast Brush",
+      "pos": [92, -80],
+      "radius": 18,
+      "role": "concealment_field",
+      "item_density": 0.34,
+      "rare_bias": 0.06,
+      "initial_weapon_slots": 0,
+      "loot_anchors": [
+        { "id": "brush_supply", "pos": [92, -80], "jitter_radius": 0.8 }
+      ]
+    },
     {
       "name": "Inner Brush North",
       "pos": [-34, 38],
@@ -334,6 +442,11 @@
       "role": "concealment_field",
       "item_density": 0.34,
       "rare_bias": 0.06,
+      "initial_weapon_slots": 1,
+      "loot_anchors": [
+        { "id": "roadside_barrels", "pos": [-27, 40], "jitter_radius": 0.6 },
+        { "id": "fire_pit_cache", "pos": [-34, 34], "jitter_radius": 0.6 }
+      ],
       "identity": {
         "theme": "brush_camp",
         "map_label": "Brush Camp",
@@ -354,6 +467,11 @@
       "role": "transit_choke",
       "item_density": 0.58,
       "rare_bias": 0.14,
+      "initial_weapon_slots": 2,
+      "loot_anchors": [
+        { "id": "yard_crate", "pos": [-24, -50], "jitter_radius": 0.6 },
+        { "id": "road_crate", "pos": [-18, -59], "jitter_radius": 0.6 }
+      ],
       "identity": {
         "theme": "roadside_survey_camp",
         "map_label": "Survey Camp",
@@ -367,7 +485,18 @@
         { "id": "survey_south_outer", "role": "outer", "pos": [-33, -74], "jitter_radius": 1.8 }
       ]
     },
-    { "name": "Inner Brush South", "pos": [40, -40], "radius": 18, "role": "concealment_field", "item_density": 0.32, "rare_bias": 0.06 }
+    {
+      "name": "Inner Brush South",
+      "pos": [40, -40],
+      "radius": 18,
+      "role": "concealment_field",
+      "item_density": 0.32,
+      "rare_bias": 0.06,
+      "initial_weapon_slots": 0,
+      "loot_anchors": [
+        { "id": "brush_supply", "pos": [40, -40], "jitter_radius": 0.8 }
+      ]
+    }
   ],
   "surface_zones": [
     {

@@ -3,6 +3,8 @@ import sys
 from collections import Counter
 from pathlib import Path
 
+from survival_curve import format_survival_curve_lines
+
 
 RUN_DIR = Path(sys.argv[1]) if len(sys.argv) > 1 else Path("tools") / "sim_runs_current"
 
@@ -393,10 +395,11 @@ def pacing_first_acquisition_samples(results: list[dict]) -> list[str]:
         contact_time = _sample_time(pacing, "first_contact_time")
         objective_time = _sample_time(pacing, "first_objective_interrupt_time")
         lines.append(
-            "  run {}: acq={} source={} state={} dist={} hard_bump={} target={}/{} self={}/{} zone={}/{} spawn_age={} contact={} gap={} objective_interrupt={} obj_enemy={} obj_target={}".format(
+            "  run {}: acq={} source={} kind={} state={} dist={} hard_bump={} target={}/{} self={}/{} zone={}/{} spawn_age={} contact={} gap={} objective_interrupt={} obj_enemy={} obj_target={}".format(
                 index,
                 acq_time,
                 pacing.get("first_target_acquisition_source", "none"),
+                pacing.get("first_target_acquisition_target_kind", "none"),
                 pacing.get("first_target_acquisition_state", "none"),
                 _sample_distance(pacing, "first_target_acquisition_distance"),
                 _hard_bump_marker(pacing),
@@ -493,6 +496,7 @@ if __name__ == "__main__":
     pacing_first_acquisition = positive_pacing_times(results, "first_target_acquisition_time")
     pacing_first_acquisition_distance = positive_pacing_times(results, "first_target_acquisition_distance")
     pacing_first_acquisition_sources = pacing_value_counter(results, "first_target_acquisition_source")
+    pacing_first_acquisition_target_kinds = pacing_value_counter(results, "first_target_acquisition_target_kind")
     pacing_first_acquisition_states = pacing_value_counter(results, "first_target_acquisition_state")
     pacing_first_acquisition_poi_bands = pacing_value_counter(results, "first_target_acquisition_poi_band")
     pacing_first_acquisition_route_bands = pacing_value_counter(results, "first_target_acquisition_route_band")
@@ -594,6 +598,8 @@ if __name__ == "__main__":
     print(f"Min/Max duration: {min(durations):.1f}s / {max(durations):.1f}s")
     print(f"Avg zone stage: {avg(stages):.2f}")
     print(f"Runs under 60s: {sum(1 for d in durations if d < 60.0)}")
+    for line in format_survival_curve_lines(results):
+        print(line)
     print(f"Avg/Max longest attack bout: {avg(attack_bouts):.1f}s / {max(attack_bouts):.1f}s")
     print(f"Recover success: {total_recover_success}/{total_recover} ({100.0 * total_recover_success / max(1, total_recover):.1f}%)")
     print(
@@ -812,9 +818,10 @@ if __name__ == "__main__":
         )
         if pacing_first_acquisition:
             print(
-                "Pacing first acquisition: distance={}, sources=[{}], states=[{}], poi_bands=[{}], route_bands=[{}]".format(
+                "Pacing first acquisition: distance={}, sources=[{}], targets=[{}], states=[{}], poi_bands=[{}], route_bands=[{}]".format(
                     format_optional_distance(pacing_first_acquisition_distance),
                     format_counter_mix(pacing_first_acquisition_sources),
+                    format_counter_mix(pacing_first_acquisition_target_kinds),
                     format_counter_mix(pacing_first_acquisition_states),
                     format_counter_mix(pacing_first_acquisition_poi_bands),
                     format_counter_mix(pacing_first_acquisition_route_bands),

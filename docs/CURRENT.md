@@ -1,6 +1,6 @@
 # 현재 트래커
 
-> 최종 업데이트: 2026-08-09. 작업 시작 전 이 문서를 먼저 읽는다.
+> 최종 업데이트: 2026-08-10. 작업 시작 전 이 문서를 먼저 읽는다.
 
 ## 큰 틀
 
@@ -16,10 +16,10 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | `N2-REL-01` clean artifact 자동 gate 통과. `N2-PLAY-10` 수동 3판, 사람이 조작하는 packaged 전체 루프, cold PCK byte 재현성이 R0 잔여 gate |
-| 바로 다음 단위 | `N2-PLAY-10` 수동 3판과 clean 패키지 메뉴→설정→매치→결과→재시작→재실행을 사람이 확인하고, 정상 기록·배지 저장과 cold PCK 비결정성을 마감 |
-| 최신 검증 개발 단위 | `ac9fff8` clean Windows PCK exact inventory, 전체 headless simulation, migration/reboot, PE identity, internal archive hash/extract smoke와 `unit_smoke` 통과 |
-| 최신 검증 게임플레이 단위 | N2-PLAY-09: 지역 구분·구조물 품질·AI 잠복은 개선, 빈 평지·초기 대기·지역별 파밍 차이는 반복 필요 |
+| 현재 단위 | behavior-unchanged kill-context 기준선은 초기 사망 22건 중 생존 상태 피해자 19건·최근 보복 19건으로 교전 종료 실패 가설을 지지했다. 이를 직접 겨냥한 ceasefire 1-run은 재획득·정체·이탈을 악화시켜 방향 gate를 실패했고 폐기·완전 revert 완료 |
+| 바로 다음 단위 | 새 gameplay 후보를 정하기 전에 release→같은 대상 재획득과 이동 정체를 분리한다. 새 단일 후보도 1-run에서 생존 방향·D-004·fallback·정체/이탈을 함께 통과할 때만 5-run, 그 뒤에만 packaged 수동 3판으로 진행 |
+| 최신 검증 개발 단위 | 현재 worktree `unit_smoke` 79.6초, Windows PCK exact `44 assets/3 JSON/124 runtime/20 probes`, Vulkan HUD·전체 지도, 근접 종료 race source `10+3`회·packaged 3회와 exported EXE quick/full boot clean 통과 |
+| 최신 검증 게임플레이 단위 | 최종 clean packaged 자동 1-run은 652.8초·alive `55/38/30/27/24/17`·T50/T10 `35.1/333.0초`·fallback 0으로 실행 계약만 통과했다. 기존 5-run과 함께 생존 gate는 계속 FAIL이며 gameplay PASS가 아님 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 목표 창 | 폐쇄 알파 2026-08 중·하순, 공개 데모 후보 2026-10 말~11월, 유료 EA Go/No-Go 2027 Q1 말 |
 | 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
@@ -37,7 +37,7 @@
 
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
-| P0 | `N2-PLAY-10` M1 종료 판정 | 수동 3판에서 첫 2분·거점/경로·10-15분 완주를 기록. 통과한 Forward+ 3-run과 `target_99_probe` 구조 회귀 상태를 보존 |
+| P0 | `N2-PLAY-11` M1 실패 수정·재판정 | 교전 종료·재획득·이동 정체를 분리한 새 단일 후보가 1-run 방향 gate를 통과할 때만 5-run으로 확대하고, 생존 곡선·D-004 통과 뒤 packaged 수동 3판을 승인 |
 | P1 | `N2-REL-01` Windows 릴리즈 기반 마감 | 통과한 clean PCK inventory·PE identity·전체 headless simulation·checksum/manifest/reboot 근거를 보존하고, 사람이 조작하는 전체 루프·정상 기록/배지 저장·cold PCK byte 재현성을 확인 |
 | P2 | `N2-M2-VIS-01` 대표 교전 슬라이스 | 수관 가림·야간 명도·캡슐 방향/무기/피격/사망·핵심 효과음·HUD/지도 위계를 한 구간에서 수동 통과 |
 | P3 | `N2-M2-UX-01` 첫 사용자 경험 | 밝기·감도·해상도/창 모드·UI 배율, 입력 안내, 언어 일관성, 메뉴→매치→결과→재시작 흐름을 무설명 테스터가 완주 |
@@ -48,7 +48,7 @@
 
 | 리스크 | 신호 | 대응 |
 |---|---|---|
-| M1 수동 미검증 | 자동 gate는 통과했지만 N2-MAP-17 이후 실제 3판 기록이 없음 | P0에서 첫 2분·장소·생존·완주를 판정하고 실패 증거가 있는 부분만 좁게 수정 |
+| M1 생존 페이싱 실패 | 5-run alive@30/60/120 `52/35/22`; kill-context 기준선은 60초 내 사망 22건 중 생존 상태 피해자·최근 보복 각 19건. ceasefire는 사망을 16건으로 줄였지만 1초 내 재획득 26.1%, stuck 6→53, disengage 384→823 | ceasefire는 완전 revert하고 5-run 금지. 새 후보는 생존 증가뿐 아니라 재획득·정체·이탈 비회귀를 같은 1-run에서 증명 |
 | 화면이 프로토타입으로 보임 | 겹친 수관, procedural capsule, 평면적 야간 재질, HUD 정보 경쟁 | 신규 콘텐츠보다 P2 대표 슬라이스를 우선하고 캡슐을 의도된 제품 정체성으로 승격 |
 | 기록·저장 무결성 | packaged smoke에서 legacy settings schema v1 migration·backup·재실행 멱등성과 simulation 중 기존 기록·배지 불변 확인 | 사람이 정상 매치 기록·배지 생성/재실행과 corrupt/empty/future-schema 화면 동작을 확인 |
 | 패키지 오염·식별 불일치 | clean PCK의 catalog 자산 44개·JSON 3개·runtime 경로 124개·payload closure exact, Windows x64 GUI identity, internal archive hash/extract/reboot 통과 | 독립 clean export의 EXE는 동일하지만 PCK hash/크기가 달라 byte 재현성 미해결. LICENSES/CREDITS·지원·unsigned 정책 전 공개 승격 금지 |

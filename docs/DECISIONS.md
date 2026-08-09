@@ -1,6 +1,6 @@
 # 결정 기록
 
-> 최종 업데이트: 2026-07-26. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
+> 최종 업데이트: 2026-08-09. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
 
 ## 재검토 전까지 유지
 
@@ -37,6 +37,9 @@
 | D-030 | 첫 공개 범위는 Windows x64·오프라인·한국어·키보드/마우스·`night_br_m1_60` 한 맵 무료 데모다 | 1인 개발에서 플랫폼·언어·입력·온라인 범위를 동시에 늘리면 M2 표현과 M3 품질 gate를 닫을 수 없음 | R1 공개 데모 결과와 사용자 요구가 새 범위 투자를 정당화함 |
 | D-031 | 릴리즈 artifact는 clean tracked source에서 만들고 package manifest·checksum·버전/commit을 보존한다 | 현재 `all_resources`와 로컬 생성 폴더는 작업 공간별 package 차이를 만들 수 있고 과거 절차는 최종 EXE/PCK를 검증하지 않음 | 재현 가능한 대체 build system이 같은 계약을 보장함 |
 | D-032 | `target_99_probe`는 입력 41000-41004를 추적하고 stuck/disengage를 항상 spawned entity/min으로 판정한다 | 평균 300초를 경계로 동일 구조 지표가 raw count와 normalized rate 사이에서 불연속적으로 바뀌었다. 현재 후보 0.39-0.44는 통과하고 과거 확장 후보 0.47은 실패해 회귀 구분도 보존한다 | 결정적 실행기 또는 규모별 population gate가 raw count보다 나은 계약을 제공 |
+| D-033 | N2-PLAY-11의 초기 장총은 전역 확률 대신 POI별 보장 슬롯·오브젝트 앵커를 쓰고, 기본 권총 무기 드랍은 만들지 않는다 | 수동 6판에서 초기 무기 5개와 주울 수 없는 권총 드랍 55개가 무기 공백과 필드 노이즈를 함께 만들었다 | 새 5-run·수동 3판에서 18개 장총이 즉시 과잉 또는 여전한 공백으로 판정됨 |
+| D-034 | `bot_drop`은 soft/hard 120/150초, `stage_wave`는 180/210초 TTL을 쓰고 initial/supply loot는 유지한다 | 무기 접근을 단순 전역 확률로 올리지 않으면서 전투 뒤·stage wave 누적은 유한하게 정리해야 한다 | 수동 플레이에서 줍기 직전 소멸 또는 후반 필드 과잉이 반복됨 |
+| D-035 | 생존 페이싱은 event staircase의 5-run 중앙값·절대 50명/10명 도달과 기존 duration gate를 함께 보고, player death 이후 수동 곡선은 검열한다 | 평균 duration만으로는 88초 25/61과 92초 우승 같은 초기 붕괴를 숨겼다 | 참가자 수 또는 M1 대표 표면이 바뀌어 절대 인원 gate를 재설계함 |
 
 ## 현재 설계 편향
 
@@ -51,3 +54,4 @@
 - `playable_pacing_v4-v6`는 과거 비교 자료이며 현재 승격 기준으로 사용하지 않는다.
 - `visual_review`는 화면 캡처용 8봇 표면이며 gameplay 대표 preset으로 사용하지 않는다.
 - route 교전 비중만 올리려고 물리 cover를 추가하지 않는다. route 선택 표면과 이동 계약을 먼저 만든다.
+- N2-PLAY-11에서는 broad damage 감소·opening grace 확대·zone 일정 변경을 섞지 않는다. 가방/악세서리, 무기군+Tab, 더블배럴, 대형 hard block은 메모 또는 다음 대표 슬라이스다.

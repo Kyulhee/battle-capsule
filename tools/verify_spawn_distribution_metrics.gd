@@ -38,6 +38,17 @@ class FakeMapDefinition:
 
 func _init() -> void:
 	var metrics_script = load("res://src/systems/match/SpawnDistributionMetrics.gd")
+	var planner_script = load("res://src/systems/match/BotSpawnPlanner.gd")
+	if not is_equal_approx(planner_script.sample_annulus_distance(8.0, 90.0, 0.0), 8.0):
+		_fail("Spawn planner annulus sampler changed the inner boundary.")
+		return
+	if not is_equal_approx(planner_script.sample_annulus_distance(8.0, 90.0, 1.0), 90.0):
+		_fail("Spawn planner annulus sampler changed the outer boundary.")
+		return
+	var midpoint: float = planner_script.sample_annulus_distance(0.0, 90.0, 0.25)
+	if not is_equal_approx(midpoint, 45.0):
+		_fail("Spawn planner must sample annulus area uniformly, got %.3f." % midpoint)
+		return
 	var summary: Dictionary = metrics_script.summarize(
 		[
 			Vector3(5.0, 0.0, 0.0),

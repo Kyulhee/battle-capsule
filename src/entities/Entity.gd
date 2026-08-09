@@ -498,6 +498,18 @@ func die(killer: Node3D = null):
 		var tel = get_node("/root/Telemetry")
 		# Log Death
 		tel.log_death(last_damage_source, get_telemetry_state())
+		if tel.has_method("log_kill_context"):
+			var opponent := killer as Entity
+			var attacker_context: Dictionary = {}
+			if opponent != null and opponent.has_method("get_kill_context"):
+				attacker_context = opponent.get_kill_context(self)
+			tel.log_kill_context(
+				last_damage_source,
+				last_damage_weapon,
+				last_damage_dist,
+				get_kill_context(opponent),
+				attacker_context
+			)
 		if killer and killer is Entity and tel.has_method("log_combat_location") and _is_combat_damage_source(last_damage_source):
 			tel.log_combat_location("kill", 1.0, _strategic_position_context(global_position))
 		
@@ -521,6 +533,88 @@ func die(killer: Node3D = null):
 
 func _is_combat_damage_source(source: String) -> bool:
 	return source == "gun" or source == "melee"
+
+func get_kill_context(opponent: Entity = null) -> Dictionary:
+	var strategic := _strategic_position_context(global_position)
+	var poi_inside := bool(strategic.get("poi_inside", false))
+	var poi_edge_distance := float(strategic.get("nearest_poi_edge_distance", -1.0))
+	var poi_band := _proximity_band(poi_inside, poi_edge_distance, "inside")
+	var route_on := bool(strategic.get("route_on", false))
+	var route_edge_distance := float(strategic.get("nearest_route_edge_distance", -1.0))
+	var route_band := _proximity_band(route_on, route_edge_distance, "on_route")
+	var kind := "entity"
+	if is_in_group("players"):
+		kind = "player"
+	elif is_in_group("bots"):
+		kind = "bot"
+	var state := get_telemetry_state().strip_edges()
+	if state.is_empty():
+		state = "none"
+	var zone_ratio := -1.0
+	var zone_status := "unknown"
+	var main = get_tree().root.get_node_or_null("Main")
+	if main != null:
+		var zone = main.get("zone")
+		if zone != null:
+			var zone_radius := float(zone.get("current_radius"))
+			var zone_center: Vector2 = zone.get("current_center")
+			var zone_distance := Vector2(global_position.x, global_position.z).distance_to(zone_center)
+			if zone_radius > 0.0:
+				zone_ratio = zone_distance / zone_radius
+				if zone_distance > zone_radius:
+					zone_status = "outside"
+				elif zone_ratio >= 0.75:
+					zone_status = "edge"
+				else:
+					zone_status = "inside"
+	var recent_attacker := false
+	var pressuring := false
+	if is_instance_valid(opponent):
+		var last_hit_ms := int(damage_history.get(opponent, -ASSIST_WINDOW_MS - 1))
+		recent_attacker = Time.get_ticks_msec() - last_hit_ms <= ASSIST_WINDOW_MS
+		pressuring = opponent.has_method("_is_actively_pressuring") \
+			and bool(opponent.call("_is_actively_pressuring", self))
+	return {
+		"kind": kind,
+		"state": state,
+		"weapon": String(stats.weapon_type) if stats != null else "none",
+		"mag": int(stats.current_ammo) if stats != null else -1,
+		"reserve": -1,
+		"attack_origin": "none",
+		"acquisition_source": "none",
+		"target_match": false,
+		"opponent_recent_attacker": recent_attacker,
+		"opponent_pressuring": pressuring,
+		"targeting_loot": false,
+		"spawn_age": -1.0,
+		"zone_ratio": zone_ratio,
+		"zone_status": zone_status,
+		"poi_role": String(strategic.get(
+			"poi_role" if poi_inside else "nearest_poi_role",
+			"open" if poi_inside else "none"
+		)),
+		"poi_name": String(strategic.get(
+			"poi_name" if poi_inside else "nearest_poi_name",
+			"none"
+		)),
+		"poi_band": poi_band,
+		"route_role": String(strategic.get(
+			"route_role" if route_on else "nearest_route_role",
+			"off_route" if route_on else "none"
+		)),
+		"route_band": route_band,
+	}
+
+func _proximity_band(is_inside: bool, edge_distance: float, inside_name: String) -> String:
+	if is_inside:
+		return inside_name
+	if edge_distance < 0.0:
+		return "unknown"
+	if edge_distance <= 4.0:
+		return "near_0_4m"
+	if edge_distance <= 8.0:
+		return "near_4_8m"
+	return "far_8m_plus"
 
 func _strategic_position_context(world_pos: Vector3) -> Dictionary:
 	var cell_key := _combat_cell_key(world_pos)

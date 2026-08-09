@@ -840,20 +840,22 @@ func _drop_on_death():
 	for i in range(1, 5):
 		var wdata = slots.weapon_slots[i]
 		if wdata == null: continue
-		var item = ItemData.new()
-		item.type = ItemData.Type.WEAPON
-		item.rarity = ItemData.Rarity.COMMON
-		item.item_name = DropDisplayCatalogScript.weapon_name(wdata.weapon_type, wdata.weapon_tier)
-		item.color = DropDisplayCatalogScript.weapon_color(wdata.weapon_type, wdata.weapon_tier)
-		var wstats = wdata.duplicate() as StatsData
-		wstats.current_ammo = wstats.max_ammo / 3
-		item.weapon_stats = wstats
-		var wp = PICKUP_SCN.instantiate()
-		get_tree().root.add_child(wp)
-		wp.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
-		wp.init(item, "player_drop")
+		if DropDisplayCatalogScript.should_drop_weapon_type(wdata.weapon_type):
+			var item = ItemData.new()
+			item.type = ItemData.Type.WEAPON
+			item.rarity = ItemData.Rarity.COMMON
+			item.item_name = DropDisplayCatalogScript.weapon_name(wdata.weapon_type, wdata.weapon_tier)
+			item.color = DropDisplayCatalogScript.weapon_color(wdata.weapon_type, wdata.weapon_tier)
+			var wstats = wdata.duplicate() as StatsData
+			wstats.current_ammo = wstats.max_ammo / 3
+			item.weapon_stats = wstats
+			var wp = PICKUP_SCN.instantiate()
+			get_tree().root.add_child(wp)
+			wp.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
+			wp.init(item, "player_drop")
 		var total_ammo = slots.slot_ammo[i] + slots.slot_reserve[i]
-		if total_ammo > 0:
+		if total_ammo > 0 \
+				and DropDisplayCatalogScript.should_drop_ammo_for_weapon_type(wdata.weapon_type):
 			var ammo_item = ItemData.new()
 			ammo_item.type = ItemData.Type.AMMO
 			ammo_item.rarity = ItemData.Rarity.COMMON
@@ -1042,6 +1044,30 @@ func _current_weapon_type() -> String:
 		if wdata:
 			return String(wdata.weapon_type)
 	return String(stats.weapon_type)
+
+func get_kill_context(opponent: Entity = null) -> Dictionary:
+	var context := super.get_kill_context(opponent)
+	var active_slot := int(slots.active_slot)
+	context["state"] = "player_control"
+	context["acquisition_source"] = "player_input"
+	context["target_match"] = is_instance_valid(opponent)
+	context["attack_origin"] = "player_melee" if active_slot == 0 else "player_gun"
+	if active_slot >= 1 and active_slot < slots.weapon_slots.size():
+		var weapon = slots.weapon_slots[active_slot]
+		if weapon != null:
+			context["weapon"] = String(weapon.weapon_type)
+			context["mag"] = int(slots.slot_ammo[active_slot])
+			context["reserve"] = int(slots.slot_reserve[active_slot])
+		else:
+			context["weapon"] = "none"
+			context["mag"] = -1
+			context["reserve"] = -1
+			context["attack_origin"] = "none"
+	else:
+		context["weapon"] = "knife"
+		context["mag"] = 0
+		context["reserve"] = 0
+	return context
 
 func _zone_battery_visual_state() -> Dictionary:
 	var result = {"near": false, "charging": false}

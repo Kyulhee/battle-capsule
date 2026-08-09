@@ -91,6 +91,9 @@ var _loot_objective_kind: String = "none"
 var _loot_objective_selection_context: Dictionary = {}
 # True when bot decided to rush with knife instead of retreating to RECOVER
 var _knife_mode: bool = false
+var _knife_mode_origin: String = "none"
+var _active_attack_origin: String = "none"
+var _target_acquisition_source: String = "none"
 # Cover target used in DISENGAGE state
 var _disengage_cover: Vector3 = Vector3.ZERO
 # Cooldown after leaving DISENGAGE — prevents re-entry cascade
@@ -712,7 +715,11 @@ func handle_attack_state(delta):
 		if was_killed:
 			_post_kill_scan_timer = 2.5
 			_post_kill_loot_attempted = false
-		_knife_mode = false; target_actor = null; change_state(State.IDLE); return
+		_knife_mode = false
+		_knife_mode_origin = "none"
+		target_actor = null
+		change_state(State.IDLE)
+		return
 
 	# Peripheral awareness: periodic scan for third-party threats
 	if _awareness_level >= 1:
@@ -724,7 +731,10 @@ func handle_attack_state(delta):
 	# Knife rush mode: charge and melee instead of retreating
 	if _knife_mode:
 		if current_health / stats.max_health < 0.25:
-			_knife_mode = false; change_state(State.RECOVER); return
+			_knife_mode = false
+			_knife_mode_origin = "none"
+			change_state(State.RECOVER)
+			return
 		var dir_to = (target_actor.global_position - global_position).normalized()
 		dir_to.y = 0
 		_move_or_unstick(dir_to, delta, true)
@@ -779,6 +789,7 @@ func handle_attack_state(delta):
 		# Decide: knife rush (if healthy + close) or retreat to RECOVER
 		if hp_ratio > 0.35 and dist_to_t < stats.attack_range * 0.6 and randf() < hp_ratio * 0.5:
 			_knife_mode = true
+			_knife_mode_origin = "attack_empty"
 		else:
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_tactics("ammo_empty")
@@ -858,6 +869,7 @@ func handle_recover_state(delta):
 			change_state(State.DISENGAGE)
 		else:
 			_knife_mode = true
+			_knife_mode_origin = "recover_close_player"
 			change_state(State.ATTACK)
 		return
 
@@ -868,6 +880,7 @@ func handle_recover_state(delta):
 			if not acquire_enemy_target(nearby_enemy, "recover_melee"):
 				return
 			_knife_mode = true
+			_knife_mode_origin = "recover_melee"
 			change_state(State.ATTACK)
 			return
 
@@ -1062,7 +1075,7 @@ func _try_retreat_counteraction(threat: Entity, delta: float, gun_event: String)
 	_face_retreat_threat(threat, delta)
 
 	if fire_cooldown <= 0.0 and dist <= BOT_TUNING.MELEE_RANGE * 1.05:
-		_bot_melee()
+		_bot_melee("retreat_counter")
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_tactics("retreat_melee_counter")
 		return true
@@ -1639,6 +1652,7 @@ func _pickup_match_for(candidate) -> String:
 
 func _start_loot_objective(loot_target: Node3D, source_name: String, recovering: bool) -> void:
 	target_actor = loot_target
+	_target_acquisition_source = "none"
 	is_targeting_loot = true
 	_recovering = recovering
 	_loot_objective_source = source_name.strip_edges().to_lower()
@@ -1690,6 +1704,7 @@ func _log_loot_objective_outcome(outcome_name: String) -> void:
 		state_timer,
 		_loot_objective_selection_context
 	)
+
 
 func _log_objective_enemy_interrupt(enemy: Entity) -> void:
 	if not has_node("/root/Telemetry") or not is_instance_valid(enemy):
@@ -2196,7 +2211,6 @@ func _can_join_engagement(enemy: Entity, source_name: String, record_deferral: b
 		_record_engagement_deferral(enemy)
 	return should_join
 
-
 func _engagement_snapshot() -> Dictionary:
 	if _engagement_snapshot_timer > 0.0 and not _cached_engagement_snapshot.is_empty():
 		return _cached_engagement_snapshot
@@ -2502,6 +2516,9 @@ func acquire_enemy_target(enemy: Entity, source_name: String) -> bool:
 	if is_targeting_loot:
 		_finish_loot_objective("enemy_acquired")
 	target_actor = enemy
+	_target_acquisition_source = source_name.strip_edges().to_lower()
+	if _target_acquisition_source.is_empty():
+		_target_acquisition_source = "unknown"
 	is_targeting_loot = false
 	_recovering = false
 	_pending_target = null
@@ -2551,6 +2568,8 @@ func _log_target_acquisition(source_name: String, enemy: Entity):
 	var tel = get_node("/root/Telemetry")
 	if not tel.has_method("log_doctrine_target_acquisition"):
 		return
+	var acquisition_context := _target_acquisition_runtime_context()
+	acquisition_context["target_kind"] = "player" if enemy.is_in_group("players") else "bot"
 	tel.log_doctrine_target_acquisition(
 		_archetype_name(),
 		source_name,
@@ -2558,7 +2577,7 @@ func _log_target_acquisition(source_name: String, enemy: Entity):
 		_strategic_position_context(enemy.global_position),
 		global_position.distance_to(enemy.global_position),
 		_strategic_position_context(global_position),
-		_target_acquisition_runtime_context()
+		acquisition_context
 	)
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -2987,7 +3006,7 @@ func _is_target_valid(t: Variant) -> bool:
 
 # ─── MELEE ───────────────────────────────────────────────────────────────────
 
-func _bot_melee():
+func _bot_melee(origin_override: String = ""):
 	fire_cooldown = 0.65
 	if not _is_target_valid(target_actor): return
 	if global_position.distance_to(target_actor.global_position) > BOT_TUNING.MELEE_RANGE: return
@@ -2998,7 +3017,11 @@ func _bot_melee():
 		else:
 			sfx.play("melee", global_position)
 	var damage := _outgoing_damage_for(target_actor, BOT_TUNING.MELEE_DAMAGE)
+	var previous_origin := _active_attack_origin
+	var resolved_origin := resolve_melee_attack_origin(origin_override, _knife_mode_origin)
+	_active_attack_origin = resolved_origin
 	target_actor.take_damage(damage, "melee", "knife", self)
+	_active_attack_origin = previous_origin
 	_engagement_dmg_dealt += damage
 	var impact = IMPACT_EFFECT_SCN.instantiate()
 	get_tree().root.add_child(impact)
@@ -3008,6 +3031,13 @@ func _bot_melee():
 			sfx.play_melee_hit(target_actor.global_position)
 		else:
 			sfx.play("hit", target_actor.global_position)
+
+static func resolve_melee_attack_origin(origin_override: String, knife_mode_origin: String) -> String:
+	var resolved := origin_override.strip_edges().to_lower()
+	if not resolved.is_empty():
+		return resolved
+	resolved = knife_mode_origin.strip_edges().to_lower()
+	return resolved if not resolved.is_empty() and resolved != "none" else "attack_melee"
 
 # ─── DEATH & WEAPON DROP ─────────────────────────────────────────────────────
 
@@ -3025,8 +3055,26 @@ func die(killer: Node3D = null):
 func get_telemetry_state() -> String:
 	return State.keys()[current_state]
 
+func get_kill_context(opponent: Entity = null) -> Dictionary:
+	var context := super.get_kill_context(opponent)
+	var runtime_context := _target_acquisition_runtime_context()
+	var target_matches := is_instance_valid(opponent) and target_actor == opponent
+	context["reserve"] = reserve_ammo
+	context["attack_origin"] = _active_attack_origin
+	context["acquisition_source"] = _target_acquisition_source if target_matches else "none"
+	context["target_match"] = target_matches
+	context["opponent_recent_attacker"] = is_instance_valid(opponent) \
+		and _was_recently_attacked_by(opponent)
+	context["opponent_pressuring"] = is_instance_valid(opponent) \
+		and _is_pressured_by(opponent)
+	context["targeting_loot"] = is_targeting_loot
+	context["spawn_age"] = _spawn_age
+	context["zone_ratio"] = float(runtime_context.get("zone_ratio", -1.0))
+	context["zone_status"] = String(runtime_context.get("zone_status", "unknown"))
+	return context
+
 func _drop_weapon():
-	if stats.weapon_type == "" or stats.weapon_type == "knife": return
+	if not should_drop_weapon_type(stats.weapon_type): return
 	if not PICKUP_SCN: return
 	var item = ItemData.new()
 	item.type = ItemData.Type.WEAPON
@@ -3045,7 +3093,7 @@ func _drop_weapon():
 
 func _drop_ammo():
 	var total = stats.current_ammo + reserve_ammo
-	if total <= 0 or stats.weapon_type == "" or stats.weapon_type == "knife": return
+	if total <= 0 or not should_drop_ammo_for_weapon_type(stats.weapon_type): return
 	var item = ItemData.new()
 	item.type = ItemData.Type.AMMO
 	item.rarity = ItemData.Rarity.COMMON
@@ -3057,6 +3105,12 @@ func _drop_ammo():
 	get_tree().root.add_child(pickup)
 	pickup.global_position = global_position + Vector3(randf_range(-0.8, 0.8), 0.3, randf_range(-0.8, 0.8))
 	pickup.init(item, "bot_drop")
+
+static func should_drop_weapon_type(weapon_type: String) -> bool:
+	return DropDisplayCatalogScript.should_drop_weapon_type(weapon_type)
+
+static func should_drop_ammo_for_weapon_type(weapon_type: String) -> bool:
+	return DropDisplayCatalogScript.should_drop_ammo_for_weapon_type(weapon_type)
 
 func _drop_heals():
 	if stats.heal_items > 0:
@@ -3226,7 +3280,10 @@ func _cast_and_visualize(local_target_pos: Vector3):
 		var hit = ray_cast.get_collider()
 		world_target = ray_cast.get_collision_point()
 		if hit.has_method("take_damage"):
+			var previous_origin := _active_attack_origin
+			_active_attack_origin = "gun"
 			hit.take_damage(_outgoing_damage_for(hit, stats.attack_damage), "gun", stats.weapon_type, self)
+			_active_attack_origin = previous_origin
 	if BULLET_TRAIL_SCN:
 		var trail = BULLET_TRAIL_SCN.instantiate()
 		get_tree().root.add_child(trail)
@@ -3268,7 +3325,9 @@ func change_state(new_state: State):
 		_finish_loot_objective(loot_exit_outcome)
 	if current_state == State.DISENGAGE and new_state != State.DISENGAGE:
 		_disengage_cooldown = 10.0
-	if new_state != State.ATTACK: _knife_mode = false
+	if new_state != State.ATTACK:
+		_knife_mode = false
+		_knife_mode_origin = "none"
 	if new_state == State.ATTACK:
 		_engagement_dmg_dealt = 0.0
 		_engagement_dmg_taken = 0.0

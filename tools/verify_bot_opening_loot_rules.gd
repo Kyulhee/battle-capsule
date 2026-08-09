@@ -45,6 +45,9 @@ func _run() -> void:
 	if not await _verify_opening_zone_escape_counteraction_guard():
 		quit(1)
 		return
+	if not await _verify_kill_context_snapshot():
+		quit(1)
+		return
 	print("Bot opening loot rules smoke passed.")
 	quit(0)
 
@@ -446,6 +449,47 @@ func _verify_opening_zone_escape_counteraction_guard() -> bool:
 		if bot._should_defer_opening_zone_escape_counteraction(enemy):
 			failure = "Opening zone-edge escape should not defer counteraction when actually outside the zone."
 	await _cleanup_tree_nodes([bot, enemy, main])
+	if failure != "":
+		return _fail(failure)
+	return true
+
+
+func _verify_kill_context_snapshot() -> bool:
+	var bot = _new_tree_bot()
+	var enemy = _new_entity()
+	enemy.set_process(false)
+	enemy.set_physics_process(false)
+	root.add_child(bot)
+	root.add_child(enemy)
+	bot.stats.weapon_type = "ar"
+	bot.stats.current_ammo = 3
+	bot.reserve_ammo = 7
+	bot.current_state = 2 # ATTACK
+	bot.target_actor = enemy
+	bot.set("_spawn_age", 12.345)
+	bot.set("_target_acquisition_source", "objective_interrupt")
+	bot.set("_active_attack_origin", "gun")
+	var context: Dictionary = bot.get_kill_context(enemy)
+	var failure := ""
+	if String(context.get("state", "")) != "ATTACK":
+		failure = "Kill context should preserve the attacker's live AI state."
+	elif String(context.get("weapon", "")) != "ar" \
+			or int(context.get("mag", -1)) != 3 \
+			or int(context.get("reserve", -1)) != 7:
+		failure = "Kill context should preserve weapon and post-shot ammunition."
+	elif String(context.get("attack_origin", "")) != "gun" \
+			or String(context.get("acquisition_source", "")) != "objective_interrupt" \
+			or not bool(context.get("target_match", false)):
+		failure = "Kill context should link the fatal attack to its target-acquisition intent."
+	elif not is_equal_approx(float(context.get("spawn_age", -1.0)), 12.345):
+		failure = "Kill context should preserve attacker spawn age."
+	elif bot.resolve_melee_attack_origin("retreat_counter", "recover_melee") != "retreat_counter":
+		failure = "Explicit retreat melee origin must override knife-mode history."
+	elif bot.resolve_melee_attack_origin("", "recover_melee") != "recover_melee":
+		failure = "Knife-mode melee should preserve its entry origin."
+	elif bot.resolve_melee_attack_origin("", "none") != "attack_melee":
+		failure = "Unclassified melee should use the stable attack_melee fallback."
+	await _cleanup_tree_nodes([bot, enemy])
 	if failure != "":
 		return _fail(failure)
 	return true

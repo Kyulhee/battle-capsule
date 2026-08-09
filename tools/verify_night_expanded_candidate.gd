@@ -170,6 +170,8 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	if int(summary.get("poi_count", 0)) < 10:
 		_fail("Candidate needs at least 10 POIs.")
 		return false
+	if not _verify_poi_loot_layout(definition):
+		return false
 	if int(summary.get("obstacle_count", 0)) < 70:
 		_fail("Candidate needs at least 70 obstacles.")
 		return false
@@ -412,6 +414,92 @@ func _verify_candidate(definition, summary: Dictionary, source: Dictionary, enve
 	if int(summary.get("scale_preset_count", 0)) != 5:
 		_fail("Candidate must expose the M1 preset, compatibility alias, baseline, probe, and nav regression presets.")
 		return false
+	return true
+
+
+func _verify_poi_loot_layout(definition) -> bool:
+	var pois: Array[Dictionary] = definition.get_poi_descriptors()
+	if pois.size() != 14:
+		_fail("M1 POI loot budget must cover all 14 authored POIs.")
+		return false
+	var total_weapon_slots := 0
+	var budget_by_name := {}
+	for poi in pois:
+		var poi_name := String(poi.get("name", ""))
+		if not poi.has("initial_weapon_slots"):
+			_fail("POI '%s' is missing its explicit initial weapon budget." % poi_name)
+			return false
+		var weapon_slots: int = maxi(0, int(poi.get("initial_weapon_slots", 0)))
+		total_weapon_slots += weapon_slots
+		budget_by_name[poi_name] = weapon_slots
+		var anchors = poi.get("loot_anchors", [])
+		if not anchors is Array or anchors.is_empty():
+			_fail("POI '%s' needs at least one authored loot anchor." % poi_name)
+			return false
+		var poi_pos: Vector2 = poi.get("pos_2d", Vector2.ZERO)
+		var poi_radius := float(poi.get("radius", 0.0))
+		for anchor_value in anchors:
+			if not anchor_value is Dictionary:
+				_fail("POI '%s' has an invalid loot anchor." % poi_name)
+				return false
+			var anchor: Dictionary = anchor_value
+			var raw_pos = anchor.get("pos", [])
+			if not raw_pos is Array or raw_pos.size() < 2:
+				_fail("POI '%s' has a loot anchor without a 2D position." % poi_name)
+				return false
+			var anchor_pos := Vector2(float(raw_pos[0]), float(raw_pos[1]))
+			var jitter_radius := clampf(float(anchor.get("jitter_radius", 0.0)), 0.0, 2.5)
+			if poi_pos.distance_to(anchor_pos) + jitter_radius > poi_radius + 0.001:
+				_fail("POI '%s' loot anchor '%s' extends outside its radius." % [
+					poi_name,
+					String(anchor.get("id", "")),
+				])
+				return false
+			if not _loot_anchor_is_clear(definition, anchor_pos, jitter_radius):
+				_fail("POI '%s' loot anchor '%s' overlaps blocking geometry." % [
+					poi_name,
+					String(anchor.get("id", "")),
+				])
+				return false
+	if total_weapon_slots != 18:
+		_fail("M1 initial long-gun budget must remain exactly 18, got %d." % total_weapon_slots)
+		return false
+	var major_min := mini(
+		int(budget_by_name.get("Cabin Row", 0)),
+		int(budget_by_name.get("South Creek Bend", 0))
+	)
+	var outer_max := 0
+	for outer_name in [
+		"West Ridge Gap",
+		"West Ridge Watch Post",
+		"East Pine Lane",
+		"East Pine Gate",
+		"Northwest Slope",
+		"Northeast Slope",
+		"Southwest Brush",
+		"Southeast Brush",
+		"Inner Brush North",
+		"Inner Brush South",
+	]:
+		outer_max = maxi(outer_max, int(budget_by_name.get(outer_name, 0)))
+	if major_min != 4 \
+			or int(budget_by_name.get("Survey Camp", 0)) != 2 \
+			or major_min <= outer_max:
+		_fail("Major compounds must carry 4 weapons, Survey Camp 2, and outer POIs at most 1.")
+		return false
+	return true
+
+
+func _loot_anchor_is_clear(definition, anchor_pos: Vector2, jitter_radius: float) -> bool:
+	for obstacle in definition.get_obstacle_descriptors():
+		if String(obstacle.get("type", "")) == "bush_patch":
+			continue
+		var obstacle_pos: Vector2 = obstacle.get("pos_2d", Vector2.ZERO)
+		var obstacle_scale: Vector3 = obstacle.get("scale_3d", Vector3.ONE)
+		var margin := 1.0 + jitter_radius
+		if absf(anchor_pos.x - obstacle_pos.x) < obstacle_scale.x + margin \
+				and absf(anchor_pos.y - obstacle_pos.y) < obstacle_scale.z + margin:
+			return false
 	return true
 
 

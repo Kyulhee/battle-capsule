@@ -32,6 +32,12 @@ static func force_archetype(plan: Array[String], archetype: String) -> Array[Str
 		forced.append(archetype_name)
 	return forced
 
+static func sample_annulus_distance(inner_radius: float, outer_radius: float, unit_sample: float) -> float:
+	var inner := maxf(0.0, minf(inner_radius, outer_radius))
+	var outer := maxf(inner, maxf(inner_radius, outer_radius))
+	var sample := clampf(unit_sample, 0.0, 1.0)
+	return sqrt(lerpf(inner * inner, outer * outer, sample))
+
 static func _build_weighted_pool(weights: Array) -> Array[String]:
 	var pool: Array[String] = []
 	for spec in weights:

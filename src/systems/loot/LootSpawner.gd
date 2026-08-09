@@ -1,6 +1,8 @@
 class_name LootSpawner
 extends RefCounted
 
+const LOOT_ANCHOR_GOLDEN_ANGLE := 2.39996323
+
 var loot_count: int = 40
 var hotspot_density_mult: float = 1.0
 var rare_bias_mult: float = 1.0
@@ -61,13 +63,19 @@ func register_from_map_spec(map_spec) -> void:
 		return
 	for poi in map_spec.pois:
 		var poi_pos = poi.get("pos", [0.0, 0.0])
-		hotspots.append({
+		var hotspot := {
 			"pos": Vector2(float(poi_pos[0]), float(poi_pos[1])),
 			"radius": maxf(float(poi.get("radius", 8.0)), 2.0),
 			"density": clampf(float(poi.get("item_density", 0.5)) * hotspot_density_mult, 0.05, 1.5),
 			"rare_bias": clampf(float(poi.get("rare_bias", 0.0)) * rare_bias_mult, 0.0, 1.0),
 			"role": String(poi.get("role", "")),
-		})
+		}
+		if poi.has("initial_weapon_slots"):
+			hotspot["initial_weapon_slots"] = max(0, int(poi.get("initial_weapon_slots", 0)))
+		var loot_anchors := _loot_anchors_from_poi(poi)
+		if not loot_anchors.is_empty():
+			hotspot["loot_anchors"] = loot_anchors
+		hotspots.append(hotspot)
 
 func has_hotspots() -> bool:
 	return not hotspots.is_empty()
@@ -83,6 +91,11 @@ func initial_weapon_chance(hotspot: Dictionary) -> float:
 	var rare_bias = float(hotspot.get("rare_bias", 0.0))
 	var chance := clampf(0.01 + density * 0.045 + rare_bias * 0.035, 0.02, 0.08)
 	return clampf(chance * _role_weapon_chance_multiplier(hotspot), 0.0, 0.08)
+
+func initial_weapon_slots(hotspot: Dictionary) -> int:
+	if not hotspot.has("initial_weapon_slots"):
+		return -1
+	return max(0, int(hotspot.get("initial_weapon_slots", 0)))
 
 func choose_initial_weapon_template(weapon_templates: Array, hotspot: Dictionary = {}):
 	var role := String(hotspot.get("role", ""))
@@ -176,12 +189,60 @@ func choose_hotspot() -> Dictionary:
 	return hotspots[hotspots.size() - 1]
 
 func random_position(hotspot: Dictionary, clear_check: Callable = Callable()) -> Vector2:
+	var loot_anchors = hotspot.get("loot_anchors", [])
+	if loot_anchors is Array and not loot_anchors.is_empty() \
+			and hotspot.has("_loot_anchor_index"):
+		return _anchored_random_position(
+			loot_anchors,
+			int(hotspot.get("_loot_anchor_index", 0)),
+			clear_check
+		)
 	var center: Vector2 = hotspot.get("pos", Vector2.ZERO)
 	var spread = minf(maxf(float(hotspot.get("radius", 8.0)) * 0.6, 3.0), 11.0)
 	for _attempt in range(10):
 		var angle = randf() * TAU
 		var dist = randf_range(0.0, spread)
 		var candidate = center + Vector2(cos(angle), sin(angle)) * dist
+		if not clear_check.is_valid() or bool(clear_check.call(candidate, 1.0)):
+			return candidate
+	return center
+
+func _loot_anchors_from_poi(poi: Dictionary) -> Array[Dictionary]:
+	var result: Array[Dictionary] = []
+	var raw_anchors = poi.get("loot_anchors", [])
+	if not raw_anchors is Array:
+		return result
+	for raw_anchor in raw_anchors:
+		if not raw_anchor is Dictionary:
+			continue
+		var raw_pos = raw_anchor.get("pos", [])
+		if not raw_pos is Array or raw_pos.size() < 2:
+			continue
+		result.append({
+			"id": String(raw_anchor.get("id", "")),
+			"pos": Vector2(float(raw_pos[0]), float(raw_pos[1])),
+			"jitter_radius": clampf(float(raw_anchor.get("jitter_radius", 0.75)), 0.0, 2.5),
+		})
+	return result
+
+func _anchored_random_position(
+	loot_anchors: Array,
+	placement_index: int,
+	clear_check: Callable
+) -> Vector2:
+	var safe_index: int = maxi(0, placement_index)
+	var anchor_index: int = safe_index % loot_anchors.size()
+	var anchor: Dictionary = loot_anchors[anchor_index]
+	var center: Vector2 = anchor.get("pos", Vector2.ZERO)
+	var jitter_radius := maxf(0.0, float(anchor.get("jitter_radius", 0.75)))
+	if jitter_radius <= 0.0:
+		return center
+	var visit_index: int = floori(float(safe_index) / float(loot_anchors.size()))
+	for attempt in range(10):
+		var phase := float(safe_index + 1) * LOOT_ANCHOR_GOLDEN_ANGLE + float(attempt) * 0.73
+		var ring_step: int = (visit_index + attempt) % 4
+		var distance := jitter_radius * (0.35 + float(ring_step) * 0.18)
+		var candidate := center + Vector2(cos(phase), sin(phase)) * distance
 		if not clear_check.is_valid() or bool(clear_check.call(candidate, 1.0)):
 			return candidate
 	return center

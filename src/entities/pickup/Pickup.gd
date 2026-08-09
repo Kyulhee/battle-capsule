@@ -6,6 +6,13 @@ class_name Pickup
 const ItemDisplayFormatterScript = preload("res://src/core/ItemDisplayFormatter.gd")
 const PickupPresentationScript = preload("res://src/entities/pickup/PickupPresentation.gd")
 const PickupIconResolverScript = preload("res://src/entities/pickup/PickupIconResolver.gd")
+const BOT_DROP_LIFETIME_SECONDS := 120.0
+const BOT_DROP_HARD_LIFETIME_SECONDS := 150.0
+const STAGE_WAVE_LIFETIME_SECONDS := 180.0
+const STAGE_WAVE_HARD_LIFETIME_SECONDS := 210.0
+const BOT_DROP_NEARBY_HOLD_RADIUS := 8.0
+const BOT_DROP_HOLD_GRACE_SECONDS := 3.0
+const BOT_DROP_PROXIMITY_CHECK_LEAD_SECONDS := 0.5
 
 var _label: Label3D = null
 var _icon_decal: MeshInstance3D = null
@@ -17,6 +24,9 @@ var _light: OmniLight3D = null
 var _light_base_energy: float = 0.0
 var _light_base_range: float = 0.0
 var _spawn_source: String = "unknown"
+var _lifetime_age_seconds: float = 0.0
+var _lifetime_deadline_seconds: float = -1.0
+var _lifetime_hard_deadline_seconds: float = -1.0
 
 func _ready():
 	add_to_group("pickups")
@@ -24,6 +34,9 @@ func _ready():
 	_update_visibility_for_player()
 
 func _process(delta: float):
+	_update_lifetime(delta)
+	if is_queued_for_deletion():
+		return
 	_los_timer -= delta
 	if _los_timer > 0.0: return
 	_los_timer = PickupPresentationScript.VISIBILITY_REFRESH_INTERVAL
@@ -50,8 +63,59 @@ func init(data: ItemData, spawn_source: String = "unknown"):
 	_spawn_source = spawn_source.strip_edges().to_lower()
 	if _spawn_source == "":
 		_spawn_source = "unknown"
+	_lifetime_age_seconds = 0.0
+	_lifetime_deadline_seconds = lifetime_seconds_for_source(_spawn_source)
+	_lifetime_hard_deadline_seconds = hard_lifetime_seconds_for_source(_spawn_source)
 	if is_inside_tree():
 		_update_visuals()
+
+static func lifetime_seconds_for_source(spawn_source: String) -> float:
+	match spawn_source.strip_edges().to_lower():
+		"bot_drop":
+			return BOT_DROP_LIFETIME_SECONDS
+		"stage_wave":
+			return STAGE_WAVE_LIFETIME_SECONDS
+	return -1.0
+
+static func hard_lifetime_seconds_for_source(spawn_source: String) -> float:
+	match spawn_source.strip_edges().to_lower():
+		"bot_drop":
+			return BOT_DROP_HARD_LIFETIME_SECONDS
+		"stage_wave":
+			return STAGE_WAVE_HARD_LIFETIME_SECONDS
+	return -1.0
+
+func _update_lifetime(delta: float) -> void:
+	if _lifetime_deadline_seconds < 0.0:
+		return
+	_lifetime_age_seconds += maxf(0.0, delta)
+	if _lifetime_hard_deadline_seconds >= 0.0 \
+			and _lifetime_age_seconds >= _lifetime_hard_deadline_seconds:
+		queue_free()
+		return
+	var should_check_nearby := _lifetime_age_seconds \
+		>= _lifetime_deadline_seconds - BOT_DROP_PROXIMITY_CHECK_LEAD_SECONDS
+	if _focused or (should_check_nearby and _has_living_actor_nearby()):
+		_lifetime_deadline_seconds = minf(
+			_lifetime_hard_deadline_seconds,
+			maxf(
+				_lifetime_deadline_seconds,
+				_lifetime_age_seconds + BOT_DROP_HOLD_GRACE_SECONDS
+			)
+		)
+	if _lifetime_age_seconds >= _lifetime_deadline_seconds:
+		queue_free()
+
+func _has_living_actor_nearby(radius: float = BOT_DROP_NEARBY_HOLD_RADIUS) -> bool:
+	if not is_inside_tree():
+		return false
+	var radius_squared := radius * radius
+	for actor in get_tree().get_nodes_in_group("actors"):
+		if not is_instance_valid(actor) or not actor is Entity or actor.is_dead:
+			continue
+		if global_position.distance_squared_to(actor.global_position) <= radius_squared:
+			return true
+	return false
 
 func _update_visuals():
 	if item and has_node("MeshInstance3D"):

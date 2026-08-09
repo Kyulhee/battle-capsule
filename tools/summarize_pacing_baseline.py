@@ -3,6 +3,8 @@ import json
 from collections import Counter
 from pathlib import Path
 
+from survival_curve import format_survival_curve_lines
+
 
 DEFAULT_TARGET_MIN_SECONDS = 600.0
 DEFAULT_TARGET_MAX_SECONDS = 900.0
@@ -11,6 +13,7 @@ FIRST_KILL_BAND_SECONDS = (60.0, 210.0)
 FIRST_UPGRADE_BAND_SECONDS = (2.0, 30.0)
 STAGE2_BAND_SECONDS = (240.0, 420.0)
 STAGE3_BAND_SECONDS = (540.0, 720.0)
+OPENING_KILL_CONTEXT_SECONDS = 60.0
 
 
 def load_runs(run_dir: Path) -> list[dict]:
@@ -152,10 +155,11 @@ def opening_sample_lines(runs: list[dict]) -> list[str]:
         if sample_time(pacing, "first_target_acquisition_time") == "none":
             continue
         lines.append(
-            "  run {}: acq={} source={} state={} dist={} hard_bump={} target={}/{} self={}/{} zone={}/{} spawn_age={} contact={} gap={} objective_interrupt={} obj_enemy={} obj_target={}".format(
+            "  run {}: acq={} source={} kind={} state={} dist={} hard_bump={} target={}/{} self={}/{} zone={}/{} spawn_age={} contact={} gap={} objective_interrupt={} obj_enemy={} obj_target={}".format(
                 index,
                 sample_time(pacing, "first_target_acquisition_time"),
                 pacing.get("first_target_acquisition_source", "none"),
+                pacing.get("first_target_acquisition_target_kind", "none"),
                 pacing.get("first_target_acquisition_state", "none"),
                 sample_distance(pacing, "first_target_acquisition_distance"),
                 hard_bump_marker(pacing),
@@ -250,6 +254,117 @@ def format_mix(counter: Counter, limit: int = 5) -> str:
     return ", ".join(
         f"{name}={100.0 * float(value) / total:.1f}%"
         for name, value in counter.most_common(limit)
+    )
+
+
+def format_counts(counter: Counter, limit: int = 8) -> str:
+    if not counter:
+        return "none"
+    return ", ".join(f"{name}={int(value)}" for name, value in counter.most_common(limit))
+
+
+def opening_kill_context_events(
+    runs: list[dict], cutoff_seconds: float = OPENING_KILL_CONTEXT_SECONDS
+) -> list[dict]:
+    events: list[dict] = []
+    for run in runs:
+        raw_events = run.get("pacing", {}).get("kill_context_events", [])
+        if not isinstance(raw_events, list):
+            continue
+        for event in raw_events:
+            if not isinstance(event, dict):
+                continue
+            try:
+                event_time = float(event.get("time", -1.0))
+            except (TypeError, ValueError):
+                continue
+            if 0.0 <= event_time <= cutoff_seconds:
+                events.append(event)
+    return events
+
+
+def kill_ammo_status(actor: dict) -> str:
+    try:
+        mag = int(actor.get("mag", -1))
+        reserve = int(actor.get("reserve", -1))
+    except (TypeError, ValueError):
+        return "unknown"
+    if mag < 0 or reserve < 0:
+        return "unknown"
+    if mag <= 0 and reserve <= 0:
+        return "dry"
+    if mag <= 0:
+        return "reload_available"
+    return "rounds_available"
+
+
+def print_opening_kill_context(runs: list[dict]) -> None:
+    events = opening_kill_context_events(runs)
+    if not events:
+        return
+    dropped = sum(
+        max(0, int(run.get("pacing", {}).get("kill_context_dropped", 0) or 0))
+        for run in runs
+    )
+    causes = Counter()
+    weapons = Counter()
+    states = Counter()
+    origins = Counter()
+    acquisitions = Counter()
+    ammo_states = Counter()
+    intent = Counter()
+    victim_states = Counter()
+    victim_pois = Counter()
+    victim_poi_bands = Counter()
+    victim_routes = Counter()
+    victim_route_bands = Counter()
+    for event in events:
+        attacker = event.get("attacker", {})
+        victim = event.get("victim", {})
+        if not isinstance(attacker, dict):
+            attacker = {}
+        if not isinstance(victim, dict):
+            victim = {}
+        causes[str(event.get("cause", "unknown"))] += 1
+        has_attacker = str(attacker.get("kind", "none")) != "none"
+        if has_attacker:
+            weapons[str(attacker.get("weapon", "none"))] += 1
+            states[str(attacker.get("state", "none"))] += 1
+            origins[str(attacker.get("attack_origin", "none"))] += 1
+            acquisitions[str(attacker.get("acquisition_source", "none"))] += 1
+            ammo_states[kill_ammo_status(attacker)] += 1
+            intent["target_match" if bool(attacker.get("target_match", False)) else "off_target"] += 1
+            # Only the attacker's history answers whether this kill was retaliation.
+            # The victim's history already contains the fatal hit by snapshot time.
+            recent = bool(attacker.get("opponent_recent_attacker", False))
+            pressuring = bool(attacker.get("opponent_pressuring", False))
+            if recent:
+                intent["recent_retaliation"] += 1
+            if pressuring:
+                intent["opponent_pressuring"] += 1
+            if not recent and not pressuring:
+                intent["neutral_initiation"] += 1
+        else:
+            intent["unattributed"] += 1
+        victim_states[str(victim.get("state", "unknown"))] += 1
+        victim_pois[str(victim.get("poi_role", "open"))] += 1
+        victim_poi_bands[str(victim.get("poi_band", "unknown"))] += 1
+        victim_routes[str(victim.get("route_role", "off_route"))] += 1
+        victim_route_bands[str(victim.get("route_band", "unknown"))] += 1
+    print(
+        f"Opening kill context (<= {OPENING_KILL_CONTEXT_SECONDS:.0f}s): "
+        f"{len(events)} events, dropped={dropped}"
+    )
+    print(f"  causes=[{format_counts(causes)}], attacker weapons=[{format_counts(weapons)}]")
+    print(f"  attacker states=[{format_counts(states)}], ammo=[{format_counts(ammo_states)}]")
+    print(f"  attack origins=[{format_counts(origins)}]")
+    print(f"  acquisition sources=[{format_counts(acquisitions)}]")
+    print(f"  intent=[{format_counts(intent)}]")
+    print(f"  victim states=[{format_counts(victim_states)}]")
+    print(
+        "  victim location: "
+        f"poi=[{format_counts(victim_pois)}], poi-band=[{format_counts(victim_poi_bands)}], "
+        f"route=[{format_counts(victim_routes)}], route-band=[{format_counts(victim_route_bands)}]"
     )
 
 
@@ -435,6 +550,7 @@ def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None
     first_acquisition = positive_values(runs, "pacing", "first_target_acquisition_time")
     first_acquisition_distance = positive_values(runs, "pacing", "first_target_acquisition_distance")
     acquisition_sources = string_counter(runs, "pacing", "first_target_acquisition_source")
+    acquisition_target_kinds = string_counter(runs, "pacing", "first_target_acquisition_target_kind")
     acquisition_states = string_counter(runs, "pacing", "first_target_acquisition_state")
     acquisition_poi_bands = string_counter(runs, "pacing", "first_target_acquisition_poi_band")
     acquisition_route_bands = string_counter(runs, "pacing", "first_target_acquisition_route_band")
@@ -485,7 +601,9 @@ def print_opening_pressure(runs: list[dict], first_contact: list[float]) -> None
         print(
             "  first target acquisition: "
             f"{avg(first_acquisition):.1f}s, distance={avg(first_acquisition_distance):.1f}m, "
-            f"sources=[{format_mix(acquisition_sources)}], states=[{format_mix(acquisition_states)}]"
+            f"sources=[{format_mix(acquisition_sources)}], "
+            f"targets=[{format_mix(acquisition_target_kinds)}], "
+            f"states=[{format_mix(acquisition_states)}]"
         )
         print(
             "  acquisition bands: "
@@ -554,6 +672,8 @@ def main() -> int:
     print(f"Avg duration: {avg(durations):.1f}s")
     print(f"Min/Max duration: {min(durations):.1f}s / {max(durations):.1f}s")
     print(f"Target duration: {args.target_min_seconds:.0f}-{args.target_max_seconds:.0f}s")
+    for line in format_survival_curve_lines(runs):
+        print(line)
     print_interpretation(durations, args.target_min_seconds, args.target_max_seconds)
     print("Milestones:")
     print_milestone("  first shot", first_shot, durations, args.target_min_seconds, args.target_max_seconds)
@@ -575,6 +695,7 @@ def main() -> int:
     )
     print_first_upgrade_context(runs)
     print_opening_pressure(runs, first_contact)
+    print_opening_kill_context(runs)
     print("Movement pressure:")
     print(f"  CHASE context dwell: {format_mix(chase_context)}")
     print(f"  self route dwell: {format_mix(self_route)}")

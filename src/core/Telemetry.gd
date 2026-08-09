@@ -59,6 +59,8 @@ const HISTORY_PATH = "user://match_history.json"
 const SIM_RESULT_PATH = "user://sim_result_latest.json"
 const HISTORY_SCHEMA_VERSION := 1
 const HISTORY_LIMIT_PER_DIFFICULTY := 50
+const MAX_KILL_CONTEXT_EVENTS := 128
+const OPENING_KILL_CONTEXT_SECONDS := 60.0
 var history_path: String = HISTORY_PATH
 var sim_result_path: String = SIM_RESULT_PATH
 
@@ -207,9 +209,17 @@ func _reset_metrics():
 		},
 		# pacing
 		"pacing": {
+			# Event staircase: each sample is effective from `time` until the next
+			# sample. The analyzer carries the final observation to match end.
+			"alive_timeline": [],
+			# Bounded, death-only snapshots used to explain opening attrition.
+			# This deliberately avoids per-frame actor identifiers and payloads.
+			"kill_context_events": [],
+			"kill_context_dropped": 0,
 			"first_shot_time": -1.0,
 			"first_target_acquisition_time": -1.0,
 			"first_target_acquisition_source": "none",
+			"first_target_acquisition_target_kind": "none",
 			"first_target_acquisition_state": "none",
 			"first_target_acquisition_distance": -1.0,
 			"first_target_acquisition_poi_role": "none",
@@ -423,6 +433,17 @@ func end_match(
 ):
 	if not match_in_progress: return
 	metrics.core.duration = _elapsed_seconds()
+	# Preserve an explicit endpoint without guessing Main's alive count. This
+	# only carries forward the most recently observed count; Main owns the
+	# authoritative start/death samples through log_alive_sample().
+	if _g("pacing") and not metrics.pacing.alive_timeline.is_empty():
+		var last_alive_sample: Dictionary = metrics.pacing.alive_timeline[-1]
+		log_alive_sample(
+			int(last_alive_sample.get("alive", 0)),
+			zone_stage,
+			"match_end",
+			bool(last_alive_sample.get("shrinking", false))
+		)
 	match_in_progress = false
 	metrics.core.zone_stage_reached = zone_stage
 	metrics.session.rank = rank
@@ -453,6 +474,131 @@ func log_death(cause: String, state: String = ""):
 	if cause == "RECOVER" or state == "RECOVER":
 		if _g("tactics"):
 			metrics.tactics.died_in_recover += 1
+
+# Records authoritative alive-count changes against Main.match_timer. Call
+# once after the initial roster is known (`reason = "start"`) and after every
+# death (`reason = "death"`). Repeating the same count at the same game time is
+# ignored, while multiple deaths on one frame remain distinct because their
+# alive counts differ.
+func log_alive_sample(
+	alive: int,
+	stage: int = -1,
+	reason: String = "checkpoint",
+	shrinking: bool = false,
+	victim_kind: String = "none",
+	cause: String = "none"
+) -> bool:
+	if not match_in_progress or not _g("pacing"):
+		return false
+	var elapsed := _elapsed_seconds()
+	var alive_count := maxi(0, alive)
+	var resolved_stage := stage if stage > 0 else _current_stage
+	var resolved_reason := reason.strip_edges()
+	var resolved_victim_kind := victim_kind.strip_edges()
+	var resolved_cause := cause.strip_edges()
+	if resolved_reason.is_empty():
+		resolved_reason = "checkpoint"
+	if resolved_victim_kind.is_empty():
+		resolved_victim_kind = "none"
+	if resolved_cause.is_empty():
+		resolved_cause = "none"
+
+	var timeline: Array = metrics.pacing.alive_timeline
+	if not timeline.is_empty():
+		var previous: Dictionary = timeline[-1]
+		if (
+			int(previous.get("alive", -1)) == alive_count
+			and is_equal_approx(float(previous.get("time", -1.0)), elapsed)
+			and resolved_reason != "match_end"
+		):
+			return false
+
+	timeline.append({
+		"time": elapsed,
+		"alive": alive_count,
+		"stage": resolved_stage,
+		"reason": resolved_reason,
+		"shrinking": shrinking,
+		"victim_kind": resolved_victim_kind,
+		"cause": resolved_cause,
+	})
+	return true
+
+func log_kill_context(
+	cause: String,
+	weapon: String,
+	distance: float,
+	victim_context: Dictionary,
+	attacker_context: Dictionary = {}
+) -> bool:
+	if not match_in_progress or not _g("pacing"):
+		return false
+	var elapsed := _elapsed_seconds()
+	if elapsed > OPENING_KILL_CONTEXT_SECONDS:
+		return false
+	var events: Array = metrics.pacing.kill_context_events
+	if events.size() >= MAX_KILL_CONTEXT_EVENTS:
+		metrics.pacing.kill_context_dropped += 1
+		return false
+	var main = get_tree().root.get_node_or_null("Main")
+	var shrinking := false
+	if main != null:
+		var zone = main.get("zone")
+		if zone != null:
+			shrinking = bool(zone.get("shrinking"))
+	var normalized_cause := _normalized_key(cause, "unknown")
+	var normalized_attacker := _normalized_kill_actor_context(attacker_context)
+	normalized_attacker["attack_origin"] = _kill_attack_origin(
+		normalized_cause,
+		String(normalized_attacker.get("attack_origin", "none"))
+	)
+	events.append({
+		"time": elapsed,
+		"stage": _current_stage,
+		"shrinking": shrinking,
+		"cause": normalized_cause,
+		"weapon": _normalized_key(_norm_weapon(weapon), "none"),
+		"distance": snappedf(distance, 0.01) if distance >= 0.0 else -1.0,
+		"victim": _normalized_kill_actor_context(victim_context),
+		"attacker": normalized_attacker,
+	})
+	return true
+
+func _kill_attack_origin(cause: String, raw_origin: String) -> String:
+	if cause != "melee":
+		return "none"
+	match _normalized_key(raw_origin, "other"):
+		"recover_melee", "recover_close_player":
+			return "recover_melee"
+		"attack_empty":
+			return "attack_empty"
+		"retreat_counter":
+			return "retreat"
+		_:
+			return "other"
+
+func _normalized_kill_actor_context(context: Dictionary) -> Dictionary:
+	return {
+		"kind": _normalized_key(String(context.get("kind", "none")), "none"),
+		"state": _normalized_key(String(context.get("state", "none")), "none"),
+		"weapon": _normalized_key(_norm_weapon(String(context.get("weapon", "none"))), "none"),
+		"mag": maxi(-1, int(context.get("mag", -1))),
+		"reserve": maxi(-1, int(context.get("reserve", -1))),
+		"attack_origin": _normalized_key(String(context.get("attack_origin", "none")), "none"),
+		"acquisition_source": _normalized_key(String(context.get("acquisition_source", "none")), "none"),
+		"target_match": bool(context.get("target_match", false)),
+		"opponent_recent_attacker": bool(context.get("opponent_recent_attacker", false)),
+		"opponent_pressuring": bool(context.get("opponent_pressuring", false)),
+		"targeting_loot": bool(context.get("targeting_loot", false)),
+		"spawn_age": snappedf(float(context.get("spawn_age", -1.0)), 0.01),
+		"zone_ratio": snappedf(float(context.get("zone_ratio", -1.0)), 0.01),
+		"zone_status": _normalized_key(String(context.get("zone_status", "unknown")), "unknown"),
+		"poi_role": _normalized_key(String(context.get("poi_role", "open")), "open"),
+		"poi_name": String(context.get("poi_name", "none")).strip_edges(),
+		"poi_band": _normalized_key(String(context.get("poi_band", "unknown")), "unknown"),
+		"route_role": _normalized_key(String(context.get("route_role", "off_route")), "off_route"),
+		"route_band": _normalized_key(String(context.get("route_band", "unknown")), "unknown"),
+	}
 
 func log_final_duel_death(context: Dictionary):
 	if not match_in_progress or not _g("zone"): return
@@ -910,6 +1056,10 @@ func log_doctrine_target_acquisition(
 	if _g("pacing") and float(metrics.pacing.first_target_acquisition_time) < 0.0:
 		metrics.pacing.first_target_acquisition_time = _elapsed_seconds()
 		metrics.pacing.first_target_acquisition_source = source_key
+		metrics.pacing.first_target_acquisition_target_kind = _normalized_key(
+			String(acquisition_context.get("target_kind", "unknown")),
+			"unknown"
+		)
 		metrics.pacing.first_target_acquisition_state = state_key
 		metrics.pacing.first_target_acquisition_distance = distance
 		metrics.pacing.first_target_acquisition_poi_role = String(target_context.get("poi_role", "open"))
@@ -1462,8 +1612,9 @@ func _print_report():
 			float(metrics.pacing.first_contact_time),
 			float(metrics.pacing.first_damage_time),
 		])
-		print("  First acquisition: %s/%s at %.1fs dist %.1fm" % [
+		print("  First acquisition: %s/%s/%s at %.1fs dist %.1fm" % [
 			metrics.pacing.first_target_acquisition_source,
+			metrics.pacing.first_target_acquisition_target_kind,
 			metrics.pacing.first_target_acquisition_state,
 			float(metrics.pacing.first_target_acquisition_time),
 			float(metrics.pacing.first_target_acquisition_distance),

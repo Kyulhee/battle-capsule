@@ -1,6 +1,6 @@
 # 실험 기록
 
-> 최종 업데이트: 2026-07-26. 같은 실패를 반복하지 않기 위한 짧은 장부다.
+> 최종 업데이트: 2026-08-10. 같은 실패를 반복하지 않기 위한 짧은 장부다.
 
 ## 활성 판단
 
@@ -52,6 +52,11 @@
 | E-044 | 지역별 초기 무기 등급과 별도 방어구가 초반 접근을 앞당기면서 M1 페이싱을 보존하는가? | 5-run 평균 746.7초, 범위 606.0-857.9초, first upgrade 4.5초, loot hub·transit 무기 획득 69.7%, stuck 0.01 | 자동 채택. 초기 즉시 무장과 방어구 trade-off는 수동 판정 필요 |
 | E-045 | 설계형 소형 거점이 단일 셀 집중 없이 경로·페이싱을 보존하는가? | `C:\tmp\n2_map_17_anchor_fix_20260726`: 평균 787.2초, open 피해/킬 41.9%/33.9%, 상위 셀 5.4%, stuck 0.01. 앵커 수정 뒤 `-50,30` 정체 6/33→1/41, focused runtime 4.85초·stuck 0, `unit_smoke` 통과. Forward+는 2회 정상·1회 p95 32.695ms 이상치 | 구조·페이싱 자동 후보 채택. 성능 이상치 재현과 장소·도로·숲 압력은 수동 승격 전 확인 |
 | E-046 | `target_99_probe`의 300초 경계에서 raw count와 개체·분 gate가 뒤집히는가? | 무작위 현재 후보는 평균 266.1초·raw disengage 170.2로 기존 130 gate를 실패했지만 0.39/개체·분이다. 과거 확장 후보는 평균 196.6초·raw 152.4·0.47/개체·분으로 normalized gate를 실패한다. 입력 41000-41004 현재 후보는 평균 239.1초, stuck/disengage 0.01/0.44로 통과 | 구조 profile은 입력 41000-41004를 추적하고 match 길이와 무관하게 개체·분 0.15/0.45를 적용. 99봇 gameplay 승격 근거로는 사용 금지 |
+| E-047 | POI 보장 무기·면적 균등 스폰·bounded drop TTL이 N2-PLAY-10의 무기 공백과 초기 붕괴를 함께 줄이는가? | `C:\tmp\n2_play_11_survival_20260809`: 5-run 평균 692.3초·범위 641.8-781.0초·first upgrade 3.3초·fallback 0·AI 342µs, alive@30/60/90/120/180/260 `52/35/27/22/20/15`, T50/T10 `32.7/286.8초` | D-004는 통과했지만 생존 gate 실패. 구현 계약은 유지하되 packaged 수동 승격 금지, 사망 문맥으로 종료 실패를 진단 |
+| E-048 | bot-v-bot immediate 범위를 10m→2m로 줄이면 player/direct response를 보존하며 초기 붕괴가 완화되는가? | pilot alive@30/60/120 `57/35/23`, T50/T10 `42/291초` | 방향 gate 실패, 완전 revert. engagement 범위 조정 재혼합 금지 |
+| E-049 | 층화 스폰이 fallback 없이 초기 조우 밀도를 낮추는가? | 평균 nearest 18.3m·fallback 0, alive@30/60/120 `52/35/19`, T50/T10 `33.2/297.3초`, first upgrade 0.5초 | 생존·경제 방향 gate 실패, 완전 revert. 다른 생존 후보와 재혼합 금지 |
+| E-050 | behavior-unchanged kill context가 초기 붕괴의 종료 경로를 좁히는가? | `C:\tmp\n2_play_11_kill_context_baseline_20260809\run_1.json`: 845.8초, alive `53/38/26/26/21/15`, T50/T10 `36.2/415.1초`, first upgrade 12.2초. 60초 내 사망 22건은 gun/melee `14/8`, 생존 상태 피해자 19, 최근 보복 19, pressure 14 | 계측 유지. 교전 시작보다 RECOVER/DISENGAGE 뒤 종료 실패가 우선 가설이지만 단일 run은 gameplay PASS가 아님 |
+| E-051 | 생존 상태 bot target을 양보하는 ceasefire가 재획득·이동 회귀 없이 초기 사망을 줄이는가? | `C:\tmp\n2_play_11_survival_ceasefire_pilot_20260810\run_1.json`: 738.1초, alive `58/44/37/30/28/25`, T50/T10 `41.4/328.6초`, 사망 16·생존 상태 피해자 0. release 345, 1초 내 재획득 90(26.1%), stuck/disengage `53/823` 대 기준 `6/384` | 방향 gate 실패, 완전 revert, 5-run 금지. 재획득·이동 비용을 닫지 않은 ceasefire 재시도 금지 |
 
 ## 폐기 패턴
 

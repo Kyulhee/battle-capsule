@@ -35,6 +35,19 @@ func _capture() -> void:
 			and main.player_ref.has_method("receive_armor_equipment"):
 		main.player_ref.receive_armor_equipment(ITEM_CATALOG.BALLISTIC_VEST)
 	await create_timer(float(options["settle_seconds"])).timeout
+	if bool(options["full_map"]):
+		main._show_full_map()
+		await process_frame
+		var main_hud := main.get_node_or_null("CanvasLayer/Control/HUD") as CanvasItem
+		var player_hud: CanvasItem = null
+		if is_instance_valid(main.player_ref):
+			player_hud = main.player_ref.get_node_or_null("CanvasLayer/Control") as CanvasItem
+		if not main._is_full_map_open() \
+				or (is_instance_valid(main_hud) and main_hud.visible) \
+				or (is_instance_valid(player_hud) and player_hud.visible):
+			push_error("Full-map capture still exposes background gameplay HUD.")
+			quit(1)
+			return
 	await process_frame
 	await process_frame
 
@@ -60,6 +73,7 @@ func _capture_options() -> Dictionary:
 		"player_position": Vector2.INF,
 		"settle_seconds": 4.0,
 		"equip_armor": false,
+		"full_map": false,
 	}
 	for arg in OS.get_cmdline_user_args():
 		var value := String(arg)
@@ -79,4 +93,6 @@ func _capture_options() -> Dictionary:
 			)
 		elif value.begins_with("capture_equip_armor="):
 			options["equip_armor"] = value.trim_prefix("capture_equip_armor=") == "true"
+		elif value.begins_with("capture_full_map="):
+			options["full_map"] = value.trim_prefix("capture_full_map=") == "true"
 	return options

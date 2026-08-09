@@ -17,6 +17,9 @@ func _run() -> void:
 	if not _verify_pacing_uses_game_seconds():
 		quit(1)
 		return
+	if not await _verify_entity_death_hook_exact_once():
+		quit(1)
+		return
 
 	print("Pacing telemetry smoke passed.")
 	quit(0)
@@ -37,6 +40,84 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if not tel.metrics.pacing.stage_times.has("1"):
 		tel.free()
 		return _fail("Pacing should record stage 1 at match start.")
+	if not tel.metrics.pacing.has("alive_timeline"):
+		tel.free()
+		return _fail("Pacing should expose an alive timeline.")
+	if not tel.metrics.pacing.alive_timeline.is_empty():
+		tel.free()
+		return _fail("Main should own the authoritative initial alive sample.")
+	if not tel.metrics.pacing.has("kill_context_events"):
+		tel.free()
+		return _fail("Pacing should expose bounded kill context events.")
+	var kill_recorded: bool = tel.log_kill_context(
+		"Melee",
+		"Knife",
+		1.234,
+		{
+			"kind": "Bot",
+			"state": "RECOVER",
+			"weapon": "Shotgun",
+			"mag": 0,
+			"reserve": 0,
+			"poi_role": "loot_hub",
+			"route_role": "primary_choke",
+		},
+		{
+			"kind": "Bot",
+			"state": "ATTACK",
+			"weapon": "Pistol",
+			"mag": 0,
+			"reserve": 0,
+			"attack_origin": "recover_melee",
+			"acquisition_source": "recover_melee",
+			"target_match": true,
+			"opponent_recent_attacker": false,
+			"opponent_pressuring": false,
+			"spawn_age": 31.257,
+			"zone_ratio": 0.42,
+			"zone_status": "inside",
+			"poi_role": "loot_hub",
+			"route_role": "primary_choke",
+		}
+	)
+	if not kill_recorded or tel.metrics.pacing.kill_context_events.size() != 1:
+		tel.free()
+		return _fail("Kill context event was not recorded exactly once.")
+	var kill_event: Dictionary = tel.metrics.pacing.kill_context_events[0]
+	var victim_context: Dictionary = kill_event.get("victim", {})
+	var attacker_context: Dictionary = kill_event.get("attacker", {})
+	if (
+		String(kill_event.get("cause", "")) != "melee"
+		or String(kill_event.get("weapon", "")) != "knife"
+		or not is_equal_approx(float(kill_event.get("distance", -1.0)), 1.23)
+	):
+		tel.free()
+		return _fail("Kill context should normalize cause, weapon, and distance.")
+	if String(victim_context.get("state", "")) != "recover" \
+			or String(victim_context.get("weapon", "")) != "shotgun":
+		tel.free()
+		return _fail("Kill context should preserve normalized victim state and weapon.")
+	if (
+		String(attacker_context.get("attack_origin", "")) != "recover_melee"
+		or String(attacker_context.get("acquisition_source", "")) != "recover_melee"
+		or not bool(attacker_context.get("target_match", false))
+		or not is_equal_approx(float(attacker_context.get("spawn_age", -1.0)), 31.26)
+	):
+		tel.free()
+		return _fail("Kill context should preserve attacker intent and bounded numeric context.")
+	if tel._kill_attack_origin("melee", "attack_empty") != "attack_empty" \
+			or tel._kill_attack_origin("melee", "retreat_counter") != "retreat" \
+			or tel._kill_attack_origin("melee", "player_melee") != "other" \
+			or tel._kill_attack_origin("gun", "gun") != "none":
+		tel.free()
+		return _fail("Kill context attack-origin enum changed.")
+	var bounded_events: Array = tel.metrics.pacing.kill_context_events
+	bounded_events.resize(tel.MAX_KILL_CONTEXT_EVENTS)
+	if tel.log_kill_context("gun", "pistol", 5.0, {}, {}) \
+			or int(tel.metrics.pacing.kill_context_dropped) != 1:
+		tel.free()
+		return _fail("Kill context should expose overflow instead of exceeding its hard cap.")
+	tel.metrics.pacing.kill_context_events = [kill_event]
 
 	tel.log_shot()
 	tel.log_doctrine_target_acquisition(
@@ -61,6 +142,7 @@ func _verify_pacing_schema_and_hooks() -> bool:
 			"nearest_route_edge_distance": 0.0,
 		},
 		{
+			"target_kind": "player",
 			"spawn_age": 3.25,
 			"zone_distance": 82.0,
 			"zone_radius": 100.0,
@@ -180,6 +262,9 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if String(pacing.first_target_acquisition_source) != "idle_reaction":
 		tel.free()
 		return _fail("Pacing did not record first target acquisition source.")
+	if String(pacing.first_target_acquisition_target_kind) != "player":
+		tel.free()
+		return _fail("Pacing did not record first target acquisition kind.")
 	if String(pacing.first_target_acquisition_state) != "IDLE":
 		tel.free()
 		return _fail("Pacing did not record first target acquisition state.")
@@ -317,15 +402,26 @@ func _verify_pacing_uses_game_seconds() -> bool:
 	var tel = telemetry_script.new()
 	root.add_child(tel)
 	tel.start_match()
+	var start_recorded: bool = tel.log_alive_sample(61, 1, "start", false)
+	var start_duplicate_recorded: bool = tel.log_alive_sample(61, 1, "duplicate", false)
 	main.match_timer = 3.0
 	tel.log_shot()
 	tel.set_stage(2)
+	var death_recorded: bool = tel.log_alive_sample(60, 2, "death", true, "bot", "gun")
+	var death_duplicate_recorded: bool = tel.log_alive_sample(60, 2, "death", true, "bot", "gun")
+	var same_frame_death_recorded: bool = tel.log_alive_sample(59, 2, "death", true, "bot", "zone")
+	main.match_timer = 60.0
+	var cutoff_recorded: bool = tel.log_kill_context("gun", "pistol", 4.0, {}, {})
+	main.match_timer = 60.01
+	var outside_cutoff_recorded: bool = tel.log_kill_context("gun", "pistol", 4.0, {}, {})
+	main.match_timer = 3.0
 	tel.end_match(1, "Bot", 2, false)
 
 	var first_shot := float(tel.metrics.pacing.first_shot_time)
 	var stage2 := float(tel.metrics.pacing.stage_times.get("2", 0.0))
 	var duration := float(tel.metrics.core.duration)
 	var player_win := bool(tel.metrics.session.win)
+	var alive_timeline: Array = tel.metrics.pacing.alive_timeline.duplicate(true)
 	tel.free()
 	main.free()
 
@@ -337,6 +433,93 @@ func _verify_pacing_uses_game_seconds() -> bool:
 		return _fail("Core duration should use Main.match_timer, got %.2f." % duration)
 	if player_win:
 		return _fail("Bot winner should not be recorded as a player win.")
+	if not start_recorded or not death_recorded or not same_frame_death_recorded:
+		return _fail("Alive timeline rejected a start or distinct death sample.")
+	if start_duplicate_recorded or death_duplicate_recorded:
+		return _fail("Alive timeline should suppress equal time/count duplicates.")
+	if not cutoff_recorded or outside_cutoff_recorded:
+		return _fail("Kill context writer must include 60.0s and reject 60.01s.")
+	if alive_timeline.size() != 4:
+		return _fail("Alive timeline should contain start, two deaths, and match end, got %d." % alive_timeline.size())
+	var start_sample: Dictionary = alive_timeline[0]
+	var death_sample: Dictionary = alive_timeline[1]
+	var same_frame_sample: Dictionary = alive_timeline[2]
+	var end_sample: Dictionary = alive_timeline[3]
+	if not is_equal_approx(float(start_sample.get("time", -1.0)), 0.0) or int(start_sample.get("alive", -1)) != 61:
+		return _fail("Alive start sample should use Main.match_timer=0 and alive=61.")
+	if not is_equal_approx(float(death_sample.get("time", -1.0)), 3.0):
+		return _fail("Alive death sample should use Main.match_timer, got %.2f." % float(death_sample.get("time", -1.0)))
+	if int(death_sample.get("stage", -1)) != 2 or String(death_sample.get("reason", "")) != "death":
+		return _fail("Alive death sample should preserve stage and reason.")
+	if not bool(death_sample.get("shrinking", false)):
+		return _fail("Alive death sample should preserve shrinking state.")
+	if String(death_sample.get("victim_kind", "")) != "bot" or String(death_sample.get("cause", "")) != "gun":
+		return _fail("Alive death sample should preserve victim kind and cause.")
+	if int(same_frame_sample.get("alive", -1)) != 59 or String(same_frame_sample.get("cause", "")) != "zone":
+		return _fail("Alive timeline should retain distinct same-frame deaths.")
+	if (
+		not is_equal_approx(float(end_sample.get("time", -1.0)), 3.0)
+		or int(end_sample.get("alive", -1)) != 59
+		or String(end_sample.get("reason", "")) != "match_end"
+	):
+		return _fail("Alive timeline should carry the last known count to match end.")
+	return true
+
+
+func _verify_entity_death_hook_exact_once() -> bool:
+	var tel = root.get_node_or_null("Telemetry")
+	if tel == null:
+		return _fail("Telemetry autoload is required for the Entity death-hook smoke.")
+	var original_root_children: Array = root.get_children()
+	tel.start_match()
+	var entity_script = load("res://src/entities/Entity.gd")
+	var stats_script = load("res://src/core/StatsData.gd")
+	var killer = entity_script.new()
+	var victim = entity_script.new()
+	var zone_victim = entity_script.new()
+	for actor in [killer, victim, zone_victim]:
+		actor.stats = stats_script.new()
+		var collision := CollisionShape3D.new()
+		collision.name = "CollisionShape3D"
+		actor.add_child(collision)
+		actor.set_process(false)
+		actor.set_physics_process(false)
+		root.add_child(actor)
+	killer.add_to_group("bots")
+	victim.add_to_group("bots")
+	zone_victim.add_to_group("bots")
+	killer.stats.weapon_type = "pistol"
+	killer.stats.current_ammo = 19
+	victim.current_health = 1.0
+	victim.take_damage(5.0, "gun", "pistol", killer)
+	victim.die(killer)
+	zone_victim.last_damage_source = "zone"
+	zone_victim.die()
+	var events: Array = tel.metrics.pacing.kill_context_events.duplicate(true)
+	tel.match_in_progress = false
+	# Let generated death audio/effects finish so this verifier does not leave
+	# short-lived playback resources behind at process exit.
+	await create_timer(1.0).timeout
+	for child in root.get_children():
+		if child not in original_root_children and is_instance_valid(child):
+			child.queue_free()
+	for _frame in range(3):
+		await process_frame
+	if events.size() != 2:
+		return _fail("Entity death hook should record each victim exactly once, got %d events." % events.size())
+	var combat_event: Dictionary = events[0]
+	var zone_event: Dictionary = events[1]
+	if String(combat_event.get("cause", "")) != "gun" \
+			or String(combat_event.get("weapon", "")) != "pistol":
+		return _fail("Entity fatal damage should preserve the exact combat cause and weapon.")
+	var attacker_context: Dictionary = combat_event.get("attacker", {})
+	if String(attacker_context.get("kind", "")) != "bot" \
+			or int(attacker_context.get("mag", -1)) != 19:
+		return _fail("Entity fatal damage should snapshot the attacker once at death time.")
+	var zone_attacker: Dictionary = zone_event.get("attacker", {})
+	if String(zone_event.get("cause", "")) != "zone" \
+			or String(zone_attacker.get("kind", "")) != "none":
+		return _fail("Null-killer zone deaths should retain an explicit empty attacker context.")
 	return true
 
 

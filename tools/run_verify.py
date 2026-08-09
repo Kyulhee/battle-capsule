@@ -144,6 +144,9 @@ def profile_steps(
     report_scripts = [
         "tools/analyze_results.py",
         "tools/summarize_pacing_baseline.py",
+        "tools/survival_curve.py",
+        "tools/verify_pacing_analysis.py",
+        "tools/verify_survival_curve.py",
         "tools/check_scale_telemetry.py",
         "tools/analyze_map_structure.py",
         "tools/simulate_matches.py",
@@ -160,6 +163,8 @@ def profile_steps(
         return [
             *docs_only,
             py_compile(report_scripts),
+            Step("verify_pacing_analysis.py", [sys.executable, rel("tools/verify_pacing_analysis.py")]),
+            Step("verify_survival_curve.py", [sys.executable, rel("tools/verify_survival_curve.py")]),
             godot_script(godot, "verify_release_identity.gd"),
             godot_script(godot, "verify_pacing_telemetry.gd"),
             godot_script(godot, "verify_release_persistence.gd"),
@@ -168,6 +173,7 @@ def profile_steps(
             godot_script(godot, "verify_zone_initial_radius_tuning.gd"),
             godot_script(godot, "verify_spawn_distribution_metrics.gd"),
             godot_script(godot, "verify_bot_opening_loot_rules.gd"),
+            godot_script(godot, "verify_loot_drop_stability.gd"),
             godot_script(godot, "verify_bot_runtime_combat.gd"),
             godot_script(godot, "verify_bot_target_lifetime.gd"),
             godot_script(godot, "verify_bot_decision_policy.gd"),

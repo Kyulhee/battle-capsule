@@ -3,12 +3,15 @@ extends Control
 const MINIMAP_STATIC_LAYER = preload("res://src/ui/MinimapStaticLayer.gd")
 const MAP_ROTATION := PI / 4.0
 const STATIC_CACHE_SIZE := Vector2i(768, 768)
+const STATIC_ALPHA_NORMAL := 0.86
+const STATIC_ALPHA_COMBAT := 0.46
+const STATIC_ALPHA_FADE_SECONDS := 0.2
 
 func _init():
 	print("[MINIMAP] Script initialized.")
 
 @export var map_size_3d: Vector2 = Vector2(120, 120)
-@export var minimap_size: Vector2 = Vector2(280, 280)
+@export var minimap_size: Vector2 = Vector2(220, 220)
 @export var local_view_size_m := 120.0
 
 var player: Node3D
@@ -75,6 +78,7 @@ func _ensure_static_cache() -> void:
 	_static_texture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_static_texture.stretch_mode = TextureRect.STRETCH_SCALE
 	_static_texture.texture = _static_viewport.get_texture()
+	_static_texture.modulate.a = STATIC_ALPHA_NORMAL
 	add_child(_static_texture)
 
 func _refresh_static_cache() -> void:
@@ -115,6 +119,7 @@ func _process(delta):
 			
 	supply_pulse += delta * 5.0
 	_update_static_texture_transform()
+	_update_static_texture_alpha(delta)
 	queue_redraw()
 
 func _draw():
@@ -196,6 +201,26 @@ func _update_static_texture_transform() -> void:
 	)
 	_static_texture.size = texture_size * display_scale
 	_static_texture.position = minimap_size * 0.5 - focus_texture_position * display_scale
+
+func _update_static_texture_alpha(delta: float) -> void:
+	if not is_instance_valid(_static_texture):
+		return
+	var target_alpha := _target_static_alpha(_is_player_in_recent_combat())
+	var fade_step := (STATIC_ALPHA_NORMAL - STATIC_ALPHA_COMBAT) \
+		* maxf(0.0, delta) / STATIC_ALPHA_FADE_SECONDS
+	var texture_modulate := _static_texture.modulate
+	texture_modulate.a = move_toward(texture_modulate.a, target_alpha, fade_step)
+	_static_texture.modulate = texture_modulate
+
+func _target_static_alpha(in_recent_combat: bool) -> float:
+	return STATIC_ALPHA_COMBAT if in_recent_combat else STATIC_ALPHA_NORMAL
+
+func _is_player_in_recent_combat() -> bool:
+	return (
+		is_instance_valid(player)
+		and player.has_method("is_in_recent_combat")
+		and bool(player.is_in_recent_combat())
+	)
 
 func _local_world_scale() -> float:
 	return minimap_size.x / maxf(1.0, local_view_size_m)

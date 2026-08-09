@@ -23,6 +23,12 @@ static func common_heal_name() -> String:
 static func rare_heal_name() -> String:
 	return "구급상자"
 
+static func should_drop_weapon_type(weapon_type: String) -> bool:
+	return weapon_type.strip_edges().to_lower() not in ["", "none", "empty", "knife", "pistol"]
+
+static func should_drop_ammo_for_weapon_type(weapon_type: String) -> bool:
+	return weapon_type.strip_edges().to_lower() not in ["", "none", "empty", "knife"]
+
 static func weapon_color(wtype: String, tier: int = 2) -> Color:
 	match wtype:
 		"pistol":  return Color(0.55, 0.78, 1.0)
