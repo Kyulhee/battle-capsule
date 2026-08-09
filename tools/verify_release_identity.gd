@@ -4,7 +4,10 @@ extends SceneTree
 const BuildInfoScript = preload("res://src/core/BuildInfo.gd")
 const BuildVersionLabelScript = preload("res://src/ui/BuildVersionLabel.gd")
 
+const REQUIRED_EXPORT_SCENE := "res://src/Main.tscn"
 const REQUIRED_EXPORT_INCLUDES := [
+	"assets/**",
+	"src/**",
 	"data/asset_catalog.json",
 	"data/game_config.json",
 	"data/mapSpec_night_forest_expanded_candidate.json",
@@ -20,9 +23,11 @@ const REQUIRED_EXPORT_EXCLUDES := [
 	".agents/**",
 	".claude/**",
 	".understand-anything/**",
+	"assets/sfx/README.txt",
 	"debug_screenshot*.png",
 	"스크린샷*.png",
 	"*.png.import",
+	"*.gd.uid",
 ]
 
 
@@ -91,23 +96,11 @@ func _verify_export_preset() -> bool:
 		return _fail_bool("Windows release preset is missing.")
 	if String(presets.get_value("preset.0", "platform", "")) != "Windows Desktop":
 		return _fail_bool("Preset 0 must remain the Windows Desktop target.")
-	if String(presets.get_value("preset.0", "export_filter", "")) != "all_resources":
-		return _fail_bool("Windows export must use the reviewed all-resources boundary.")
+	if not _verify_export_boundary(presets, "preset.0", "Windows"):
+		return false
 	if String(presets.get_value("preset.0", "export_path", "")) \
 			!= "./%s.exe" % BuildInfoScript.EXECUTABLE_BASENAME:
 		return _fail_bool("Windows executable name does not match BuildInfo.")
-
-	var include_entries := _csv_entries(
-		String(presets.get_value("preset.0", "include_filter", ""))
-	)
-	if include_entries != REQUIRED_EXPORT_INCLUDES:
-		return _fail_bool("Windows export must include only the reviewed runtime JSON files.")
-	var exclude_entries := _csv_entries(
-		String(presets.get_value("preset.0", "exclude_filter", ""))
-	)
-	for required_path in REQUIRED_EXPORT_EXCLUDES:
-		if not exclude_entries.has(required_path):
-			return _fail_bool("Windows export boundary is missing: %s." % required_path)
 
 	if int(presets.get_value("preset.0.options", "debug/export_console_wrapper", 1)) != 0:
 		return _fail_bool("Public Windows export must not open a console wrapper.")
@@ -133,9 +126,36 @@ func _verify_export_preset() -> bool:
 
 	if bool(presets.get_value("preset.1", "runnable", true)):
 		return _fail_bool("macOS must remain outside the first public runnable target.")
+	if not _verify_export_boundary(presets, "preset.1", "macOS"):
+		return false
 	if String(presets.get_value("preset.1.options", "application/name", "")) \
 			!= BuildInfoScript.PRODUCT_NAME:
 		return _fail_bool("Deferred macOS preset carries stale product branding.")
+	return true
+
+
+func _verify_export_boundary(presets: ConfigFile, section: String, target_name: String) -> bool:
+	if String(presets.get_value(section, "export_filter", "")) != "scenes":
+		return _fail_bool("%s export must use the selected-scene dependency boundary." % target_name)
+	var export_scenes: PackedStringArray = presets.get_value(
+		section,
+		"export_files",
+		PackedStringArray()
+	)
+	if export_scenes.size() != 1 or export_scenes[0] != REQUIRED_EXPORT_SCENE:
+		return _fail_bool("%s export must select only src/Main.tscn." % target_name)
+	if int(presets.get_value(section, "script_export_mode", -1)) != 2:
+		return _fail_bool("%s export must keep compressed compiled scripts." % target_name)
+	var include_entries := _csv_entries(String(presets.get_value(section, "include_filter", "")))
+	if include_entries != REQUIRED_EXPORT_INCLUDES:
+		return _fail_bool(
+			"%s export must include only runtime source/assets and reviewed dynamic JSON files." \
+					% target_name
+		)
+	var exclude_entries := _csv_entries(String(presets.get_value(section, "exclude_filter", "")))
+	for required_path in REQUIRED_EXPORT_EXCLUDES:
+		if not exclude_entries.has(required_path):
+			return _fail_bool("%s export boundary is missing: %s." % [target_name, required_path])
 	return true
 
 
