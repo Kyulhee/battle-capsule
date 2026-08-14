@@ -17,6 +17,12 @@ func _run() -> void:
 	if not _verify_pacing_uses_game_seconds():
 		quit(1)
 		return
+	if not _verify_target_continuity_exact_summary():
+		quit(1)
+		return
+	if not await _verify_bot_target_continuity_shadow():
+		quit(1)
+		return
 	if not await _verify_entity_death_hook_exact_once():
 		quit(1)
 		return
@@ -49,6 +55,15 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if not tel.metrics.pacing.has("kill_context_events"):
 		tel.free()
 		return _fail("Pacing should expose bounded kill context events.")
+	if not tel.metrics.pacing.has("target_continuity_episode_samples") \
+			or not tel.metrics.pacing.has("target_continuity_episode_sample_metadata") \
+			or not tel.metrics.pacing.has("target_continuity_disengage_exit_samples") \
+			or not tel.metrics.pacing.has("target_continuity_disengage_exit_sample_metadata") \
+			or not tel.metrics.pacing.has("target_continuity_summary") \
+			or tel.metrics.pacing.has("target_continuity_events") \
+			or tel.metrics.pacing.has("target_continuity_dropped"):
+		tel.free()
+		return _fail("Pacing should expose only the linked schema-v2 continuity samples and exact summary.")
 	var kill_recorded: bool = tel.log_kill_context(
 		"Melee",
 		"Knife",
@@ -74,6 +89,12 @@ func _verify_pacing_schema_and_hooks() -> bool:
 			"opponent_recent_attacker": false,
 			"opponent_pressuring": false,
 			"spawn_age": 31.257,
+			"state_age_seconds": 4.567,
+			"target_age_seconds": 2.345,
+			"disengage_entry_reason": "Losing_Fight",
+			"disengage_same_entry_target": true,
+			"state_displacement": 3.456,
+			"state_stuck_delta": 2,
 			"zone_ratio": 0.42,
 			"zone_status": "inside",
 			"poi_role": "loot_hub",
@@ -105,6 +126,26 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	):
 		tel.free()
 		return _fail("Kill context should preserve attacker intent and bounded numeric context.")
+	if (
+		not is_equal_approx(float(attacker_context.get("state_age_seconds", -1.0)), 4.57)
+		or not is_equal_approx(float(attacker_context.get("target_age_seconds", -1.0)), 2.35)
+		or String(attacker_context.get("disengage_entry_reason", "")) != "losing_fight"
+		or not bool(attacker_context.get("disengage_same_entry_target", false))
+		or not is_equal_approx(float(attacker_context.get("state_displacement", -1.0)), 3.46)
+		or int(attacker_context.get("state_stuck_delta", -1)) != 2
+	):
+		tel.free()
+		return _fail("Kill context should preserve normalized target/state continuity fields.")
+	if (
+		float(victim_context.get("state_age_seconds", 0.0)) != -1.0
+		or float(victim_context.get("target_age_seconds", 0.0)) != -1.0
+		or String(victim_context.get("disengage_entry_reason", "")) != "none"
+		or bool(victim_context.get("disengage_same_entry_target", true))
+		or float(victim_context.get("state_displacement", 0.0)) != -1.0
+		or int(victim_context.get("state_stuck_delta", 0)) != -1
+	):
+		tel.free()
+		return _fail("Default/player kill continuity context should use safe sentinels.")
 	if tel._kill_attack_origin("melee", "attack_empty") != "attack_empty" \
 			or tel._kill_attack_origin("melee", "retreat_counter") != "retreat" \
 			or tel._kill_attack_origin("melee", "player_melee") != "other" \
@@ -118,6 +159,24 @@ func _verify_pacing_schema_and_hooks() -> bool:
 		tel.free()
 		return _fail("Kill context should expose overflow instead of exceeding its hard cap.")
 	tel.metrics.pacing.kill_context_events = [kill_event]
+
+	var continuity_summary: Dictionary = tel.metrics.pacing.target_continuity_summary
+	var episode_metadata: Dictionary = tel.metrics.pacing.target_continuity_episode_sample_metadata
+	var exit_metadata: Dictionary = tel.metrics.pacing.target_continuity_disengage_exit_sample_metadata
+	if (
+		int(continuity_summary.get("schema_version", 0)) != 2
+		or not bool(continuity_summary.get("exact", false))
+		or not bool(continuity_summary.get("complete", false))
+		or String(continuity_summary.get("release_time_basis", "")) != "match_elapsed"
+		or String(episode_metadata.get("method", "")) != tel.TARGET_CONTINUITY_SAMPLE_METHOD
+		or int(episode_metadata.get("capacity", 0)) != 128
+		or not bool(episode_metadata.get("complete", false))
+		or String(exit_metadata.get("method", "")) != tel.TARGET_CONTINUITY_SAMPLE_METHOD
+		or int(exit_metadata.get("capacity", 0)) != 128
+		or not bool(exit_metadata.get("complete", false))
+	):
+		tel.free()
+		return _fail("Initial continuity schema-v2 summary or sample metadata changed.")
 
 	tel.log_shot()
 	tel.log_doctrine_target_acquisition(
@@ -412,8 +471,10 @@ func _verify_pacing_uses_game_seconds() -> bool:
 	var same_frame_death_recorded: bool = tel.log_alive_sample(59, 2, "death", true, "bot", "zone")
 	main.match_timer = 60.0
 	var cutoff_recorded: bool = tel.log_kill_context("gun", "pistol", 4.0, {}, {})
+	var continuity_cutoff_available: bool = tel.can_track_target_continuity()
 	main.match_timer = 60.01
 	var outside_cutoff_recorded: bool = tel.log_kill_context("gun", "pistol", 4.0, {}, {})
+	var continuity_outside_cutoff_available: bool = tel.can_track_target_continuity()
 	main.match_timer = 3.0
 	tel.end_match(1, "Bot", 2, false)
 
@@ -439,6 +500,8 @@ func _verify_pacing_uses_game_seconds() -> bool:
 		return _fail("Alive timeline should suppress equal time/count duplicates.")
 	if not cutoff_recorded or outside_cutoff_recorded:
 		return _fail("Kill context writer must include 60.0s and reject 60.01s.")
+	if not continuity_cutoff_available or continuity_outside_cutoff_available:
+		return _fail("Target continuity tracking must include 60.0s and reject 60.01s.")
 	if alive_timeline.size() != 4:
 		return _fail("Alive timeline should contain start, two deaths, and match end, got %d." % alive_timeline.size())
 	var start_sample: Dictionary = alive_timeline[0]
@@ -463,6 +526,694 @@ func _verify_pacing_uses_game_seconds() -> bool:
 		or String(end_sample.get("reason", "")) != "match_end"
 	):
 		return _fail("Alive timeline should carry the last known count to match end.")
+	return true
+
+
+func _verify_target_continuity_exact_summary() -> bool:
+	var telemetry_script = load("res://src/core/Telemetry.gd")
+	var main := FakeMain.new()
+	main.name = "Main"
+	root.add_child(main)
+	var hash_probe = telemetry_script.new()
+	root.add_child(hash_probe)
+	if int(hash_probe.call("_target_continuity_stable_hash", "1|2|7")) != 1298719915 \
+			or int(hash_probe.call("_target_continuity_stable_hash", "2|40")) != 28555174:
+		hash_probe.free()
+		main.free()
+		return _fail("Continuity stable-hash known vectors changed.")
+	var bounded_counter: Dictionary = {}
+	for index in range(40):
+		hash_probe.call("_target_continuity_increment", bounded_counter, "distinct_%d" % index)
+	var bounded_counter_total := 0
+	for value in bounded_counter.values():
+		bounded_counter_total += int(value)
+	if bounded_counter.size() > 32 \
+			or bounded_counter_total != 40 \
+			or int(bounded_counter.get("other", 0)) <= 0:
+		hash_probe.free()
+		main.free()
+		return _fail("Continuity exact counter maps must stay bounded while preserving total counts.")
+	var preexisting_other_counter := {"other": 1}
+	for index in range(40):
+		hash_probe.call(
+			"_target_continuity_increment",
+			preexisting_other_counter,
+			"preexisting_%d" % index
+		)
+	var preexisting_total := 0
+	for value in preexisting_other_counter.values():
+		preexisting_total += int(value)
+	if preexisting_other_counter.size() > 32 or preexisting_total != 41:
+		hash_probe.free()
+		main.free()
+		return _fail("A preexisting 'other' bucket must still enforce the exact 32-key cap.")
+	hash_probe.free()
+
+	# Exact totals must be independent of insertion order, duplicates, sample
+	# overflow, and the game's global RNG stream.
+	var forward = telemetry_script.new()
+	root.add_child(forward)
+	forward.start_match()
+	seed(424242)
+	var expected_rng := randf()
+	seed(424242)
+	var forward_release_only_keys: Array = _populate_continuity_volume(forward, main, false)
+	var actual_rng := randf()
+	if not is_equal_approx(actual_rng, expected_rng):
+		forward.free()
+		main.free()
+		return _fail("Continuity sampling must not consume or reseed the game RNG.")
+	var forward_summary: Dictionary = forward.metrics.pacing.target_continuity_summary.duplicate(true)
+	var forward_episode_samples: Array = forward.metrics.pacing.target_continuity_episode_samples.duplicate(true)
+	var forward_exit_samples: Array = forward.metrics.pacing.target_continuity_disengage_exit_samples.duplicate(true)
+	var forward_episode_meta: Dictionary = forward.metrics.pacing.target_continuity_episode_sample_metadata.duplicate(true)
+	var forward_exit_meta: Dictionary = forward.metrics.pacing.target_continuity_disengage_exit_sample_metadata.duplicate(true)
+	if (
+		int(forward_summary.get("schema_version", 0)) != 2
+		or not bool(forward_summary.get("exact", false))
+		or not bool(forward_summary.get("complete", false))
+		or int(forward_summary.get("survival_episode_releases", -1)) != 130
+		or int(forward_summary.get("survival_episode_reacquired_1s", -1)) != 65
+		or int(forward_summary.get("disengage_exit_count", -1)) != 140
+		or int(forward_summary.get("reacquire_delay", {}).get("count", -1)) != 65
+		or not is_equal_approx(float(forward_summary.get("reacquire_delay", {}).get("sum", -1.0)), 32.5)
+	):
+		forward.free()
+		main.free()
+		return _fail("Schema-v2 exact continuity totals must remain authoritative after sample overflow.")
+	if not _verify_sample_metadata(forward_episode_meta, 130, 128, 2) \
+			or not _verify_sample_metadata(forward_exit_meta, 140, 128, 12) \
+			or forward_episode_samples.size() != 128 \
+			or forward_exit_samples.size() != 128:
+		forward.free()
+		main.free()
+		return _fail("Continuity bottom-k metadata must report exact population/stored/omitted values.")
+	if not _verify_linked_episode_samples(forward_episode_samples):
+		forward.free()
+		main.free()
+		return false
+	var forward_episode_keys := _sample_keys(forward_episode_samples)
+	var forward_exit_keys := _sample_keys(forward_exit_samples)
+	if forward_episode_keys != forward_release_only_keys:
+		forward.free()
+		main.free()
+		return _fail("An omitted episode reacquire must not reinsert or replace a bottom-k release sample.")
+	forward.free()
+
+	var reverse = telemetry_script.new()
+	root.add_child(reverse)
+	reverse.start_match()
+	var reverse_release_only_keys: Array = _populate_continuity_volume(reverse, main, true)
+	var reverse_episode_samples: Array = reverse.metrics.pacing.target_continuity_episode_samples
+	var reverse_exit_samples: Array = reverse.metrics.pacing.target_continuity_disengage_exit_samples
+	if reverse_release_only_keys != _sample_keys(reverse_episode_samples) \
+			or forward_episode_keys != _sample_keys(reverse_episode_samples) \
+			or forward_exit_keys != _sample_keys(reverse_exit_samples):
+		reverse.free()
+		main.free()
+		return _fail("Bottom-k sampled keys and rank order must be insertion-order independent.")
+	reverse.free()
+
+	# Clock, censoring, terminal rejection, and immutable release linkage use a
+	# small isolated match so their exact counts are unambiguous.
+	var edge = telemetry_script.new()
+	root.add_child(edge)
+	edge.start_match()
+	main.match_timer = 10.0
+	var first_context := _continuity_release_context(501, 601, 7)
+	first_context["reason"] = "Memory_Expired"
+	first_context["source"] = "Attack"
+	var first_release: Dictionary = edge.track_target_continuity_release(first_context)
+	main.match_timer = 10.4
+	var repeat_context := first_context.duplicate()
+	repeat_context["reason"] = "Target_Switch"
+	repeat_context["source"] = "Chase"
+	var repeated_release: Dictionary = edge.track_target_continuity_release(repeat_context)
+	var immutable_release: Dictionary = edge.metrics.pacing.target_continuity_episode_samples[0].release
+	main.match_timer = 10.9
+	var reacquire_context := _continuity_reacquire_context(501, 601, 7)
+	reacquire_context["spawn_delay_seconds"] = 9.9
+	var canonical_reacquire: Dictionary = edge.track_target_continuity_reacquire(reacquire_context)
+	var linked_reacquire: Dictionary = edge.metrics.pacing.target_continuity_episode_samples[0].reacquire_1s
+	if (
+		not bool(first_release.get("first_episode", false))
+		or bool(repeated_release.get("first_episode", true))
+		or not is_equal_approx(float(repeated_release.get("release_time", -1.0)), 10.4)
+		or not is_equal_approx(float(immutable_release.get("release_time", -1.0)), 10.0)
+		or String(immutable_release.get("reason", "")) != "memory_expired"
+		or not is_equal_approx(float(canonical_reacquire.get("delay_seconds", -1.0)), 0.5)
+		or not is_equal_approx(float(linked_reacquire.get("paired_release_time", -1.0)), 10.4)
+		or String(linked_reacquire.get("paired_release_reason", "")) != "target_switch"
+		or String(linked_reacquire.get("paired_release_source", "")) != "chase"
+		or not is_equal_approx(float(linked_reacquire.get("spawn_delay_seconds", -1.0)), 9.9)
+	):
+		edge.free()
+		main.free()
+		return _fail("Linked reacquire must use the canonical match clock/latest origin without mutating first release.")
+
+	main.match_timer = 58.9
+	var boundary_release: Dictionary = edge.track_target_continuity_release(
+		_continuity_release_context(502, 602, 8)
+	)
+	main.match_timer = 59.8
+	var boundary_reacquire: Dictionary = edge.track_target_continuity_reacquire(
+		_continuity_reacquire_context(502, 602, 8)
+	)
+	main.match_timer = 59.5
+	var censored_release: Dictionary = edge.track_target_continuity_release(
+		_continuity_release_context(503, 603, 9)
+	)
+	main.match_timer = 60.0
+	var censored_reacquire: Dictionary = edge.track_target_continuity_reacquire(
+		_continuity_reacquire_context(503, 603, 9)
+	)
+	main.match_timer = 58.8
+	var pre_censor_context := _continuity_release_context(506, 606, 12)
+	var pre_censor_release: Dictionary = edge.track_target_continuity_release(pre_censor_context)
+	main.match_timer = 59.5
+	var ignored_repeat_context := pre_censor_context.duplicate()
+	ignored_repeat_context["reason"] = "Target_Switch"
+	ignored_repeat_context["source"] = "Chase"
+	var ignored_post_censor_repeat: Dictionary = edge.track_target_continuity_release(
+		ignored_repeat_context
+	)
+	main.match_timer = 59.7
+	var pre_censor_reacquire: Dictionary = edge.track_target_continuity_reacquire(
+		_continuity_reacquire_context(506, 606, 12)
+	)
+	var pre_censor_link: Dictionary = {}
+	for sample in edge.metrics.pacing.target_continuity_episode_samples:
+		if String(sample.get("sample_key", "")) == "506|606|12":
+			pre_censor_link = sample.get("reacquire_1s", {})
+			break
+	var releases_before_terminal := int(edge.metrics.pacing.target_continuity_summary.survival_episode_releases)
+	main.match_timer = 20.0
+	var killed_context := _continuity_release_context(504, 604, 10)
+	killed_context["reason"] = "Target_Killed"
+	var invalid_context := _continuity_release_context(505, 605, 11)
+	invalid_context["reason"] = "Invalid_Target"
+	var killed_release: Dictionary = edge.track_target_continuity_release(killed_context)
+	var invalid_release: Dictionary = edge.track_target_continuity_release(invalid_context)
+	if (
+		not bool(boundary_release.get("tracked", false))
+		or not bool(boundary_reacquire.get("tracked", false))
+		or bool(censored_release.get("tracked", false))
+		or bool(censored_reacquire.get("tracked", false))
+		or not bool(pre_censor_release.get("tracked", false))
+		or bool(ignored_post_censor_repeat.get("tracked", false))
+		or not bool(pre_censor_reacquire.get("tracked", false))
+		or not is_equal_approx(float(pre_censor_link.get("paired_release_time", -1.0)), 58.8)
+		or String(pre_censor_link.get("paired_release_reason", "")) != "memory_expired"
+		or bool(killed_release.get("tracked", false))
+		or bool(invalid_release.get("tracked", false))
+		or int(edge.metrics.pacing.target_continuity_summary.survival_episode_releases) != releases_before_terminal
+		or edge.metrics.pacing.target_continuity_summary.release_by_reason.has("target_killed")
+		or edge.metrics.pacing.target_continuity_summary.release_by_reason.has("invalid_target")
+	):
+		edge.free()
+		main.free()
+		return _fail("Continuity censoring or terminal-release rejection changed.")
+	edge.free()
+	main.free()
+	return true
+
+
+func _continuity_release_context(actor_id: int, target_id: int, episode: int) -> Dictionary:
+	return {
+		"actor_id": actor_id,
+		"target_id": target_id,
+		"target_state_episode": episode,
+		"state": "ATTACK",
+		"target_state": "DISENGAGE" if episode % 2 == 0 else "RECOVER",
+		"reason": "Memory_Expired",
+		"source": "Attack",
+		"target_source": "Idle_Reaction",
+		"distance": 7.25,
+		"target_age_seconds": 2.5,
+		"move_intent": "Nav_Target",
+		"nav_intent": true,
+		"speed": 3.5,
+		"nav_target_distance": 6.0,
+	}
+
+
+func _continuity_reacquire_context(actor_id: int, target_id: int, episode: int) -> Dictionary:
+	return {
+		"actor_id": actor_id,
+		"target_id": target_id,
+		"target_state_episode": episode,
+		"state": "CHASE",
+		"source": "Idle_Reaction",
+		"target_state": "DISENGAGE" if episode % 2 == 0 else "RECOVER",
+		"distance": 6.75,
+		"target_age_seconds": 0.0,
+		"spawn_delay_seconds": 0.25,
+		"displacement": 1.5,
+		"stuck_delta": 0,
+		"disengage_entry_delta": 0,
+		"move_intent": "Velocity",
+		"nav_intent": false,
+		"speed": 4.0,
+		"nav_target_distance": 5.0,
+	}
+
+
+func _populate_continuity_volume(tel, main: FakeMain, reverse_order: bool) -> Array:
+	var episode_indices: Array = []
+	for index in range(130):
+		episode_indices.append(index)
+	if reverse_order:
+		episode_indices.reverse()
+	main.match_timer = 10.0
+	for index in episode_indices:
+		var context := _continuity_release_context(1000 + index, 2000 + index, 3000 + index)
+		var first: Dictionary = tel.track_target_continuity_release(context)
+		var duplicate: Dictionary = tel.track_target_continuity_release(context)
+		if not bool(first.get("first_episode", false)) or bool(duplicate.get("first_episode", true)):
+			push_error("Continuity volume duplicate-release invariant failed at %d." % index)
+	var release_only_keys := _sample_keys(tel.metrics.pacing.target_continuity_episode_samples)
+	main.match_timer = 10.5
+	for index in episode_indices:
+		if index % 2 != 0:
+			continue
+		var context := _continuity_reacquire_context(1000 + index, 2000 + index, 3000 + index)
+		var first: Dictionary = tel.track_target_continuity_reacquire(context)
+		var duplicate: Dictionary = tel.track_target_continuity_reacquire(context)
+		if not bool(first.get("tracked", false)) or bool(duplicate.get("tracked", false)):
+			push_error("Continuity volume duplicate-reacquire invariant failed at %d." % index)
+	var exit_indices: Array = []
+	for index in range(140):
+		exit_indices.append(index)
+	if reverse_order:
+		exit_indices.reverse()
+	main.match_timer = 20.0
+	for index in exit_indices:
+		var context := {
+			"actor_id": 4000 + index,
+			"target_id": 5000 + index,
+			"entry_target_id": 5000 + index,
+			"current_target_id": 5000 + index,
+			"state_episode_id": 6000 + index,
+			"state": "DISENGAGE",
+			"entry_reason": "Losing_Fight",
+			"reason": "Damage_Reengage",
+			"exit_state": "CHASE",
+			"source": "Damage_Reengage",
+			"same_entry_target": true,
+			"reengage": true,
+			"duration_seconds": 2.5,
+			"displacement": 3.25,
+			"stuck_delta": 1,
+			"visible_enemies": 2,
+			"additional_threats": 1,
+			"targeting_player": false,
+			"move_intent": "Nav_Target",
+			"nav_intent": true,
+			"speed": 3.0,
+			"nav_target_distance": 4.0,
+		}
+		if not tel.track_target_continuity_disengage_exit(context) \
+				or tel.track_target_continuity_disengage_exit(context):
+			push_error("Continuity volume duplicate-exit invariant failed at %d." % index)
+	return release_only_keys
+
+
+func _verify_sample_metadata(metadata: Dictionary, population: int, stored: int, omitted: int) -> bool:
+	return String(metadata.get("method", "")) == "deterministic_bottom_k_stable_hash" \
+		and int(metadata.get("capacity", -1)) == 128 \
+		and int(metadata.get("population", -1)) == population \
+		and int(metadata.get("stored", -1)) == stored \
+		and int(metadata.get("omitted", -1)) == omitted \
+		and bool(metadata.get("complete", true)) == (omitted == 0)
+
+
+func _sample_keys(samples: Array) -> Array:
+	var keys: Array = []
+	for sample in samples:
+		keys.append(String(sample.get("sample_key", "")))
+	return keys
+
+
+func _verify_linked_episode_samples(samples: Array) -> bool:
+	var previous_hash := -1
+	var previous_key := ""
+	for sample in samples:
+		var sample_key := String(sample.get("sample_key", ""))
+		var sample_hash := int(sample.get("sample_hash", -1))
+		var release: Dictionary = sample.get("release", {})
+		var expected_key := "%d|%d|%d" % [
+			int(release.get("actor_id", -1)),
+			int(release.get("target_id", -1)),
+			int(release.get("target_state_episode", -1)),
+		]
+		if sample_key != expected_key \
+				or sample_hash < previous_hash \
+				or (sample_hash == previous_hash and sample_key < previous_key):
+			return _fail("Episode sample identity or deterministic rank order changed.")
+		if sample.has("reacquire_1s"):
+			var reacquire: Dictionary = sample.reacquire_1s
+			if int(reacquire.get("actor_id", -2)) != int(release.get("actor_id", -1)) \
+					or int(reacquire.get("target_id", -2)) != int(release.get("target_id", -1)) \
+					or int(reacquire.get("target_state_episode", -2)) != int(release.get("target_state_episode", -1)) \
+					or String(reacquire.get("release_time_basis", "")) != "match_elapsed" \
+					or float(reacquire.get("delay_seconds", -1.0)) < 0.0 \
+					or float(reacquire.get("delay_seconds", 2.0)) > 1.0:
+				return _fail("Nested reacquire must remain linked to its selected release episode.")
+		previous_hash = sample_hash
+		previous_key = sample_key
+	return true
+
+
+func _verify_bot_target_continuity_shadow() -> bool:
+	var tel = root.get_node_or_null("Telemetry")
+	if tel == null:
+		return _fail("Telemetry autoload is required for the bot continuity smoke.")
+	var main := FakeMain.new()
+	main.name = "Main"
+	root.add_child(main)
+	tel.start_match()
+	var bot_scene: PackedScene = load("res://src/entities/bot/Bot.tscn")
+	var subject = bot_scene.instantiate()
+	var target = bot_scene.instantiate()
+	root.add_child(subject)
+	root.add_child(target)
+	subject.set_physics_process(false)
+	target.set_physics_process(false)
+	# Let Bot._ready() finish its staggered navigation setup timer before the
+	# fixture is freed, avoiding pending SceneTreeTimer references at shutdown.
+	await create_timer(0.25).timeout
+	subject.global_position = Vector3.ZERO
+	target.global_position = Vector3(0.0, 0.0, 4.0)
+	# Release episodes are intentionally restricted to a target that is
+	# actually in a survival state and to that target's concrete state episode.
+	target.set("current_state", target.State.DISENGAGE)
+	target.set("_state_episode_id", 10)
+
+	if not subject.acquire_enemy_target(target, "continuity_probe"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Continuity fixture could not acquire its first target.")
+	if not subject.acquire_enemy_target(target, "continuity_refresh"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Continuity fixture could not refresh its current target.")
+	if not tel.metrics.pacing.target_continuity_episode_samples.is_empty():
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Already-current acquisition must not emit release/reacquire events.")
+
+	main.match_timer = 1.0
+	subject.set("_spawn_age", 0.0)
+	subject.call("_record_enemy_target_release", "memory_expired", "probe_release")
+	subject.target_actor = null
+	main.match_timer = 1.5
+	# Deliberately offset the Bot-local clock: match elapsed is the only
+	# eligibility clock, while the 9s spawn delay remains diagnostic only.
+	subject.set("_spawn_age", 9.0)
+	if not subject.acquire_enemy_target(target, "probe_reacquire"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Continuity fixture could not reacquire its released target.")
+	var episode_samples: Array = tel.metrics.pacing.target_continuity_episode_samples
+	if episode_samples.size() != 1 or not episode_samples[0].has("reacquire_1s"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("A <=1s real release/reacquire pair should produce one linked episode sample.")
+	var linked_reacquire: Dictionary = episode_samples[0].reacquire_1s
+	if not is_equal_approx(float(linked_reacquire.get("delay_seconds", -1.0)), 0.5) \
+			or not is_equal_approx(float(linked_reacquire.get("spawn_delay_seconds", -1.0)), 9.0) \
+			or int(linked_reacquire.get("target_id", -1)) != target.get_instance_id():
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Same-target reacquire should preserve delay and within-run target ID.")
+	if not subject.acquire_enemy_target(target, "post_reacquire_refresh") \
+			or tel.metrics.pacing.target_continuity_episode_samples.size() != 1:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Repeated acquire after reacquisition must remain a hold/refresh.")
+
+	# An expired release is consumed by the next real acquisition and cannot
+	# leak into a later already-current refresh.
+	target.set("_state_episode_id", 11)
+	main.match_timer = 2.0
+	subject.set("_spawn_age", 0.5)
+	subject.call("_record_enemy_target_release", "memory_expired", "stale_probe")
+	subject.target_actor = null
+	main.match_timer = 3.5
+	# The inverse mismatch is rejected by match elapsed even though the Bot-local
+	# diagnostic delay is only 0.25s.
+	subject.set("_spawn_age", 0.75)
+	if not subject.acquire_enemy_target(target, "stale_reacquire"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Continuity fixture could not perform the stale acquisition.")
+	if not subject.acquire_enemy_target(target, "stale_refresh"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Continuity fixture could not refresh after stale acquisition.")
+	if int(tel.metrics.pacing.target_continuity_summary.survival_episode_releases) != 2 \
+			or int(tel.metrics.pacing.target_continuity_summary.survival_episode_reacquired_1s) != 1:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("A >1s stale release must not create a reacquire event.")
+
+	subject.set("_spawn_age", 2.0)
+	subject.call("_log_disengage_entry", "probe_disengage")
+	var episode_before_disengage: int = int(subject.get_state_episode_id())
+	subject.change_state(subject.State.DISENGAGE)
+	if subject.get_state_episode_id() != episode_before_disengage + 1:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("A real state change must increment the Bot state episode exactly once.")
+	var disengage_kill_context: Dictionary = subject.get_kill_context(target)
+	if String(disengage_kill_context.get("disengage_entry_reason", "")) != "probe_disengage" \
+			or not bool(disengage_kill_context.get("disengage_same_entry_target", false)):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Current DISENGAGE kill context should expose its active entry episode.")
+	subject.set("_cached_threat_pressure_context", {
+		"visible_enemies": 3,
+		"additional_threats": 2,
+		"targeting_player": false,
+	})
+	subject.set("_spawn_age", 4.5)
+	subject.global_position = Vector3(3.0, 0.0, 0.0)
+	subject.set("_stuck_event_count", int(subject.get("_stuck_event_count")) + 1)
+	main.match_timer = 4.0
+	subject.change_state(subject.State.CHASE, "probe_reengage")
+	var exit_samples: Array = tel.metrics.pacing.target_continuity_disengage_exit_samples
+	var exit_event: Dictionary = exit_samples[0]
+	if (
+		String(exit_event.get("entry_reason", "")) != "probe_disengage"
+		or String(exit_event.get("reason", "")) != "probe_reengage"
+		or not bool(exit_event.get("same_entry_target", false))
+		or not bool(exit_event.get("reengage", false))
+		or int(exit_event.get("visible_enemies", -1)) != 3
+		or int(exit_event.get("additional_threats", -1)) != 2
+		or not is_equal_approx(float(exit_event.get("duration_seconds", -1.0)), 2.5)
+		or not is_equal_approx(float(exit_event.get("displacement", -1.0)), 3.0)
+		or int(exit_event.get("stuck_delta", -1)) != 1
+	):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("DISENGAGE exit should preserve entry, movement, target, and cached pressure context.")
+
+	subject.set("_spawn_age", 5.0)
+	subject.global_position = Vector3(4.0, 0.0, 0.0)
+	subject.set("_stuck_event_count", int(subject.get("_stuck_event_count")) + 1)
+	var kill_context: Dictionary = subject.get_kill_context(target)
+	if (
+		not is_equal_approx(float(kill_context.get("state_age_seconds", -1.0)), 0.5)
+		or not is_equal_approx(float(kill_context.get("target_age_seconds", -1.0)), 4.25)
+		or String(kill_context.get("disengage_entry_reason", "")) != "none"
+		or bool(kill_context.get("disengage_same_entry_target", true))
+		or not is_equal_approx(float(kill_context.get("state_displacement", -1.0)), 1.0)
+		or int(kill_context.get("state_stuck_delta", -1)) != 1
+	):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Non-DISENGAGE kill context must not leak stale DISENGAGE episode fields.")
+	if float(subject.get_kill_context(null).get("target_age_seconds", 0.0)) != -1.0:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Bot target age must use a sentinel when the opponent is not the current target.")
+
+	# A dead/invalid remembered target is not a current same-entry target on a
+	# later DISENGAGE exit, even if the observation shadow still has its ID.
+	subject.call("_log_disengage_entry", "dead_target_probe")
+	subject.change_state(subject.State.DISENGAGE)
+	target.is_dead = true
+	subject.change_state(subject.State.IDLE, "dead_target_exit")
+	target.is_dead = false
+	exit_samples = tel.metrics.pacing.target_continuity_disengage_exit_samples
+	var dead_target_exit: Dictionary = {}
+	for sample in exit_samples:
+		if String(sample.get("reason", "")) == "dead_target_exit":
+			dead_target_exit = sample
+			break
+	if int(dead_target_exit.get("current_target_id", 0)) != -1 \
+			or bool(dead_target_exit.get("same_entry_target", true)):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("DISENGAGE exit should not treat a dead remembered target as still current.")
+
+	# The immediate RECOVER -> IDLE reload path contains two real state changes
+	# and therefore advances the monotonic episode twice.
+	subject.stats.current_ammo = 0
+	subject.stats.max_ammo = maxi(2, int(subject.stats.max_ammo))
+	subject.reserve_ammo = 1
+	var episode_before_reload: int = int(subject.get_state_episode_id())
+	subject.change_state(subject.State.RECOVER, "episode_probe")
+	if subject.current_state != subject.State.IDLE \
+			or subject.get_state_episode_id() != episode_before_reload + 2:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Immediate RECOVER -> IDLE reload must increment both real state episodes.")
+
+	# Terminal producer paths clear shadows without touching exact/sample counts.
+	var summary: Dictionary = tel.metrics.pacing.target_continuity_summary
+	var releases_before_terminal := int(summary.get("survival_episode_releases", 0))
+	var sample_population_before_terminal := int(
+		tel.metrics.pacing.target_continuity_episode_sample_metadata.population
+	)
+	target.set("_state_episode_id", 12)
+	if not subject.acquire_enemy_target(target, "terminal_probe"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Continuity fixture could not acquire its terminal probe target.")
+	subject.call("_record_enemy_target_release", "target_killed", "terminal_probe")
+	if (
+		int(summary.get("survival_episode_releases", 0)) != releases_before_terminal
+		or int(tel.metrics.pacing.target_continuity_episode_sample_metadata.population) \
+				!= sample_population_before_terminal
+		or not subject.get("_enemy_release_shadows").is_empty()
+	):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Terminal target clears must not enter continuity exact totals or samples.")
+
+	# Death is a terminal DISENGAGE exit even though it does not pass through
+	# change_state(). Repeating die() must not duplicate the episode, and an
+	# otherwise identical death outside the opening window must not be counted.
+	main.match_timer = 6.0
+	var death_subject = bot_scene.instantiate()
+	root.add_child(death_subject)
+	death_subject.set_physics_process(false)
+	# Do not free a Bot while its asynchronous _ready navigation timer is still
+	# pending; that leaves the SceneTreeTimer referenced at verifier shutdown.
+	await create_timer(0.25).timeout
+	death_subject.stats.weapon_type = "pistol"
+	death_subject.stats.current_ammo = 0
+	death_subject.reserve_ammo = 0
+	death_subject.stats.heal_items = 0
+	death_subject.stats.advanced_heals = 0
+	death_subject.equipped_armor_tier = 0
+	death_subject.call("_log_disengage_entry", "death_probe")
+	death_subject.change_state(death_subject.State.DISENGAGE)
+	death_subject.target_actor = target
+	death_subject.call("_record_enemy_target_acquisition", target, "death_pending_probe", false)
+	death_subject.call("_record_enemy_target_release", "target_switch", "death_pending_probe")
+	if death_subject.get("_enemy_release_shadows").is_empty():
+		death_subject.free()
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Death cleanup fixture did not create a pending release shadow.")
+	var exits_before_death := int(summary.get("disengage_exit_count", 0))
+	death_subject.die()
+	death_subject.die()
+	var death_exit: Dictionary = {}
+	for sample in tel.metrics.pacing.target_continuity_disengage_exit_samples:
+		if int(sample.get("actor_id", -1)) == death_subject.get_instance_id():
+			death_exit = sample
+			break
+	if (
+		int(summary.get("disengage_exit_count", 0)) != exits_before_death + 1
+		or String(death_exit.get("reason", "")) != "death"
+		or String(death_exit.get("exit_state", "")) != "dead"
+		or bool(death_exit.get("reengage", true))
+		or int(summary.get("disengage_by_exit_reason", {}).get("death", 0)) != 1
+		or int(summary.get("disengage_by_exit_state", {}).get("dead", 0)) != 1
+		or int(summary.get("disengage_transitions", {}).get("death_probe->death/dead", 0)) != 1
+		or not bool(death_subject.get("_continuity_tracking_closed"))
+		or not death_subject.get("_enemy_release_shadows").is_empty()
+	):
+		death_subject.free()
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("DISENGAGE death must record one terminal exit with exact transition counters.")
+	death_subject.free()
+
+	main.match_timer = 60.01
+	var cutoff_death_subject = bot_scene.instantiate()
+	root.add_child(cutoff_death_subject)
+	cutoff_death_subject.set_physics_process(false)
+	await create_timer(0.25).timeout
+	cutoff_death_subject.stats.weapon_type = "pistol"
+	cutoff_death_subject.stats.current_ammo = 0
+	cutoff_death_subject.reserve_ammo = 0
+	cutoff_death_subject.stats.heal_items = 0
+	cutoff_death_subject.stats.advanced_heals = 0
+	cutoff_death_subject.equipped_armor_tier = 0
+	cutoff_death_subject.call("_log_disengage_entry", "cutoff_death_probe")
+	cutoff_death_subject.change_state(cutoff_death_subject.State.DISENGAGE)
+	cutoff_death_subject.die()
+	if int(summary.get("disengage_exit_count", 0)) != exits_before_death + 1:
+		cutoff_death_subject.free()
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("A DISENGAGE death after the 60s opening cutoff must not enter continuity totals.")
+	# Both death fixtures spawn 1.3s death effects. Let them finish before
+	# freeing the fixtures so this smoke exits without leaked effect references.
+	await create_timer(1.5).timeout
+	cutoff_death_subject.free()
+
+	# Once Telemetry's match clock is outside the opening window, the next
+	# behavior-neutral probe must clear all per-bot pending state.
+	main.match_timer = 7.0
+	target.set("_state_episode_id", 13)
+	subject.acquire_enemy_target(target, "cutoff_probe")
+	subject.call("_record_enemy_target_release", "target_switch", "cutoff_probe")
+	if subject.get("_enemy_release_shadows").is_empty():
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Cutoff fixture did not create a pending continuity shadow.")
+	main.match_timer = 60.01
+	if bool(subject.call("_target_continuity_tracking_available")) \
+			or not bool(subject.get("_continuity_tracking_closed")) \
+			or not subject.get("_enemy_release_shadows").is_empty():
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Opening cutoff should clear per-bot continuity pending/dedup dictionaries.")
+
+	tel.match_in_progress = false
+	subject.free()
+	target.free()
+	main.free()
+	await process_frame
 	return true
 
 

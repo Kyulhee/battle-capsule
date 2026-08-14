@@ -50,6 +50,7 @@ const ENGAGEMENT_LOCAL_RADIUS := 18.0
 const ENGAGEMENT_SNAPSHOT_INTERVAL := 0.20
 const ENGAGEMENT_DEFERRAL_MIN := 3.5
 const ENGAGEMENT_DEFERRAL_MAX := 5.0
+const TARGET_CONTINUITY_LOCAL_RETENTION_SECONDS := 62.0
 
 enum State { IDLE, CHASE, ATTACK, ZONE_ESCAPE, RECOVER, DISENGAGE }
 var current_state: State = State.IDLE
@@ -135,6 +136,28 @@ var _strategic_target_cycle: int = 0
 var _engagement_snapshot_timer: float = 0.0
 var _cached_engagement_snapshot: Dictionary = {}
 var _engagement_deferrals: Dictionary = {}
+
+# Behavior-neutral continuity shadow. These fields observe existing target/state
+# transitions only; they must never participate in AI decisions or actor scans.
+var _continuity_shadow_initialized: bool = false
+var _state_episode_id: int = 0
+var _state_entry_spawn_age: float = 0.0
+var _state_entry_position: Vector3 = Vector3.ZERO
+var _state_entry_stuck_count: int = 0
+var _stuck_event_count: int = 0
+var _tracked_enemy_target_id: int = -1
+var _tracked_enemy_target_source: String = "none"
+var _tracked_enemy_target_spawn_age: float = -1.0
+var _enemy_release_shadows: Dictionary = {}
+var _continuity_tracking_closed: bool = false
+var _pending_disengage_entry_reason: String = "none"
+var _disengage_entry_reason: String = "none"
+var _disengage_entry_target_id: int = -1
+var _disengage_entry_spawn_age: float = -1.0
+var _disengage_entry_position: Vector3 = Vector3.ZERO
+var _disengage_entry_stuck_count: int = 0
+var _disengage_entry_count: int = 0
+var _disengage_entry_state_episode: int = -1
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -252,6 +275,7 @@ func _on_died_zone_log():
 
 func _physics_process(delta):
 	if is_dead: return
+	_ensure_continuity_shadow()
 	var log_ai_update := _ai_update_telemetry_phase == 0
 	var ai_update_start_usec := Time.get_ticks_usec() if log_ai_update else 0
 	_ai_update_telemetry_phase = (_ai_update_telemetry_phase + 1) % AI_UPDATE_TELEMETRY_SAMPLE_INTERVAL
@@ -267,6 +291,11 @@ func _physics_process(delta):
 	_engagement_snapshot_timer -= delta
 	_spawn_age += delta
 	state_timer += delta
+	# This local-age threshold only schedules a one-time cleanup probe. The
+	# actual opening cutoff remains Telemetry's authoritative match clock.
+	if not _continuity_tracking_closed \
+			and _spawn_age >= TARGET_CONTINUITY_LOCAL_RETENTION_SECONDS:
+		_target_continuity_tracking_available()
 	_update_doctrine_state_telemetry(delta)
 
 	if current_state == State.ATTACK:
@@ -370,6 +399,7 @@ func _update_stuck(delta):
 			_stuck_override_dir = _pick_stuck_escape_dir(threat)
 			_stuck_override_timer = 1.2
 			_stuck_timer = 0.0
+			_stuck_event_count += 1
 			_debug_stuck_context()
 			if has_node("/root/Telemetry"):
 				var tel = get_node("/root/Telemetry")
@@ -606,6 +636,7 @@ func handle_chase_state(delta):
 	if not _is_target_valid(target_actor):
 		if is_targeting_loot:
 			_finish_loot_objective("invalid_target")
+		_record_enemy_target_release("invalid_target", "chase")
 		target_actor = null; is_targeting_loot = false; change_state(State.IDLE); return
 
 	var dist = global_position.distance_to(target_actor.global_position)
@@ -717,6 +748,7 @@ func handle_attack_state(delta):
 			_post_kill_loot_attempted = false
 		_knife_mode = false
 		_knife_mode_origin = "none"
+		_record_enemy_target_release("target_killed" if was_killed else "invalid_target", "attack")
 		target_actor = null
 		change_state(State.IDLE)
 		return
@@ -802,6 +834,7 @@ func handle_attack_state(delta):
 		if state_timer > 0.1: state_timer = 0.0
 
 	if not can_see and state_timer > BOT_DECISION_POLICY.target_memory_seconds(_is_targeting_player()):
+		_record_enemy_target_release("memory_expired", "attack")
 		target_actor = null
 		change_state(State.IDLE)
 		return
@@ -866,6 +899,7 @@ func handle_recover_state(delta):
 		if stats.current_ammo <= 0 and reserve_ammo > 0:
 			_try_reload()
 		if stats.current_ammo > 0:
+			_prepare_disengage_entry("recover_close_player")
 			change_state(State.DISENGAGE)
 		else:
 			_knife_mode = true
@@ -1161,9 +1195,9 @@ func handle_disengage_state(delta):
 			if stats.current_ammo > 0:
 				var reload_enemy = _find_nearest_target()
 				if reload_enemy and acquire_enemy_target(reload_enemy, "reload_reengage"):
-					change_state(State.CHASE)
+					change_state(State.CHASE, "reload_reengage")
 					return
-			change_state(State.IDLE)
+			change_state(State.IDLE, "reload_no_target")
 			return
 
 	# Return to action once pressure drops below the engagement-specific limit.
@@ -1172,28 +1206,28 @@ func handle_disengage_state(delta):
 		if not still_fragile:
 			var reengage_enemy = _find_nearest_target()
 			if acquire_enemy_target(reengage_enemy, "disengage_reengage"):
-				change_state(State.CHASE)
+				change_state(State.CHASE, "pressure_reengage")
 			else:
-				change_state(State.IDLE)
+				change_state(State.IDLE, "pressure_no_target")
 			return
 
 	# No ammo while disengaging — recover instead
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
-		change_state(State.RECOVER); return
+		change_state(State.RECOVER, "ammo_empty"); return
 
 	# Timeout safety valve
 	if state_timer > 8.0:
-		change_state(State.IDLE); return
+		change_state(State.IDLE, "timeout"); return
 
 	# Zone override still applies
 	var main = get_tree().root.get_node_or_null("Main")
 	if main:
 		var zone_dist = Vector2(global_position.x, global_position.z).distance_to(main.zone.current_center)
 		if zone_dist > main.zone.current_radius:
-			change_state(State.ZONE_ESCAPE); return
+			change_state(State.ZONE_ESCAPE, "zone_override"); return
 
 	var nearest_threat = _find_nearest_target()
-	if not nearest_threat: change_state(State.IDLE); return
+	if not nearest_threat: change_state(State.IDLE, "no_threat"); return
 	var counter_threat = _find_retreat_threat(BOT_TUNING.RETREAT_THREAT_SCAN_RANGE)
 	if not counter_threat:
 		counter_threat = nearest_threat
@@ -1650,7 +1684,316 @@ func _pickup_match_for(candidate) -> String:
 				else "shield_charge"
 	return "unknown"
 
+# ─── TARGET / STATE CONTINUITY SHADOW ────────────────────────────────────────
+
+func _ensure_continuity_shadow() -> void:
+	if _continuity_shadow_initialized:
+		return
+	_continuity_shadow_initialized = true
+	_state_entry_spawn_age = _spawn_age
+	_state_entry_position = global_position
+	_state_entry_stuck_count = _stuck_event_count
+	if not is_targeting_loot and is_instance_valid(target_actor) and target_actor is Entity:
+		_tracked_enemy_target_id = target_actor.get_instance_id()
+		_tracked_enemy_target_source = _shadow_key(_target_acquisition_source, "unknown")
+		_tracked_enemy_target_spawn_age = _spawn_age
+
+func _set_state_entry_shadow() -> void:
+	_state_entry_spawn_age = _spawn_age
+	_state_entry_position = global_position
+	_state_entry_stuck_count = _stuck_event_count
+
+func _shadow_key(raw_value: String, fallback: String = "none") -> String:
+	var normalized := raw_value.strip_edges().to_lower()
+	return normalized if not normalized.is_empty() else fallback
+
+func _continuity_current_target_id() -> int:
+	if is_targeting_loot:
+		return -1
+	if is_instance_valid(target_actor) and target_actor is Entity:
+		return target_actor.get_instance_id()
+	return _tracked_enemy_target_id
+
+func _continuity_target_distance(target_id: int) -> float:
+	if target_id < 0 or not is_instance_valid(target_actor) or not target_actor is Entity:
+		return -1.0
+	if target_actor.get_instance_id() != target_id:
+		return -1.0
+	return global_position.distance_to(target_actor.global_position)
+
+func _continuity_target_state(target_id: int) -> String:
+	if target_id < 0 or not is_instance_valid(target_actor) or not target_actor is Entity:
+		return "none"
+	if target_actor.get_instance_id() != target_id:
+		return "none"
+	if target_actor.has_method("get_telemetry_state"):
+		return _shadow_key(String(target_actor.get_telemetry_state()), "none")
+	return "entity"
+
+func _continuity_target_state_episode(target_id: int) -> int:
+	if target_id < 0 or not is_instance_valid(target_actor) or not target_actor is Entity:
+		return -1
+	if target_actor.get_instance_id() != target_id:
+		return -1
+	if target_actor.has_method("get_state_episode_id"):
+		return int(target_actor.get_state_episode_id())
+	return -1
+
+func _continuity_target_is_nonterminal(target_id: int) -> bool:
+	return target_id >= 0 \
+		and is_instance_valid(target_actor) \
+		and target_actor is Entity \
+		and target_actor.get_instance_id() == target_id \
+		and not target_actor.is_dead
+
+func _continuity_speed() -> float:
+	return Vector2(velocity.x, velocity.z).length()
+
+func _continuity_nav_target_distance() -> float:
+	if not _has_nav_target:
+		return -1.0
+	return global_position.distance_to(_nav_target_position)
+
+func _continuity_move_intent() -> String:
+	if _has_nav_target:
+		return "nav_target"
+	if _continuity_speed() >= 0.05:
+		return "velocity"
+	if current_state in [State.CHASE, State.RECOVER, State.ZONE_ESCAPE, State.DISENGAGE]:
+		return "movement_state"
+	return "stationary"
+
+func _close_target_continuity_tracking() -> void:
+	_continuity_tracking_closed = true
+	_enemy_release_shadows.clear()
+
+func _target_continuity_tracking_available() -> bool:
+	if _continuity_tracking_closed or not has_node("/root/Telemetry"):
+		return false
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("can_track_target_continuity") \
+			or not bool(tel.can_track_target_continuity()):
+		_close_target_continuity_tracking()
+		return false
+	return true
+
+func _clear_tracked_enemy_target_shadow() -> void:
+	_tracked_enemy_target_id = -1
+	_tracked_enemy_target_source = "none"
+	_tracked_enemy_target_spawn_age = -1.0
+
+func _record_enemy_target_release(reason_name: String, source_name: String) -> void:
+	_ensure_continuity_shadow()
+	var target_id := _continuity_current_target_id()
+	if target_id < 0:
+		return
+	var reason := _shadow_key(reason_name, "unknown")
+	var source := _shadow_key(source_name, "unknown")
+	# Terminal clears update only the observation shadow. They are not survival
+	# releases and must never enter the exact denominator or bounded samples.
+	if reason in ["target_killed", "invalid_target"]:
+		_clear_tracked_enemy_target_shadow()
+		_enemy_release_shadows.erase(target_id)
+		return
+	var target_state := _continuity_target_state(target_id)
+	var target_state_episode := _continuity_target_state_episode(target_id)
+	var target_age := -1.0
+	if _tracked_enemy_target_spawn_age >= 0.0:
+		target_age = maxf(0.0, _spawn_age - _tracked_enemy_target_spawn_age)
+	var target_distance := _continuity_target_distance(target_id)
+	var target_source := _tracked_enemy_target_source
+	var eligible := _continuity_target_is_nonterminal(target_id) \
+		and target_state in ["recover", "disengage"] \
+		and target_state_episode >= 0
+	_clear_tracked_enemy_target_shadow()
+	if not eligible or not _target_continuity_tracking_available():
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("track_target_continuity_release"):
+		return
+	var release_context := {
+		"actor_id": get_instance_id(),
+		"target_id": target_id,
+		"target_state_episode": target_state_episode,
+		"state": State.keys()[current_state],
+		"reason": reason,
+		"source": source,
+		"target_source": target_source,
+		"target_state": target_state,
+		"distance": target_distance,
+		"target_age_seconds": target_age,
+		"move_intent": _continuity_move_intent(),
+		"nav_intent": _has_nav_target,
+		"speed": _continuity_speed(),
+		"nav_target_distance": _continuity_nav_target_distance(),
+	}
+	var release_result: Dictionary = tel.track_target_continuity_release(release_context)
+	if not bool(release_result.get("tracked", false)) \
+			or not bool(release_result.get("pair_open", false)):
+		return
+	var episode_key := String(release_result.get("episode_key", ""))
+	if episode_key.is_empty():
+		return
+
+	# A repeated release in the same target survival episode does not add a
+	# denominator event. Until the first fast reacquire, it refreshes the pair
+	# origin so delay/displacement describe the latest actual release.
+	_enemy_release_shadows[target_id] = {
+		"spawn_age": _spawn_age,
+		"position": global_position,
+		"stuck_count": _stuck_event_count,
+		"disengage_entry_count": _disengage_entry_count,
+		"reason": reason,
+		"source": source,
+		"target_state": target_state,
+		"target_state_episode": target_state_episode,
+		"episode_key": episode_key,
+	}
+
+func _record_enemy_target_acquisition(
+	enemy: Entity,
+	source_name: String,
+	already_current: bool
+) -> void:
+	_ensure_continuity_shadow()
+	var target_id := enemy.get_instance_id()
+	if already_current:
+		# Existing calls may refresh an already-current target. That is a hold,
+		# not a release/reacquire pair, and must not reset target age.
+		if _tracked_enemy_target_id != target_id:
+			_tracked_enemy_target_id = target_id
+			_tracked_enemy_target_source = _shadow_key(source_name, "unknown")
+			_tracked_enemy_target_spawn_age = _spawn_age
+		return
+
+	_tracked_enemy_target_id = target_id
+	_tracked_enemy_target_source = _shadow_key(source_name, "unknown")
+	_tracked_enemy_target_spawn_age = _spawn_age
+	if not _enemy_release_shadows.has(target_id):
+		return
+	var release: Dictionary = _enemy_release_shadows[target_id]
+	# Consume stale pairs on the first real acquisition so a later hold/refresh
+	# cannot be mistaken for a short reacquire.
+	_enemy_release_shadows.erase(target_id)
+	var delay := _spawn_age - float(release.get("spawn_age", _spawn_age))
+	var episode_key := String(release.get("episode_key", ""))
+	if episode_key.is_empty():
+		return
+	if _continuity_target_state_episode(target_id) \
+			!= int(release.get("target_state_episode", -1)):
+		return
+	var release_position: Vector3 = release.get("position", global_position)
+	if not _target_continuity_tracking_available():
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("track_target_continuity_reacquire"):
+		return
+	var reacquire_context := {
+		"actor_id": get_instance_id(),
+		"target_id": target_id,
+		"target_state_episode": int(release.get("target_state_episode", -1)),
+		"state": State.keys()[current_state],
+		"source": _tracked_enemy_target_source,
+		"target_state": String(release.get("target_state", "none")),
+		"release_reason": String(release.get("reason", "unknown")),
+		"release_source": String(release.get("source", "unknown")),
+		"distance": _continuity_target_distance(target_id),
+		"target_age_seconds": 0.0,
+		"spawn_delay_seconds": delay,
+		"displacement": global_position.distance_to(release_position),
+		"stuck_delta": maxi(0, _stuck_event_count - int(release.get("stuck_count", _stuck_event_count))),
+		"disengage_entry_delta": maxi(0, _disengage_entry_count - int(release.get("disengage_entry_count", _disengage_entry_count))),
+		"move_intent": _continuity_move_intent(),
+		"nav_intent": _has_nav_target,
+		"speed": _continuity_speed(),
+		"nav_target_distance": _continuity_nav_target_distance(),
+	}
+	var reacquire_result: Dictionary = tel.track_target_continuity_reacquire(reacquire_context)
+	if not bool(reacquire_result.get("tracked", false)):
+		return
+
+func _prepare_disengage_entry(reason_name: String) -> void:
+	_pending_disengage_entry_reason = _shadow_key(reason_name, "unknown")
+
+func _begin_disengage_shadow(previous_state: State) -> void:
+	_ensure_continuity_shadow()
+	_disengage_entry_count += 1
+	_disengage_entry_state_episode = _state_episode_id
+	_disengage_entry_reason = _pending_disengage_entry_reason
+	if _disengage_entry_reason == "none":
+		_disengage_entry_reason = "from_%s" % String(State.keys()[previous_state]).to_lower()
+	_pending_disengage_entry_reason = "none"
+	_disengage_entry_target_id = _continuity_current_target_id()
+	_disengage_entry_spawn_age = _spawn_age
+	_disengage_entry_position = global_position
+	_disengage_entry_stuck_count = _stuck_event_count
+
+func _record_disengage_exit(
+	new_state: State,
+	reason_name: String,
+	exit_state_override: String = ""
+) -> void:
+	var exit_state_name := _shadow_key(
+		exit_state_override,
+		String(State.keys()[new_state]).to_lower()
+	)
+	var exit_reason := _shadow_key(reason_name, "to_%s" % exit_state_name)
+	var current_target_id := _continuity_current_target_id()
+	if not _continuity_target_is_nonterminal(current_target_id):
+		current_target_id = -1
+	var same_entry_target := _disengage_entry_target_id >= 0 \
+		and current_target_id == _disengage_entry_target_id
+	var pressure: Dictionary = _cached_threat_pressure_context
+	var reengage := exit_state_override.is_empty() \
+		and new_state in [State.CHASE, State.ATTACK]
+	if not _target_continuity_tracking_available():
+		return
+	var exit_context := {
+		"actor_id": get_instance_id(),
+		"target_id": current_target_id,
+		"entry_target_id": _disengage_entry_target_id,
+		"current_target_id": current_target_id,
+		"state_episode_id": _disengage_entry_state_episode,
+		"state": State.keys()[current_state],
+		"exit_state": exit_state_name,
+		"reason": exit_reason,
+		"entry_reason": _disengage_entry_reason,
+		"source": _tracked_enemy_target_source,
+		"duration_seconds": maxf(0.0, _spawn_age - _disengage_entry_spawn_age),
+		"displacement": global_position.distance_to(_disengage_entry_position),
+		"stuck_delta": maxi(0, _stuck_event_count - _disengage_entry_stuck_count),
+		"same_entry_target": same_entry_target,
+		"reengage": reengage,
+		"visible_enemies": int(pressure.get("visible_enemies", -1)),
+		"additional_threats": int(pressure.get("additional_threats", -1)),
+		"targeting_player": bool(pressure.get("targeting_player", false)),
+		"move_intent": _continuity_move_intent(),
+		"nav_intent": _has_nav_target,
+		"speed": _continuity_speed(),
+		"nav_target_distance": _continuity_nav_target_distance(),
+	}
+	var tel = get_node("/root/Telemetry")
+	if tel.has_method("track_target_continuity_disengage_exit"):
+		tel.track_target_continuity_disengage_exit(exit_context)
+
+func _kill_context_target_age() -> float:
+	if _tracked_enemy_target_id < 0 or _tracked_enemy_target_spawn_age < 0.0:
+		return -1.0
+	return maxf(0.0, _spawn_age - _tracked_enemy_target_spawn_age)
+
+func _kill_context_disengage_reason() -> String:
+	return _disengage_entry_reason if current_state == State.DISENGAGE else "none"
+
+func _kill_context_disengage_same_target() -> bool:
+	if current_state == State.DISENGAGE:
+		var current_target_id := _continuity_current_target_id()
+		return _disengage_entry_target_id >= 0 \
+			and current_target_id == _disengage_entry_target_id \
+			and _continuity_target_is_nonterminal(current_target_id)
+	return false
+
 func _start_loot_objective(loot_target: Node3D, source_name: String, recovering: bool) -> void:
+	_record_enemy_target_release("enemy_to_loot", source_name)
 	target_actor = loot_target
 	_target_acquisition_source = "none"
 	is_targeting_loot = true
@@ -2444,7 +2787,7 @@ func _check_state_overrides(delta):
 	if dist > main.zone.current_radius * threshold:
 		_zone_outside_timer += delta
 		if current_state != State.ZONE_ESCAPE:
-			change_state(State.ZONE_ESCAPE)
+			change_state(State.ZONE_ESCAPE, "zone_override")
 	else:
 		_zone_outside_timer = 0.0
 
@@ -2468,6 +2811,7 @@ func _check_survival_overrides():
 					change_state(State.RECOVER)
 		State.CHASE:
 			if not is_targeting_loot:  # don't cancel a life-saving loot run
+				_record_enemy_target_release("survival_break", "survival_override")
 				target_actor = null
 				if can_still_fight:
 					if has_node("/root/Telemetry"):
@@ -2478,7 +2822,7 @@ func _check_survival_overrides():
 					change_state(State.RECOVER)
 		State.DISENGAGE:
 			if not can_still_fight and state_timer > 1.5:
-				change_state(State.RECOVER)
+				change_state(State.RECOVER, "survival_no_ammo")
 
 # ─── PERIPHERAL AWARENESS ────────────────────────────────────────────────────
 
@@ -2512,6 +2856,9 @@ func acquire_enemy_target(enemy: Entity, source_name: String) -> bool:
 		return false
 	if not _can_join_engagement(enemy, source_name, true):
 		return false
+	var already_current := not is_targeting_loot and target_actor == enemy
+	if not already_current:
+		_record_enemy_target_release("target_switch", source_name)
 	_threat_pressure_timer = 0.0
 	if is_targeting_loot:
 		_finish_loot_objective("enemy_acquired")
@@ -2523,6 +2870,7 @@ func acquire_enemy_target(enemy: Entity, source_name: String) -> bool:
 	_recovering = false
 	_pending_target = null
 	last_known_target_pos = enemy.global_position
+	_record_enemy_target_acquisition(enemy, source_name, already_current)
 	_log_target_acquisition(source_name, enemy)
 	return true
 
@@ -3042,6 +3390,15 @@ static func resolve_melee_attack_origin(origin_override: String, knife_mode_orig
 # ─── DEATH & WEAPON DROP ─────────────────────────────────────────────────────
 
 func die(killer: Node3D = null):
+	# Death terminates an active DISENGAGE episode even though it does not pass
+	# through change_state(). This observation is recorded before drops/super
+	# without mutating state, target selection, navigation, or RNG.
+	if current_state == State.DISENGAGE:
+		_record_disengage_exit(State.IDLE, "death", "dead")
+	# Dead bots no longer run the physics-process cutoff probe, so release all
+	# behavior-neutral per-bot continuity shadows immediately after the terminal
+	# exit observation has had a chance to use them.
+	_close_target_continuity_tracking()
 	_flush_doctrine_state_telemetry()
 	if _state_label: _state_label.visible = false
 	if _archetype_marker: _archetype_marker.visible = false
@@ -3055,7 +3412,11 @@ func die(killer: Node3D = null):
 func get_telemetry_state() -> String:
 	return State.keys()[current_state]
 
+func get_state_episode_id() -> int:
+	return _state_episode_id
+
 func get_kill_context(opponent: Entity = null) -> Dictionary:
+	_ensure_continuity_shadow()
 	var context := super.get_kill_context(opponent)
 	var runtime_context := _target_acquisition_runtime_context()
 	var target_matches := is_instance_valid(opponent) and target_actor == opponent
@@ -3069,6 +3430,12 @@ func get_kill_context(opponent: Entity = null) -> Dictionary:
 		and _is_pressured_by(opponent)
 	context["targeting_loot"] = is_targeting_loot
 	context["spawn_age"] = _spawn_age
+	context["state_age_seconds"] = maxf(0.0, _spawn_age - _state_entry_spawn_age)
+	context["target_age_seconds"] = _kill_context_target_age() if target_matches else -1.0
+	context["disengage_entry_reason"] = _kill_context_disengage_reason()
+	context["disengage_same_entry_target"] = _kill_context_disengage_same_target()
+	context["state_displacement"] = global_position.distance_to(_state_entry_position)
+	context["state_stuck_delta"] = maxi(0, _stuck_event_count - _state_entry_stuck_count)
 	context["zone_ratio"] = float(runtime_context.get("zone_ratio", -1.0))
 	context["zone_status"] = String(runtime_context.get("zone_status", "unknown"))
 	return context
@@ -3194,7 +3561,7 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 		elif current_state == State.DISENGAGE:
 			acquire_enemy_target(source_node as Entity, "damage_disengage")
 			if current_health / stats.max_health > 0.55 and _can_reengage_after_pressure():
-				change_state(State.CHASE)
+				change_state(State.CHASE, "damage_reengage")
 		# HARD+: switch targets mid-combat when hit by a third party
 		elif _awareness_level >= 2 and current_state == State.ATTACK \
 				and source_node != target_actor:
@@ -3297,12 +3664,17 @@ func _outgoing_damage_for(target, base_damage: float) -> float:
 # ─── STATE MACHINE ───────────────────────────────────────────────────────────
 
 func _log_disengage_entry(reason: String):
+	_prepare_disengage_entry(reason)
 	if has_node("/root/Telemetry"):
 		get_node("/root/Telemetry").log_disengage_reason(reason, _archetype_name())
 
-func change_state(new_state: State):
+func change_state(new_state: State, transition_reason: String = ""):
 	if current_state == new_state: return
+	_ensure_continuity_shadow()
+	var previous_state := current_state
 	_flush_doctrine_state_telemetry()
+	if current_state == State.DISENGAGE:
+		_record_disengage_exit(new_state, transition_reason)
 	_threat_pressure_timer = 0.0
 	_has_nav_target = false
 	if new_state == State.ZONE_ESCAPE:
@@ -3343,14 +3715,20 @@ func change_state(new_state: State):
 			stats.current_ammo, reserve_ammo, current_health
 		])
 	current_state = new_state
+	_state_episode_id += 1
 	state_timer = 0.0
+	_set_state_entry_shadow()
+	if new_state == State.DISENGAGE:
+		_begin_disengage_shadow(previous_state)
 	_update_state_label()
 	if new_state == State.RECOVER:
 		# If reserve ammo is available, reload on the spot and skip RECOVER entirely
 		if reserve_ammo > 0:
 			_try_reload()
 			current_state = State.IDLE
+			_state_episode_id += 1
 			state_timer = 0.0
+			_set_state_entry_shadow()
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_tactics("reserve_reload")
 			return

@@ -1,6 +1,6 @@
 # 실험 기록
 
-> 최종 업데이트: 2026-08-10. 같은 실패를 반복하지 않기 위한 짧은 장부다.
+> 최종 업데이트: 2026-08-15. 같은 실패를 반복하지 않기 위한 짧은 장부다.
 
 ## 활성 판단
 
@@ -57,6 +57,9 @@
 | E-049 | 층화 스폰이 fallback 없이 초기 조우 밀도를 낮추는가? | 평균 nearest 18.3m·fallback 0, alive@30/60/120 `52/35/19`, T50/T10 `33.2/297.3초`, first upgrade 0.5초 | 생존·경제 방향 gate 실패, 완전 revert. 다른 생존 후보와 재혼합 금지 |
 | E-050 | behavior-unchanged kill context가 초기 붕괴의 종료 경로를 좁히는가? | `C:\tmp\n2_play_11_kill_context_baseline_20260809\run_1.json`: 845.8초, alive `53/38/26/26/21/15`, T50/T10 `36.2/415.1초`, first upgrade 12.2초. 60초 내 사망 22건은 gun/melee `14/8`, 생존 상태 피해자 19, 최근 보복 19, pressure 14 | 계측 유지. 교전 시작보다 RECOVER/DISENGAGE 뒤 종료 실패가 우선 가설이지만 단일 run은 gameplay PASS가 아님 |
 | E-051 | 생존 상태 bot target을 양보하는 ceasefire가 재획득·이동 회귀 없이 초기 사망을 줄이는가? | `C:\tmp\n2_play_11_survival_ceasefire_pilot_20260810\run_1.json`: 738.1초, alive `58/44/37/30/28/25`, T50/T10 `41.4/328.6초`, 사망 16·생존 상태 피해자 0. release 345, 1초 내 재획득 90(26.1%), stuck/disengage `53/823` 대 기준 `6/384` | 방향 gate 실패, 완전 revert, 5-run 금지. 재획득·이동 비용을 닫지 않은 ceasefire 재시도 금지 |
+| E-052 | bot-only survival HP buffer +0.08이 근접 종료 연쇄를 안전하게 늦추는가? | `C:\tmp\n2_play_11_survival_buffer_008_20260810`: 763.4초, alive@60/120/260 `34/16/14`, T10 280.2초, 1초 내 재획득 58/151(38.4%), stuck gate 실패 | 방향 gate 실패, 완전 revert, 5-run 금지. 피해/HP 완충과 다른 후보 재혼합 금지 |
+| E-053 | DISENGAGE 첫 1초 bot-only counteraction grace가 보복 연쇄를 끊는가? | `C:\tmp\n2_play_11_disengage_counter_grace_20260814`: 682.5초, alive `52/34/24/14`, T10 274.5초, fast reacquire 24/69(34.8%), disengage trigger 0.22. 직접 causal path는 0건이고 5m 이내 kill은 18→21 | 원인 경로를 건드리지 못하고 방향 gate 실패, 완전 revert, 5-run 금지. grace 확대·혼합 금지 |
+| E-054 | behavior-neutral continuity v2가 완전 aggregate와 bounded raw로 N2-PLAY-11을 판정할 수 있는가? | 1-run sanity는 contract PASS/stuck FAIL. `C:\tmp\n2_play_11_continuity_v2_5run_20260814`: 평균 668.8초(531.5-805.5), release/reacquire/exit `414/132/1284`, `check_scale_telemetry` PASS. 기록된 `tactics.disengage_entries/(spawned×duration_min)`은 run2 0.782·run4 0.864로 보조 watch 0.70을 2/5 초과 | schema v2 계측 계약 채택, gameplay PASS 아님. 다음 후보 전 opening 생존 상태 노출 분모로 반복 이탈·근거리 집중을 분리 |
 
 ## 폐기 패턴
 
@@ -88,6 +91,8 @@
 | 수동 `visual_review` 결과를 99봇 페이싱과 동일시 | 8봇은 참가자당 약 1,018㎡, 99봇 v6는 약 191㎡로 encounter 밀도가 다름 | 화면 검증과 gameplay 대표 preset을 분리 |
 | 좌표 확대와 중앙 spawn 집중으로 크기와 조우를 한 번에 해결 | 260m 후보도 첫 조우 7.1초, 180-218초 종료로 초반 과밀이 유지 | 맵 규모, 초기 밀도, AI 목표 위치를 독립 변수로 검증 |
 | 위치 후보마다 전체 봇을 순회해 혼잡 계산 | open 피해가 늘고 AI update 비용이 33%, DISENGAGE 비용이 82% 증가 | Arena에서 필요한 분산 신호를 먼저 정의하고 기존 근접 관측만 재사용 |
+| bot-only HP buffer로 생존 곡선 보정 | alive@120/260과 T10이 악화되고 fast reacquire 38.4%·stuck gate 실패 | 피해량이 병목이라는 새 인과 증거와 별도 후보 계약 필요 |
+| DISENGAGE 직후 blanket counteraction grace | 직접 causal path 0건, 근거리 kill·churn이 늘고 방향 gate 실패 | 실제 종료 source를 지배하는 경로가 계측으로 확인될 때만 해당 경로를 좁게 설계 |
 
 ## 기록 규칙
 

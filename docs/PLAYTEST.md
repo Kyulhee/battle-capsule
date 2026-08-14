@@ -1,6 +1,6 @@
 # 플레이테스트 노트
 
-> 최종 업데이트: 2026-08-10. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
+> 최종 업데이트: 2026-08-15. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
 
 ## 현재 수동 테스트 대상
 
@@ -8,12 +8,12 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | `N2-PLAY-11` kill-context 진단은 유지하고 ceasefire 파일럿은 폐기·완전 revert 완료. packaged 수동 재판정은 아직 시작하지 않음 |
+| 현재 단위 | `N2-PLAY-11` behavior-neutral continuity schema v2와 5-run 기준선 완료. 시험한 gameplay 후보는 모두 revert 상태이며 새 후보와 packaged 수동 재판정은 보류 |
 | 승격 목적 | N2-PLAY-10에서 확인한 무기 공백·초기 인원 붕괴·지도 HUD 중첩을 닫고 오프닝·장소/경로·생존/완주를 다시 승인 |
 
 ## N2-PLAY-11 재판정 프로토콜
 
-기준 5-run은 D-004를 통과했지만 생존 곡선을 실패했다. 새 gameplay 후보는 생존 방향뿐 아니라 release→재획득·정체·이탈·D-004·fallback을 1-run에서 함께 확인하고, 모두 보존될 때만 5-run, 그 결과가 통과할 때만 같은 후보를 packaged 수동 3판으로 판정한다.
+v2 기준 5-run은 D-004와 `check_scale_telemetry`를 통과했지만 생존 watch band를 실패했고 기록된 DISENGAGE entry 보조 watch도 2/5에서 초과했다. 새 gameplay 후보는 생존 방향뿐 아니라 release→재획득·정체·이탈·D-004·fallback을 1-run에서 함께 확인하고, 모두 보존될 때만 5-run, 그 결과가 통과할 때만 같은 후보를 packaged 수동 3판으로 판정한다.
 
 | 판 | 초점 | 필수 기록 |
 |---|---|---|
@@ -86,12 +86,12 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 
 ## 최근 기록
 
-### 2026-08-10 - N2-PLAY-11 kill-context 진단과 ceasefire 폐기
+### 2026-08-14 - N2-PLAY-11 continuity schema v2 기준선과 후보 폐기
 
-기준: `C:\tmp\n2_play_11_survival_20260809` 5-run은 D-004를 통과했지만 alive@30/60/120 `52/35/22`, T50/T10 `32.7/286.8초`로 생존 gate를 실패했다. release gate는 계속 FAIL이며 gameplay PASS 근거가 아니다.
-진단: behavior-unchanged `C:\tmp\n2_play_11_kill_context_baseline_20260809\run_1.json`은 845.8초, alive@30/60/90/120/180/260 `53/38/26/26/21/15`, T50/T10 `36.2/415.1초`, first upgrade 12.2초였다. 60초 내 사망 22건은 gun/melee `14/8`, 생존 상태 피해자 19건, 최근 보복 19건, pressure 14건으로 교전 종료 실패 가설을 지지한다.
-폐기: `C:\tmp\n2_play_11_survival_ceasefire_pilot_20260810\run_1.json`은 738.1초, alive `58/44/37/30/28/25`, T50/T10 `41.4/328.6초`, 사망 16건·생존 상태 피해자 0건이었지만 release 345회, 1초 내 같은 대상 재획득 90회(26.1%), stuck/disengage `53/823` 대 기준 `6/384`로 방향 gate를 실패했다. 완전 revert하고 5-run을 금지한다.
-패키지 자동 스모크: 최종 Windows export는 quick boot, 근접 종료 race packaged 3회, seed 41000 전체 자연 종료와 오류 0을 통과했다. 결과는 652.8초, alive `55/38/30/27/24/17`, T50/T10 `35.1/333.0초`, first upgrade 12.1초, spawn `60/60`·fallback 0이었다. 이는 실행 계약 PASS일 뿐 생존 gate·packaged 수동 PASS가 아니다. 다음 행동: kill-context만 유지하고 새 단일 후보가 생존 개선과 재획득·정체·이탈 비회귀를 같은 1-run에서 증명하기 전에는 5-run·packaged 수동 재판정으로 넘기지 않는다.
+계약: behavior-neutral schema v2는 `Main.match_timer`를 canonical clock으로 쓰며 `complete=true` exact aggregate를 판정 근거로 둔다. raw는 run마다 결정적 bottom-k로 release episode·DISENGAGE exit 각각 최대 128개만 보존하고 omitted sample이 있어도 완전 aggregate를 무효화하지 않으며 terminal target release는 제외한다.
+사전 확인: v2 1-run sanity는 data contract를 통과했지만 stuck gate를 실패해 gameplay 근거로 승격하지 않았다. 이어 실행한 `C:\tmp\n2_play_11_continuity_v2_5run_20260814`는 평균 668.8초(531.5-805.5), alive 중앙값 `54/34/24/23/21/15`, T50/T10 `31.5/306.7초`, first upgrade 3.5초, fallback 0이었다.
+판정: opening kill 132건 중 생존 상태 피해자 100건·2초 이내 71건이며 59초 이내 생존 상태 unique release/reacquire/opening exit는 `414/132/1284`다. raw coverage 합계는 episode `414/414/0`, exit `1284/640/644`(population/stored/omitted)이고 `check_scale_telemetry`는 PASS했지만 생존 watch band는 FAIL, 기록된 entry 보조 watch는 run2 0.782·run4 0.864로 2/5에서 0.70을 넘었다.
+폐기/다음: bot-only survival HP buffer와 DISENGAGE 첫 1초 counteraction grace는 각각 1-run 방향 gate를 실패해 완전 revert하고 5-run을 금지했다. 새 gameplay PASS·패키지·수동 주장은 없으며, 다음 후보 전 behavior-neutral opening 생존 상태 노출 분모로 위치·상태 집중을 좁힌다.
 
 ### 2026-08-09 - N2-PLAY-10 packaged 수동 6판 거부
 
@@ -101,7 +101,7 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 체감: 대부분의 플레이 시간에 비권총 무기를 찾지 못했고, 첫 축소 전에 한 자리만 남거나 경기가 끝났다. 조우는 파밍·자기장 회전보다 스폰 과밀과 우연한 근접에서 시작하는 경우가 많았다. 전체 지도를 열어도 미니맵·상단 상태/미션·킬피드·하단 무기 HUD가 남아 지도를 가렸다.
 근거: `(지속시간초/순위)`는 `16/60, 50/40, 84/21, 92/1, 135/14, 240/6`; 화면은 88초에 `25/61`, 최신 240초 결과는 stage1 사망 56명이다. 초기 pickup은 무기 5·탄약 23·방어/회복 14로 61명에 비해 무기가 적었고, 봇 무기 드랍 55개 중 기본 권총은 기존 권총과 동급이라 누구도 줍지 못했다.
 자동 후속: 전체 지도 뒤 gameplay HUD를 숨기고 미니맵을 220px로 줄이며 교전 중 정적 배경만 흐리게 한다. 기본 권총 무기 드랍을 제거하고 `bot_drop`은 soft 120초/hard 150초, `stage_wave`는 soft 180초/hard 210초로 제한했으며 비무기 wave가 무기를 다시 뽑는 경로를 막았다. 생존 event staircase와 첫 표적 종류를 기록하고 스폰 반경을 면적 균등화했다. 초기 장총은 전역 확률 대신 14개 POI의 보장 슬롯 18개와 오브젝트 앵커에 배치했다.
-다음 행동: 자동 후속의 5-run 생존 실패와 최신 kill-context/ceasefire 판정은 위 기록이 소유한다. 새 1-run 방향 gate 통과 전 packaged 수동 3판을 다시 하지 않는다.
+다음 행동: 자동 후속의 5-run 생존 실패와 최신 continuity v2 기준선·후보 폐기는 위 기록이 소유한다. 새 1-run 방향 gate 통과 전 packaged 수동 3판을 다시 하지 않는다.
 
 ### 2026-07-23 - N2-PLAY-09 지역·압력·파밍 판정
 

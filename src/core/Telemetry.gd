@@ -61,6 +61,13 @@ const HISTORY_SCHEMA_VERSION := 1
 const HISTORY_LIMIT_PER_DIFFICULTY := 50
 const MAX_KILL_CONTEXT_EVENTS := 128
 const OPENING_KILL_CONTEXT_SECONDS := 60.0
+const OPENING_TARGET_CONTINUITY_SECONDS := 60.0
+const TARGET_CONTINUITY_RELEASE_CENSOR_SECONDS := 59.0
+const TARGET_CONTINUITY_REACQUIRE_SECONDS := 1.0
+const MAX_TARGET_CONTINUITY_EPISODE_SAMPLES := 128
+const MAX_TARGET_CONTINUITY_DISENGAGE_EXIT_SAMPLES := 128
+const TARGET_CONTINUITY_SAMPLE_METHOD := "deterministic_bottom_k_stable_hash"
+const MAX_TARGET_CONTINUITY_SUMMARY_KEYS := 32
 var history_path: String = HISTORY_PATH
 var sim_result_path: String = SIM_RESULT_PATH
 
@@ -94,10 +101,18 @@ var _start_tick: int = 0
 var _current_stage: int = 1
 var _pending_weapon_collect_context: Dictionary = {}
 var _pending_weapon_collect_elapsed: float = -1.0
+var _target_continuity_release_episodes: Dictionary = {}
+var _target_continuity_disengage_episodes: Dictionary = {}
+var _target_continuity_episode_selected_samples: Dictionary = {}
+var _target_continuity_disengage_selected_samples: Dictionary = {}
 
 func _reset_metrics():
 	_pending_weapon_collect_context = {}
 	_pending_weapon_collect_elapsed = -1.0
+	_target_continuity_release_episodes = {}
+	_target_continuity_disengage_episodes = {}
+	_target_continuity_episode_selected_samples = {}
+	_target_continuity_disengage_selected_samples = {}
 	metrics = {
 		# core (always present — used by Main.gd result screen)
 		"session": {
@@ -216,6 +231,58 @@ func _reset_metrics():
 			# This deliberately avoids per-frame actor identifiers and payloads.
 			"kill_context_events": [],
 			"kill_context_dropped": 0,
+			# Linked, deterministic bottom-k samples. The exact summary below is
+			# authoritative even when either diagnostic sample is incomplete.
+			"target_continuity_episode_samples": [],
+			"target_continuity_episode_sample_metadata": {
+				"method": TARGET_CONTINUITY_SAMPLE_METHOD,
+				"capacity": MAX_TARGET_CONTINUITY_EPISODE_SAMPLES,
+				"population": 0,
+				"stored": 0,
+				"omitted": 0,
+				"complete": true,
+			},
+			"target_continuity_disengage_exit_samples": [],
+			"target_continuity_disengage_exit_sample_metadata": {
+				"method": TARGET_CONTINUITY_SAMPLE_METHOD,
+				"capacity": MAX_TARGET_CONTINUITY_DISENGAGE_EXIT_SAMPLES,
+				"population": 0,
+				"stored": 0,
+				"omitted": 0,
+				"complete": true,
+			},
+			# Exact opening continuity totals. This fixed-shape aggregate remains
+			# complete regardless of bounded sample coverage.
+			"target_continuity_summary": {
+				"schema_version": 2,
+				"exact": true,
+				"complete": true,
+				"window_seconds": OPENING_TARGET_CONTINUITY_SECONDS,
+				"release_censor_seconds": TARGET_CONTINUITY_RELEASE_CENSOR_SECONDS,
+				"reacquire_seconds": TARGET_CONTINUITY_REACQUIRE_SECONDS,
+				"release_time_basis": "match_elapsed",
+				"survival_episode_releases": 0,
+				"survival_episode_reacquired_1s": 0,
+				"release_by_target_state": {},
+				"release_by_reason": {},
+				"release_by_source": {},
+				"reacquire_by_source": {},
+				"reacquire_delay": {"count": 0, "sum": 0.0, "max": 0.0},
+				"reacquire_displacement": {"count": 0, "sum": 0.0, "max": 0.0},
+				"reacquire_stuck_delta_total": 0,
+				"reacquire_disengage_entry_delta_total": 0,
+				"disengage_exit_count": 0,
+				"disengage_same_entry_target": 0,
+				"disengage_reengage": 0,
+				"disengage_stuck_positive": 0,
+				"disengage_duration": {"count": 0, "sum": 0.0, "max": 0.0},
+				"disengage_displacement": {"count": 0, "sum": 0.0, "max": 0.0},
+				"disengage_stuck_delta_total": 0,
+				"disengage_by_entry_reason": {},
+				"disengage_by_exit_reason": {},
+				"disengage_by_exit_state": {},
+				"disengage_transitions": {},
+			},
 			"first_shot_time": -1.0,
 			"first_target_acquisition_time": -1.0,
 			"first_target_acquisition_source": "none",
@@ -564,6 +631,389 @@ func log_kill_context(
 	})
 	return true
 
+func can_track_target_continuity() -> bool:
+	return match_in_progress \
+		and _g("pacing") \
+		and _elapsed_seconds() <= OPENING_TARGET_CONTINUITY_SECONDS
+
+func track_target_continuity_release(context: Dictionary) -> Dictionary:
+	var result := {
+		"tracked": false,
+		"first_episode": false,
+		"pair_open": false,
+		"sampled": false,
+		"episode_key": "",
+		"release_time": -1.0,
+		"release_time_basis": "match_elapsed",
+	}
+	if not match_in_progress or not _g("pacing"):
+		return result
+	var elapsed := _elapsed_seconds()
+	if elapsed > TARGET_CONTINUITY_RELEASE_CENSOR_SECONDS:
+		return result
+	var episode_key := _target_continuity_episode_key(context)
+	var target_state := _normalized_key(String(context.get("target_state", "none")), "none")
+	var release_reason := _normalized_key(String(context.get("reason", "unknown")), "unknown")
+	if episode_key.is_empty() \
+			or target_state not in ["recover", "disengage"] \
+			or release_reason in ["target_killed", "invalid_target"]:
+		return result
+	var first_episode := not _target_continuity_release_episodes.has(episode_key)
+	if first_episode:
+		_target_continuity_release_episodes[episode_key] = {
+			"release_time": elapsed,
+			"release_reason": release_reason,
+			"release_source": _normalized_key(String(context.get("source", "unknown")), "unknown"),
+			"reacquired": false,
+		}
+		var summary: Dictionary = metrics.pacing.target_continuity_summary
+		summary.survival_episode_releases += 1
+		_target_continuity_increment(summary.release_by_target_state, target_state)
+		_target_continuity_increment(summary.release_by_reason, release_reason)
+		_target_continuity_increment(
+			summary.release_by_source,
+			String(context.get("source", "unknown"))
+		)
+		var release_sample := {
+			"sample_key": episode_key,
+			"sample_hash": _target_continuity_stable_hash(episode_key),
+			"release": _normalized_target_continuity_release(context, elapsed),
+		}
+		_target_continuity_consider_sample(
+			_target_continuity_episode_selected_samples,
+			release_sample,
+			MAX_TARGET_CONTINUITY_EPISODE_SAMPLES
+		)
+	else:
+		var episode: Dictionary = _target_continuity_release_episodes[episode_key]
+		# Before the first counted reacquisition, a repeated real release refreshes
+		# the canonical pair origin without changing either the exact denominator
+		# or its immutable first-release sample snapshot.
+		if not bool(episode.get("reacquired", false)):
+			episode["release_time"] = elapsed
+			episode["release_reason"] = release_reason
+			episode["release_source"] = _normalized_key(
+				String(context.get("source", "unknown")),
+				"unknown"
+			)
+			_target_continuity_release_episodes[episode_key] = episode
+	var episode_state: Dictionary = _target_continuity_release_episodes[episode_key]
+	_target_continuity_sync_samples(
+		_target_continuity_episode_selected_samples,
+		"target_continuity_episode_samples",
+		"target_continuity_episode_sample_metadata",
+		int(metrics.pacing.target_continuity_summary.survival_episode_releases),
+		MAX_TARGET_CONTINUITY_EPISODE_SAMPLES
+	)
+	result.tracked = true
+	result.first_episode = first_episode
+	result.pair_open = not bool(episode_state.get("reacquired", false))
+	result.sampled = _target_continuity_episode_selected_samples.has(episode_key)
+	result.episode_key = episode_key
+	result.release_time = float(episode_state.get("release_time", elapsed))
+	return result
+
+func track_target_continuity_reacquire(context: Dictionary) -> Dictionary:
+	var result := {
+		"tracked": false,
+		"sampled": false,
+		"episode_key": "",
+		"release_time": -1.0,
+		"release_time_basis": "match_elapsed",
+		"delay_seconds": -1.0,
+	}
+	if not can_track_target_continuity():
+		return result
+	var episode_key := _target_continuity_episode_key(context)
+	if episode_key.is_empty() or not _target_continuity_release_episodes.has(episode_key):
+		return result
+	var episode: Dictionary = _target_continuity_release_episodes[episode_key]
+	if bool(episode.get("reacquired", false)):
+		return result
+	var elapsed := _elapsed_seconds()
+	var canonical_release_time := float(episode.get("release_time", -1.0))
+	# Pair membership and delay use only Telemetry's authoritative match clock.
+	# A Bot spawn-age delay may be retained in the sample as a diagnostic, but
+	# can never affect eligibility or the exact aggregate.
+	var delay := elapsed - canonical_release_time
+	if canonical_release_time < 0.0 \
+			or canonical_release_time > TARGET_CONTINUITY_RELEASE_CENSOR_SECONDS \
+			or elapsed < canonical_release_time \
+			or delay > TARGET_CONTINUITY_REACQUIRE_SECONDS:
+		return result
+	episode["reacquired"] = true
+	_target_continuity_release_episodes[episode_key] = episode
+	var summary: Dictionary = metrics.pacing.target_continuity_summary
+	summary.survival_episode_reacquired_1s += 1
+	_target_continuity_increment(
+		summary.reacquire_by_source,
+		String(context.get("source", "unknown"))
+	)
+	_target_continuity_measure(summary.reacquire_delay, delay)
+	_target_continuity_measure(
+		summary.reacquire_displacement,
+		maxf(0.0, float(context.get("displacement", 0.0)))
+	)
+	summary.reacquire_stuck_delta_total += maxi(0, int(context.get("stuck_delta", 0)))
+	summary.reacquire_disengage_entry_delta_total += maxi(
+		0,
+		int(context.get("disengage_entry_delta", 0))
+	)
+	if _target_continuity_episode_selected_samples.has(episode_key):
+		var selected: Dictionary = _target_continuity_episode_selected_samples[episode_key]
+		var paired_context := context.duplicate()
+		paired_context["release_reason"] = String(episode.get("release_reason", "unknown"))
+		paired_context["release_source"] = String(episode.get("release_source", "unknown"))
+		selected["reacquire_1s"] = _normalized_target_continuity_reacquire(
+			paired_context,
+			elapsed,
+			canonical_release_time,
+			delay
+		)
+		_target_continuity_episode_selected_samples[episode_key] = selected
+		_target_continuity_sync_samples(
+			_target_continuity_episode_selected_samples,
+			"target_continuity_episode_samples",
+			"target_continuity_episode_sample_metadata",
+			int(summary.survival_episode_releases),
+			MAX_TARGET_CONTINUITY_EPISODE_SAMPLES
+		)
+	result.tracked = true
+	result.sampled = _target_continuity_episode_selected_samples.has(episode_key)
+	result.episode_key = episode_key
+	result.release_time = canonical_release_time
+	result.delay_seconds = delay
+	return result
+
+func track_target_continuity_disengage_exit(context: Dictionary) -> bool:
+	if not can_track_target_continuity():
+		return false
+	var actor_id := maxi(-1, int(context.get("actor_id", -1)))
+	var state_episode_id := maxi(-1, int(context.get("state_episode_id", -1)))
+	if actor_id < 0 or state_episode_id < 0:
+		return false
+	var episode_key := "%d|%d" % [actor_id, state_episode_id]
+	if _target_continuity_disengage_episodes.has(episode_key):
+		return false
+	_target_continuity_disengage_episodes[episode_key] = true
+	var summary: Dictionary = metrics.pacing.target_continuity_summary
+	summary.disengage_exit_count += 1
+	if bool(context.get("same_entry_target", false)):
+		summary.disengage_same_entry_target += 1
+	if bool(context.get("reengage", false)):
+		summary.disengage_reengage += 1
+	var stuck_delta := maxi(0, int(context.get("stuck_delta", 0)))
+	if stuck_delta > 0:
+		summary.disengage_stuck_positive += 1
+	summary.disengage_stuck_delta_total += stuck_delta
+	var duration := maxf(0.0, float(context.get("duration_seconds", 0.0)))
+	var displacement := maxf(0.0, float(context.get("displacement", 0.0)))
+	_target_continuity_measure(summary.disengage_duration, duration)
+	_target_continuity_measure(summary.disengage_displacement, displacement)
+	var entry_reason := _normalized_key(String(context.get("entry_reason", "unknown")), "unknown")
+	var exit_reason := _normalized_key(String(context.get("reason", "unknown")), "unknown")
+	var exit_state := _normalized_key(String(context.get("exit_state", "unknown")), "unknown")
+	_target_continuity_increment(summary.disengage_by_entry_reason, entry_reason)
+	_target_continuity_increment(summary.disengage_by_exit_reason, exit_reason)
+	_target_continuity_increment(summary.disengage_by_exit_state, exit_state)
+	_target_continuity_increment(
+		summary.disengage_transitions,
+		"%s->%s/%s" % [entry_reason, exit_reason, exit_state]
+	)
+	var exit_sample := _normalized_target_continuity_disengage_exit(context, _elapsed_seconds())
+	exit_sample["sample_key"] = episode_key
+	exit_sample["sample_hash"] = _target_continuity_stable_hash(episode_key)
+	_target_continuity_consider_sample(
+		_target_continuity_disengage_selected_samples,
+		exit_sample,
+		MAX_TARGET_CONTINUITY_DISENGAGE_EXIT_SAMPLES
+	)
+	_target_continuity_sync_samples(
+		_target_continuity_disengage_selected_samples,
+		"target_continuity_disengage_exit_samples",
+		"target_continuity_disengage_exit_sample_metadata",
+		int(summary.disengage_exit_count),
+		MAX_TARGET_CONTINUITY_DISENGAGE_EXIT_SAMPLES
+	)
+	return true
+
+func _target_continuity_episode_key(context: Dictionary) -> String:
+	var actor_id := maxi(-1, int(context.get("actor_id", -1)))
+	var target_id := maxi(-1, int(context.get("target_id", -1)))
+	var target_state_episode := maxi(-1, int(context.get("target_state_episode", -1)))
+	if actor_id < 0 or target_id < 0 or target_state_episode < 0:
+		return ""
+	return "%d|%d|%d" % [actor_id, target_id, target_state_episode]
+
+func _target_continuity_increment(counter: Dictionary, raw_key: String) -> void:
+	var key := _normalized_key(raw_key, "unknown")
+	if not counter.has(key):
+		var must_collapse := counter.size() >= MAX_TARGET_CONTINUITY_SUMMARY_KEYS \
+			or (not counter.has("other") \
+				and counter.size() >= MAX_TARGET_CONTINUITY_SUMMARY_KEYS - 1)
+		if must_collapse:
+			key = "other"
+	counter[key] = int(counter.get(key, 0)) + 1
+
+func _target_continuity_measure(bucket: Dictionary, value: float) -> void:
+	var bounded := maxf(0.0, value)
+	bucket.count = int(bucket.get("count", 0)) + 1
+	bucket.sum = float(bucket.get("sum", 0.0)) + bounded
+	bucket.max = maxf(float(bucket.get("max", 0.0)), bounded)
+
+func _normalized_target_continuity_release(context: Dictionary, elapsed: float) -> Dictionary:
+	return {
+		"time": elapsed,
+		"release_time": elapsed,
+		"release_time_basis": "match_elapsed",
+		"actor_id": maxi(-1, int(context.get("actor_id", -1))),
+		"target_id": maxi(-1, int(context.get("target_id", -1))),
+		"target_state_episode": maxi(-1, int(context.get("target_state_episode", -1))),
+		"state": _normalized_key(String(context.get("state", "none")), "none"),
+		"target_state": _normalized_key(String(context.get("target_state", "none")), "none"),
+		"reason": _normalized_key(String(context.get("reason", "none")), "none"),
+		"source": _normalized_key(String(context.get("source", "none")), "none"),
+		"target_source": _normalized_key(String(context.get("target_source", "none")), "none"),
+		"distance": _continuity_float(context, "distance"),
+		"target_age_seconds": _continuity_float(context, "target_age_seconds"),
+		"move_intent": _normalized_key(String(context.get("move_intent", "none")), "none"),
+		"nav_intent": bool(context.get("nav_intent", false)),
+		"speed": _continuity_float(context, "speed"),
+		"nav_target_distance": _continuity_float(context, "nav_target_distance"),
+	}
+
+func _normalized_target_continuity_reacquire(
+	context: Dictionary,
+	elapsed: float,
+	release_time: float,
+	delay: float
+) -> Dictionary:
+	return {
+		"time": elapsed,
+		"release_time": release_time,
+		"paired_release_time": release_time,
+		"release_time_basis": "match_elapsed",
+		"actor_id": maxi(-1, int(context.get("actor_id", -1))),
+		"target_id": maxi(-1, int(context.get("target_id", -1))),
+		"target_state_episode": maxi(-1, int(context.get("target_state_episode", -1))),
+		"state": _normalized_key(String(context.get("state", "none")), "none"),
+		"source": _normalized_key(String(context.get("source", "none")), "none"),
+		"target_state": _normalized_key(String(context.get("target_state", "none")), "none"),
+		"release_reason": _normalized_key(String(context.get("release_reason", "none")), "none"),
+		"release_source": _normalized_key(String(context.get("release_source", "none")), "none"),
+		"paired_release_reason": _normalized_key(String(context.get("release_reason", "none")), "none"),
+		"paired_release_source": _normalized_key(String(context.get("release_source", "none")), "none"),
+		"distance": _continuity_float(context, "distance"),
+		"target_age_seconds": _continuity_float(context, "target_age_seconds"),
+		"delay_seconds": delay,
+		"spawn_delay_seconds": _continuity_float(context, "spawn_delay_seconds"),
+		"displacement": maxf(0.0, float(context.get("displacement", 0.0))),
+		"stuck_delta": maxi(0, int(context.get("stuck_delta", 0))),
+		"disengage_entry_delta": maxi(0, int(context.get("disengage_entry_delta", 0))),
+		"move_intent": _normalized_key(String(context.get("move_intent", "none")), "none"),
+		"nav_intent": bool(context.get("nav_intent", false)),
+		"speed": _continuity_float(context, "speed"),
+		"nav_target_distance": _continuity_float(context, "nav_target_distance"),
+	}
+
+func _normalized_target_continuity_disengage_exit(
+	context: Dictionary,
+	elapsed: float
+) -> Dictionary:
+	return {
+		"time": elapsed,
+		"actor_id": maxi(-1, int(context.get("actor_id", -1))),
+		"target_id": maxi(-1, int(context.get("target_id", -1))),
+		"entry_target_id": maxi(-1, int(context.get("entry_target_id", -1))),
+		"current_target_id": maxi(-1, int(context.get("current_target_id", -1))),
+		"state_episode_id": maxi(-1, int(context.get("state_episode_id", -1))),
+		"state": _normalized_key(String(context.get("state", "none")), "none"),
+		"exit_state": _normalized_key(String(context.get("exit_state", "none")), "none"),
+		"reason": _normalized_key(String(context.get("reason", "none")), "none"),
+		"entry_reason": _normalized_key(String(context.get("entry_reason", "none")), "none"),
+		"source": _normalized_key(String(context.get("source", "none")), "none"),
+		"duration_seconds": maxf(0.0, float(context.get("duration_seconds", 0.0))),
+		"displacement": maxf(0.0, float(context.get("displacement", 0.0))),
+		"stuck_delta": maxi(0, int(context.get("stuck_delta", 0))),
+		"same_entry_target": bool(context.get("same_entry_target", false)),
+		"reengage": bool(context.get("reengage", false)),
+		"visible_enemies": maxi(-1, int(context.get("visible_enemies", -1))),
+		"additional_threats": maxi(-1, int(context.get("additional_threats", -1))),
+		"targeting_player": bool(context.get("targeting_player", false)),
+		"move_intent": _normalized_key(String(context.get("move_intent", "none")), "none"),
+		"nav_intent": bool(context.get("nav_intent", false)),
+		"speed": _continuity_float(context, "speed"),
+		"nav_target_distance": _continuity_float(context, "nav_target_distance"),
+	}
+
+func _target_continuity_stable_hash(sample_key: String) -> int:
+	# A custom, platform-stable polynomial hash. Keeping the modulus below the
+	# signed 32-bit boundary makes the serialized rank a strict nonnegative int.
+	var value: int = 7
+	for index in range(sample_key.length()):
+		value = (value * 131 + sample_key.unicode_at(index)) % 2147483647
+	return value
+
+func _target_continuity_sample_precedes(a: Dictionary, b: Dictionary) -> bool:
+	var a_hash := int(a.get("sample_hash", 0))
+	var b_hash := int(b.get("sample_hash", 0))
+	if a_hash != b_hash:
+		return a_hash < b_hash
+	return String(a.get("sample_key", "")) < String(b.get("sample_key", ""))
+
+func _target_continuity_consider_sample(
+	selected: Dictionary,
+	sample: Dictionary,
+	capacity: int
+) -> bool:
+	var sample_key := String(sample.get("sample_key", ""))
+	if sample_key.is_empty() or capacity <= 0:
+		return false
+	if selected.has(sample_key):
+		selected[sample_key] = sample
+		return true
+	if selected.size() < capacity:
+		selected[sample_key] = sample
+		return true
+	var worst_key := ""
+	var worst_sample: Dictionary = {}
+	for existing_key in selected:
+		var existing: Dictionary = selected[existing_key]
+		if worst_key.is_empty() or _target_continuity_sample_precedes(worst_sample, existing):
+			worst_key = String(existing_key)
+			worst_sample = existing
+	if not _target_continuity_sample_precedes(sample, worst_sample):
+		return false
+	selected.erase(worst_key)
+	selected[sample_key] = sample
+	return true
+
+func _target_continuity_sync_samples(
+	selected: Dictionary,
+	sample_field: String,
+	metadata_field: String,
+	population: int,
+	capacity: int
+) -> void:
+	var samples: Array = []
+	for sample in selected.values():
+		samples.append(sample)
+	samples.sort_custom(Callable(self, "_target_continuity_sample_precedes"))
+	metrics.pacing[sample_field] = samples
+	var stored := samples.size()
+	var omitted := maxi(0, population - stored)
+	var metadata: Dictionary = metrics.pacing[metadata_field]
+	metadata["method"] = TARGET_CONTINUITY_SAMPLE_METHOD
+	metadata["capacity"] = capacity
+	metadata["population"] = population
+	metadata["stored"] = stored
+	metadata["omitted"] = omitted
+	metadata["complete"] = omitted == 0
+
+func _continuity_float(context: Dictionary, key: String) -> float:
+	var value := float(context.get(key, -1.0))
+	return snappedf(value, 0.01) if value >= 0.0 else -1.0
+
 func _kill_attack_origin(cause: String, raw_origin: String) -> String:
 	if cause != "melee":
 		return "none"
@@ -591,6 +1041,12 @@ func _normalized_kill_actor_context(context: Dictionary) -> Dictionary:
 		"opponent_pressuring": bool(context.get("opponent_pressuring", false)),
 		"targeting_loot": bool(context.get("targeting_loot", false)),
 		"spawn_age": snappedf(float(context.get("spawn_age", -1.0)), 0.01),
+		"state_age_seconds": snappedf(float(context.get("state_age_seconds", -1.0)), 0.01),
+		"target_age_seconds": snappedf(float(context.get("target_age_seconds", -1.0)), 0.01),
+		"disengage_entry_reason": _normalized_key(String(context.get("disengage_entry_reason", "none")), "none"),
+		"disengage_same_entry_target": bool(context.get("disengage_same_entry_target", false)),
+		"state_displacement": snappedf(float(context.get("state_displacement", -1.0)), 0.01),
+		"state_stuck_delta": maxi(-1, int(context.get("state_stuck_delta", -1))),
 		"zone_ratio": snappedf(float(context.get("zone_ratio", -1.0)), 0.01),
 		"zone_status": _normalized_key(String(context.get("zone_status", "unknown")), "unknown"),
 		"poi_role": _normalized_key(String(context.get("poi_role", "open")), "open"),
