@@ -10,10 +10,171 @@ from summarize_pacing_baseline import (
     opening_kill_context_events,
     opening_target_continuity_events,
     print_opening_kill_context,
+    print_opening_survival_exposure,
     print_opening_target_continuity,
     print_survival_victim_continuity,
     _target_continuity_stable_hash,
 )
+
+
+EXPOSURE_AXES = (
+    "poi_name",
+    "poi_role",
+    "poi_band",
+    "route_id",
+    "route_role",
+    "route_band",
+)
+
+
+def exposure_event(
+    count: int,
+    state_counts: dict[str, int],
+    source: str,
+    reason: str,
+) -> dict:
+    event = {
+        "count": count,
+        "known_location_count": count,
+        "unknown_location_count": 0,
+        "by_state": state_counts,
+        "by_source": {source: count} if count else {},
+        "by_reason": {reason: count} if count else {},
+        "by_distance_bucket": {"under_2m": count} if count else {},
+        "by_threat_count_bucket": {"1": count} if count else {},
+    }
+    location_keys = {
+        "poi_name": "survey_camp",
+        "poi_role": "loot_hub",
+        "poi_band": "inside",
+        "route_id": "west_loop",
+        "route_role": "primary_choke",
+        "route_band": "on_route",
+    }
+    for axis, key in location_keys.items():
+        event[f"by_{axis}"] = {key: count} if count else {}
+    return event
+
+
+def exposure_summary(
+    recover_seconds: float = 30.0,
+    disengage_seconds: float = 10.0,
+    unknown_seconds: float = 2.0,
+    tracked_actors: int = 5,
+    acquisition_count: int = 4,
+    entry_count: int = 3,
+    death_count: int = 2,
+) -> dict:
+    known_keys = {
+        "poi_name": "survey_camp",
+        "poi_role": "loot_hub",
+        "poi_band": "inside",
+        "route_id": "west_loop",
+        "route_role": "primary_choke",
+        "route_band": "on_route",
+    }
+    actor_axes = {}
+    unknown_recover = min(recover_seconds, unknown_seconds)
+    unknown_disengage = min(
+        disengage_seconds, max(0.0, unknown_seconds - unknown_recover)
+    )
+    for axis, known_key in known_keys.items():
+        actor_axes[f"actor_seconds_by_state_and_{axis}"] = {
+            "recover": {
+                **(
+                    {known_key: recover_seconds - unknown_recover}
+                    if recover_seconds > unknown_recover
+                    else {}
+                ),
+                **({"unknown": unknown_recover} if unknown_recover > 0.0 else {}),
+            },
+            "disengage": {
+                **(
+                    {known_key: disengage_seconds - unknown_disengage}
+                    if disengage_seconds > unknown_disengage
+                    else {}
+                ),
+                **(
+                    {"unknown": unknown_disengage}
+                    if unknown_disengage > 0.0
+                    else {}
+                ),
+            },
+        }
+    acquisition_states = (
+        {"recover": acquisition_count} if acquisition_count else {}
+    )
+    entry_states = {"disengage": entry_count} if entry_count else {}
+    death_states = {}
+    if death_count:
+        recover_deaths = death_count // 2
+        disengage_deaths = death_count - recover_deaths
+        if recover_deaths:
+            death_states["recover"] = recover_deaths
+        if disengage_deaths:
+            death_states["disengage"] = disengage_deaths
+    return {
+        "schema_version": 1,
+        "exact": True,
+        "complete": True,
+        "population": "bots_only",
+        "window_seconds": 60.0,
+        "time_basis": "match_elapsed",
+        "interval_seconds": 0.25,
+        "attribution": "left_edge_sample_hold",
+        "context_basis": "state_entry_and_periodic_static_map_classification",
+        "counter_capacity": 64,
+        "overflow_bucket": "other",
+        "distance_buckets": [
+            "under_2m",
+            "2_5m",
+            "5_10m",
+            "10m_plus",
+            "unknown",
+        ],
+        "threat_count_basis": "cached_additional_threats",
+        "threat_count_buckets": ["0", "1", "2", "3_plus", "unknown"],
+        "survival_death_source_basis": "last_damage_source",
+        "survival_death_reason_basis": "last_damage_weapon",
+        "map_spec_path": "res://data/maps/night_map.json",
+        "scale_preset": "play_11",
+        "location_taxonomy": "strategic_position_v1",
+        "location_overflowed": False,
+        "tracked_actors": tracked_actors,
+        "initial_survival_state_counts": {
+            "recover": min(tracked_actors, 1),
+            "disengage": min(max(0, tracked_actors - 1), 1),
+        },
+        "actor_seconds_total": recover_seconds + disengage_seconds,
+        "known_location_actor_seconds": (
+            recover_seconds + disengage_seconds - unknown_seconds
+        ),
+        "unknown_location_actor_seconds": unknown_seconds,
+        "actor_seconds_by_state": {
+            "recover": recover_seconds,
+            "disengage": disengage_seconds,
+        },
+        **actor_axes,
+        "target_acquisitions": exposure_event(
+            acquisition_count,
+            acquisition_states,
+            "idle_reaction",
+            "target_change",
+        ),
+        "disengage_entries": exposure_event(
+            entry_count,
+            entry_states,
+            "state_entry",
+            "survival_break",
+        ),
+        "opening_bot_deaths": death_count,
+        "survival_deaths": exposure_event(
+            death_count,
+            death_states,
+            "melee",
+            "unarmed",
+        ),
+    }
 
 
 def complete_zero_summary() -> dict:
@@ -312,6 +473,13 @@ def report_for(runs: list[dict]) -> str:
     output = io.StringIO()
     with contextlib.redirect_stdout(output):
         print_opening_target_continuity(runs)
+    return output.getvalue()
+
+
+def exposure_report_for(runs: list[dict]) -> str:
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        print_opening_survival_exposure(runs)
     return output.getvalue()
 
 
@@ -882,11 +1050,304 @@ def verify_time_axis_and_legacy_identity() -> None:
     )
 
 
+def verify_opening_survival_exposure_contract() -> None:
+    first = exposure_summary()
+    second = exposure_summary(
+        recover_seconds=20.0,
+        disengage_seconds=40.0,
+        unknown_seconds=3.0,
+        tracked_actors=4,
+        acquisition_count=2,
+        entry_count=3,
+        death_count=1,
+    )
+    multi_run = exposure_report_for(
+        [
+            {"pacing": {"opening_survival_exposure_summary": first}},
+            {"pacing": {"opening_survival_exposure_summary": second}},
+        ]
+    )
+    assert_contains(
+        multi_run,
+        "schema v1 exact, bot-only <= 60s",
+        "tracked actors=9, actor-seconds=100.0",
+        "deaths=3 (3.00/100 state-s)",
+        "acquisitions=6",
+        "disengage entries=6 (3.60/state-min)",
+        "known=95.0s, unknown=5.0s (95.0%)",
+        "event location coverage (known/unknown): acquisitions=6/0, entries=6/0, survival deaths=3/0",
+        "recover=50.0s/deaths 1 (2.00/100s)",
+        "disengage=50.0s/deaths 2 (4.00/100s)",
+        "acquisition sources=[idle_reaction=6 (3.60/state-min)]",
+        "entry reasons=[survival_break=6 (3.60/state-min)]",
+        "death sources=[melee=3 (3.00/100s)]",
+        "poi_name location coverage: known=95.0s, unknown=5.0s, overflow=0.0s",
+        "survey_camp=95.0s; acq 6 (3.79/min), entry 6 (3.79/min), death 3 (3.16/100s)",
+        "release->reacquire location: unavailable",
+        "raw bounded samples are not promoted to totals",
+    )
+
+    mixed_identity = copy.deepcopy(second)
+    mixed_identity["scale_preset"] = "play_07"
+    identity_report = exposure_report_for(
+        [
+            {"pacing": {"opening_survival_exposure_summary": first}},
+            {"pacing": {"opening_survival_exposure_summary": mixed_identity}},
+        ]
+    )
+    assert_contains(
+        identity_report,
+        "survival-state deaths=3 (3.00/100 state-s)",
+        "location diagnostic INVALID",
+        "identities differ or are unknown; location rates held",
+    )
+
+    unknown_identity = exposure_summary()
+    unknown_identity["map_spec_path"] = "unknown"
+    assert_contains(
+        exposure_report_for(
+            [{"pacing": {"opening_survival_exposure_summary": unknown_identity}}]
+        ),
+        "schema v1 exact",
+        "location diagnostic INVALID",
+        "identities differ or are unknown; location rates held",
+    )
+
+    overflowed = exposure_summary()
+    overflowed["location_overflowed"] = True
+    assert_contains(
+        exposure_report_for(
+            [{"pacing": {"opening_survival_exposure_summary": overflowed}}]
+        ),
+        "schema v1 exact",
+        "location diagnostic INVALID",
+        "collapsed location keys into other; location rates held",
+    )
+
+    zero = exposure_summary(
+        recover_seconds=0.0,
+        disengage_seconds=0.0,
+        unknown_seconds=0.0,
+        tracked_actors=0,
+        acquisition_count=0,
+        entry_count=0,
+        death_count=0,
+    )
+    assert_contains(
+        exposure_report_for(
+            [{"pacing": {"opening_survival_exposure_summary": zero}}]
+        ),
+        "actor-seconds=0.0",
+        "deaths=0 (n/a/100 state-s)",
+        "disengage entries=0 (n/a/state-min)",
+        "known=0.0s, unknown=0.0s (n/a)",
+    )
+
+    low_coverage = exposure_summary(unknown_seconds=10.0)
+    assert_contains(
+        exposure_report_for(
+            [{"pacing": {"opening_survival_exposure_summary": low_coverage}}]
+        ),
+        "location diagnostic INVALID: known location exposure is 75.0%",
+        "known=30.0s, unknown=10.0s",
+        "rates held; requires >= 95%",
+    )
+
+    low_death_location_coverage = exposure_summary(death_count=4)
+    death_event = low_death_location_coverage["survival_deaths"]
+    death_event["known_location_count"] = 3
+    death_event["unknown_location_count"] = 1
+    for axis in EXPOSURE_AXES:
+        counter = death_event[f"by_{axis}"]
+        known_key = next(iter(counter))
+        counter[known_key] = 3
+        counter["unknown"] = 1
+    assert_contains(
+        exposure_report_for(
+            [
+                {
+                    "pacing": {
+                        "opening_survival_exposure_summary": (
+                            low_death_location_coverage
+                        )
+                    }
+                }
+            ]
+        ),
+        "event location coverage (known/unknown): acquisitions=4/0, entries=3/0, survival deaths=3/1",
+        "known event location coverage below 95%",
+        "survival deaths=75.0%",
+        "rates held",
+    )
+
+    malformed_cases: list[tuple[str, dict, str]] = []
+    bool_seconds = exposure_summary()
+    bool_seconds["actor_seconds_total"] = True
+    malformed_cases.append(
+        ("boolean actor seconds", bool_seconds, "actor_seconds_total must be finite")
+    )
+    state_total = exposure_summary()
+    state_total["actor_seconds_by_state"]["recover"] = 29.0
+    malformed_cases.append(
+        ("state total", state_total, "actor_seconds_by_state sums to")
+    )
+    axis_total = exposure_summary()
+    axis_total["actor_seconds_by_state_and_poi_name"]["recover"][
+        "survey_camp"
+    ] -= 1.0
+    malformed_cases.append(
+        ("axis total", axis_total, "actor_seconds_by_state_and_poi_name.recover sums")
+    )
+    marginal_total = exposure_summary()
+    marginal_total["target_acquisitions"]["by_source"]["idle_reaction"] = 3
+    malformed_cases.append(
+        ("event marginal", marginal_total, "target_acquisitions.by_source sums")
+    )
+    bool_event_count = exposure_summary()
+    bool_event_count["disengage_entries"]["count"] = True
+    malformed_cases.append(
+        (
+            "boolean event count",
+            bool_event_count,
+            "disengage_entries.count must be a nonnegative integer",
+        )
+    )
+    bad_bucket = exposure_summary()
+    bad_bucket["target_acquisitions"]["by_distance_bucket"] = {
+        "near": bad_bucket["target_acquisitions"]["count"]
+    }
+    malformed_cases.append(
+        (
+            "noncanonical bucket",
+            bad_bucket,
+            "target_acquisitions.by_distance_bucket.near is not an allowed key",
+        )
+    )
+    bad_entry_state = exposure_summary()
+    bad_entry_state["disengage_entries"]["by_state"] = {
+        "recover": bad_entry_state["disengage_entries"]["count"]
+    }
+    malformed_cases.append(
+        (
+            "entry state",
+            bad_entry_state,
+            "disengage_entries.by_state.recover is not an allowed key",
+        )
+    )
+    location_count = exposure_summary()
+    location_count["survival_deaths"]["unknown_location_count"] = 1
+    malformed_cases.append(
+        (
+            "event coverage",
+            location_count,
+            "known/unknown location counts must sum to count",
+        )
+    )
+    incomplete = exposure_summary()
+    incomplete["complete"] = False
+    malformed_cases.append(("incomplete", incomplete, "complete must be boolean true"))
+    legacy = exposure_summary()
+    legacy["schema_version"] = 0
+    malformed_cases.append(("legacy", legacy, "schema_version must be integer 1"))
+    location_seconds = exposure_summary()
+    location_seconds["known_location_actor_seconds"] -= 1.0
+    malformed_cases.append(
+        (
+            "location seconds",
+            location_seconds,
+            "known/unknown location actor seconds must sum",
+        )
+    )
+    hidden_overflow = exposure_summary()
+    hidden_overflow_axis = hidden_overflow[
+        "actor_seconds_by_state_and_poi_name"
+    ]["recover"]
+    hidden_overflow_axis["survey_camp"] -= 1.0
+    hidden_overflow_axis["other"] = 1.0
+    malformed_cases.append(
+        (
+            "hidden overflow",
+            hidden_overflow,
+            "positive location other bucket requires location_overflowed=true",
+        )
+    )
+    initial_counts = exposure_summary(tracked_actors=1)
+    initial_counts["initial_survival_state_counts"] = {
+        "recover": 1,
+        "disengage": 1,
+    }
+    malformed_cases.append(
+        (
+            "initial states",
+            initial_counts,
+            "initial_survival_state_counts exceeds tracked_actors",
+        )
+    )
+    over_window = exposure_summary(
+        recover_seconds=40.0,
+        disengage_seconds=30.0,
+        tracked_actors=1,
+        acquisition_count=0,
+        entry_count=0,
+        death_count=0,
+    )
+    malformed_cases.append(
+        (
+            "tracked window",
+            over_window,
+            "actor_seconds_total exceeds tracked_actors * window_seconds",
+        )
+    )
+    too_many_deaths = exposure_summary(tracked_actors=1, death_count=2)
+    malformed_cases.append(
+        (
+            "deaths exceed tracked",
+            too_many_deaths,
+            "survival_deaths.count exceeds tracked_actors",
+        )
+    )
+    for label, summary, expected in malformed_cases:
+        report = exposure_report_for(
+            [{"pacing": {"opening_survival_exposure_summary": summary}}]
+        )
+        try:
+            assert_contains(report, "exact aggregate INVALID", expected)
+        except AssertionError as error:
+            raise AssertionError(f"Exposure malformed case failed: {label}\n{error}")
+
+    raw_only = {
+        "pacing": {
+            "kill_context_events": [
+                {"time": 10.0, "victim": {"state": "recover"}}
+            ],
+            "target_continuity_events": [
+                {"time": 10.0, "event": "release"}
+            ],
+        }
+    }
+    assert_contains(
+        exposure_report_for([raw_only]),
+        "unavailable (schema v1 exact summary missing",
+        "raw kill/continuity samples are not used as a denominator",
+    )
+
+    mixed = [
+        {"pacing": {"opening_survival_exposure_summary": exposure_summary()}},
+        {"pacing": {}},
+    ]
+    assert_contains(
+        exposure_report_for(mixed),
+        "exact aggregate INVALID",
+        "exact exposure summary missing",
+    )
+
+
 def main() -> int:
     verify_kill_context_and_age_bands()
     verify_schema_v2_contract()
     verify_invalid_contracts()
     verify_time_axis_and_legacy_identity()
+    verify_opening_survival_exposure_contract()
 
     legacy_output = io.StringIO()
     with contextlib.redirect_stdout(legacy_output):

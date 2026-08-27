@@ -1,6 +1,6 @@
 # 결정 기록
 
-> 최종 업데이트: 2026-08-15. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
+> 최종 업데이트: 2026-08-28. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
 
 ## 재검토 전까지 유지
 
@@ -41,6 +41,8 @@
 | D-034 | `bot_drop`은 soft/hard 120/150초, `stage_wave`는 180/210초 TTL을 쓰고 initial/supply loot는 유지한다 | 무기 접근을 단순 전역 확률로 올리지 않으면서 전투 뒤·stage wave 누적은 유한하게 정리해야 한다 | 수동 플레이에서 줍기 직전 소멸 또는 후반 필드 과잉이 반복됨 |
 | D-035 | 생존 페이싱은 event staircase의 5-run 중앙값·절대 50명/10명 도달과 기존 duration gate를 함께 보고, player death 이후 수동 곡선은 검열한다 | 평균 duration만으로는 88초 25/61과 92초 우승 같은 초기 붕괴를 숨겼다 | 참가자 수 또는 M1 대표 표면이 바뀌어 절대 인원 gate를 재설계함 |
 | D-036 | target continuity schema v2는 `Main.match_timer` 기반 `complete=true` exact aggregate를 판정 근거로 쓰고, raw는 run마다 결정적 bottom-k release episode·DISENGAGE exit 각각 최대 128개로 제한한다 | 완전한 unique episode 집계와 bounded·순서 독립 진단을 분리하면 sample omitted을 gameplay 누락으로 오판하지 않고 파일 크기도 제한한다 | 결정적 실행기 또는 장기 episode 분석이 aggregate/sample 계약 변경을 요구함 |
+| D-037 | opening survival exposure schema v1은 `Main.match_timer`의 이전 held 상태·위치를 다음 관측까지 적분한 exact actor-seconds와 상태별 death/acquisition/entry를 판정 분모로 쓴다. POI·route 결과는 identity 일치·overflow 없음·actor/event known coverage 95% 이상일 때만 유효하다 | 1-run에서 444.3초가 known 100%·overflow false로 닫혔고 DISENGAGE와 RECOVER의 사망률을 raw 사망 수가 아닌 노출 분모로 분리했다 | taxonomy·sampling 계약 또는 canonical clock이 바뀌거나 bounded counter overflow가 실제로 발생함 |
+| D-038 | 현재 개발 후보는 internal pre-alpha로만 취급하고 공개 stable은 `v2.0.0-pre-expansion`을 유지한다 | 자동 구조 검증은 통과했지만 M1 생존, packaged 수동 3판, M2 비주얼/UX, 현재 commit의 clean package·호환성·고지가 닫히지 않았다 | R0/R1 필수 gate가 모두 닫혀 새 버전 승격 판정을 함 |
 
 ## 현재 설계 편향
 
@@ -56,3 +58,4 @@
 - `visual_review`는 화면 캡처용 8봇 표면이며 gameplay 대표 preset으로 사용하지 않는다.
 - route 교전 비중만 올리려고 물리 cover를 추가하지 않는다. route 선택 표면과 이동 계약을 먼저 만든다.
 - N2-PLAY-11에서는 broad damage·opening grace·zone 일정 변경을 섞지 않고, ceasefire·bot-only HP buffer·DISENGAGE 첫 1초 counteraction grace는 완전 revert한 채 재혼합하지 않는다. 가방/악세서리, 무기군+Tab, 더블배럴, 대형 hard block은 메모 또는 다음 대표 슬라이스다.
+- 최신 노출 정규화 결과는 단일 map hotspot을 지목하지 않는다. topology 변경 없이 `survival_break`로 진입한 DISENGAGE의 2.0초 `no_threat` exit hysteresis만 1-run 실험하며, 통과 전에는 채택·5-run·릴리즈를 주장하지 않는다.

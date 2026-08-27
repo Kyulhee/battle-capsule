@@ -38,6 +38,44 @@ TARGET_CONTINUITY_EXIT_METADATA_KEY = (
     "target_continuity_disengage_exit_sample_metadata"
 )
 
+OPENING_SURVIVAL_EXPOSURE_SUMMARY_KEY = "opening_survival_exposure_summary"
+OPENING_SURVIVAL_EXPOSURE_SCHEMA_VERSION = 1
+OPENING_SURVIVAL_EXPOSURE_INTERVAL_SECONDS = 0.25
+OPENING_SURVIVAL_EXPOSURE_STATES = {"recover", "disengage"}
+OPENING_SURVIVAL_EXPOSURE_MAX_COUNTER_KEYS = 64
+OPENING_SURVIVAL_LOCATION_MIN_KNOWN_RATIO = 0.95
+OPENING_SURVIVAL_DISTANCE_BUCKETS = {
+    "under_2m",
+    "2_5m",
+    "5_10m",
+    "10m_plus",
+    "unknown",
+}
+OPENING_SURVIVAL_THREAT_COUNT_BUCKETS = {"0", "1", "2", "3_plus", "unknown"}
+OPENING_SURVIVAL_EXPOSURE_AXES = (
+    "poi_name",
+    "poi_role",
+    "poi_band",
+    "route_id",
+    "route_role",
+    "route_band",
+)
+OPENING_SURVIVAL_EXPOSURE_EVENT_COUNTERS = {
+    event_name: (
+        "by_state",
+        "by_source",
+        "by_reason",
+        "by_distance_bucket",
+        "by_threat_count_bucket",
+        *(f"by_{axis}" for axis in OPENING_SURVIVAL_EXPOSURE_AXES),
+    )
+    for event_name in (
+        "target_acquisitions",
+        "disengage_entries",
+        "survival_deaths",
+    )
+}
+
 TARGET_CONTINUITY_RELEASE_SAMPLE_KEYS = {
     "time",
     "release_time",
@@ -762,6 +800,740 @@ def _format_summary_measure(measure: dict, unit: str) -> str:
     return (
         f"avg={float(measure.get('sum', 0.0)) / count:.2f}{unit}, "
         f"max={float(value_max):.2f}{unit}"
+    )
+
+
+def _float_totals_close(left: float, right: float) -> bool:
+    tolerance = 1.0e-6 * max(1.0, abs(left), abs(right))
+    return math.isclose(left, right, rel_tol=0.0, abs_tol=tolerance)
+
+
+def _validate_exposure_number_counter(
+    raw_counter: object,
+    expected_total: float,
+    label: str,
+    reasons: list[str],
+    allowed_keys: set[str] | None = None,
+) -> dict[str, float] | None:
+    if not isinstance(raw_counter, dict):
+        reasons.append(f"{label} must be an object")
+        return None
+    if len(raw_counter) > OPENING_SURVIVAL_EXPOSURE_MAX_COUNTER_KEYS:
+        reasons.append(
+            f"{label} exceeds {OPENING_SURVIVAL_EXPOSURE_MAX_COUNTER_KEYS} keys"
+        )
+    values: dict[str, float] = {}
+    for raw_key, raw_value in raw_counter.items():
+        key = _normalized_contract_key(raw_key)
+        if key is None:
+            reasons.append(f"{label} has a non-canonical key")
+            continue
+        if allowed_keys is not None and key not in allowed_keys:
+            reasons.append(f"{label}.{key} is not an allowed key")
+        if not _is_finite_nonnegative_number(raw_value):
+            reasons.append(f"{label}.{key} must be finite and nonnegative")
+            continue
+        values[key] = float(raw_value)
+    value_sum = sum(values.values())
+    if not _float_totals_close(value_sum, expected_total):
+        reasons.append(f"{label} sums to {value_sum:.6g}, expected {expected_total:.6g}")
+    return values
+
+
+def _validate_exposure_count_counter(
+    raw_counter: object,
+    expected_total: int,
+    label: str,
+    reasons: list[str],
+    allowed_keys: set[str] | None = None,
+) -> dict[str, int] | None:
+    if not isinstance(raw_counter, dict):
+        reasons.append(f"{label} must be an object")
+        return None
+    if len(raw_counter) > OPENING_SURVIVAL_EXPOSURE_MAX_COUNTER_KEYS:
+        reasons.append(
+            f"{label} exceeds {OPENING_SURVIVAL_EXPOSURE_MAX_COUNTER_KEYS} keys"
+        )
+    values: dict[str, int] = {}
+    for raw_key, raw_value in raw_counter.items():
+        key = _normalized_contract_key(raw_key)
+        if key is None:
+            reasons.append(f"{label} has a non-canonical key")
+            continue
+        if allowed_keys is not None and key not in allowed_keys:
+            reasons.append(f"{label}.{key} is not an allowed key")
+        if not _is_strict_nonnegative_int(raw_value):
+            reasons.append(f"{label}.{key} must be a nonnegative integer")
+            continue
+        values[key] = raw_value
+    value_sum = sum(values.values())
+    if value_sum != expected_total:
+        reasons.append(f"{label} sums to {value_sum}, expected {expected_total}")
+    return values
+
+
+def _validate_opening_survival_exposure_event(
+    event: object,
+    event_name: str,
+    reasons: list[str],
+) -> None:
+    if not isinstance(event, dict):
+        reasons.append(f"{event_name} must be an object")
+        return
+    counter_keys = set(OPENING_SURVIVAL_EXPOSURE_EVENT_COUNTERS[event_name])
+    expected_keys = {
+        "count",
+        "known_location_count",
+        "unknown_location_count",
+        *counter_keys,
+    }
+    missing = sorted(expected_keys.difference(event))
+    unexpected = sorted(set(event).difference(expected_keys))
+    reasons.extend(f"{event_name} missing {key}" for key in missing)
+    reasons.extend(f"{event_name} unexpected {key}" for key in unexpected)
+    raw_count = event.get("count")
+    if not _is_strict_nonnegative_int(raw_count):
+        reasons.append(f"{event_name}.count must be a nonnegative integer")
+        return
+    known_count = event.get("known_location_count")
+    unknown_count = event.get("unknown_location_count")
+    if not _is_strict_nonnegative_int(known_count):
+        reasons.append(
+            f"{event_name}.known_location_count must be a nonnegative integer"
+        )
+    if not _is_strict_nonnegative_int(unknown_count):
+        reasons.append(
+            f"{event_name}.unknown_location_count must be a nonnegative integer"
+        )
+    if _is_strict_nonnegative_int(known_count) \
+            and _is_strict_nonnegative_int(unknown_count) \
+            and known_count + unknown_count != raw_count:
+        reasons.append(
+            f"{event_name} known/unknown location counts must sum to count"
+        )
+    validated_counters: dict[str, dict[str, int] | None] = {}
+    for key in counter_keys:
+        allowed = None
+        if key == "by_state":
+            allowed = (
+                {"disengage"}
+                if event_name == "disengage_entries"
+                else OPENING_SURVIVAL_EXPOSURE_STATES
+            )
+        elif key == "by_distance_bucket":
+            allowed = OPENING_SURVIVAL_DISTANCE_BUCKETS
+        elif key == "by_threat_count_bucket":
+            allowed = OPENING_SURVIVAL_THREAT_COUNT_BUCKETS
+        validated_counters[key] = _validate_exposure_count_counter(
+            event.get(key), raw_count, f"{event_name}.{key}", reasons, allowed
+        )
+    if _is_strict_nonnegative_int(unknown_count):
+        for axis in OPENING_SURVIVAL_EXPOSURE_AXES:
+            counter = validated_counters.get(f"by_{axis}")
+            if counter is not None \
+                    and counter.get("unknown", 0) != unknown_count:
+                reasons.append(
+                    f"{event_name}.by_{axis}.unknown must equal "
+                    "unknown_location_count"
+                )
+
+
+def _validate_exact_opening_survival_exposure_summary(
+    summary: object,
+) -> list[str]:
+    if not isinstance(summary, dict):
+        return ["summary must be an object"]
+    actor_axis_keys = {
+        f"actor_seconds_by_state_and_{axis}"
+        for axis in OPENING_SURVIVAL_EXPOSURE_AXES
+    }
+    required = {
+        "schema_version",
+        "exact",
+        "complete",
+        "window_seconds",
+        "time_basis",
+        "interval_seconds",
+        "population",
+        "attribution",
+        "context_basis",
+        "counter_capacity",
+        "overflow_bucket",
+        "distance_buckets",
+        "threat_count_basis",
+        "threat_count_buckets",
+        "survival_death_source_basis",
+        "survival_death_reason_basis",
+        "map_spec_path",
+        "scale_preset",
+        "location_taxonomy",
+        "location_overflowed",
+        "tracked_actors",
+        "initial_survival_state_counts",
+        "actor_seconds_total",
+        "known_location_actor_seconds",
+        "unknown_location_actor_seconds",
+        "actor_seconds_by_state",
+        "opening_bot_deaths",
+        *actor_axis_keys,
+        *OPENING_SURVIVAL_EXPOSURE_EVENT_COUNTERS,
+    }
+    reasons = [f"missing {key}" for key in sorted(required.difference(summary))]
+    reasons.extend(
+        f"unexpected {key}" for key in sorted(set(summary).difference(required))
+    )
+    if type(summary.get("schema_version")) is not int \
+            or summary.get("schema_version") != OPENING_SURVIVAL_EXPOSURE_SCHEMA_VERSION:
+        reasons.append(
+            "schema_version must be integer "
+            f"{OPENING_SURVIVAL_EXPOSURE_SCHEMA_VERSION}"
+        )
+    if type(summary.get("exact")) is not bool or summary.get("exact") is not True:
+        reasons.append("exact must be boolean true")
+    if type(summary.get("complete")) is not bool \
+            or summary.get("complete") is not True:
+        reasons.append("complete must be boolean true")
+    if summary.get("time_basis") != "match_elapsed":
+        reasons.append("time_basis must be match_elapsed")
+    expected_numbers = {
+        "window_seconds": OPENING_KILL_CONTEXT_SECONDS,
+        "interval_seconds": OPENING_SURVIVAL_EXPOSURE_INTERVAL_SECONDS,
+    }
+    for key, expected in expected_numbers.items():
+        raw_value = summary.get(key)
+        if not _is_finite_nonnegative_number(raw_value) \
+                or not math.isclose(
+                    float(raw_value), expected, rel_tol=0.0, abs_tol=1.0e-9
+                ):
+            reasons.append(f"{key} must equal {expected:.2f}")
+    if summary.get("population") != "bots_only":
+        reasons.append("population must be bots_only")
+    if summary.get("attribution") != "left_edge_sample_hold":
+        reasons.append("attribution must be left_edge_sample_hold")
+    if summary.get("context_basis") \
+            != "state_entry_and_periodic_static_map_classification":
+        reasons.append(
+            "context_basis must be "
+            "state_entry_and_periodic_static_map_classification"
+        )
+    if type(summary.get("counter_capacity")) is not int \
+            or summary.get("counter_capacity") \
+            != OPENING_SURVIVAL_EXPOSURE_MAX_COUNTER_KEYS:
+        reasons.append(
+            "counter_capacity must be integer "
+            f"{OPENING_SURVIVAL_EXPOSURE_MAX_COUNTER_KEYS}"
+        )
+    if summary.get("overflow_bucket") != "other":
+        reasons.append("overflow_bucket must be other")
+    expected_lists = {
+        "distance_buckets": [
+            "under_2m",
+            "2_5m",
+            "5_10m",
+            "10m_plus",
+            "unknown",
+        ],
+        "threat_count_buckets": ["0", "1", "2", "3_plus", "unknown"],
+    }
+    for key, expected in expected_lists.items():
+        if summary.get(key) != expected:
+            reasons.append(f"{key} must equal the canonical ordered bucket list")
+    if summary.get("threat_count_basis") != "cached_additional_threats":
+        reasons.append("threat_count_basis must be cached_additional_threats")
+    if summary.get("survival_death_source_basis") != "last_damage_source":
+        reasons.append("survival_death_source_basis must be last_damage_source")
+    if summary.get("survival_death_reason_basis") != "last_damage_weapon":
+        reasons.append("survival_death_reason_basis must be last_damage_weapon")
+    for key in ("map_spec_path", "scale_preset"):
+        raw_value = summary.get(key)
+        if type(raw_value) is not str or not raw_value.strip() \
+                or raw_value != raw_value.strip():
+            reasons.append(f"{key} must be a nonempty trimmed string")
+    if summary.get("location_taxonomy") != "strategic_position_v1":
+        reasons.append("location_taxonomy must be strategic_position_v1")
+    if type(summary.get("location_overflowed")) is not bool:
+        reasons.append("location_overflowed must be boolean")
+    tracked_actor_count = summary.get("tracked_actors")
+    if not _is_strict_nonnegative_int(tracked_actor_count):
+        reasons.append("tracked_actors must be a nonnegative integer")
+        tracked_actor_count = -1
+    initial_counts = summary.get("initial_survival_state_counts")
+    if not isinstance(initial_counts, dict) \
+            or set(initial_counts) != OPENING_SURVIVAL_EXPOSURE_STATES:
+        reasons.append(
+            "initial_survival_state_counts must contain recover and disengage"
+        )
+    elif any(
+        not _is_strict_nonnegative_int(value) for value in initial_counts.values()
+    ):
+        reasons.append(
+            "initial_survival_state_counts values must be nonnegative integers"
+        )
+    elif tracked_actor_count >= 0 \
+            and sum(initial_counts.values()) > tracked_actor_count:
+        reasons.append("initial_survival_state_counts exceeds tracked_actors")
+    actor_seconds_total = summary.get("actor_seconds_total")
+    if not _is_finite_nonnegative_number(actor_seconds_total):
+        reasons.append("actor_seconds_total must be finite and nonnegative")
+        actor_seconds_total = -1.0
+    else:
+        actor_seconds_total = float(actor_seconds_total)
+        if tracked_actor_count >= 0 \
+                and actor_seconds_total \
+                > tracked_actor_count * OPENING_KILL_CONTEXT_SECONDS + 1.0e-6:
+            reasons.append(
+                "actor_seconds_total exceeds tracked_actors * window_seconds"
+            )
+    known_location_seconds = summary.get("known_location_actor_seconds")
+    unknown_location_seconds = summary.get("unknown_location_actor_seconds")
+    for key, raw_value in (
+        ("known_location_actor_seconds", known_location_seconds),
+        ("unknown_location_actor_seconds", unknown_location_seconds),
+    ):
+        if not _is_finite_nonnegative_number(raw_value):
+            reasons.append(f"{key} must be finite and nonnegative")
+    if actor_seconds_total >= 0.0 \
+            and _is_finite_nonnegative_number(known_location_seconds) \
+            and _is_finite_nonnegative_number(unknown_location_seconds) \
+            and not _float_totals_close(
+                float(known_location_seconds) + float(unknown_location_seconds),
+                actor_seconds_total,
+            ):
+        reasons.append(
+            "known/unknown location actor seconds must sum to actor_seconds_total"
+        )
+
+    state_seconds = _validate_exposure_number_counter(
+        summary.get("actor_seconds_by_state"),
+        actor_seconds_total,
+        "actor_seconds_by_state",
+        reasons,
+        OPENING_SURVIVAL_EXPOSURE_STATES,
+    ) if actor_seconds_total >= 0.0 else None
+    if state_seconds is not None \
+            and set(state_seconds) != OPENING_SURVIVAL_EXPOSURE_STATES:
+        reasons.append("actor_seconds_by_state must contain recover and disengage")
+
+    for axis in OPENING_SURVIVAL_EXPOSURE_AXES:
+        key = f"actor_seconds_by_state_and_{axis}"
+        raw_axis = summary.get(key)
+        if not isinstance(raw_axis, dict):
+            reasons.append(f"{key} must be an object")
+            continue
+        if set(raw_axis) != OPENING_SURVIVAL_EXPOSURE_STATES:
+            reasons.append(f"{key} must contain recover and disengage")
+        for state in OPENING_SURVIVAL_EXPOSURE_STATES:
+            expected = state_seconds.get(state, 0.0) if state_seconds else -1.0
+            if expected < 0.0:
+                continue
+            _validate_exposure_number_counter(
+                raw_axis.get(state), expected, f"{key}.{state}", reasons
+            )
+        if isinstance(raw_axis, dict) \
+                and _is_finite_nonnegative_number(unknown_location_seconds):
+            axis_unknown = 0.0
+            for state in OPENING_SURVIVAL_EXPOSURE_STATES:
+                state_values = raw_axis.get(state)
+                if isinstance(state_values, dict) \
+                        and _is_finite_nonnegative_number(
+                            state_values.get("unknown", 0.0)
+                        ):
+                    axis_unknown += float(state_values.get("unknown", 0.0))
+            if not _float_totals_close(
+                axis_unknown, float(unknown_location_seconds)
+            ):
+                reasons.append(
+                    f"{key} unknown seconds disagree with "
+                    "unknown_location_actor_seconds"
+                )
+
+    for event_name in OPENING_SURVIVAL_EXPOSURE_EVENT_COUNTERS:
+        _validate_opening_survival_exposure_event(
+            summary.get(event_name), event_name, reasons
+        )
+    location_other_positive = False
+    for axis in OPENING_SURVIVAL_EXPOSURE_AXES:
+        raw_axis = summary.get(f"actor_seconds_by_state_and_{axis}")
+        if isinstance(raw_axis, dict):
+            for state_values in raw_axis.values():
+                if isinstance(state_values, dict) \
+                        and _is_finite_nonnegative_number(
+                            state_values.get("other", 0.0)
+                        ) \
+                        and float(state_values.get("other", 0.0)) > 0.0:
+                    location_other_positive = True
+        for event_name in OPENING_SURVIVAL_EXPOSURE_EVENT_COUNTERS:
+            event = summary.get(event_name)
+            raw_counter = event.get(f"by_{axis}") if isinstance(event, dict) else None
+            if isinstance(raw_counter, dict) \
+                    and _is_strict_nonnegative_int(raw_counter.get("other", 0)) \
+                    and raw_counter.get("other", 0) > 0:
+                location_other_positive = True
+    if location_other_positive and summary.get("location_overflowed") is not True:
+        reasons.append(
+            "positive location other bucket requires location_overflowed=true"
+        )
+    opening_deaths = summary.get("opening_bot_deaths")
+    if not _is_strict_nonnegative_int(opening_deaths):
+        reasons.append("opening_bot_deaths must be a nonnegative integer")
+        opening_deaths = -1
+    deaths = summary.get("survival_deaths")
+    if isinstance(deaths, dict) and _is_strict_nonnegative_int(deaths.get("count")) \
+            and opening_deaths >= 0 \
+            and deaths["count"] > opening_deaths:
+        reasons.append("survival_deaths.count exceeds opening_bot_deaths")
+    if isinstance(deaths, dict) and _is_strict_nonnegative_int(deaths.get("count")) \
+            and tracked_actor_count >= 0 \
+            and deaths["count"] > tracked_actor_count:
+        reasons.append("survival_deaths.count exceeds tracked_actors")
+    if opening_deaths >= 0 and tracked_actor_count >= 0 \
+            and opening_deaths > tracked_actor_count:
+        reasons.append("opening_bot_deaths exceeds tracked_actors")
+    return reasons
+
+
+def _validated_opening_survival_exposure_summaries(
+    runs: list[dict],
+) -> tuple[list[dict], list[str], bool]:
+    summaries: list[dict] = []
+    errors: list[str] = []
+    advertised = False
+    for run_ordinal, run in enumerate(runs, start=1):
+        pacing = run.get("pacing", {})
+        if not isinstance(pacing, dict):
+            errors.append(f"run {run_ordinal}: pacing must be an object")
+            continue
+        if OPENING_SURVIVAL_EXPOSURE_SUMMARY_KEY not in pacing:
+            if advertised:
+                errors.append(f"run {run_ordinal}: exact exposure summary missing")
+            continue
+        advertised = True
+        summary = pacing.get(OPENING_SURVIVAL_EXPOSURE_SUMMARY_KEY)
+        run_errors = _validate_exact_opening_survival_exposure_summary(summary)
+        if run_errors:
+            errors.extend(f"run {run_ordinal}: {reason}" for reason in run_errors)
+        else:
+            summaries.append(summary)
+    if advertised and len(summaries) != len(runs) and not errors:
+        errors.append("not every run has a valid exact exposure summary")
+    return summaries, errors, advertised
+
+
+def _exposure_event_counter(summaries: list[dict], event: str, key: str) -> Counter:
+    counter = Counter()
+    for summary in summaries:
+        values = summary[event][key]
+        counter.update(values)
+    return counter
+
+
+def _exposure_event_count(summaries: list[dict], event: str) -> int:
+    return sum(int(summary[event]["count"]) for summary in summaries)
+
+
+def _exposure_event_location_counts(
+    summaries: list[dict], event: str
+) -> tuple[int, int]:
+    known = sum(int(summary[event]["known_location_count"]) for summary in summaries)
+    unknown = sum(
+        int(summary[event]["unknown_location_count"]) for summary in summaries
+    )
+    return known, unknown
+
+
+def _exposure_state_seconds(summaries: list[dict]) -> Counter:
+    counter = Counter()
+    for summary in summaries:
+        counter.update(summary["actor_seconds_by_state"])
+    return counter
+
+
+def _exposure_axis_seconds(summaries: list[dict], axis: str) -> Counter:
+    counter = Counter()
+    key = f"actor_seconds_by_state_and_{axis}"
+    for summary in summaries:
+        for state_values in summary[key].values():
+            counter.update(state_values)
+    return counter
+
+
+def _format_exposure_rate(numerator: int, seconds: float, scale: float) -> str:
+    if seconds <= 0.0:
+        return "n/a"
+    return f"{scale * numerator / seconds:.2f}"
+
+
+def _format_exposure_bucket_rates(
+    seconds: Counter,
+    acquisitions: Counter,
+    entries: Counter,
+    deaths: Counter,
+    limit: int = 6,
+) -> str:
+    names = set(seconds).union(acquisitions, entries, deaths)
+    if not names:
+        return "none"
+    ordered = sorted(
+        names,
+        key=lambda name: (
+            -int(deaths.get(name, 0)),
+            -int(acquisitions.get(name, 0)),
+            -int(entries.get(name, 0)),
+            -float(seconds.get(name, 0.0)),
+            name,
+        ),
+    )[:limit]
+    cells: list[str] = []
+    for name in ordered:
+        exposure = float(seconds.get(name, 0.0))
+        acquisition_count = int(acquisitions.get(name, 0))
+        entry_count = int(entries.get(name, 0))
+        death_count = int(deaths.get(name, 0))
+        cells.append(
+            f"{name}={exposure:.1f}s; acq {acquisition_count} "
+            f"({_format_exposure_rate(acquisition_count, exposure, 60.0)}/min), "
+            f"entry {entry_count} "
+            f"({_format_exposure_rate(entry_count, exposure, 60.0)}/min), "
+            f"death {death_count} "
+            f"({_format_exposure_rate(death_count, exposure, 100.0)}/100s)"
+        )
+    return ", ".join(cells)
+
+
+def _format_exposure_counter_rates(
+    counter: Counter, actor_seconds: float, scale: float, unit: str, limit: int = 8
+) -> str:
+    if not counter:
+        return "none"
+    return ", ".join(
+        f"{name}={int(value)} "
+        f"({_format_exposure_rate(int(value), actor_seconds, scale)}/{unit})"
+        for name, value in sorted(
+            counter.items(), key=lambda item: (-int(item[1]), str(item[0]))
+        )[:limit]
+    )
+
+
+def print_opening_survival_exposure(runs: list[dict]) -> None:
+    if not runs:
+        print("Opening survival exposure: unavailable (no runs).")
+        return
+    summaries, errors, advertised = _validated_opening_survival_exposure_summaries(
+        runs
+    )
+    if not advertised:
+        print(
+            "Opening survival exposure: unavailable (schema v1 exact summary missing; "
+            "raw kill/continuity samples are not used as a denominator)."
+        )
+        return
+    if errors or len(summaries) != len(runs):
+        reason = errors[0] if errors else "not every run has a valid summary"
+        extra = len(errors) - 1
+        suffix = f" (+{extra} more)" if extra > 0 else ""
+        print(
+            "Opening survival exposure: schema v1 exact aggregate INVALID "
+            f"({reason}{suffix}); exposure diagnostic INVALID."
+        )
+        return
+
+    actor_seconds = sum(float(item["actor_seconds_total"]) for item in summaries)
+    tracked_actors = sum(int(item["tracked_actors"]) for item in summaries)
+    opening_deaths = sum(int(item["opening_bot_deaths"]) for item in summaries)
+    deaths = _exposure_event_count(summaries, "survival_deaths")
+    acquisitions = _exposure_event_count(summaries, "target_acquisitions")
+    entries = _exposure_event_count(summaries, "disengage_entries")
+    death_rate = _format_exposure_rate(deaths, actor_seconds, 100.0)
+    entry_rate = _format_exposure_rate(entries, actor_seconds, 60.0)
+    print(
+        "Opening survival exposure "
+        f"(schema v1 exact, bot-only <= {OPENING_KILL_CONTEXT_SECONDS:.0f}s): "
+        f"tracked actors={tracked_actors}, actor-seconds={actor_seconds:.1f}, "
+        f"opening bot deaths={opening_deaths}, survival-state deaths={deaths} "
+        f"({death_rate}/100 state-s), acquisitions={acquisitions}, "
+        f"disengage entries={entries} ({entry_rate}/state-min)"
+    )
+    known_location_seconds = sum(
+        float(item["known_location_actor_seconds"]) for item in summaries
+    )
+    unknown_location_seconds = sum(
+        float(item["unknown_location_actor_seconds"]) for item in summaries
+    )
+    location_known_ratio = (
+        known_location_seconds / actor_seconds if actor_seconds > 0.0 else None
+    )
+    location_known_text = (
+        f"{100.0 * location_known_ratio:.1f}%"
+        if location_known_ratio is not None
+        else "n/a"
+    )
+    print(
+        "  location exposure coverage: "
+        f"known={known_location_seconds:.1f}s, "
+        f"unknown={unknown_location_seconds:.1f}s ({location_known_text})"
+    )
+    acquisition_location = _exposure_event_location_counts(
+        summaries, "target_acquisitions"
+    )
+    entry_location = _exposure_event_location_counts(summaries, "disengage_entries")
+    death_location = _exposure_event_location_counts(summaries, "survival_deaths")
+    print(
+        "  event location coverage (known/unknown): "
+        f"acquisitions={acquisition_location[0]}/{acquisition_location[1]}, "
+        f"entries={entry_location[0]}/{entry_location[1]}, "
+        f"survival deaths={death_location[0]}/{death_location[1]}"
+    )
+    event_location_counts = {
+        "acquisitions": acquisition_location,
+        "entries": entry_location,
+        "survival deaths": death_location,
+    }
+
+    state_seconds = _exposure_state_seconds(summaries)
+    state_deaths = _exposure_event_counter(summaries, "survival_deaths", "by_state")
+    state_entries = _exposure_event_counter(summaries, "disengage_entries", "by_state")
+    state_acquisitions = _exposure_event_counter(
+        summaries, "target_acquisitions", "by_state"
+    )
+    state_cells = []
+    for state in sorted(OPENING_SURVIVAL_EXPOSURE_STATES):
+        seconds = float(state_seconds.get(state, 0.0))
+        death_count = int(state_deaths.get(state, 0))
+        entry_count = int(state_entries.get(state, 0))
+        acquisition_count = int(state_acquisitions.get(state, 0))
+        state_cells.append(
+            f"{state}={seconds:.1f}s/deaths {death_count} "
+            f"({_format_exposure_rate(death_count, seconds, 100.0)}/100s)/"
+            f"acq {acquisition_count} "
+            f"({_format_exposure_rate(acquisition_count, seconds, 60.0)}/min)/"
+            f"entries {entry_count} "
+            f"({_format_exposure_rate(entry_count, seconds, 60.0)}/min)"
+        )
+    print(
+        "  state attribution (DISENGAGE entry state is post-transition): "
+        f"{', '.join(state_cells)}"
+    )
+    acquisition_sources = _exposure_event_counter(
+        summaries, "target_acquisitions", "by_source"
+    )
+    entry_reasons = _exposure_event_counter(
+        summaries, "disengage_entries", "by_reason"
+    )
+    death_sources = _exposure_event_counter(
+        summaries, "survival_deaths", "by_source"
+    )
+    death_reasons = _exposure_event_counter(
+        summaries, "survival_deaths", "by_reason"
+    )
+    print(
+        "  event attribution: acquisition sources="
+        f"[{_format_exposure_counter_rates(acquisition_sources, actor_seconds, 60.0, 'state-min')}], "
+        "entry reasons="
+        f"[{_format_exposure_counter_rates(entry_reasons, actor_seconds, 60.0, 'state-min')}], "
+        "death sources="
+        f"[{_format_exposure_counter_rates(death_sources, actor_seconds, 100.0, '100s')}], "
+        "death weapons="
+        f"[{_format_exposure_counter_rates(death_reasons, actor_seconds, 100.0, '100s')}]"
+    )
+
+    location_identities = {
+        (
+            item["map_spec_path"],
+            item["scale_preset"],
+            item["location_taxonomy"],
+        )
+        for item in summaries
+    }
+    location_identity_unknown = any(
+        map_spec_path == "unknown" or scale_preset == "unknown"
+        for map_spec_path, scale_preset, _taxonomy in location_identities
+    )
+    if len(location_identities) != 1 or location_identity_unknown:
+        print(
+            "  location diagnostic INVALID: run map_spec_path/scale_preset/"
+            "location_taxonomy identities differ or are unknown; location rates held."
+        )
+        print(
+            "  release->reacquire location: unavailable unless a complete exact "
+            "location aggregate is present; raw bounded samples are not promoted to totals."
+        )
+        return
+    map_spec_path, scale_preset, location_taxonomy = next(iter(location_identities))
+    print(
+        "  location identity: "
+        f"map={map_spec_path}, scale={scale_preset}, taxonomy={location_taxonomy}"
+    )
+    if any(bool(item["location_overflowed"]) for item in summaries):
+        print(
+            "  location diagnostic INVALID: at least one exact summary collapsed "
+            "location keys into other; location rates held."
+        )
+        print(
+            "  release->reacquire location: unavailable unless a complete exact "
+            "location aggregate is present; raw bounded samples are not promoted to totals."
+        )
+        return
+    low_event_location_coverage: list[str] = []
+    for label, (known_count, unknown_count) in event_location_counts.items():
+        total_count = known_count + unknown_count
+        if total_count <= 0:
+            continue
+        known_ratio = known_count / total_count
+        if known_ratio < OPENING_SURVIVAL_LOCATION_MIN_KNOWN_RATIO:
+            low_event_location_coverage.append(
+                f"{label}={100.0 * known_ratio:.1f}%"
+            )
+    if low_event_location_coverage:
+        print(
+            "  location diagnostic INVALID: known event location coverage below "
+            f"{100.0 * OPENING_SURVIVAL_LOCATION_MIN_KNOWN_RATIO:.0f}% "
+            f"({', '.join(low_event_location_coverage)}); rates held."
+        )
+        print(
+            "  release->reacquire location: unavailable unless a complete exact "
+            "location aggregate is present; raw bounded samples are not promoted to totals."
+        )
+        return
+    if location_known_ratio is not None \
+            and location_known_ratio < OPENING_SURVIVAL_LOCATION_MIN_KNOWN_RATIO:
+        print(
+            "  location diagnostic INVALID: known location exposure is "
+            f"{location_known_text} (known={known_location_seconds:.1f}s, "
+            f"unknown={unknown_location_seconds:.1f}s); rates held; requires >= "
+            f"{100.0 * OPENING_SURVIVAL_LOCATION_MIN_KNOWN_RATIO:.0f}%."
+        )
+        print(
+            "  release->reacquire location: unavailable unless a complete exact "
+            "location aggregate is present; raw bounded samples are not promoted to totals."
+        )
+        return
+
+    for axis in OPENING_SURVIVAL_EXPOSURE_AXES:
+        axis_seconds = _exposure_axis_seconds(summaries, axis)
+        axis_deaths = _exposure_event_counter(
+            summaries, "survival_deaths", f"by_{axis}"
+        )
+        axis_acquisitions = _exposure_event_counter(
+            summaries, "target_acquisitions", f"by_{axis}"
+        )
+        axis_entries = _exposure_event_counter(
+            summaries, "disengage_entries", f"by_{axis}"
+        )
+        unknown_seconds = float(axis_seconds.get("unknown", 0.0))
+        overflow_seconds = float(axis_seconds.get("other", 0.0))
+        unattributed_seconds = unknown_seconds + overflow_seconds
+        known_seconds = max(0.0, actor_seconds - unattributed_seconds)
+        known_ratio = known_seconds / actor_seconds if actor_seconds > 0.0 else None
+        coverage = f"{100.0 * known_ratio:.1f}%" if known_ratio is not None else "n/a"
+        print(
+            f"  {axis} location coverage: known={known_seconds:.1f}s, "
+            f"unknown={unknown_seconds:.1f}s, overflow={overflow_seconds:.1f}s "
+            f"({coverage}); event rates/exposure=["
+            f"{_format_exposure_bucket_rates(axis_seconds, axis_acquisitions, axis_entries, axis_deaths)}]"
+        )
+    print(
+        "  release->reacquire location: unavailable unless a complete exact "
+        "location aggregate is present; raw bounded samples are not promoted to totals."
     )
 
 
@@ -2500,6 +3272,7 @@ def main() -> int:
     print_first_upgrade_context(runs)
     print_opening_pressure(runs, first_contact)
     print_opening_kill_context(runs)
+    print_opening_survival_exposure(runs)
     print_opening_target_continuity(runs)
     print_survival_victim_continuity(runs)
     print("Movement pressure:")

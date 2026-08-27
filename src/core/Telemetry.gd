@@ -68,6 +68,10 @@ const MAX_TARGET_CONTINUITY_EPISODE_SAMPLES := 128
 const MAX_TARGET_CONTINUITY_DISENGAGE_EXIT_SAMPLES := 128
 const TARGET_CONTINUITY_SAMPLE_METHOD := "deterministic_bottom_k_stable_hash"
 const MAX_TARGET_CONTINUITY_SUMMARY_KEYS := 32
+const OPENING_SURVIVAL_EXPOSURE_SCHEMA_VERSION := 1
+const OPENING_SURVIVAL_EXPOSURE_SECONDS := 60.0
+const OPENING_SURVIVAL_EXPOSURE_INTERVAL_SECONDS := 0.25
+const MAX_OPENING_SURVIVAL_SUMMARY_KEYS := 64
 var history_path: String = HISTORY_PATH
 var sim_result_path: String = SIM_RESULT_PATH
 
@@ -105,6 +109,9 @@ var _target_continuity_release_episodes: Dictionary = {}
 var _target_continuity_disengage_episodes: Dictionary = {}
 var _target_continuity_episode_selected_samples: Dictionary = {}
 var _target_continuity_disengage_selected_samples: Dictionary = {}
+var _opening_survival_tracked_actors: Dictionary = {}
+var _opening_survival_held_by_actor: Dictionary = {}
+var _opening_survival_death_actors: Dictionary = {}
 
 func _reset_metrics():
 	_pending_weapon_collect_context = {}
@@ -113,6 +120,9 @@ func _reset_metrics():
 	_target_continuity_disengage_episodes = {}
 	_target_continuity_episode_selected_samples = {}
 	_target_continuity_disengage_selected_samples = {}
+	_opening_survival_tracked_actors = {}
+	_opening_survival_held_by_actor = {}
+	_opening_survival_death_actors = {}
 	metrics = {
 		# core (always present — used by Main.gd result screen)
 		"session": {
@@ -283,6 +293,10 @@ func _reset_metrics():
 				"disengage_by_exit_state": {},
 				"disengage_transitions": {},
 			},
+			# Exact bot-only opening exposure. State time uses a 0.25s
+			# left-edge sample hold: a state-entry/current-position observation
+			# owns the following interval until the next doctrine flush.
+			"opening_survival_exposure_summary": _new_opening_survival_exposure_summary(),
 			"first_shot_time": -1.0,
 			"first_target_acquisition_time": -1.0,
 			"first_target_acquisition_source": "none",
@@ -511,6 +525,7 @@ func end_match(
 			"match_end",
 			bool(last_alive_sample.get("shrinking", false))
 		)
+	_finalize_all_opening_survival_holds(_elapsed_seconds())
 	match_in_progress = false
 	metrics.core.zone_stage_reached = zone_stage
 	metrics.session.rank = rank
@@ -630,6 +645,361 @@ func log_kill_context(
 		"attacker": normalized_attacker,
 	})
 	return true
+
+func register_opening_survival_actor(
+	actor_id: int,
+	initial_state: String,
+	initial_observation: bool = false
+) -> bool:
+	if not match_in_progress or not _g("pacing"):
+		return false
+	return _register_opening_survival_actor(
+		actor_id,
+		initial_state,
+		_elapsed_seconds(),
+		initial_observation
+	)
+
+func can_track_opening_survival_exposure() -> bool:
+	return match_in_progress \
+		and _g("pacing") \
+		and _elapsed_seconds() <= OPENING_SURVIVAL_EXPOSURE_SECONDS
+
+func observe_opening_survival_state(
+	actor_id: int,
+	state_name: String,
+	location_context: Dictionary
+) -> float:
+	if not match_in_progress or not _g("pacing") or actor_id < 0:
+		return 0.0
+	var state := _normalized_key(state_name, "unknown")
+	var elapsed := _elapsed_seconds()
+	_register_opening_survival_actor(actor_id, state, elapsed)
+	var credited := _finalize_opening_survival_hold(actor_id, elapsed, false)
+	if elapsed < OPENING_SURVIVAL_EXPOSURE_SECONDS:
+		_opening_survival_held_by_actor[actor_id] = {
+			"time": elapsed,
+			"state": state,
+			"location": location_context.duplicate(true),
+		}
+	return credited
+
+# Kept as a compatibility shim for focused verifiers and older callers. The
+# canonical clock delta is owned by the held observation above; `seconds` is
+# intentionally not used to reconstruct match time.
+func track_opening_survival_exposure(
+	actor_id: int,
+	state_name: String,
+	_seconds: float,
+	location_context: Dictionary
+) -> float:
+	return observe_opening_survival_state(actor_id, state_name, location_context)
+
+func _finalize_opening_survival_hold(
+	actor_id: int,
+	elapsed: float,
+	erase_after: bool
+) -> float:
+	if not _opening_survival_held_by_actor.has(actor_id):
+		return 0.0
+	var held: Dictionary = _opening_survival_held_by_actor[actor_id]
+	var interval_start := clampf(
+		float(held.get("time", elapsed)),
+		0.0,
+		OPENING_SURVIVAL_EXPOSURE_SECONDS
+	)
+	var interval_end := clampf(elapsed, 0.0, OPENING_SURVIVAL_EXPOSURE_SECONDS)
+	var credited := maxf(0.0, interval_end - interval_start)
+	var state := _normalized_key(String(held.get("state", "unknown")), "unknown")
+	if credited > 0.0 and state in ["recover", "disengage"]:
+		_credit_opening_survival_interval(
+			state,
+			credited,
+			held.get("location", {})
+		)
+	if erase_after or elapsed >= OPENING_SURVIVAL_EXPOSURE_SECONDS:
+		_opening_survival_held_by_actor.erase(actor_id)
+	else:
+		held.time = interval_end
+		_opening_survival_held_by_actor[actor_id] = held
+	return credited if state in ["recover", "disengage"] else 0.0
+
+func _finalize_all_opening_survival_holds(elapsed: float) -> void:
+	var actor_ids: Array = _opening_survival_held_by_actor.keys()
+	for actor_id in actor_ids:
+		_finalize_opening_survival_hold(int(actor_id), elapsed, true)
+
+func _credit_opening_survival_interval(
+	state: String,
+	credited: float,
+	location_context: Dictionary
+) -> void:
+	var summary: Dictionary = metrics.pacing.opening_survival_exposure_summary
+	var location := _opening_survival_location_dimensions(location_context)
+	summary.actor_seconds_total = float(summary.actor_seconds_total) + credited
+	summary.actor_seconds_by_state[state] = \
+		float(summary.actor_seconds_by_state.get(state, 0.0)) + credited
+	if bool(location.get("known", false)):
+		summary.known_location_actor_seconds = \
+			float(summary.known_location_actor_seconds) + credited
+	else:
+		summary.unknown_location_actor_seconds = \
+			float(summary.unknown_location_actor_seconds) + credited
+	for axis in ["poi_name", "poi_role", "poi_band", "route_id", "route_role", "route_band"]:
+		_opening_survival_add_state_axis_seconds(
+			summary,
+			"actor_seconds_by_state_and_%s" % axis,
+			state,
+			String(location.get(axis, "unknown")),
+			credited
+		)
+
+func track_opening_survival_target_acquisition(context: Dictionary) -> bool:
+	return _track_opening_survival_event("target_acquisitions", context)
+
+func track_opening_survival_disengage_entry(context: Dictionary) -> bool:
+	return _track_opening_survival_event("disengage_entries", context)
+
+func track_opening_bot_death(context: Dictionary) -> bool:
+	if not match_in_progress or not _g("pacing"):
+		return false
+	var actor_id := maxi(-1, int(context.get("actor_id", -1)))
+	if actor_id < 0:
+		return false
+	var elapsed := _elapsed_seconds()
+	_finalize_opening_survival_hold(actor_id, elapsed, true)
+	if elapsed > OPENING_SURVIVAL_EXPOSURE_SECONDS \
+			or _opening_survival_death_actors.has(actor_id):
+		return false
+	_opening_survival_death_actors[actor_id] = true
+	var state := _normalized_key(String(context.get("state", "unknown")), "unknown")
+	_register_opening_survival_actor(actor_id, state, elapsed, true)
+	var summary: Dictionary = metrics.pacing.opening_survival_exposure_summary
+	summary.opening_bot_deaths = int(summary.opening_bot_deaths) + 1
+	if state not in ["recover", "disengage"]:
+		return true
+	_opening_survival_record_event(summary.survival_deaths, context)
+	return true
+
+func _new_opening_survival_exposure_summary() -> Dictionary:
+	return {
+		"schema_version": OPENING_SURVIVAL_EXPOSURE_SCHEMA_VERSION,
+		"exact": true,
+		"complete": true,
+		"population": "bots_only",
+		"map_spec_path": "unknown",
+		"scale_preset": "unknown",
+		"location_taxonomy": "strategic_position_v1",
+		"window_seconds": OPENING_SURVIVAL_EXPOSURE_SECONDS,
+		"time_basis": "match_elapsed",
+		"interval_seconds": OPENING_SURVIVAL_EXPOSURE_INTERVAL_SECONDS,
+		"attribution": "left_edge_sample_hold",
+		"context_basis": "state_entry_and_periodic_static_map_classification",
+		"counter_capacity": MAX_OPENING_SURVIVAL_SUMMARY_KEYS,
+		"overflow_bucket": "other",
+		"location_overflowed": false,
+		"distance_buckets": ["under_2m", "2_5m", "5_10m", "10m_plus", "unknown"],
+		"threat_count_basis": "cached_additional_threats",
+		"threat_count_buckets": ["0", "1", "2", "3_plus", "unknown"],
+		"survival_death_source_basis": "last_damage_source",
+		"survival_death_reason_basis": "last_damage_weapon",
+		"tracked_actors": 0,
+		"initial_survival_state_counts": {"recover": 0, "disengage": 0},
+		"actor_seconds_total": 0.0,
+		"known_location_actor_seconds": 0.0,
+		"unknown_location_actor_seconds": 0.0,
+		"actor_seconds_by_state": {"recover": 0.0, "disengage": 0.0},
+		"actor_seconds_by_state_and_poi_name": {"recover": {}, "disengage": {}},
+		"actor_seconds_by_state_and_poi_role": {"recover": {}, "disengage": {}},
+		"actor_seconds_by_state_and_poi_band": {"recover": {}, "disengage": {}},
+		"actor_seconds_by_state_and_route_id": {"recover": {}, "disengage": {}},
+		"actor_seconds_by_state_and_route_role": {"recover": {}, "disengage": {}},
+		"actor_seconds_by_state_and_route_band": {"recover": {}, "disengage": {}},
+		"target_acquisitions": _new_opening_survival_event_block(),
+		"disengage_entries": _new_opening_survival_event_block(),
+		"opening_bot_deaths": 0,
+		"survival_deaths": _new_opening_survival_event_block(),
+	}
+
+func _new_opening_survival_event_block() -> Dictionary:
+	return {
+		"count": 0,
+		"known_location_count": 0,
+		"unknown_location_count": 0,
+		"by_state": {},
+		"by_source": {},
+		"by_reason": {},
+		"by_distance_bucket": {},
+		"by_threat_count_bucket": {},
+		"by_poi_name": {},
+		"by_poi_role": {},
+		"by_poi_band": {},
+		"by_route_id": {},
+		"by_route_role": {},
+		"by_route_band": {},
+	}
+
+func _register_opening_survival_actor(
+	actor_id: int,
+	initial_state: String,
+	observation_time: float,
+	initial_observation: bool = false
+) -> bool:
+	var state := _normalized_key(initial_state, "unknown")
+	if actor_id < 0 or observation_time > OPENING_SURVIVAL_EXPOSURE_SECONDS \
+			or _opening_survival_tracked_actors.has(actor_id):
+		return false
+	_capture_opening_survival_identity()
+	_opening_survival_tracked_actors[actor_id] = true
+	var summary: Dictionary = metrics.pacing.opening_survival_exposure_summary
+	summary.tracked_actors = int(summary.tracked_actors) + 1
+	if initial_observation and state in ["recover", "disengage"]:
+		summary.initial_survival_state_counts[state] = \
+			int(summary.initial_survival_state_counts.get(state, 0)) + 1
+	return true
+
+func _capture_opening_survival_identity() -> void:
+	var summary: Dictionary = metrics.pacing.opening_survival_exposure_summary
+	if String(summary.get("map_spec_path", "unknown")) != "unknown" \
+			and String(summary.get("scale_preset", "unknown")) != "unknown":
+		return
+	var main = get_tree().root.get_node_or_null("Main")
+	if main == null:
+		return
+	var map_spec_path := String(main.get("map_spec_path")).strip_edges()
+	var scale_preset := String(main.get("map_scale_preset")).strip_edges()
+	summary.map_spec_path = map_spec_path if not map_spec_path.is_empty() else "unknown"
+	summary.scale_preset = scale_preset if not scale_preset.is_empty() else "unknown"
+
+func _track_opening_survival_event(field_name: String, context: Dictionary) -> bool:
+	if not match_in_progress or not _g("pacing") \
+			or _elapsed_seconds() > OPENING_SURVIVAL_EXPOSURE_SECONDS:
+		return false
+	var state := _normalized_key(String(context.get("state", "unknown")), "unknown")
+	if state not in ["recover", "disengage"]:
+		return false
+	var actor_id := maxi(-1, int(context.get("actor_id", -1)))
+	if actor_id < 0:
+		return false
+	_register_opening_survival_actor(actor_id, state, _elapsed_seconds())
+	var summary: Dictionary = metrics.pacing.opening_survival_exposure_summary
+	if not summary.has(field_name):
+		return false
+	_opening_survival_record_event(summary[field_name], context)
+	return true
+
+func _opening_survival_record_event(block: Dictionary, context: Dictionary) -> void:
+	var location_context: Dictionary = context.get("location", {})
+	var location := _opening_survival_location_dimensions(location_context)
+	block.count = int(block.count) + 1
+	if bool(location.get("known", false)):
+		block.known_location_count = int(block.known_location_count) + 1
+	else:
+		block.unknown_location_count = int(block.unknown_location_count) + 1
+	_opening_survival_increment(block.by_state, String(context.get("state", "unknown")))
+	_opening_survival_increment(block.by_source, String(context.get("source", "unknown")))
+	_opening_survival_increment(block.by_reason, String(context.get("reason", "unknown")))
+	_opening_survival_increment(
+		block.by_distance_bucket,
+		_opening_survival_distance_bucket(float(context.get("distance", -1.0)))
+	)
+	_opening_survival_increment(
+		block.by_threat_count_bucket,
+		_opening_survival_threat_bucket(int(context.get("additional_threats", -1)))
+	)
+	for axis in ["poi_name", "poi_role", "poi_band", "route_id", "route_role", "route_band"]:
+		_opening_survival_increment_location(
+			block["by_%s" % axis],
+			String(location.get(axis, "unknown"))
+		)
+
+func _opening_survival_location_dimensions(context: Dictionary) -> Dictionary:
+	if not bool(context.get("_opening_location_known", false)):
+		return {
+			"known": false,
+			"poi_name": "unknown",
+			"poi_role": "unknown",
+			"poi_band": "unknown",
+			"route_id": "unknown",
+			"route_role": "unknown",
+			"route_band": "unknown",
+		}
+	var poi_inside := bool(context.get("poi_inside", false))
+	var route_on := bool(context.get("route_on", false))
+	return {
+		"known": true,
+		"poi_name": _normalized_key(String(context.get(
+			"poi_name" if poi_inside else "nearest_poi_name",
+			"none"
+		)), "none"),
+		"poi_role": _normalized_key(String(context.get(
+			"poi_role" if poi_inside else "nearest_poi_role",
+			"open" if poi_inside else "none"
+		)), "none"),
+		"poi_band": _poi_distance_band(context),
+		"route_id": _normalized_key(String(context.get(
+			"route_id" if route_on else "nearest_route_id",
+			"off_route" if route_on else "none"
+		)), "none"),
+		"route_role": _normalized_key(String(context.get(
+			"route_role" if route_on else "nearest_route_role",
+			"off_route" if route_on else "none"
+		)), "none"),
+		"route_band": _route_distance_band(context),
+	}
+
+func _opening_survival_add_state_axis_seconds(
+	summary: Dictionary,
+	field_name: String,
+	state: String,
+	key: String,
+	seconds: float
+) -> void:
+	var by_state: Dictionary = summary[field_name]
+	var axis: Dictionary = by_state.get(state, {})
+	var bounded_key := _opening_survival_bounded_key(axis, key)
+	if bounded_key == "other":
+		summary.location_overflowed = true
+	axis[bounded_key] = float(axis.get(bounded_key, 0.0)) + seconds
+	by_state[state] = axis
+
+func _opening_survival_increment(counter: Dictionary, raw_key: String) -> void:
+	var key := _opening_survival_bounded_key(counter, raw_key)
+	counter[key] = int(counter.get(key, 0)) + 1
+
+func _opening_survival_increment_location(counter: Dictionary, raw_key: String) -> void:
+	var key := _opening_survival_bounded_key(counter, raw_key)
+	if key == "other":
+		var summary: Dictionary = metrics.pacing.opening_survival_exposure_summary
+		summary.location_overflowed = true
+	counter[key] = int(counter.get(key, 0)) + 1
+
+func _opening_survival_bounded_key(counter: Dictionary, raw_key: String) -> String:
+	var key := _normalized_key(raw_key, "unknown")
+	if counter.has(key):
+		return key
+	var must_collapse := counter.size() >= MAX_OPENING_SURVIVAL_SUMMARY_KEYS \
+		or (not counter.has("other") \
+			and counter.size() >= MAX_OPENING_SURVIVAL_SUMMARY_KEYS - 1)
+	return "other" if must_collapse else key
+
+func _opening_survival_distance_bucket(distance: float) -> String:
+	if distance < 0.0:
+		return "unknown"
+	if distance < 2.0:
+		return "under_2m"
+	if distance < 5.0:
+		return "2_5m"
+	if distance < 10.0:
+		return "5_10m"
+	return "10m_plus"
+
+func _opening_survival_threat_bucket(additional_threats: int) -> String:
+	if additional_threats < 0:
+		return "unknown"
+	if additional_threats >= 3:
+		return "3_plus"
+	return str(additional_threats)
 
 func can_track_target_continuity() -> bool:
 	return match_in_progress \

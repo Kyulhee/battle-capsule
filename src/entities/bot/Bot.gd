@@ -159,6 +159,13 @@ var _disengage_entry_stuck_count: int = 0
 var _disengage_entry_count: int = 0
 var _disengage_entry_state_episode: int = -1
 
+# Behavior-neutral opening survival exposure. Location observations are seeded
+# on state entry and held over the following doctrine interval (LOCF); periodic
+# refreshes classify only the static MapDefinition and never scan actors.
+var _opening_survival_actor_registered: bool = false
+var _opening_survival_location_context: Dictionary = {}
+var _opening_survival_death_logged: bool = false
+
 # Stuck detection
 var _stuck_timer: float = 0.0
 var _stuck_override_dir: Vector3 = Vector3.ZERO
@@ -276,6 +283,7 @@ func _on_died_zone_log():
 func _physics_process(delta):
 	if is_dead: return
 	_ensure_continuity_shadow()
+	_register_opening_survival_actor()
 	var log_ai_update := _ai_update_telemetry_phase == 0
 	var ai_update_start_usec := Time.get_ticks_usec() if log_ai_update else 0
 	_ai_update_telemetry_phase = (_ai_update_telemetry_phase + 1) % AI_UPDATE_TELEMETRY_SAMPLE_INTERVAL
@@ -1476,26 +1484,97 @@ func _asset_catalog():
 		return null
 	return main.get("asset_catalog")
 
+func _fresh_opening_survival_location_context() -> Dictionary:
+	var context: Dictionary = super._strategic_position_context(global_position)
+	var main = get_tree().root.get_node_or_null("Main")
+	var definition = main.get("map_definition") if main != null else null
+	context["_opening_location_known"] = definition != null \
+		and definition.has_method("describe_strategic_position")
+	return context
+
+func _opening_survival_tracking_available() -> bool:
+	if not has_node("/root/Telemetry"):
+		return false
+	var tel = get_node("/root/Telemetry")
+	return tel.has_method("can_track_opening_survival_exposure") \
+		and bool(tel.can_track_opening_survival_exposure())
+
+func _register_opening_survival_actor(initial_observation: bool = true) -> void:
+	if _opening_survival_actor_registered \
+			or not _opening_survival_tracking_available():
+		return
+	if current_state in [State.RECOVER, State.DISENGAGE] \
+			and _opening_survival_location_context.is_empty():
+		_refresh_opening_survival_location_context()
+	var tel = get_node("/root/Telemetry")
+	if tel.has_method("register_opening_survival_actor"):
+		tel.register_opening_survival_actor(
+			get_instance_id(),
+			State.keys()[current_state],
+			initial_observation
+		)
+	_opening_survival_actor_registered = true
+	_observe_opening_survival_state()
+
+func _refresh_opening_survival_location_context() -> void:
+	if not _opening_survival_tracking_available():
+		return
+	# Static MapDefinition classification only. This does not inspect actors,
+	# world nodes, AI state, navigation, or the game RNG.
+	_opening_survival_location_context = _fresh_opening_survival_location_context()
+
+func _seed_opening_survival_state_location() -> void:
+	if current_state in [State.RECOVER, State.DISENGAGE]:
+		_refresh_opening_survival_location_context()
+	else:
+		_opening_survival_location_context = {}
+	_register_opening_survival_actor(false)
+	_observe_opening_survival_state()
+
+func _observe_opening_survival_state() -> void:
+	if not has_node("/root/Telemetry"):
+		return
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("observe_opening_survival_state"):
+		return
+	var context := _opening_survival_location_context \
+		if current_state in [State.RECOVER, State.DISENGAGE] \
+		else {"_opening_location_known": false}
+	tel.observe_opening_survival_state(
+		get_instance_id(),
+		State.keys()[current_state],
+		context
+	)
+
+func _opening_survival_additional_threats() -> int:
+	if _cached_threat_pressure_context.is_empty():
+		return -1
+	return int(_cached_threat_pressure_context.get("additional_threats", -1))
+
 func _update_doctrine_state_telemetry(delta: float) -> void:
 	_doctrine_state_telemetry_delta += delta
 	_doctrine_state_telemetry_timer -= delta
 	if _doctrine_state_telemetry_timer > 0.0:
 		return
-	_flush_doctrine_state_telemetry()
+	_flush_doctrine_state_telemetry(true)
 
-func _flush_doctrine_state_telemetry() -> void:
+func _flush_doctrine_state_telemetry(refresh_survival_location: bool = true) -> void:
 	if _doctrine_state_telemetry_delta <= 0.0:
 		return
-	_log_doctrine_state_time(_doctrine_state_telemetry_delta)
+	_log_doctrine_state_time(_doctrine_state_telemetry_delta, refresh_survival_location)
 	_doctrine_state_telemetry_delta = 0.0
 	_doctrine_state_telemetry_timer = DOCTRINE_STATE_TELEMETRY_INTERVAL
 
-func _log_doctrine_state_time(delta: float):
+func _log_doctrine_state_time(delta: float, refresh_survival_location: bool = true):
 	if not has_node("/root/Telemetry"):
 		return
 	var tel = get_node("/root/Telemetry")
 	var archetype_name = _archetype_name()
 	tel.log_doctrine_state_time(archetype_name, State.keys()[current_state], delta)
+	if current_state in [State.RECOVER, State.DISENGAGE] \
+			and refresh_survival_location:
+		_refresh_opening_survival_location_context()
+	_observe_opening_survival_state()
 	if current_state == State.CHASE and tel.has_method("log_doctrine_chase_context"):
 		var context_name := _chase_context_name()
 		tel.log_doctrine_chase_context(archetype_name, context_name, delta)
@@ -1927,6 +2006,18 @@ func _begin_disengage_shadow(previous_state: State) -> void:
 	_disengage_entry_spawn_age = _spawn_age
 	_disengage_entry_position = global_position
 	_disengage_entry_stuck_count = _stuck_event_count
+	if has_node("/root/Telemetry"):
+		var tel = get_node("/root/Telemetry")
+		if tel.has_method("track_opening_survival_disengage_entry"):
+			tel.track_opening_survival_disengage_entry({
+				"actor_id": get_instance_id(),
+				"state": "DISENGAGE",
+				"source": _tracked_enemy_target_source,
+				"reason": _disengage_entry_reason,
+				"distance": _continuity_target_distance(_disengage_entry_target_id),
+				"additional_threats": _opening_survival_additional_threats(),
+				"location": _opening_survival_location_context,
+			})
 
 func _record_disengage_exit(
 	new_state: State,
@@ -2871,7 +2962,7 @@ func acquire_enemy_target(enemy: Entity, source_name: String) -> bool:
 	_pending_target = null
 	last_known_target_pos = enemy.global_position
 	_record_enemy_target_acquisition(enemy, source_name, already_current)
-	_log_target_acquisition(source_name, enemy)
+	_log_target_acquisition(source_name, enemy, already_current)
 	return true
 
 func _switch_target(new_target: Entity, source_name: String = "peripheral_switch"):
@@ -2910,7 +3001,11 @@ func _target_acquisition_runtime_context() -> Dictionary:
 			context["zone_status"] = "inside"
 	return context
 
-func _log_target_acquisition(source_name: String, enemy: Entity):
+func _log_target_acquisition(
+	source_name: String,
+	enemy: Entity,
+	already_current: bool = false
+):
 	if not has_node("/root/Telemetry") or not is_instance_valid(enemy):
 		return
 	var tel = get_node("/root/Telemetry")
@@ -2918,15 +3013,29 @@ func _log_target_acquisition(source_name: String, enemy: Entity):
 		return
 	var acquisition_context := _target_acquisition_runtime_context()
 	acquisition_context["target_kind"] = "player" if enemy.is_in_group("players") else "bot"
+	var target_location := _strategic_position_context(enemy.global_position)
+	var self_location := _fresh_opening_survival_location_context()
 	tel.log_doctrine_target_acquisition(
 		_archetype_name(),
 		source_name,
 		State.keys()[current_state],
-		_strategic_position_context(enemy.global_position),
+		target_location,
 		global_position.distance_to(enemy.global_position),
-		_strategic_position_context(global_position),
+		self_location,
 		acquisition_context
 	)
+	if not already_current \
+			and current_state in [State.RECOVER, State.DISENGAGE] \
+			and tel.has_method("track_opening_survival_target_acquisition"):
+		tel.track_opening_survival_target_acquisition({
+			"actor_id": get_instance_id(),
+			"state": State.keys()[current_state],
+			"source": source_name,
+			"reason": "target_change",
+			"distance": global_position.distance_to(enemy.global_position),
+			"additional_threats": _opening_survival_additional_threats(),
+			"location": self_location,
+		})
 
 # ─── HELPERS ─────────────────────────────────────────────────────────────────
 
@@ -3399,7 +3508,23 @@ func die(killer: Node3D = null):
 	# behavior-neutral per-bot continuity shadows immediately after the terminal
 	# exit observation has had a chance to use them.
 	_close_target_continuity_tracking()
-	_flush_doctrine_state_telemetry()
+	_flush_doctrine_state_telemetry(false)
+	if not _opening_survival_death_logged and has_node("/root/Telemetry"):
+		var tel = get_node("/root/Telemetry")
+		if tel.has_method("track_opening_bot_death"):
+			var death_location := {"_opening_location_known": false}
+			if _opening_survival_tracking_available():
+				death_location = _fresh_opening_survival_location_context()
+			tel.track_opening_bot_death({
+				"actor_id": get_instance_id(),
+				"state": State.keys()[current_state],
+				"source": last_damage_source,
+				"reason": last_damage_weapon,
+				"distance": last_damage_dist,
+				"additional_threats": _opening_survival_additional_threats(),
+				"location": death_location,
+			})
+		_opening_survival_death_logged = true
 	if _state_label: _state_label.visible = false
 	if _archetype_marker: _archetype_marker.visible = false
 	_visual_skin.hide()
@@ -3672,7 +3797,7 @@ func change_state(new_state: State, transition_reason: String = ""):
 	if current_state == new_state: return
 	_ensure_continuity_shadow()
 	var previous_state := current_state
-	_flush_doctrine_state_telemetry()
+	_flush_doctrine_state_telemetry(false)
 	if current_state == State.DISENGAGE:
 		_record_disengage_exit(new_state, transition_reason)
 	_threat_pressure_timer = 0.0
@@ -3718,6 +3843,7 @@ func change_state(new_state: State, transition_reason: String = ""):
 	_state_episode_id += 1
 	state_timer = 0.0
 	_set_state_entry_shadow()
+	_seed_opening_survival_state_location()
 	if new_state == State.DISENGAGE:
 		_begin_disengage_shadow(previous_state)
 	_update_state_label()
@@ -3729,6 +3855,7 @@ func change_state(new_state: State, transition_reason: String = ""):
 			_state_episode_id += 1
 			state_timer = 0.0
 			_set_state_entry_shadow()
+			_seed_opening_survival_state_location()
 			if has_node("/root/Telemetry"):
 				get_node("/root/Telemetry").log_tactics("reserve_reload")
 			return

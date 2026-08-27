@@ -1,6 +1,6 @@
 # 플레이테스트 노트
 
-> 최종 업데이트: 2026-08-15. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
+> 최종 업데이트: 2026-08-28. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
 
 ## 현재 수동 테스트 대상
 
@@ -8,12 +8,12 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | `N2-PLAY-11` behavior-neutral continuity schema v2와 5-run 기준선 완료. 시험한 gameplay 후보는 모두 revert 상태이며 새 후보와 packaged 수동 재판정은 보류 |
+| 현재 단위 | `N2-PLAY-11` opening survival exposure schema v1·1-run 진단 완료. data-quality/구조 PASS, gameplay/survival FAIL이며 `survival_break`-only 2.0초 `no_threat` exit hysteresis의 1-run 통과 전 packaged 수동 재판정은 보류 |
 | 승격 목적 | N2-PLAY-10에서 확인한 무기 공백·초기 인원 붕괴·지도 HUD 중첩을 닫고 오프닝·장소/경로·생존/완주를 다시 승인 |
 
 ## N2-PLAY-11 재판정 프로토콜
 
-v2 기준 5-run은 D-004와 `check_scale_telemetry`를 통과했지만 생존 watch band를 실패했고 기록된 DISENGAGE entry 보조 watch도 2/5에서 초과했다. 새 gameplay 후보는 생존 방향뿐 아니라 release→재획득·정체·이탈·D-004·fallback을 1-run에서 함께 확인하고, 모두 보존될 때만 5-run, 그 결과가 통과할 때만 같은 후보를 packaged 수동 3판으로 판정한다.
+2026-08-28 exposure 1-run은 849.696초·spawn 60/60·fallback 0으로 구조는 통과했지만 alive@60/120/260 `29/22/15`, T10 279.8초로 생존을 실패했다. 새 후보는 생존뿐 아니라 continuity·정체/이탈·D-004를 1-run에서 함께 확인하고 모두 개선될 때만 5-run, 그 결과가 통과할 때만 같은 후보를 packaged 수동 3판으로 판정한다. 새 packaged/manual PASS는 없다.
 
 | 판 | 초점 | 필수 기록 |
 |---|---|---|

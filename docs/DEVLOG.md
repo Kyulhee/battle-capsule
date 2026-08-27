@@ -1,6 +1,17 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-08-15. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-08-28. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## N2-PLAY-11 opening survival exposure 진단과 릴리즈 재판정
+
+- 계측 계약: schema v1은 `Main.match_timer` 기준 opening 60초의 이전 held 상태·위치를 다음 관측까지 적분해 exact RECOVER/DISENGAGE actor-seconds·death·acquisition·entry를 POI/route 축으로 집계한다. identity·coverage·overflow가 위치 판정을 차단하며 bounded sample은 분모를 대신하지 않는다.
+- 자동 검증: exposure telemetry/analyzer·headless parse·`git diff --check`와 전체 `unit_smoke` 87.5초가 통과했다. behavior와 RNG를 바꾸지 않는 계측 계약·정적 위치 분류·비용 gate를 확인했다.
+- 1-run 구조 결과: `C:\tmp\n2_play_11_survival_exposure_sanity_20260828`은 849.696초, first upgrade 12.4초, spawn 60/60·fallback 0, AI 평균/최대 264.7/35,515us였다. data-quality와 `check_scale_telemetry`는 PASS다.
+- 생존 결과: alive@30/60/120/260은 `55/29/22/15`, T50/T10은 `35.8/279.8초`라 gameplay/survival은 FAIL이다. 단일 run이므로 기준선 승격이나 릴리즈 근거로 쓰지 않는다.
+- 상태 노출: exact 444.3 actor-sec는 known 100%·overflow false다. DISENGAGE 318.4초·사망 24명·7.54/100초, RECOVER 126.0초·사망 0명이며 entry/exit는 `305/303`이다.
+- 종료 문맥: 생존 상태 사망 24명 중 22명이 `survival_break` 진입이고 18명은 진입 2초 미만이었다. continuity release 78 중 1초 내 같은 대상 재획득은 22(28.2%)다.
+- 판정/다음: 위치 노출 정규화는 단일 hotspot을 지목하지 않아 topology를 바꾸지 않는다. 다음은 `survival_break`-only 2.0초 `no_threat` exit hysteresis 한 변수의 1-run 방향 실험이며 통과 전 채택·5-run·package·수동 결과를 주장하지 않는다.
+- 릴리즈: 현재는 internal pre-alpha다. 공개 stable `v2.0.0-pre-expansion`을 유지하고, 폐쇄 알파 현실 창은 2026-09-28~10-09, 공개 데모 RC 현실 창은 2026-12-18~2027-01-15로 재조정했다. 날짜는 gate 통과 창이다.
 
 ## N2-PLAY-11 continuity v2 기준선과 후보 폐기
 
@@ -19,16 +30,16 @@
 - 식별: 공개 이름 `Battle Capsule`, 실행 파일 `BattleCapsule.exe`, 내부 채널 `v2.1.0-demo-dev`, Windows metadata `2.1.0.0`을 고정했다. 보이는 브랜드는 바꾸되 기존 `BattleRoyalePrototype` user data 경로는 유지한다.
 - export: `Main.tscn` selected-scene 경계와 runtime source/assets·검토된 JSON만 포함하고 도구·테스트·문서·로컬 생성 원본·debug 산출물을 제외했다. verifier는 catalog 자산·runtime 논리 경로와 import/remap payload closure를 exact 비교한다.
 - 자동 검증: release persistence/identity/settings가 포함된 `unit_smoke`를 84.6초에 통과했다. windowed 1280×720 Forward+ 3회 p95 15.059-15.429ms·p99 17.641-19.948ms로 p95 20ms 초과 0/3, 고정 입력 99봇 구조 5-run은 정체/이탈 0.01/0.44 per entity/min로 통과했다.
-- clean artifact: source `ac9fff8fc115c86003da7a5685fbce0dc0b48d58`의 fresh worktree PCK에서 catalog 자산 44개·JSON 3개·runtime 경로 124개·핵심 load probe 20개와 generated payload closure exact를 확인했다. packaged headless 전체 simulation은 651.038초, spawn 60/60·fallback 0·최종 1위·오류 0이었고 legacy settings migration/backup·재실행 멱등성, 기존 기록·배지 불변, Windows x64 GUI·`2.1.0.0` metadata를 통과했다.
-- internal archive: EXE `B241A13…`, PCK `560CFD44…` SHA-256을 manifest에 기록하고 archive `92891081…` SHA-256을 산출했다. 압축 해제 뒤 세 파일 hash와 EXE 재부팅·오류 0도 확인했다. 이 archive는 공개 고지가 없는 internal smoke다.
+- 과거 clean artifact: source `ac9fff8fc115c86003da7a5685fbce0dc0b48d58`의 fresh worktree PCK에서 catalog 자산 44개·JSON 3개·runtime 경로 124개·핵심 load probe 20개와 generated payload closure exact를 확인했다. packaged headless 전체 simulation은 651.038초, spawn 60/60·fallback 0·최종 1위·오류 0이었고 legacy settings migration/backup·재실행 멱등성, 기존 기록·배지 불변, Windows x64 GUI·`2.1.0.0` metadata를 통과했다. 현재 후보 근거는 아니다.
+- 과거 internal archive: EXE `B241A13…`, PCK `560CFD44…` SHA-256을 manifest에 기록하고 archive `92891081…` SHA-256을 산출했다. 압축 해제 뒤 세 파일 hash와 EXE 재부팅·오류 0도 확인했다. 이 archive는 공개 고지가 없는 stale internal smoke다.
 - 재현성: 독립 clean worktree 두 곳의 EXE는 byte-identical이었지만 PCK는 2,060,916/2,060,900 bytes와 서로 다른 hash였다. 두 PCK 모두 exact contract를 통과했으나 cold PCK byte 재현성은 닫지 않았다.
-- 잔여 gate: `N2-PLAY-11` 새 단일 후보 1-run→생존·재획득·정체/이탈 비회귀가 있을 때만 M1 5-run→packaged 수동 3판, 사람이 조작하는 전체 루프·정상 기록/배지 저장, cold PCK 비결정성·restart soak·호환성 matrix, LICENSES/CREDITS·지원·unsigned 정책은 아직 닫지 않았다.
+- 잔여 gate: `N2-PLAY-11` 단일 후보 1-run→생존·continuity·정체/이탈 비회귀가 있을 때만 M1 5-run→packaged 수동 3판, 현재 commit의 clean package, 사람이 조작하는 전체 루프·정상 기록/배지 저장, cold PCK 비결정성·restart soak·호환성 matrix, LICENSES/CREDITS·지원·unsigned 정책은 아직 닫지 않았다.
 
 ## N2-PLAN-01 릴리즈 로드맵 통합
 
 - 범위: 첫 공개 목표를 Windows x64·오프라인·한국어·키보드/마우스·`night_br_m1_60` 한 맵 무료 데모로 고정했다.
 - 순서: M1 수동 종료 판정 뒤 `N2-REL-01` 저장·기록·clean export·브랜드/버전 기반을 닫고, M2 비주얼/첫 사용자 슬라이스와 M3 공개 데모 RC로 이어지게 재배열했다.
-- gate: 폐쇄 알파 2026-08 중·하순, 공개 데모 후보 2026-10 말~11월, 유료 EA 2027 Q1 말 Go/No-Go를 계획 창으로 두되 날짜보다 수동·패키지·외부 QA 통과를 우선한다.
+- gate: 최신 현실 창은 폐쇄 알파 2026-09-28~10-09, 공개 데모 RC 2026-12-18~2027-01-15다. 날짜보다 수동·패키지·외부 QA 통과를 우선한다.
 - 문서: `CURRENT`, `MASTERPLAN`, `DECISIONS`, `PLAYTEST`, `reference/RELEASE`의 릴리즈 보류·과거 명령·완료 큐 충돌을 정리했다.
 
 ## N2-MAP-17 저밀도 구역의 설계형 구조물 군집
@@ -74,13 +85,6 @@
 - AI/지도: objective 1·entry 3·outer 3 앵커와 수용량 6을 추가하고, 전체맵·미니맵은 내부 POI명 대신 플레이어용 장소명을 쓴다.
 - 검증: 전체 `unit_smoke`, 세 접근 NavMesh 20.2/27.0/28.0m, 전략 분류·에셋·실제 캡처 통과. 60봇 Forward+ 20초 2회는 p95 13.83-14.11ms, 33ms 초과 0.029%, AI 평균 140-147us다.
 - 다음: 새 장소를 더 만들지 않고 N2-AI-10에서 도착 시간·장비 필요·위협·점유를 경로와 선점 판단에 연결한다.
-
-## N2-BASE-01 단일 M1 60봇 개발 기준선
-
-- 통합: 확장 Night 맵의 기존 `xlarge_60` 값을 `night_br_m1_60`으로 승격했다. 기존 이름은 값이 같은 호환 alias만 유지한다.
-- 기본 실행: 무인자 `Main.tscn`이 확장 Night 맵과 새 preset을 사용해 260m·60봇·loot 200을 읽는다. CLI override와 AI Arena 표면은 그대로 유지한다.
-- 검증: MapDefinition·CLI path·실제 Main runtime gate와 전체 `unit_smoke` 통과. 60봇 Forward+ 20초 2회는 p95 13.76-13.80ms, 33ms 초과 0-0.03%, AI 평균 133-138us다.
-- 다음: South Creek을 세 번째 물리 장소로 완성해 Cabin Row-참조 초소와 도로·숲·병목 삼각 루프를 만든다.
 
 ## 기록 보존
 

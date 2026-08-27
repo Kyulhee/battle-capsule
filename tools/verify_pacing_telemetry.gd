@@ -4,6 +4,30 @@ extends SceneTree
 class FakeMain:
 	extends Node
 	var match_timer: float = 0.0
+	var map_spec_path: String = "res://tests/fake_map.json"
+	var map_scale_preset: String = "test"
+	var map_definition = null
+
+
+class FakeMapDefinition:
+	extends RefCounted
+
+	func describe_strategic_position(world_pos: Vector2) -> Dictionary:
+		var sector := int(floor(world_pos.x / 10.0)) * 10
+		return {
+			"poi_role": "loot_hub",
+			"poi_name": "Sector %d" % sector,
+			"poi_inside": true,
+			"nearest_poi_role": "loot_hub",
+			"nearest_poi_name": "Sector %d" % sector,
+			"nearest_poi_edge_distance": 0.0,
+			"route_role": "primary_choke",
+			"route_id": "route_%d" % sector,
+			"route_on": true,
+			"nearest_route_role": "primary_choke",
+			"nearest_route_id": "route_%d" % sector,
+			"nearest_route_edge_distance": 0.0,
+		}
 
 
 func _init():
@@ -15,6 +39,12 @@ func _run() -> void:
 		quit(1)
 		return
 	if not _verify_pacing_uses_game_seconds():
+		quit(1)
+		return
+	if not _verify_opening_survival_exposure_exact_summary():
+		quit(1)
+		return
+	if not await _verify_bot_opening_survival_exposure_shadow():
 		quit(1)
 		return
 	if not _verify_target_continuity_exact_summary():
@@ -529,6 +559,270 @@ func _verify_pacing_uses_game_seconds() -> bool:
 	return true
 
 
+func _verify_opening_survival_exposure_exact_summary() -> bool:
+	var telemetry_script = load("res://src/core/Telemetry.gd")
+	var main := FakeMain.new()
+	main.name = "Main"
+	main.map_spec_path = "res://maps/exposure_contract.json"
+	main.map_scale_preset = "m1_contract"
+	root.add_child(main)
+	var tel = telemetry_script.new()
+	root.add_child(tel)
+	tel.start_match()
+	var alpha := _opening_location("Alpha", "alpha_route")
+	var bravo := _opening_location("Bravo", "bravo_route")
+	var charlie := _opening_location("Charlie", "charlie_route")
+	var unknown := {"_opening_location_known": false}
+
+	# Canonical observation time, not the supplied physics delta, owns the
+	# interval. Same-time observations credit zero and replace only the held
+	# state/location for the following interval.
+	main.match_timer = 0.0
+	tel.register_opening_survival_actor(1, "IDLE", true)
+	tel.observe_opening_survival_state(1, "IDLE", unknown)
+	main.match_timer = 0.1
+	tel.observe_opening_survival_state(1, "RECOVER", alpha)
+	if not is_zero_approx(tel.observe_opening_survival_state(1, "RECOVER", alpha)):
+		tel.free()
+		main.free()
+		return _fail("Same-time survival observations must not double-count actor-seconds.")
+	main.match_timer = 0.35
+	var credited_mixed_delta: float = tel.track_opening_survival_exposure(
+		1, "RECOVER", 9.0, bravo
+	)
+	main.match_timer = 0.6
+	tel.observe_opening_survival_state(1, "DISENGAGE", bravo)
+
+	# Event attribution uses the same strategic bucketizer as the denominator.
+	if not tel.track_opening_survival_target_acquisition({
+		"actor_id": 1,
+		"state": "RECOVER",
+		"source": "Recover_Melee",
+		"reason": "Target_Change",
+		"distance": 1.5,
+		"additional_threats": 0,
+		"location": alpha,
+	}) or not tel.track_opening_survival_disengage_entry({
+		"actor_id": 1,
+		"state": "DISENGAGE",
+		"source": "Attack",
+		"reason": "Losing_Fight",
+		"distance": 4.0,
+		"additional_threats": 2,
+		"location": bravo,
+	}):
+		tel.free()
+		main.free()
+		return _fail("Opening acquisition or DISENGAGE entry event was rejected.")
+
+	main.match_timer = 0.8
+	var death_context := {
+		"actor_id": 1,
+		"state": "DISENGAGE",
+		"source": "Gun",
+		"reason": "Pistol",
+		"distance": 8.0,
+		"additional_threats": 3,
+		"location": charlie,
+	}
+	if not tel.track_opening_bot_death(death_context) \
+			or tel.track_opening_bot_death(death_context):
+		tel.free()
+		main.free()
+		return _fail("Opening bot death must be exact-once per actor.")
+
+	# A held observation crossing 60s is clipped exactly at the boundary even
+	# when the next callback arrives late.
+	main.match_timer = 59.9
+	tel.register_opening_survival_actor(2, "RECOVER", true)
+	tel.observe_opening_survival_state(2, "RECOVER", unknown)
+	main.match_timer = 60.2
+	var clipped: float = tel.observe_opening_survival_state(2, "RECOVER", alpha)
+	var summary: Dictionary = tel.metrics.pacing.opening_survival_exposure_summary
+	if (
+		not is_equal_approx(credited_mixed_delta, 0.25)
+		or not is_equal_approx(clipped, 0.1)
+		or int(summary.get("schema_version", 0)) != 1
+		or not bool(summary.get("exact", false))
+		or not bool(summary.get("complete", false))
+		or String(summary.get("population", "")) != "bots_only"
+		or String(summary.get("time_basis", "")) != "match_elapsed"
+		or String(summary.get("attribution", "")) != "left_edge_sample_hold"
+		or String(summary.get("map_spec_path", "")) != main.map_spec_path
+		or String(summary.get("scale_preset", "")) != main.map_scale_preset
+		or String(summary.get("location_taxonomy", "")) != "strategic_position_v1"
+		or int(summary.get("tracked_actors", 0)) != 2
+		or int(summary.get("initial_survival_state_counts", {}).get("recover", 0)) != 1
+		or not is_equal_approx(float(summary.get("actor_seconds_total", -1.0)), 0.8)
+		or not is_equal_approx(float(summary.get("known_location_actor_seconds", -1.0)), 0.7)
+		or not is_equal_approx(float(summary.get("unknown_location_actor_seconds", -1.0)), 0.1)
+		or not is_equal_approx(float(summary.get("actor_seconds_by_state", {}).get("recover", -1.0)), 0.6)
+		or not is_equal_approx(float(summary.get("actor_seconds_by_state", {}).get("disengage", -1.0)), 0.2)
+	):
+		tel.free()
+		main.free()
+		return _fail("Canonical opening exposure totals, identity, or 60s clipping changed.")
+	if not is_equal_approx(float(
+		summary.actor_seconds_by_state_and_poi_name.recover.get("alpha", 0.0)
+	), 0.25) or not is_equal_approx(float(
+		summary.actor_seconds_by_state_and_poi_name.recover.get("bravo", 0.0)
+	), 0.25) or not is_equal_approx(float(
+		summary.actor_seconds_by_state_and_poi_name.recover.get("unknown", 0.0)
+	), 0.1) or not is_equal_approx(float(
+		summary.actor_seconds_by_state_and_poi_name.disengage.get("bravo", 0.0)
+	), 0.2):
+		tel.free()
+		main.free()
+		return _fail("Left-edge POI sample hold attributed an interval to the wrong location.")
+	for field_name in [
+		"actor_seconds_by_state_and_poi_name",
+		"actor_seconds_by_state_and_poi_role",
+		"actor_seconds_by_state_and_poi_band",
+		"actor_seconds_by_state_and_route_id",
+		"actor_seconds_by_state_and_route_role",
+		"actor_seconds_by_state_and_route_band",
+	]:
+		if not is_equal_approx(_nested_float_sum(summary[field_name]), 0.8):
+			tel.free()
+			main.free()
+			return _fail("Exposure location axis %s must sum exactly to actor_seconds_total." % field_name)
+	if int(summary.get("opening_bot_deaths", 0)) != 1:
+		tel.free()
+		main.free()
+		return _fail("Opening all-state bot death numerator changed.")
+	for event_name in ["target_acquisitions", "disengage_entries", "survival_deaths"]:
+		var block: Dictionary = summary[event_name]
+		if int(block.get("count", 0)) != 1 \
+				or int(block.get("known_location_count", 0)) != 1 \
+				or int(block.get("unknown_location_count", 0)) != 0 \
+				or not _opening_event_marginals_equal_count(block):
+			tel.free()
+			main.free()
+			return _fail("Opening event block %s lost an exact marginal invariant." % event_name)
+	if int(summary.target_acquisitions.by_distance_bucket.get("under_2m", 0)) != 1 \
+			or int(summary.disengage_entries.by_distance_bucket.get("2_5m", 0)) != 1 \
+			or int(summary.survival_deaths.by_distance_bucket.get("5_10m", 0)) != 1 \
+			or int(summary.survival_deaths.by_threat_count_bucket.get("3_plus", 0)) != 1 \
+			or int(summary.survival_deaths.by_source.get("gun", 0)) != 1 \
+			or int(summary.survival_deaths.by_reason.get("pistol", 0)) != 1:
+		tel.free()
+		main.free()
+		return _fail("Opening event source/reason/distance/threat buckets changed.")
+	main.match_timer = 10.0
+	for index in range(70):
+		var overflow_location := _opening_location(
+			"Overflow %d" % index,
+			"overflow_route"
+		)
+		tel.track_opening_survival_target_acquisition({
+			"actor_id": 100 + index,
+			"state": "RECOVER",
+			"source": "overflow_probe",
+			"reason": "target_change",
+			"distance": 3.0,
+			"additional_threats": -1,
+			"location": overflow_location,
+		})
+	if summary.target_acquisitions.by_poi_name.size() > 64 \
+			or _int_sum(summary.target_acquisitions.by_poi_name) != 71 \
+			or int(summary.target_acquisitions.by_poi_name.get("other", 0)) <= 0 \
+			or not bool(summary.get("location_overflowed", false)) \
+			or not bool(summary.get("complete", false)):
+		tel.free()
+		main.free()
+		return _fail("Location counters must pool overflow without invalidating exact totals.")
+	tel.free()
+	main.free()
+
+	# end_match must own the tail when a match finishes before the next 0.25s
+	# doctrine callback.
+	var early_main := FakeMain.new()
+	early_main.name = "Main"
+	root.add_child(early_main)
+	var early = telemetry_script.new()
+	root.add_child(early)
+	early.start_match()
+	early_main.match_timer = 2.0
+	early.register_opening_survival_actor(7, "DISENGAGE", true)
+	early.observe_opening_survival_state(7, "DISENGAGE", alpha)
+	early_main.match_timer = 2.4
+	early.end_match(1, "Bot", 1, false)
+	var early_total := float(
+		early.metrics.pacing.opening_survival_exposure_summary.actor_seconds_total
+	)
+	early.free()
+	early_main.free()
+	if not is_equal_approx(early_total, 0.4):
+		return _fail("end_match must finalize a held survival interval, got %.3fs." % early_total)
+
+	# An observation exactly at the inclusive 60s edge credits the final slice
+	# but must not retain a zero-width held sample beyond the window.
+	var edge_main := FakeMain.new()
+	edge_main.name = "Main"
+	root.add_child(edge_main)
+	var edge = telemetry_script.new()
+	root.add_child(edge)
+	edge.start_match()
+	edge_main.match_timer = 59.9
+	edge.register_opening_survival_actor(8, "RECOVER", true)
+	edge.observe_opening_survival_state(8, "RECOVER", alpha)
+	edge_main.match_timer = 60.0
+	var edge_credit: float = edge.observe_opening_survival_state(8, "RECOVER", bravo)
+	var edge_holds: Dictionary = edge.get("_opening_survival_held_by_actor")
+	edge.match_in_progress = false
+	edge.free()
+	edge_main.free()
+	if not is_equal_approx(edge_credit, 0.1) or not edge_holds.is_empty():
+		return _fail("The exact 60s observation must credit 0.1s and close its held sample.")
+	return true
+
+
+func _opening_location(poi_name: String, route_id: String) -> Dictionary:
+	return {
+		"_opening_location_known": true,
+		"poi_role": "loot_hub",
+		"poi_name": poi_name,
+		"poi_inside": true,
+		"nearest_poi_role": "loot_hub",
+		"nearest_poi_name": poi_name,
+		"nearest_poi_edge_distance": 0.0,
+		"route_role": "primary_choke",
+		"route_id": route_id,
+		"route_on": true,
+		"nearest_route_role": "primary_choke",
+		"nearest_route_id": route_id,
+		"nearest_route_edge_distance": 0.0,
+	}
+
+
+func _opening_event_marginals_equal_count(block: Dictionary) -> bool:
+	var expected := int(block.get("count", -1))
+	for field_name in [
+		"by_state", "by_source", "by_reason", "by_distance_bucket",
+		"by_threat_count_bucket", "by_poi_name", "by_poi_role", "by_poi_band",
+		"by_route_id", "by_route_role", "by_route_band",
+	]:
+		if _int_sum(block.get(field_name, {})) != expected:
+			return false
+	return int(block.get("known_location_count", -1)) \
+		+ int(block.get("unknown_location_count", -1)) == expected
+
+
+func _int_sum(values: Dictionary) -> int:
+	var total := 0
+	for value in values.values():
+		total += int(value)
+	return total
+
+
+func _nested_float_sum(values: Dictionary) -> float:
+	var total := 0.0
+	for nested in values.values():
+		for value in Dictionary(nested).values():
+			total += float(value)
+	return total
+
+
 func _verify_target_continuity_exact_summary() -> bool:
 	var telemetry_script = load("res://src/core/Telemetry.gd")
 	var main := FakeMain.new()
@@ -881,6 +1175,125 @@ func _verify_linked_episode_samples(samples: Array) -> bool:
 				return _fail("Nested reacquire must remain linked to its selected release episode.")
 		previous_hash = sample_hash
 		previous_key = sample_key
+	return true
+
+
+func _verify_bot_opening_survival_exposure_shadow() -> bool:
+	var tel = root.get_node_or_null("Telemetry")
+	if tel == null:
+		return _fail("Telemetry autoload is required for the opening exposure smoke.")
+	var main := FakeMain.new()
+	main.name = "Main"
+	main.map_definition = FakeMapDefinition.new()
+	root.add_child(main)
+	tel.start_match()
+	var bot_scene: PackedScene = load("res://src/entities/bot/Bot.tscn")
+	var subject = bot_scene.instantiate()
+	var target = bot_scene.instantiate()
+	root.add_child(subject)
+	root.add_child(target)
+	subject.set_physics_process(false)
+	target.set_physics_process(false)
+	await create_timer(0.25).timeout
+	subject.global_position = Vector3.ZERO
+	target.global_position = Vector3(2.0, 0.0, 0.0)
+	main.match_timer = 0.0
+	subject.call("_register_opening_survival_actor", true)
+
+	main.match_timer = 1.0
+	subject.change_state(subject.State.RECOVER, "exposure_probe")
+	subject.set("_doctrine_state_telemetry_delta", 0.25)
+	subject.global_position = Vector3(10.0, 0.0, 0.0)
+	main.match_timer = 1.25
+	subject.call("_flush_doctrine_state_telemetry", true)
+	var exposure: Dictionary = tel.metrics.pacing.opening_survival_exposure_summary
+	if not is_equal_approx(float(
+		exposure.actor_seconds_by_state_and_poi_name.recover.get("sector 0", 0.0)
+	), 0.25) or String(
+		subject.get("_opening_survival_location_context").get("poi_name", "")
+	) != "Sector 10":
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Periodic exposure must credit the previous held location before refreshing.")
+
+	# Acquisition classifies its exact event position without mutating the held
+	# denominator sample. A refresh of the already-current target is not a new
+	# acquisition event.
+	subject.global_position = Vector3(20.0, 0.0, 0.0)
+	target.global_position = Vector3(22.0, 0.0, 0.0)
+	if not subject.acquire_enemy_target(target, "exposure_acquire"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Opening exposure fixture could not acquire its target.")
+	var acquisition_count := int(exposure.target_acquisitions.count)
+	if not subject.acquire_enemy_target(target, "exposure_refresh") \
+			or int(exposure.target_acquisitions.count) != acquisition_count \
+			or acquisition_count != 1 \
+			or String(subject.get("_opening_survival_location_context").get("poi_name", "")) \
+				!= "Sector 10" \
+			or int(exposure.target_acquisitions.by_poi_name.get("sector 20", 0)) != 1:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Target holds must not add acquisitions or mutate the exposure hold.")
+
+	subject.set("_doctrine_state_telemetry_delta", 0.25)
+	main.match_timer = 1.5
+	subject.call("_flush_doctrine_state_telemetry", true)
+	if not is_equal_approx(float(
+		exposure.actor_seconds_by_state_and_poi_name.recover.get("sector 10", 0.0)
+	), 0.25) or float(
+		exposure.actor_seconds_by_state_and_poi_name.recover.get("sector 20", 0.0)
+	) != 0.0:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Acquisition event context leaked into the held exposure denominator.")
+
+	subject.call("_log_disengage_entry", "losing_fight")
+	subject.change_state(subject.State.DISENGAGE, "exposure_disengage")
+	if int(exposure.disengage_entries.count) != 1 \
+			or int(exposure.disengage_entries.by_state.get("disengage", 0)) != 1 \
+			or int(exposure.disengage_entries.by_poi_name.get("sector 20", 0)) != 1:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("DISENGAGE entry must use its fresh same-state strategic context.")
+	subject.set("_doctrine_state_telemetry_delta", 0.2)
+	subject.global_position = Vector3(30.0, 0.0, 0.0)
+	main.match_timer = 1.7
+	subject.call("_flush_doctrine_state_telemetry", true)
+	main.match_timer = 1.8
+	subject.last_damage_source = "gun"
+	subject.last_damage_weapon = "pistol"
+	subject.last_damage_dist = 6.0
+	# Keep the death fixture drop-free; duplicate die() must preserve the old
+	# drop/super behavior while the new exact metric remains deduplicated.
+	subject.stats.weapon_type = "pistol"
+	subject.stats.current_ammo = 0
+	subject.reserve_ammo = 0
+	subject.stats.heal_items = 0
+	subject.stats.advanced_heals = 0
+	subject.equipped_armor_tier = 0
+	subject.die()
+	subject.die()
+	if int(exposure.opening_bot_deaths) != 1 \
+			or int(exposure.survival_deaths.count) != 1 \
+			or int(exposure.survival_deaths.by_poi_name.get("sector 30", 0)) != 1 \
+			or not is_equal_approx(float(exposure.actor_seconds_total), 0.8) \
+			or not is_equal_approx(float(exposure.actor_seconds_by_state.disengage), 0.3):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Death must close the held interval and record one exact fresh-location numerator.")
+	await create_timer(1.5).timeout
+	subject.free()
+	target.free()
+	main.free()
+	tel.match_in_progress = false
+	await process_frame
 	return true
 
 
