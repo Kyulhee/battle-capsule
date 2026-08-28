@@ -1,6 +1,6 @@
 # 플레이테스트 노트
 
-> 최종 업데이트: 2026-08-28. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
+> 최종 업데이트: 2026-08-29. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
 
 ## 현재 수동 테스트 대상
 
@@ -8,12 +8,12 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | `N2-PLAY-11` opening survival exposure schema v1·1-run 진단 완료. data-quality/구조 PASS, gameplay/survival FAIL이며 `survival_break`-only 2.0초 `no_threat` exit hysteresis의 1-run 통과 전 packaged 수동 재판정은 보류 |
+| 현재 단위 | E-057 exact linkage 5-run은 진단·scale PASS지만 생존 watch FAIL이다. E-058 단일 후보 1-run→5-run 통과 전 packaged 수동 재판정은 보류 |
 | 승격 목적 | N2-PLAY-10에서 확인한 무기 공백·초기 인원 붕괴·지도 HUD 중첩을 닫고 오프닝·장소/경로·생존/완주를 다시 승인 |
 
 ## N2-PLAY-11 재판정 프로토콜
 
-2026-08-28 exposure 1-run은 849.696초·spawn 60/60·fallback 0으로 구조는 통과했지만 alive@60/120/260 `29/22/15`, T10 279.8초로 생존을 실패했다. 새 후보는 생존뿐 아니라 continuity·정체/이탈·D-004를 1-run에서 함께 확인하고 모두 개선될 때만 5-run, 그 결과가 통과할 때만 같은 후보를 packaged 수동 3판으로 판정한다. 새 packaged/manual PASS는 없다.
+E-057 5-run은 cover 선택-미도달 83/89 death, counteraction 68/89, fast reacquire 55/89를 확인했지만 alive@120/260 `24/15`, T10 305.1초로 생존 watch를 실패했다. E-058도 생존·continuity·정체/이탈·D-004를 1-run에서 함께 개선할 때만 5-run, 그 결과가 통과할 때만 packaged 수동 3판으로 판정한다. 새 packaged/manual PASS는 없다.
 
 | 판 | 초점 | 필수 기록 |
 |---|---|---|
@@ -86,12 +86,12 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 
 ## 최근 기록
 
-### 2026-08-14 - N2-PLAY-11 continuity schema v2 기준선과 후보 폐기
+### 2026-08-29 - N2-PLAY-11 E-057 5-run 진단
 
-계약: behavior-neutral schema v2는 `Main.match_timer`를 canonical clock으로 쓰며 `complete=true` exact aggregate를 판정 근거로 둔다. raw는 run마다 결정적 bottom-k로 release episode·DISENGAGE exit 각각 최대 128개만 보존하고 omitted sample이 있어도 완전 aggregate를 무효화하지 않으며 terminal target release는 제외한다.
-사전 확인: v2 1-run sanity는 data contract를 통과했지만 stuck gate를 실패해 gameplay 근거로 승격하지 않았다. 이어 실행한 `C:\tmp\n2_play_11_continuity_v2_5run_20260814`는 평균 668.8초(531.5-805.5), alive 중앙값 `54/34/24/23/21/15`, T50/T10 `31.5/306.7초`, first upgrade 3.5초, fallback 0이었다.
-판정: opening kill 132건 중 생존 상태 피해자 100건·2초 이내 71건이며 59초 이내 생존 상태 unique release/reacquire/opening exit는 `414/132/1284`다. raw coverage 합계는 episode `414/414/0`, exit `1284/640/644`(population/stored/omitted)이고 `check_scale_telemetry`는 PASS했지만 생존 watch band는 FAIL, 기록된 entry 보조 watch는 run2 0.782·run4 0.864로 2/5에서 0.70을 넘었다.
-폐기/다음: bot-only survival HP buffer와 DISENGAGE 첫 1초 counteraction grace는 각각 1-run 방향 gate를 실패해 완전 revert하고 5-run을 금지했다. 새 gameplay PASS·패키지·수동 주장은 없으며, 다음 후보 전 behavior-neutral opening 생존 상태 노출 분모로 위치·상태 집중을 좁힌다.
+표면: `C:\tmp\n2_play_11_survival_break_episode_linkage_v2_5run_20260829`, `night_br_m1_60`, seed 41000-41004. 행동/RNG가 읽지 않는 exact actor+state episode linkage다.
+결과: 평균 709.4초, alive@30/60/120/260 중앙값 `51/35/24/15`, T10 305.1초, first upgrade 3.4초, fallback 0, AI 298.9/24,940us, scale gate PASS다. 생존 watch와 packaged/manual은 FAIL/미실행이다.
+원인: 581 episode/89 death에서 cover 선택-미도달 83, counteraction 68, fast reacquire 55, entry-target killer 58이 모든 seed에서 반복됐다. fast reacquire 277건 중 retreat_counteraction이 276건이다.
+다음: E-056 시간 연장은 재시도하지 않는다. E-058은 bot retreat counteraction의 target 소유만 분리하고 gun 방어·player·damage 대응은 보존한 채 1-run hard gate부터 판정한다.
 
 ### 2026-08-09 - N2-PLAY-10 packaged 수동 6판 거부
 

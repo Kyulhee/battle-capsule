@@ -1,6 +1,14 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-08-28. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-08-29. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## N2-PLAY-11 E-057 survival-break episode linkage
+
+- 구현/검증: behavior-neutral exact aggregate가 entry 59초 이하 `survival_break` DISENGAGE의 HP·shield·target visibility/distance, cover 선택/도달, 피격·counteraction, release/reacquire, exit/death를 actor+state episode로 연결한다. gameplay/RNG는 이 값을 읽지 않으며 전체 `unit_smoke` 90.4초가 PASS했다.
+- 실행: `C:\tmp\n2_play_11_survival_break_episode_linkage_v2_5run_20260829` 5-run은 평균 709.4초(583.4-773.9), first upgrade 3.4초, fallback 0, AI 평균/최대 298.9/24,940us, `check_scale_telemetry` PASS다.
+- 생존: alive@30/60/120/260 중앙값 `51/35/24/15`, T50/T10 `30.7/305.1초`로 M1 watch는 여전히 FAIL이며 gameplay/package/manual PASS가 아니다.
+- 원인: 581 episode/89 death 중 cover 선택 후 미도달 83, counteraction 68, fast same-target reacquire 55, entry-target killer 58이었다. run별 미도달 사망도 `22/16/13/17/15`로 반복됐고 fast reacquire 277건 중 276건이 `retreat_counteraction`이었다.
+- 판정/다음: E-056 시간 연장은 실패 상태로 유지한다. E-058은 bot 대상 retreat counteraction이 release target을 다시 소유하지 않고 gun 방어만 유지하는 단일 seam을 1-run으로 검증하며 player·damage reacquire·일반 DISENGAGE는 바꾸지 않는다.
 
 ## N2-PLAY-11 opening survival exposure 진단과 릴리즈 재판정
 
@@ -10,7 +18,7 @@
 - 생존 결과: alive@30/60/120/260은 `55/29/22/15`, T50/T10은 `35.8/279.8초`라 gameplay/survival은 FAIL이다. 단일 run이므로 기준선 승격이나 릴리즈 근거로 쓰지 않는다.
 - 상태 노출: exact 444.3 actor-sec는 known 100%·overflow false다. DISENGAGE 318.4초·사망 24명·7.54/100초, RECOVER 126.0초·사망 0명이며 entry/exit는 `305/303`이다.
 - 종료 문맥: 생존 상태 사망 24명 중 22명이 `survival_break` 진입이고 18명은 진입 2초 미만이었다. continuity release 78 중 1초 내 같은 대상 재획득은 22(28.2%)다.
-- 판정/다음: 위치 노출 정규화는 단일 hotspot을 지목하지 않아 topology를 바꾸지 않는다. 다음은 `survival_break`-only 2.0초 `no_threat` exit hysteresis 한 변수의 1-run 방향 실험이며 통과 전 채택·5-run·package·수동 결과를 주장하지 않는다.
+- 판정/후속: 위치 노출 정규화는 단일 hotspot을 지목하지 않아 topology를 바꾸지 않는다. E-056은 revert됐고 후속 E-057 exact linkage 결과는 위 최신 기록이 소유한다.
 - 릴리즈: 현재는 internal pre-alpha다. 공개 stable `v2.0.0-pre-expansion`을 유지하고, 폐쇄 알파 현실 창은 2026-09-28~10-09, 공개 데모 RC 현실 창은 2026-12-18~2027-01-15로 재조정했다. 날짜는 gate 통과 창이다.
 
 ## N2-PLAY-11 continuity v2 기준선과 후보 폐기
@@ -78,13 +86,6 @@
 - 점유: 다른 봇의 예약 목적지뿐 아니라 현재 POI 안의 실제 위치도 수용량 압력에 포함한다.
 - 검증: 순수 정책, AI Arena 상태 변환, Night 목적지·도착 시간·경로·다음 원 앵커와 전체 `unit_smoke` 통과. 60봇 Forward+ 20초 2회 p95 13.82-13.87ms, p99 15.87-16.08ms, AI 평균 140-145us다.
 - 다음: 같은 `night_br_m1_60`에서 N2-PACE-44 5-run 분포를 재고 N2-PLAY-09 수동 3판 기준을 고정한다.
-
-## N2-MAP-16 Logging Ford 3거점 루프
-
-- 장소: South Creek을 벌목 야적장 `Logging Ford`로 바꾸고 Cabin Row 방향의 빠른 노출 도로, 서쪽 느린 숲, 동쪽 8-9m 나루 병목을 물리 지형으로 구성했다.
-- AI/지도: objective 1·entry 3·outer 3 앵커와 수용량 6을 추가하고, 전체맵·미니맵은 내부 POI명 대신 플레이어용 장소명을 쓴다.
-- 검증: 전체 `unit_smoke`, 세 접근 NavMesh 20.2/27.0/28.0m, 전략 분류·에셋·실제 캡처 통과. 60봇 Forward+ 20초 2회는 p95 13.83-14.11ms, 33ms 초과 0.029%, AI 평균 140-147us다.
-- 다음: 새 장소를 더 만들지 않고 N2-AI-10에서 도착 시간·장비 필요·위협·점유를 경로와 선점 판단에 연결한다.
 
 ## 기록 보존
 

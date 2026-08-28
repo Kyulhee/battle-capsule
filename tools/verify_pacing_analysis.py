@@ -12,6 +12,7 @@ from summarize_pacing_baseline import (
     print_opening_kill_context,
     print_opening_survival_exposure,
     print_opening_target_continuity,
+    print_survival_break_episode_linkage,
     print_survival_victim_continuity,
     _target_continuity_stable_hash,
 )
@@ -175,6 +176,59 @@ def exposure_summary(
             "unarmed",
         ),
     }
+
+
+def survival_break_summary() -> dict:
+    return {
+        "schema_version": 1,
+        "exact": True,
+        "complete": True,
+        "population": "opening_survival_break_disengage_episodes",
+        "window_seconds": 60.0,
+        "entry_censor_seconds": 59.0,
+        "time_basis": "match_elapsed",
+        "entry_visibility_basis": "existing_perception_revealed",
+        "episodes": 2,
+        "completed": 2,
+        "censored": 0,
+        "deaths": 1,
+        "damaged_episodes": 1,
+        "counteraction_episodes": 1,
+        "cover_selected_episodes": 1,
+        "cover_reached_episodes": 1,
+        "nearest_target_missing_episodes": 1,
+        "release_episodes": 1,
+        "fast_reacquired_1s_episodes": 1,
+        "entry_hp_ratio": {"count": 2, "sum": 0.6, "max": 0.4},
+        "entry_shield_ratio": {"count": 2, "sum": 0.5, "max": 0.5},
+        "entry_target_distance": {"count": 2, "sum": 7.0, "max": 4.0},
+        "incoming_raw_damage": {"count": 1, "sum": 12.0, "max": 12.0},
+        "damage_events": {"count": 1, "sum": 2.0, "max": 2.0},
+        "cover_distance": {"count": 1, "sum": 6.0, "max": 6.0},
+        "time_to_cover": {"count": 1, "sum": 0.5, "max": 0.5},
+        "exit_duration": {"count": 2, "sum": 3.0, "max": 2.0},
+        "entry_by_hp_bucket": {"0_25": 1, "25_50": 1},
+        "entry_by_shield_bucket": {"0_25": 1, "25_50": 1},
+        "entry_by_target_kind": {"bot": 2},
+        "entry_by_target_distance_bucket": {"2_5m": 2},
+        "entry_by_visibility": {"revealed": 1, "tracked": 1},
+        "exit_by_reason": {"death": 1, "no_threat": 1},
+        "exit_by_state": {"dead": 1, "idle": 1},
+        "death_by_cover_outcome": {"reached": 1},
+        "death_by_entry_visibility": {"revealed": 1},
+        "death_by_nearest_target_missing": {"no": 1},
+        "death_by_counteraction": {"yes": 1},
+        "death_by_fast_reacquired": {"yes": 1},
+        "death_by_killer_relation": {"entry_target": 1},
+        "fast_reacquire_by_source": {"retreat_counteraction": 1},
+    }
+
+
+def survival_break_report_for(runs: list[dict]) -> str:
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        print_survival_break_episode_linkage(runs)
+    return output.getvalue()
 
 
 def complete_zero_summary() -> dict:
@@ -1342,12 +1396,87 @@ def verify_opening_survival_exposure_contract() -> None:
     )
 
 
+def verify_survival_break_episode_contract() -> None:
+    summary = survival_break_summary()
+    report = survival_break_report_for(
+        [{"pacing": {"survival_break_episode_summary": summary}}]
+    )
+    assert_contains(
+        report,
+        "schema v1 exact, entry<=59s; episodes=2, completed=2, censored=0, deaths=1",
+        "damaged=1/2, cover selected/reached=1/1",
+        "nearest-target-missing=1, counteraction=1",
+        "release/fast same-target reacquire<=1s=1/1",
+        "cover=[reached=1]",
+        "killer relation=[entry_target=1]",
+        "fast reacquire sources=[retreat_counteraction=1]",
+    )
+
+    malformed_cases: list[tuple[str, dict, str]] = []
+    partial = copy.deepcopy(summary)
+    partial.pop("death_by_killer_relation")
+    malformed_cases.append(("partial", partial, "missing death_by_killer_relation"))
+    impossible_total = copy.deepcopy(summary)
+    impossible_total["censored"] = 1
+    malformed_cases.append(
+        ("episode total", impossible_total, "completed + censored must equal episodes")
+    )
+    impossible_cover = copy.deepcopy(summary)
+    impossible_cover["cover_reached_episodes"] = 2
+    malformed_cases.append(
+        (
+            "cover linkage",
+            impossible_cover,
+            "cover_reached_episodes exceeds cover_selected_episodes",
+        )
+    )
+    bad_counter = copy.deepcopy(summary)
+    bad_counter["death_by_fast_reacquired"] = {"yes": True}
+    malformed_cases.append(
+        (
+            "boolean counter",
+            bad_counter,
+            "death_by_fast_reacquired.yes must be a nonnegative integer",
+        )
+    )
+    bad_measure = copy.deepcopy(summary)
+    bad_measure["incoming_raw_damage"]["count"] = 2
+    malformed_cases.append(
+        ("measure count", bad_measure, "incoming_raw_damage.count must equal 1")
+    )
+    for label, malformed, expected in malformed_cases:
+        malformed_report = survival_break_report_for(
+            [{"pacing": {"survival_break_episode_summary": malformed}}]
+        )
+        try:
+            assert_contains(malformed_report, "exact aggregate INVALID", expected)
+        except AssertionError as error:
+            raise AssertionError(
+                f"survival_break malformed case failed: {label}\n{error}"
+            )
+
+    assert_contains(
+        survival_break_report_for([{"pacing": {}}]),
+        "unavailable (schema v1 exact summary missing)",
+    )
+    mixed = [
+        {"pacing": {"survival_break_episode_summary": survival_break_summary()}},
+        {"pacing": {}},
+    ]
+    assert_contains(
+        survival_break_report_for(mixed),
+        "exact aggregate INVALID",
+        "exact survival_break summary missing",
+    )
+
+
 def main() -> int:
     verify_kill_context_and_age_bands()
     verify_schema_v2_contract()
     verify_invalid_contracts()
     verify_time_axis_and_legacy_identity()
     verify_opening_survival_exposure_contract()
+    verify_survival_break_episode_contract()
 
     legacy_output = io.StringIO()
     with contextlib.redirect_stdout(legacy_output):

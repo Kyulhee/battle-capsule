@@ -76,6 +76,50 @@ OPENING_SURVIVAL_EXPOSURE_EVENT_COUNTERS = {
     )
 }
 
+SURVIVAL_BREAK_EPISODE_SUMMARY_KEY = "survival_break_episode_summary"
+SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION = 1
+SURVIVAL_BREAK_EPISODE_ENTRY_CENSOR_SECONDS = 59.0
+SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS = 60.0
+SURVIVAL_BREAK_COUNT_KEYS = {
+    "episodes",
+    "completed",
+    "censored",
+    "deaths",
+    "damaged_episodes",
+    "counteraction_episodes",
+    "cover_selected_episodes",
+    "cover_reached_episodes",
+    "nearest_target_missing_episodes",
+    "release_episodes",
+    "fast_reacquired_1s_episodes",
+}
+SURVIVAL_BREAK_MEASURE_KEYS = {
+    "entry_hp_ratio",
+    "entry_shield_ratio",
+    "entry_target_distance",
+    "incoming_raw_damage",
+    "damage_events",
+    "cover_distance",
+    "time_to_cover",
+    "exit_duration",
+}
+SURVIVAL_BREAK_COUNTER_KEYS = {
+    "entry_by_hp_bucket",
+    "entry_by_shield_bucket",
+    "entry_by_target_kind",
+    "entry_by_target_distance_bucket",
+    "entry_by_visibility",
+    "exit_by_reason",
+    "exit_by_state",
+    "death_by_cover_outcome",
+    "death_by_entry_visibility",
+    "death_by_nearest_target_missing",
+    "death_by_counteraction",
+    "death_by_fast_reacquired",
+    "death_by_killer_relation",
+    "fast_reacquire_by_source",
+}
+
 TARGET_CONTINUITY_RELEASE_SAMPLE_KEYS = {
     "time",
     "release_time",
@@ -1534,6 +1578,269 @@ def print_opening_survival_exposure(runs: list[dict]) -> None:
     print(
         "  release->reacquire location: unavailable unless a complete exact "
         "location aggregate is present; raw bounded samples are not promoted to totals."
+    )
+
+
+def _validate_survival_break_measure(
+    summary: dict,
+    key: str,
+    expected_count: int | None,
+    max_count: int,
+    reasons: list[str],
+) -> None:
+    raw = summary.get(key)
+    if not isinstance(raw, dict) or set(raw) != {"count", "sum", "max"}:
+        reasons.append(f"{key} must contain exactly count/sum/max")
+        return
+    count = raw.get("count")
+    value_sum = raw.get("sum")
+    value_max = raw.get("max")
+    if not _is_strict_nonnegative_int(count):
+        reasons.append(f"{key}.count must be a nonnegative integer")
+        return
+    if count > max_count:
+        reasons.append(f"{key}.count exceeds episodes")
+    if expected_count is not None and count != expected_count:
+        reasons.append(f"{key}.count must equal {expected_count}")
+    if not _is_finite_nonnegative_number(value_sum) \
+            or not _is_finite_nonnegative_number(value_max):
+        reasons.append(f"{key}.sum/max must be finite and nonnegative")
+        return
+    sample_sum = float(value_sum)
+    sample_max = float(value_max)
+    tolerance = 1.0e-6 * max(1.0, sample_sum, sample_max)
+    if count == 0:
+        if sample_sum != 0.0 or sample_max != 0.0:
+            reasons.append(f"{key} zero-count measure must have zero sum/max")
+    elif sample_max > sample_sum + tolerance \
+            or sample_sum > count * sample_max + tolerance:
+        reasons.append(f"{key} sum/max are inconsistent with count")
+
+
+def _validate_exact_survival_break_episode_summary(summary: object) -> list[str]:
+    if not isinstance(summary, dict):
+        return ["summary must be an object"]
+    metadata = {
+        "schema_version",
+        "exact",
+        "complete",
+        "population",
+        "window_seconds",
+        "entry_censor_seconds",
+        "time_basis",
+        "entry_visibility_basis",
+    }
+    required = metadata | SURVIVAL_BREAK_COUNT_KEYS \
+        | SURVIVAL_BREAK_MEASURE_KEYS | SURVIVAL_BREAK_COUNTER_KEYS
+    reasons = [f"missing {key}" for key in sorted(required.difference(summary))]
+    reasons.extend(
+        f"unexpected {key}" for key in sorted(set(summary).difference(required))
+    )
+    if type(summary.get("schema_version")) is not int \
+            or summary.get("schema_version") != SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION:
+        reasons.append("schema_version must be integer 1")
+    if type(summary.get("exact")) is not bool or summary.get("exact") is not True:
+        reasons.append("exact must be boolean true")
+    if type(summary.get("complete")) is not bool \
+            or summary.get("complete") is not True:
+        reasons.append("complete must be boolean true")
+    if summary.get("population") \
+            != "opening_survival_break_disengage_episodes":
+        reasons.append("population must be opening_survival_break_disengage_episodes")
+    if summary.get("time_basis") != "match_elapsed":
+        reasons.append("time_basis must be match_elapsed")
+    if summary.get("entry_visibility_basis") != "existing_perception_revealed":
+        reasons.append("entry_visibility_basis must be existing_perception_revealed")
+    for key, expected in (
+        ("window_seconds", SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS),
+        ("entry_censor_seconds", SURVIVAL_BREAK_EPISODE_ENTRY_CENSOR_SECONDS),
+    ):
+        value = summary.get(key)
+        if not _is_finite_nonnegative_number(value) \
+                or not math.isclose(float(value), expected, abs_tol=1.0e-9):
+            reasons.append(f"{key} must equal {expected:.1f}")
+    counts: dict[str, int] = {}
+    for key in SURVIVAL_BREAK_COUNT_KEYS:
+        value = summary.get(key)
+        if not _is_strict_nonnegative_int(value):
+            reasons.append(f"{key} must be a nonnegative integer")
+        else:
+            counts[key] = value
+    episodes = counts.get("episodes", -1)
+    completed = counts.get("completed", -1)
+    censored = counts.get("censored", -1)
+    deaths = counts.get("deaths", -1)
+    if episodes >= 0 and completed >= 0 and censored >= 0 \
+            and completed + censored != episodes:
+        reasons.append("completed + censored must equal episodes")
+    if deaths >= 0 and completed >= 0 and deaths > completed:
+        reasons.append("deaths exceeds completed episodes")
+    if episodes >= 0:
+        for key in SURVIVAL_BREAK_COUNT_KEYS - {"episodes", "completed", "censored"}:
+            if counts.get(key, 0) > episodes:
+                reasons.append(f"{key} exceeds episodes")
+        if counts.get("cover_reached_episodes", 0) \
+                > counts.get("cover_selected_episodes", 0):
+            reasons.append("cover_reached_episodes exceeds cover_selected_episodes")
+        if counts.get("fast_reacquired_1s_episodes", 0) \
+                > counts.get("release_episodes", 0):
+            reasons.append("fast_reacquired_1s_episodes exceeds release_episodes")
+        measure_counts = {
+            "entry_hp_ratio": episodes,
+            "entry_shield_ratio": episodes,
+            "entry_target_distance": None,
+            "incoming_raw_damage": counts.get("damaged_episodes", 0),
+            "damage_events": counts.get("damaged_episodes", 0),
+            "cover_distance": counts.get("cover_selected_episodes", 0),
+            "time_to_cover": counts.get("cover_reached_episodes", 0),
+            "exit_duration": episodes,
+        }
+        for key, expected_count in measure_counts.items():
+            _validate_survival_break_measure(
+                summary, key, expected_count, episodes, reasons
+            )
+    counter_totals = {
+        "entry_by_hp_bucket": episodes,
+        "entry_by_shield_bucket": episodes,
+        "entry_by_target_kind": episodes,
+        "entry_by_target_distance_bucket": episodes,
+        "entry_by_visibility": episodes,
+        "exit_by_reason": episodes,
+        "exit_by_state": episodes,
+        "death_by_cover_outcome": deaths,
+        "death_by_entry_visibility": deaths,
+        "death_by_nearest_target_missing": deaths,
+        "death_by_counteraction": deaths,
+        "death_by_fast_reacquired": deaths,
+        "death_by_killer_relation": deaths,
+        "fast_reacquire_by_source": counts.get("fast_reacquired_1s_episodes", -1),
+    }
+    for key, expected_total in counter_totals.items():
+        if expected_total >= 0:
+            _validate_summary_counter(summary, key, expected_total, reasons)
+    return reasons
+
+
+def _validated_survival_break_episode_summaries(
+    runs: list[dict],
+) -> tuple[list[dict], list[str], bool]:
+    summaries: list[dict] = []
+    errors: list[str] = []
+    advertised = False
+    for run_ordinal, run in enumerate(runs, start=1):
+        pacing = run.get("pacing", {})
+        if not isinstance(pacing, dict):
+            errors.append(f"run {run_ordinal}: pacing must be an object")
+            continue
+        if SURVIVAL_BREAK_EPISODE_SUMMARY_KEY not in pacing:
+            if advertised:
+                errors.append(f"run {run_ordinal}: exact survival_break summary missing")
+            continue
+        advertised = True
+        summary = pacing.get(SURVIVAL_BREAK_EPISODE_SUMMARY_KEY)
+        run_errors = _validate_exact_survival_break_episode_summary(summary)
+        if run_errors:
+            errors.extend(f"run {run_ordinal}: {reason}" for reason in run_errors)
+        else:
+            summaries.append(summary)
+    if advertised and len(summaries) != len(runs) and not errors:
+        errors.append("not every run has a valid exact survival_break summary")
+    return summaries, errors, advertised
+
+
+def _survival_break_total(summaries: list[dict], key: str) -> int:
+    return sum(int(summary[key]) for summary in summaries)
+
+
+def _survival_break_counter(summaries: list[dict], key: str) -> Counter:
+    result = Counter()
+    for summary in summaries:
+        result.update(summary[key])
+    return result
+
+
+def print_survival_break_episode_linkage(runs: list[dict]) -> None:
+    if not runs:
+        print("Opening survival_break episode linkage: unavailable (no runs).")
+        return
+    summaries, errors, advertised = _validated_survival_break_episode_summaries(runs)
+    if not advertised:
+        print(
+            "Opening survival_break episode linkage: unavailable "
+            "(schema v1 exact summary missing)."
+        )
+        return
+    if errors or len(summaries) != len(runs):
+        reason = errors[0] if errors else "not every run has a valid summary"
+        extra = len(errors) - 1
+        suffix = f" (+{extra} more)" if extra > 0 else ""
+        print(
+            "Opening survival_break episode linkage: schema v1 exact aggregate "
+            f"INVALID ({reason}{suffix})."
+        )
+        return
+    episodes = _survival_break_total(summaries, "episodes")
+    deaths = _survival_break_total(summaries, "deaths")
+    completed = _survival_break_total(summaries, "completed")
+    censored = _survival_break_total(summaries, "censored")
+    damaged = _survival_break_total(summaries, "damaged_episodes")
+    selected = _survival_break_total(summaries, "cover_selected_episodes")
+    reached = _survival_break_total(summaries, "cover_reached_episodes")
+    missing = _survival_break_total(summaries, "nearest_target_missing_episodes")
+    counteraction = _survival_break_total(summaries, "counteraction_episodes")
+    released = _survival_break_total(summaries, "release_episodes")
+    reacquired = _survival_break_total(summaries, "fast_reacquired_1s_episodes")
+    print(
+        "Opening survival_break episode linkage: schema v1 exact, entry<=59s; "
+        f"episodes={episodes}, completed={completed}, censored={censored}, deaths={deaths}."
+    )
+    print(
+        "  episode outcomes: "
+        f"damaged={damaged}/{episodes}, cover selected/reached={selected}/{reached}, "
+        f"nearest-target-missing={missing}, counteraction={counteraction}, "
+        f"release/fast same-target reacquire<=1s={released}/{reacquired}."
+    )
+    print(
+        "  entry measures: hp "
+        f"{_format_summary_measure(_summary_measure(summaries, 'entry_hp_ratio'), '')}, "
+        "shield "
+        f"{_format_summary_measure(_summary_measure(summaries, 'entry_shield_ratio'), '')}, "
+        "target distance "
+        f"{_format_summary_measure(_summary_measure(summaries, 'entry_target_distance'), 'm')}."
+    )
+    print(
+        "  episode measures: incoming raw damage "
+        f"{_format_summary_measure(_summary_measure(summaries, 'incoming_raw_damage'), '')}, "
+        "damage events "
+        f"{_format_summary_measure(_summary_measure(summaries, 'damage_events'), '')}, "
+        "cover distance "
+        f"{_format_summary_measure(_summary_measure(summaries, 'cover_distance'), 'm')}, "
+        "time to cover "
+        f"{_format_summary_measure(_summary_measure(summaries, 'time_to_cover'), 's')}, "
+        "exit duration "
+        f"{_format_summary_measure(_summary_measure(summaries, 'exit_duration'), 's')}."
+    )
+    print(
+        "  death linkage: cover="
+        f"[{format_counts(_survival_break_counter(summaries, 'death_by_cover_outcome'))}], "
+        "entry visibility="
+        f"[{format_counts(_survival_break_counter(summaries, 'death_by_entry_visibility'))}], "
+        "missing threat="
+        f"[{format_counts(_survival_break_counter(summaries, 'death_by_nearest_target_missing'))}], "
+        "counteraction="
+        f"[{format_counts(_survival_break_counter(summaries, 'death_by_counteraction'))}], "
+        "fast reacquire="
+        f"[{format_counts(_survival_break_counter(summaries, 'death_by_fast_reacquired'))}], "
+        "killer relation="
+        f"[{format_counts(_survival_break_counter(summaries, 'death_by_killer_relation'))}]."
+    )
+    print(
+        "  exits: reasons="
+        f"[{format_counts(_survival_break_counter(summaries, 'exit_by_reason'))}], "
+        "states="
+        f"[{format_counts(_survival_break_counter(summaries, 'exit_by_state'))}], "
+        "fast reacquire sources="
+        f"[{format_counts(_survival_break_counter(summaries, 'fast_reacquire_by_source'))}]."
     )
 
 
@@ -3273,6 +3580,7 @@ def main() -> int:
     print_opening_pressure(runs, first_contact)
     print_opening_kill_context(runs)
     print_opening_survival_exposure(runs)
+    print_survival_break_episode_linkage(runs)
     print_opening_target_continuity(runs)
     print_survival_victim_continuity(runs)
     print("Movement pressure:")

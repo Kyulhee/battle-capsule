@@ -47,6 +47,12 @@ func _run() -> void:
 	if not await _verify_bot_opening_survival_exposure_shadow():
 		quit(1)
 		return
+	if not _verify_survival_break_episode_exact_summary():
+		quit(1)
+		return
+	if not await _verify_bot_survival_break_episode_shadow():
+		quit(1)
+		return
 	if not _verify_target_continuity_exact_summary():
 		quit(1)
 		return
@@ -774,6 +780,200 @@ func _verify_opening_survival_exposure_exact_summary() -> bool:
 	edge_main.free()
 	if not is_equal_approx(edge_credit, 0.1) or not edge_holds.is_empty():
 		return _fail("The exact 60s observation must credit 0.1s and close its held sample.")
+	return true
+
+
+func _verify_survival_break_episode_exact_summary() -> bool:
+	var telemetry_script = load("res://src/core/Telemetry.gd")
+	var main := FakeMain.new()
+	main.name = "Main"
+	root.add_child(main)
+	var tel = telemetry_script.new()
+	root.add_child(tel)
+	tel.start_match()
+
+	main.match_timer = 1.0
+	var entry := {
+		"actor_id": 10,
+		"state_episode_id": 4,
+		"hp_ratio": 0.24,
+		"shield_ratio": 0.5,
+		"target_id": 20,
+		"target_kind": "bot",
+		"target_distance": 3.0,
+		"entry_visibility": "revealed",
+	}
+	if not tel.start_survival_break_episode(entry) \
+			or tel.start_survival_break_episode(entry):
+		tel.free()
+		main.free()
+		return _fail("survival_break episode start must be exact-once.")
+	main.match_timer = 1.2
+	if not tel.track_survival_break_episode_event(10, 4, "damage", {
+		"amount": 5.0, "attacker_id": 20,
+	}) or not tel.track_survival_break_episode_event(10, 4, "damage", {
+		"amount": 7.0, "attacker_id": 20,
+	}) or not tel.track_survival_break_episode_event(10, 4, "cover_selected", {
+		"distance": 6.0,
+	}) or not tel.track_survival_break_episode_event(10, 4, "release", {
+		"target_id": 20,
+	}):
+		tel.free()
+		main.free()
+		return _fail("survival_break episode observations were rejected.")
+	main.match_timer = 1.5
+	tel.track_survival_break_episode_event(10, 4, "reacquire", {
+		"target_id": 20, "source": "retreat_counteraction",
+	})
+	tel.track_survival_break_episode_event(10, 4, "counteraction")
+	tel.track_survival_break_episode_event(10, 4, "cover_reached")
+	main.match_timer = 2.0
+	if not tel.finish_survival_break_episode({
+		"actor_id": 10,
+		"state_episode_id": 4,
+		"reason": "death",
+		"exit_state": "dead",
+		"killer_id": 20,
+	}) or tel.finish_survival_break_episode({
+		"actor_id": 10,
+		"state_episode_id": 4,
+		"reason": "death",
+		"exit_state": "dead",
+		"killer_id": 20,
+	}):
+		tel.free()
+		main.free()
+		return _fail("survival_break episode finish must be exact-once.")
+
+	var summary: Dictionary = tel.metrics.pacing.survival_break_episode_summary
+	if int(summary.get("schema_version", 0)) != 1 \
+			or not bool(summary.get("exact", false)) \
+			or not bool(summary.get("complete", false)) \
+			or int(summary.get("episodes", 0)) != 1 \
+			or int(summary.get("completed", 0)) != 1 \
+			or int(summary.get("deaths", 0)) != 1 \
+			or int(summary.get("damaged_episodes", 0)) != 1 \
+			or int(summary.get("counteraction_episodes", 0)) != 1 \
+			or int(summary.get("cover_selected_episodes", 0)) != 1 \
+			or int(summary.get("cover_reached_episodes", 0)) != 1 \
+			or int(summary.get("release_episodes", 0)) != 1 \
+			or int(summary.get("fast_reacquired_1s_episodes", 0)) != 1:
+		tel.free()
+		main.free()
+		return _fail("survival_break exact totals changed.")
+	if int(summary.incoming_raw_damage.get("count", 0)) != 1 \
+			or not is_equal_approx(float(summary.incoming_raw_damage.get("sum", 0.0)), 12.0) \
+			or not is_equal_approx(float(summary.damage_events.get("sum", 0.0)), 2.0) \
+			or int(summary.death_by_cover_outcome.get("reached", 0)) != 1 \
+			or int(summary.death_by_entry_visibility.get("revealed", 0)) != 1 \
+			or int(summary.death_by_counteraction.get("yes", 0)) != 1 \
+			or int(summary.death_by_fast_reacquired.get("yes", 0)) != 1 \
+			or int(summary.death_by_killer_relation.get("entry_target", 0)) != 1 \
+			or int(summary.fast_reacquire_by_source.get("retreat_counteraction", 0)) != 1:
+		tel.free()
+		main.free()
+		return _fail("survival_break linked death/measures changed.")
+
+	# Entries after 59s are censored out; an admitted 59s episode is finalized
+	# at the 60s observation window rather than linked to later gameplay.
+	main.match_timer = 59.0
+	entry.actor_id = 11
+	entry.state_episode_id = 5
+	if not tel.start_survival_break_episode(entry):
+		tel.free()
+		main.free()
+		return _fail("A survival_break episode at the 59s censor edge was rejected.")
+	main.match_timer = 60.2
+	if tel.track_survival_break_episode_event(11, 5, "damage", {"amount": 99.0}):
+		tel.free()
+		main.free()
+		return _fail("Post-window survival_break observations must be rejected.")
+	if int(summary.get("episodes", 0)) != 2 \
+			or int(summary.get("censored", 0)) != 1 \
+			or int(summary.exit_by_state.get("censored", 0)) != 1 \
+			or not is_equal_approx(float(summary.exit_duration.get("max", 0.0)), 1.0):
+		tel.free()
+		main.free()
+		return _fail("survival_break right-censor contract changed.")
+
+	tel.match_in_progress = false
+	tel.free()
+	main.free()
+	return true
+
+
+func _verify_bot_survival_break_episode_shadow() -> bool:
+	var tel = root.get_node_or_null("Telemetry")
+	if tel == null:
+		return _fail("Telemetry autoload is required for the survival_break Bot smoke.")
+	var main := FakeMain.new()
+	main.name = "Main"
+	root.add_child(main)
+	tel.start_match()
+	var bot_scene: PackedScene = load("res://src/entities/bot/Bot.tscn")
+	var subject = bot_scene.instantiate()
+	var target = bot_scene.instantiate()
+	root.add_child(subject)
+	root.add_child(target)
+	subject.set_physics_process(false)
+	target.set_physics_process(false)
+	await create_timer(0.25).timeout
+	subject.global_position = Vector3.ZERO
+	target.global_position = Vector3(3.0, 0.0, 0.0)
+	main.match_timer = 1.0
+	if not subject.acquire_enemy_target(target, "episode_entry"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("survival_break Bot fixture could not acquire its entry target.")
+	subject.change_state(subject.State.CHASE, "episode_probe")
+	subject.current_health = 1.0
+	subject.stats.current_ammo = 1
+	subject.reserve_ammo = 0
+	subject.call("_check_survival_overrides")
+	var summary: Dictionary = tel.metrics.pacing.survival_break_episode_summary
+	if subject.current_state != subject.State.DISENGAGE \
+			or int(summary.get("episodes", 0)) != 1 \
+			or int(summary.entry_by_target_kind.get("bot", 0)) != 1 \
+			or int(summary.entry_target_distance.get("count", 0)) != 1:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("CHASE survival_break must preserve its pre-clear entry target context.")
+
+	main.match_timer = 1.4
+	if not subject.acquire_enemy_target(target, "retreat_counteraction"):
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("survival_break Bot fixture could not reacquire its released target.")
+	# Keep the terminal fixture drop-free after the armed transition has opened
+	# the episode. Fatal damage must be observed before super invokes die().
+	subject.stats.weapon_type = "pistol"
+	subject.stats.current_ammo = 0
+	subject.reserve_ammo = 0
+	subject.stats.heal_items = 0
+	subject.stats.advanced_heals = 0
+	subject.equipped_armor_tier = 0
+	main.match_timer = 1.5
+	subject.take_damage(10.0, "gun", "pistol", target)
+	if int(summary.get("completed", 0)) != 1 \
+			or int(summary.get("deaths", 0)) != 1 \
+			or int(summary.get("damaged_episodes", 0)) != 1 \
+			or int(summary.get("release_episodes", 0)) != 1 \
+			or int(summary.get("fast_reacquired_1s_episodes", 0)) != 1 \
+			or int(summary.death_by_fast_reacquired.get("yes", 0)) != 1 \
+			or int(summary.death_by_killer_relation.get("entry_target", 0)) != 1:
+		subject.free()
+		target.free()
+		main.free()
+		return _fail("Bot survival_break damage/reacquire/death linkage changed.")
+	await create_timer(1.5).timeout
+	subject.free()
+	target.free()
+	main.free()
+	tel.match_in_progress = false
+	await process_frame
 	return true
 
 

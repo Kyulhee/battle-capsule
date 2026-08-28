@@ -1,6 +1,6 @@
 # 실험 기록
 
-> 최종 업데이트: 2026-08-28. 같은 실패를 반복하지 않기 위한 짧은 장부다.
+> 최종 업데이트: 2026-08-29. 같은 실패를 반복하지 않기 위한 짧은 장부다.
 
 ## 활성 판단
 
@@ -61,7 +61,8 @@
 | E-053 | DISENGAGE 첫 1초 bot-only counteraction grace가 보복 연쇄를 끊는가? | `C:\tmp\n2_play_11_disengage_counter_grace_20260814`: 682.5초, alive `52/34/24/14`, T10 274.5초, fast reacquire 24/69(34.8%), disengage trigger 0.22. 직접 causal path는 0건이고 5m 이내 kill은 18→21 | 원인 경로를 건드리지 못하고 방향 gate 실패, 완전 revert, 5-run 금지. grace 확대·혼합 금지 |
 | E-054 | behavior-neutral continuity v2가 완전 aggregate와 bounded raw로 N2-PLAY-11을 판정할 수 있는가? | 1-run sanity는 contract PASS/stuck FAIL. `C:\tmp\n2_play_11_continuity_v2_5run_20260814`: 평균 668.8초(531.5-805.5), release/reacquire/exit `414/132/1284`, `check_scale_telemetry` PASS. 기록된 `tactics.disengage_entries/(spawned×duration_min)`은 run2 0.782·run4 0.864로 보조 watch 0.70을 2/5 초과 | schema v2 계측 계약 채택, gameplay PASS 아님. 다음 후보 전 opening 생존 상태 노출 분모로 반복 이탈·근거리 집중을 분리 |
 | E-055 | behavior-neutral opening survival exposure가 상태·위치별 종료 위험을 유효한 분모로 분리하는가? | `C:\tmp\n2_play_11_survival_exposure_sanity_20260828`: 849.696초·alive `55/29/22/15`·T50/T10 `35.8/279.8초`; exact 444.3 actor-sec·known 100%·overflow false. DISENGAGE 318.4초/24명/7.54 per100초, RECOVER 126.0초/0명, entry/exit `305/303`, `survival_break` 22/24·2초 미만 18/24, fast reacquire 22/78(28.2%) | schema/data-quality·구조 gate 채택, gameplay/survival FAIL. 노출 정규화는 단일 map hotspot을 지목하지 않으므로 topology 변경 금지 |
-| E-056 | `survival_break`로 들어온 DISENGAGE의 `no_threat` exit만 2.0초 늦추면 빠른 종료·재획득을 줄이면서 생존과 구조 gate를 보존하는가? | 아직 결과 없음. E-055가 지목한 dominant entry/short state-age 경로 하나만 바꾸는 1-run 방향 실험으로 등록 | 1-run 전용 후보. 생존·continuity·정체/이탈·D-004가 함께 개선될 때만 5-run; 통과 전 채택·package·수동·릴리즈 주장 금지 |
+| E-056 | `survival_break`로 들어온 DISENGAGE의 `no_threat` exit만 2.0초 늦추면 빠른 종료·재획득을 줄이면서 생존과 구조 gate를 보존하는가? | `C:\tmp\n2_play_11_survival_break_no_threat_hysteresis_2s_pilot_20260829`: 742.087초, alive `57/38/25/22`, T10 309.7초, entry 198, `survival_break→no_threat` 58, 평균 DISENGAGE 1.928초. survival death 20, 5m survival kill 14, fast reacquire 29/81(35.8%) | hard gate 3개 실패, 완전 revert, 5-run 금지. exit 감소가 reengage·same-entry-target·episode 내부 churn 증가로 치환되어 시간·조건 조정 재시도 금지 |
+| E-057 | survival-break episode의 entry→cover→damage/counteraction→release/reacquire→exit/death를 exact 연결하면 다음 단일 원인을 고를 수 있는가? | 5-run 평균 709.4초·scale PASS. 581 episode/89 death 중 cover 선택-미도달 83, counteraction 68, fast reacquire 55, entry-target killer 58; retreat_counteraction이 fast reacquire 276/277 | 진단 채택. topology·HP·시간 연장 대신 bot retreat counteraction의 target 소유만 분리하는 E-058 1-run 허용 |
 
 ## 폐기 패턴
 

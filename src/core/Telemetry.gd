@@ -72,6 +72,9 @@ const OPENING_SURVIVAL_EXPOSURE_SCHEMA_VERSION := 1
 const OPENING_SURVIVAL_EXPOSURE_SECONDS := 60.0
 const OPENING_SURVIVAL_EXPOSURE_INTERVAL_SECONDS := 0.25
 const MAX_OPENING_SURVIVAL_SUMMARY_KEYS := 64
+const SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION := 1
+const SURVIVAL_BREAK_EPISODE_ENTRY_CENSOR_SECONDS := 59.0
+const SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS := 60.0
 var history_path: String = HISTORY_PATH
 var sim_result_path: String = SIM_RESULT_PATH
 
@@ -112,6 +115,7 @@ var _target_continuity_disengage_selected_samples: Dictionary = {}
 var _opening_survival_tracked_actors: Dictionary = {}
 var _opening_survival_held_by_actor: Dictionary = {}
 var _opening_survival_death_actors: Dictionary = {}
+var _survival_break_episodes: Dictionary = {}
 
 func _reset_metrics():
 	_pending_weapon_collect_context = {}
@@ -123,6 +127,7 @@ func _reset_metrics():
 	_opening_survival_tracked_actors = {}
 	_opening_survival_held_by_actor = {}
 	_opening_survival_death_actors = {}
+	_survival_break_episodes = {}
 	metrics = {
 		# core (always present — used by Main.gd result screen)
 		"session": {
@@ -297,6 +302,9 @@ func _reset_metrics():
 			# left-edge sample hold: a state-entry/current-position observation
 			# owns the following interval until the next doctrine flush.
 			"opening_survival_exposure_summary": _new_opening_survival_exposure_summary(),
+			# Exact, fixed-shape linkage for opening survival_break DISENGAGE
+			# episodes. Runtime decisions never read this diagnostic state.
+			"survival_break_episode_summary": _new_survival_break_episode_summary(),
 			"first_shot_time": -1.0,
 			"first_target_acquisition_time": -1.0,
 			"first_target_acquisition_source": "none",
@@ -526,6 +534,7 @@ func end_match(
 			bool(last_alive_sample.get("shrinking", false))
 		)
 	_finalize_all_opening_survival_holds(_elapsed_seconds())
+	_finalize_all_survival_break_episodes("match_end", "censored")
 	match_in_progress = false
 	metrics.core.zone_stage_reached = zone_stage
 	metrics.session.rank = rank
@@ -1000,6 +1009,299 @@ func _opening_survival_threat_bucket(additional_threats: int) -> String:
 	if additional_threats >= 3:
 		return "3_plus"
 	return str(additional_threats)
+
+func _new_survival_break_episode_summary() -> Dictionary:
+	return {
+		"schema_version": SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION,
+		"exact": true,
+		"complete": true,
+		"population": "opening_survival_break_disengage_episodes",
+		"window_seconds": SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS,
+		"entry_censor_seconds": SURVIVAL_BREAK_EPISODE_ENTRY_CENSOR_SECONDS,
+		"time_basis": "match_elapsed",
+		"entry_visibility_basis": "existing_perception_revealed",
+		"episodes": 0,
+		"completed": 0,
+		"censored": 0,
+		"deaths": 0,
+		"damaged_episodes": 0,
+		"counteraction_episodes": 0,
+		"cover_selected_episodes": 0,
+		"cover_reached_episodes": 0,
+		"nearest_target_missing_episodes": 0,
+		"release_episodes": 0,
+		"fast_reacquired_1s_episodes": 0,
+		"entry_hp_ratio": {"count": 0, "sum": 0.0, "max": 0.0},
+		"entry_shield_ratio": {"count": 0, "sum": 0.0, "max": 0.0},
+		"entry_target_distance": {"count": 0, "sum": 0.0, "max": 0.0},
+		"incoming_raw_damage": {"count": 0, "sum": 0.0, "max": 0.0},
+		"damage_events": {"count": 0, "sum": 0.0, "max": 0.0},
+		"cover_distance": {"count": 0, "sum": 0.0, "max": 0.0},
+		"time_to_cover": {"count": 0, "sum": 0.0, "max": 0.0},
+		"exit_duration": {"count": 0, "sum": 0.0, "max": 0.0},
+		"entry_by_hp_bucket": {},
+		"entry_by_shield_bucket": {},
+		"entry_by_target_kind": {},
+		"entry_by_target_distance_bucket": {},
+		"entry_by_visibility": {},
+		"exit_by_reason": {},
+		"exit_by_state": {},
+		"death_by_cover_outcome": {},
+		"death_by_entry_visibility": {},
+		"death_by_nearest_target_missing": {},
+		"death_by_counteraction": {},
+		"death_by_fast_reacquired": {},
+		"death_by_killer_relation": {},
+		"fast_reacquire_by_source": {},
+	}
+
+func can_track_survival_break_episode() -> bool:
+	return match_in_progress \
+		and _g("pacing") \
+		and _elapsed_seconds() <= SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS
+
+func start_survival_break_episode(context: Dictionary) -> bool:
+	if not match_in_progress or not _g("pacing"):
+		return false
+	var elapsed := _elapsed_seconds()
+	_finalize_survival_break_cutoff(elapsed)
+	if elapsed > SURVIVAL_BREAK_EPISODE_ENTRY_CENSOR_SECONDS:
+		return false
+	var actor_id := maxi(-1, int(context.get("actor_id", -1)))
+	var state_episode_id := maxi(-1, int(context.get("state_episode_id", -1)))
+	if actor_id < 0 or state_episode_id < 0:
+		return false
+	var episode_key := "%d|%d" % [actor_id, state_episode_id]
+	if _survival_break_episodes.has(episode_key):
+		return false
+	var hp_ratio := clampf(float(context.get("hp_ratio", 0.0)), 0.0, 1.0)
+	var shield_ratio := clampf(float(context.get("shield_ratio", 0.0)), 0.0, 1.0)
+	var target_id := maxi(-1, int(context.get("target_id", -1)))
+	var target_distance := float(context.get("target_distance", -1.0))
+	var entry_visibility := _normalized_key(
+		String(context.get("entry_visibility", "unknown")), "unknown"
+	)
+	_survival_break_episodes[episode_key] = {
+		"actor_id": actor_id,
+		"state_episode_id": state_episode_id,
+		"entry_time": elapsed,
+		"entry_target_id": target_id,
+		"entry_visibility": entry_visibility,
+		"damaged": false,
+		"damage_events": 0,
+		"incoming_raw_damage": 0.0,
+		"last_attacker_id": -1,
+		"counteraction": false,
+		"cover_selected": false,
+		"cover_reached": false,
+		"nearest_target_missing": false,
+		"released": bool(context.get("released_on_entry", false)),
+		"release_target_id": target_id \
+			if bool(context.get("released_on_entry", false)) else -1,
+		"release_time": elapsed \
+			if bool(context.get("released_on_entry", false)) else -1.0,
+		"fast_reacquired": false,
+		"reacquired_target_id": -1,
+	}
+	var summary: Dictionary = metrics.pacing.survival_break_episode_summary
+	summary.episodes = int(summary.episodes) + 1
+	_target_continuity_measure(summary.entry_hp_ratio, hp_ratio)
+	_target_continuity_measure(summary.entry_shield_ratio, shield_ratio)
+	if target_distance >= 0.0:
+		_target_continuity_measure(summary.entry_target_distance, target_distance)
+	_target_continuity_increment(summary.entry_by_hp_bucket, _survival_ratio_bucket(hp_ratio))
+	_target_continuity_increment(summary.entry_by_shield_bucket, _survival_ratio_bucket(shield_ratio))
+	_target_continuity_increment(
+		summary.entry_by_target_kind,
+		String(context.get("target_kind", "unknown"))
+	)
+	_target_continuity_increment(
+		summary.entry_by_target_distance_bucket,
+		_opening_survival_distance_bucket(target_distance)
+	)
+	_target_continuity_increment(summary.entry_by_visibility, entry_visibility)
+	return true
+
+func track_survival_break_episode_event(
+	actor_id: int,
+	state_episode_id: int,
+	event_name: String,
+	context: Dictionary = {}
+) -> bool:
+	if not match_in_progress or not _g("pacing"):
+		return false
+	var elapsed := _elapsed_seconds()
+	_finalize_survival_break_cutoff(elapsed)
+	if elapsed > SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS:
+		return false
+	var episode_key := "%d|%d" % [actor_id, state_episode_id]
+	if not _survival_break_episodes.has(episode_key):
+		return false
+	var episode: Dictionary = _survival_break_episodes[episode_key]
+	var event := _normalized_key(event_name, "unknown")
+	match event:
+		"damage":
+			episode.damaged = true
+			episode.damage_events = int(episode.damage_events) + 1
+			episode.incoming_raw_damage = float(episode.incoming_raw_damage) \
+				+ maxf(0.0, float(context.get("amount", 0.0)))
+			episode.last_attacker_id = maxi(-1, int(context.get("attacker_id", -1)))
+		"counteraction":
+			episode.counteraction = true
+		"cover_selected":
+			if not bool(episode.cover_selected):
+				episode.cover_selected = true
+				episode.cover_distance = maxf(0.0, float(context.get("distance", 0.0)))
+		"cover_reached":
+			if not bool(episode.cover_reached):
+				episode.cover_reached = true
+				episode.time_to_cover = maxf(0.0, elapsed - float(episode.entry_time))
+		"nearest_target_missing":
+			episode.nearest_target_missing = true
+		"release":
+			episode.released = true
+			episode.release_target_id = maxi(-1, int(context.get("target_id", -1)))
+			episode.release_time = elapsed
+		"reacquire":
+			var target_id := maxi(-1, int(context.get("target_id", -1)))
+			var release_time := float(episode.get("release_time", -1.0))
+			if bool(episode.released) \
+					and not bool(episode.fast_reacquired) \
+					and target_id >= 0 \
+					and target_id == int(episode.release_target_id) \
+					and release_time >= 0.0 \
+					and elapsed - release_time <= TARGET_CONTINUITY_REACQUIRE_SECONDS:
+				episode.fast_reacquired = true
+				episode.reacquired_target_id = target_id
+				episode.reacquire_source = _normalized_key(
+					String(context.get("source", "unknown")), "unknown"
+				)
+		_:
+			return false
+	_survival_break_episodes[episode_key] = episode
+	return true
+
+func finish_survival_break_episode(context: Dictionary) -> bool:
+	if not _g("pacing"):
+		return false
+	var actor_id := maxi(-1, int(context.get("actor_id", -1)))
+	var state_episode_id := maxi(-1, int(context.get("state_episode_id", -1)))
+	var episode_key := "%d|%d" % [actor_id, state_episode_id]
+	if not _survival_break_episodes.has(episode_key):
+		return false
+	var elapsed := _elapsed_seconds()
+	if elapsed > SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS:
+		_finalize_survival_break_episode(episode_key, "window_end", "censored", -1)
+		return false
+	_finalize_survival_break_episode(
+		episode_key,
+		String(context.get("reason", "unknown")),
+		String(context.get("exit_state", "unknown")),
+		maxi(-1, int(context.get("killer_id", -1)))
+	)
+	return true
+
+func _finalize_survival_break_cutoff(elapsed: float) -> void:
+	if elapsed <= SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS:
+		return
+	_finalize_all_survival_break_episodes("window_end", "censored")
+
+func _finalize_all_survival_break_episodes(reason: String, exit_state: String) -> void:
+	for episode_key in _survival_break_episodes.keys():
+		_finalize_survival_break_episode(String(episode_key), reason, exit_state, -1)
+
+func _finalize_survival_break_episode(
+	episode_key: String,
+	reason_name: String,
+	exit_state_name: String,
+	killer_id: int
+) -> void:
+	if not _survival_break_episodes.has(episode_key):
+		return
+	var episode: Dictionary = _survival_break_episodes[episode_key]
+	_survival_break_episodes.erase(episode_key)
+	var summary: Dictionary = metrics.pacing.survival_break_episode_summary
+	var reason := _normalized_key(reason_name, "unknown")
+	var exit_state := _normalized_key(exit_state_name, "unknown")
+	var censored := exit_state == "censored"
+	if censored:
+		summary.censored = int(summary.censored) + 1
+	else:
+		summary.completed = int(summary.completed) + 1
+	_target_continuity_increment(summary.exit_by_reason, reason)
+	_target_continuity_increment(summary.exit_by_state, exit_state)
+	var duration := clampf(
+		_elapsed_seconds(),
+		0.0,
+		SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS
+	) - float(episode.entry_time)
+	_target_continuity_measure(summary.exit_duration, maxf(0.0, duration))
+	if bool(episode.damaged):
+		summary.damaged_episodes = int(summary.damaged_episodes) + 1
+		_target_continuity_measure(summary.incoming_raw_damage, float(episode.incoming_raw_damage))
+		_target_continuity_measure(summary.damage_events, float(episode.damage_events))
+	if bool(episode.counteraction):
+		summary.counteraction_episodes = int(summary.counteraction_episodes) + 1
+	if bool(episode.cover_selected):
+		summary.cover_selected_episodes = int(summary.cover_selected_episodes) + 1
+		_target_continuity_measure(summary.cover_distance, float(episode.cover_distance))
+	if bool(episode.cover_reached):
+		summary.cover_reached_episodes = int(summary.cover_reached_episodes) + 1
+		_target_continuity_measure(summary.time_to_cover, float(episode.time_to_cover))
+	if bool(episode.nearest_target_missing):
+		summary.nearest_target_missing_episodes = \
+			int(summary.nearest_target_missing_episodes) + 1
+	if bool(episode.released):
+		summary.release_episodes = int(summary.release_episodes) + 1
+	if bool(episode.fast_reacquired):
+		summary.fast_reacquired_1s_episodes = int(summary.fast_reacquired_1s_episodes) + 1
+		_target_continuity_increment(
+			summary.fast_reacquire_by_source,
+			String(episode.get("reacquire_source", "unknown"))
+		)
+	if exit_state != "dead":
+		return
+	summary.deaths = int(summary.deaths) + 1
+	var cover_outcome := "not_selected"
+	if bool(episode.cover_reached):
+		cover_outcome = "reached"
+	elif bool(episode.cover_selected):
+		cover_outcome = "selected_not_reached"
+	_target_continuity_increment(summary.death_by_cover_outcome, cover_outcome)
+	_target_continuity_increment(
+		summary.death_by_entry_visibility,
+		String(episode.entry_visibility)
+	)
+	_target_continuity_increment(
+		summary.death_by_nearest_target_missing,
+		"yes" if bool(episode.nearest_target_missing) else "no"
+	)
+	_target_continuity_increment(
+		summary.death_by_counteraction,
+		"yes" if bool(episode.counteraction) else "no"
+	)
+	_target_continuity_increment(
+		summary.death_by_fast_reacquired,
+		"yes" if bool(episode.fast_reacquired) else "no"
+	)
+	var killer_relation := "unknown"
+	if killer_id >= 0:
+		if killer_id == int(episode.entry_target_id):
+			killer_relation = "entry_target"
+		elif killer_id == int(episode.reacquired_target_id):
+			killer_relation = "reacquired_target"
+		else:
+			killer_relation = "other"
+	_target_continuity_increment(summary.death_by_killer_relation, killer_relation)
+
+func _survival_ratio_bucket(value: float) -> String:
+	if value <= 0.25:
+		return "0_25"
+	if value <= 0.5:
+		return "25_50"
+	if value <= 0.75:
+		return "50_75"
+	return "75_100"
 
 func can_track_target_continuity() -> bool:
 	return match_in_progress \

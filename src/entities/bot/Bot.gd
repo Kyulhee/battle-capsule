@@ -165,6 +165,9 @@ var _disengage_entry_state_episode: int = -1
 var _opening_survival_actor_registered: bool = false
 var _opening_survival_location_context: Dictionary = {}
 var _opening_survival_death_logged: bool = false
+# Behavior-neutral E-057 linkage. Telemetry owns the episode aggregate; this
+# pending entry snapshot only survives the ATTACK/CHASE -> DISENGAGE transition.
+var _pending_survival_break_episode_entry: Dictionary = {}
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -1118,6 +1121,10 @@ func _try_retreat_counteraction(threat: Entity, delta: float, gun_event: String)
 
 	if fire_cooldown <= 0.0 and dist <= BOT_TUNING.MELEE_RANGE * 1.05:
 		_bot_melee("retreat_counter")
+		_track_survival_break_episode_event("counteraction", {
+			"kind": "melee",
+			"target_id": threat.get_instance_id(),
+		})
 		if has_node("/root/Telemetry"):
 			get_node("/root/Telemetry").log_tactics("retreat_melee_counter")
 		return true
@@ -1132,6 +1139,10 @@ func _try_retreat_counteraction(threat: Entity, delta: float, gun_event: String)
 	if fire_cooldown <= 0.0 and stats.current_ammo > 0 and dist <= fire_range \
 			and stats.weapon_type != "" and stats.weapon_type != "knife" and has_los_to(threat):
 		_retreat_fire_at(threat, gun_event)
+		_track_survival_break_episode_event("counteraction", {
+			"kind": "gun",
+			"target_id": threat.get_instance_id(),
+		})
 		return true
 	return false
 
@@ -1235,7 +1246,10 @@ func handle_disengage_state(delta):
 			change_state(State.ZONE_ESCAPE, "zone_override"); return
 
 	var nearest_threat = _find_nearest_target()
-	if not nearest_threat: change_state(State.IDLE, "no_threat"); return
+	if not nearest_threat:
+		_track_survival_break_episode_event("nearest_target_missing")
+		change_state(State.IDLE, "no_threat")
+		return
 	var counter_threat = _find_retreat_threat(BOT_TUNING.RETREAT_THREAT_SCAN_RANGE)
 	if not counter_threat:
 		counter_threat = nearest_threat
@@ -1249,8 +1263,15 @@ func handle_disengage_state(delta):
 		return
 
 	# Normal disengage: seek tall cover
+	if _disengage_cover != Vector3.ZERO \
+			and global_position.distance_to(_disengage_cover) < 2.0:
+		_track_survival_break_episode_event("cover_reached")
 	if _disengage_cover == Vector3.ZERO or global_position.distance_to(_disengage_cover) < 2.0:
 		_disengage_cover = _find_cover_point(nearest_threat.global_position)
+		if _disengage_cover != Vector3.ZERO:
+			_track_survival_break_episode_event("cover_selected", {
+				"distance": global_position.distance_to(_disengage_cover),
+			})
 
 	if _disengage_cover != Vector3.ZERO:
 		_nav_move_toward(_disengage_cover, delta, not countering)
@@ -1874,6 +1895,11 @@ func _record_enemy_target_release(reason_name: String, source_name: String) -> v
 		_clear_tracked_enemy_target_shadow()
 		_enemy_release_shadows.erase(target_id)
 		return
+	_track_survival_break_episode_event("release", {
+		"target_id": target_id,
+		"reason": reason,
+		"source": source,
+	})
 	var target_state := _continuity_target_state(target_id)
 	var target_state_episode := _continuity_target_state_episode(target_id)
 	var target_age := -1.0
@@ -1994,6 +2020,49 @@ func _record_enemy_target_acquisition(
 func _prepare_disengage_entry(reason_name: String) -> void:
 	_pending_disengage_entry_reason = _shadow_key(reason_name, "unknown")
 
+func _prepare_survival_break_episode_entry() -> void:
+	var entry_target := target_actor as Entity
+	var target_id := -1
+	var target_kind := "none"
+	var target_distance := -1.0
+	var entry_visibility := "unknown"
+	if is_instance_valid(entry_target) and not entry_target.is_dead:
+		target_id = entry_target.get_instance_id()
+		target_kind = "player" if entry_target.is_in_group("players") else (
+			"bot" if entry_target.is_in_group("bots") else "other"
+		)
+		target_distance = global_position.distance_to(entry_target.global_position)
+		# Reuse the existing perception meter; this diagnostic must not add a
+		# physics query or change target visibility.
+		entry_visibility = "revealed" if entry_target.is_revealed_to(self) else "tracked"
+	_pending_survival_break_episode_entry = {
+		"target_id": target_id,
+		"target_kind": target_kind,
+		"target_distance": target_distance,
+		"entry_visibility": entry_visibility,
+		"released_on_entry": current_state == State.CHASE and target_id >= 0,
+		"hp_ratio": clampf(current_health / maxf(1.0, stats.max_health), 0.0, 1.0),
+		"shield_ratio": clampf(current_shield / maxf(1.0, stats.max_shield), 0.0, 1.0),
+	}
+
+func _track_survival_break_episode_event(
+	event_name: String,
+	context: Dictionary = {}
+) -> bool:
+	if _disengage_entry_reason != "survival_break" \
+			or current_state != State.DISENGAGE \
+			or not has_node("/root/Telemetry"):
+		return false
+	var tel = get_node("/root/Telemetry")
+	if not tel.has_method("track_survival_break_episode_event"):
+		return false
+	return bool(tel.track_survival_break_episode_event(
+		get_instance_id(),
+		_disengage_entry_state_episode,
+		event_name,
+		context
+	))
+
 func _begin_disengage_shadow(previous_state: State) -> void:
 	_ensure_continuity_shadow()
 	_disengage_entry_count += 1
@@ -2018,11 +2087,19 @@ func _begin_disengage_shadow(previous_state: State) -> void:
 				"additional_threats": _opening_survival_additional_threats(),
 				"location": _opening_survival_location_context,
 			})
+		if _disengage_entry_reason == "survival_break" \
+				and tel.has_method("start_survival_break_episode"):
+			var episode_context := _pending_survival_break_episode_entry.duplicate(true)
+			episode_context["actor_id"] = get_instance_id()
+			episode_context["state_episode_id"] = _disengage_entry_state_episode
+			tel.start_survival_break_episode(episode_context)
+	_pending_survival_break_episode_entry.clear()
 
 func _record_disengage_exit(
 	new_state: State,
 	reason_name: String,
-	exit_state_override: String = ""
+	exit_state_override: String = "",
+	killer_id: int = -1
 ) -> void:
 	var exit_state_name := _shadow_key(
 		exit_state_override,
@@ -2037,6 +2114,16 @@ func _record_disengage_exit(
 	var pressure: Dictionary = _cached_threat_pressure_context
 	var reengage := exit_state_override.is_empty() \
 		and new_state in [State.CHASE, State.ATTACK]
+	if _disengage_entry_reason == "survival_break" and has_node("/root/Telemetry"):
+		var episode_tel = get_node("/root/Telemetry")
+		if episode_tel.has_method("finish_survival_break_episode"):
+			episode_tel.finish_survival_break_episode({
+				"actor_id": get_instance_id(),
+				"state_episode_id": _disengage_entry_state_episode,
+				"reason": exit_reason,
+				"exit_state": exit_state_name,
+				"killer_id": killer_id,
+			})
 	if not _target_continuity_tracking_available():
 		return
 	var exit_context := {
@@ -2893,6 +2980,7 @@ func _check_survival_overrides():
 		State.ATTACK:
 			if not _knife_mode:  # knife rush is an intentional last stand, don't interrupt
 				if can_still_fight:
+					_prepare_survival_break_episode_entry()
 					_retreating_to_reload = reserve_ammo > 0 and stats.current_ammo < stats.max_ammo
 					if has_node("/root/Telemetry"):
 						get_node("/root/Telemetry").log_tactics("survival_break")
@@ -2902,6 +2990,8 @@ func _check_survival_overrides():
 					change_state(State.RECOVER)
 		State.CHASE:
 			if not is_targeting_loot:  # don't cancel a life-saving loot run
+				if can_still_fight:
+					_prepare_survival_break_episode_entry()
 				_record_enemy_target_release("survival_break", "survival_override")
 				target_actor = null
 				if can_still_fight:
@@ -2962,6 +3052,11 @@ func acquire_enemy_target(enemy: Entity, source_name: String) -> bool:
 	_pending_target = null
 	last_known_target_pos = enemy.global_position
 	_record_enemy_target_acquisition(enemy, source_name, already_current)
+	if not already_current:
+		_track_survival_break_episode_event("reacquire", {
+			"target_id": enemy.get_instance_id(),
+			"source": source_name,
+		})
 	_log_target_acquisition(source_name, enemy, already_current)
 	return true
 
@@ -3503,7 +3598,12 @@ func die(killer: Node3D = null):
 	# through change_state(). This observation is recorded before drops/super
 	# without mutating state, target selection, navigation, or RNG.
 	if current_state == State.DISENGAGE:
-		_record_disengage_exit(State.IDLE, "death", "dead")
+		_record_disengage_exit(
+			State.IDLE,
+			"death",
+			"dead",
+			killer.get_instance_id() if is_instance_valid(killer) else -1
+		)
 	# Dead bots no longer run the physics-process cutoff probe, so release all
 	# behavior-neutral per-bot continuity shadows immediately after the terminal
 	# exit observation has had a chance to use them.
@@ -3655,6 +3755,15 @@ func _drop_armor_equipment() -> void:
 # standing still against a player while out of ammo.
 
 func take_damage(amount: float, source: String = "gun", weapon_type: String = "", source_node: Node3D = null):
+	# Fatal damage calls die() inside super, so capture the nominal incoming hit
+	# before that terminal episode observation. This diagnostic write does not
+	# alter damage, shield, armor, target, or state decisions.
+	_track_survival_break_episode_event("damage", {
+		"amount": amount,
+		"attacker_id": source_node.get_instance_id() if is_instance_valid(source_node) else -1,
+		"source": source,
+		"weapon": weapon_type,
+	})
 	super.take_damage(amount, source, weapon_type, source_node)
 	if is_dead: return
 	_threat_pressure_timer = 0.0
