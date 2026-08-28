@@ -8,12 +8,12 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | E-057 exact linkage 5-run은 진단·scale PASS지만 생존 watch FAIL이다. E-058 단일 후보 1-run→5-run 통과 전 packaged 수동 재판정은 보류 |
+| 현재 단위 | E-058은 재획득 메커니즘 제거에도 생존·정체 gate를 실패해 완전 revert했다. E-059 진단과 새 단일 후보 1-run→5-run 통과 전 packaged 수동 재판정은 보류 |
 | 승격 목적 | N2-PLAY-10에서 확인한 무기 공백·초기 인원 붕괴·지도 HUD 중첩을 닫고 오프닝·장소/경로·생존/완주를 다시 승인 |
 
 ## N2-PLAY-11 재판정 프로토콜
 
-E-057 5-run은 cover 선택-미도달 83/89 death, counteraction 68/89, fast reacquire 55/89를 확인했지만 alive@120/260 `24/15`, T10 305.1초로 생존 watch를 실패했다. E-058도 생존·continuity·정체/이탈·D-004를 1-run에서 함께 개선할 때만 5-run, 그 결과가 통과할 때만 packaged 수동 3판으로 판정한다. 새 packaged/manual PASS는 없다.
+E-057 5-run은 cover 선택-미도달 83/89 death를 확인했고 E-058은 fast reacquire를 `9/104`로 낮췄지만 alive@120/260 `21/16`, T10 284.9초·stuck gate를 실패했다. E-059가 미도달 진행·피격 timing을 분리한 뒤 새 후보가 생존·continuity·정체/이탈·D-004를 1-run에서 함께 개선할 때만 5-run, 그 결과가 통과할 때만 packaged 수동 3판으로 판정한다. 새 packaged/manual PASS는 없다.
 
 | 판 | 초점 | 필수 기록 |
 |---|---|---|
@@ -86,12 +86,12 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 
 ## 최근 기록
 
-### 2026-08-29 - N2-PLAY-11 E-057 5-run 진단
+### 2026-08-29 - N2-PLAY-11 E-057 진단·E-058 폐기
 
 표면: `C:\tmp\n2_play_11_survival_break_episode_linkage_v2_5run_20260829`, `night_br_m1_60`, seed 41000-41004. 행동/RNG가 읽지 않는 exact actor+state episode linkage다.
-결과: 평균 709.4초, alive@30/60/120/260 중앙값 `51/35/24/15`, T10 305.1초, first upgrade 3.4초, fallback 0, AI 298.9/24,940us, scale gate PASS다. 생존 watch와 packaged/manual은 FAIL/미실행이다.
-원인: 581 episode/89 death에서 cover 선택-미도달 83, counteraction 68, fast reacquire 55, entry-target killer 58이 모든 seed에서 반복됐다. fast reacquire 277건 중 retreat_counteraction이 276건이다.
-다음: E-056 시간 연장은 재시도하지 않는다. E-058은 bot retreat counteraction의 target 소유만 분리하고 gun 방어·player·damage 대응은 보존한 채 1-run hard gate부터 판정한다.
+결과: E-057은 평균 709.4초·scale PASS지만 alive 중앙 `51/35/24/15`, T10 305.1초로 생존 FAIL이다. E-058 1-run은 716.4초·fast reacquire `9/104`이나 alive `53/32/21/16`, T10 284.9초, survival death 25·stuck 상한 초과로 FAIL이다.
+원인: E-057의 581 episode/89 death에서 cover 선택-미도달 83이 반복됐지만, E-058이 retreat target 재소유를 거의 제거하고도 생존을 개선하지 못해 fast reacquire 단독 원인은 반증됐다.
+다음: E-056/E-058은 완전 revert·5-run 금지다. E-059는 새 ray/scan 없이 cover 선택 후 진행·첫 피격/사망 지연·기존 perception LOS 단절을 exact 연결한다.
 
 ### 2026-08-09 - N2-PLAY-10 packaged 수동 6판 거부
 

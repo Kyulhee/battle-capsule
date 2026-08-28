@@ -16,10 +16,10 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | E-057 behavior-neutral survival-break episode linkage 5-run이 exact/complete·성능·scale gate를 통과했다. 공개/gameplay PASS가 아니라 다음 단일 후보를 고르는 진단 근거다 |
-| 바로 다음 단위 | E-058은 `survival_break` DISENGAGE의 bot 대상 `retreat_counteraction`이 release target을 다시 소유하지 않고 방어 사격만 유지할 수 있는지 pure seam→1-run으로 검증한다. player·damage reacquire·일반 DISENGAGE는 불변이며 실패 시 즉시 revert한다 |
-| 최신 검증 개발 단위 | E-057 schema/analyzer/Bot runtime fixture와 전체 `unit_smoke` 90.4초, headless parse, `git diff --check`가 PASS했다. `ac9fff8` package는 과거 근거라 현재 package 통과로 재사용하지 않는다 |
-| 최신 검증 게임플레이 단위 | E-057 5-run은 평균 709.4초(583.4-773.9), first upgrade 3.4초, fallback 0, AI 298.9/24,940us, scale gate PASS다. alive@60/120/260 중앙값 `35/24/15`, T10 305.1초라 생존 watch는 여전히 FAIL이다 |
+| 현재 단위 | E-058은 release target 재소유를 거의 제거했지만 생존·정체 gate를 실패해 완전 revert했다. fast reacquire 단독이 opening 붕괴의 주원인이라는 가설은 폐기한다 |
+| 바로 다음 단위 | E-059 behavior-neutral 진단은 E-057 episode에 cover 선택 후 최소 거리·진행, 첫 피격/사망 지연, 기존 perception의 첫 LOS 단절을 연결해 미도달이 이동 실패인지 피격 시간 부족인지 분리한다. 새 ray/scan·gameplay 변경은 금지한다 |
+| 최신 검증 개발 단위 | E-058 pure/runtime seam과 전체 `unit_smoke` 87.7초는 PASS했으나 1-run 실패 후 코드·등록을 제거했고 기준 Bot policy/threat smoke와 `git diff --check`를 재통과했다. `ac9fff8` package는 현재 근거가 아니다 |
+| 최신 검증 게임플레이 단위 | E-058 seed 41000은 716.4초·upgrade 12.4초·fallback 0이지만 alive@60/120/260 `32/21/16`, T10 284.9초, survival death 25, stuck 상한 초과로 FAIL했다. 5-run·packaged/manual은 금지한다 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 릴리즈 판정 | 현재 후보는 internal pre-alpha 전용이다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 새 packaged/manual 통과 전 공개판을 교체하지 않는다 |
 | 목표 창 | 폐쇄 알파 현실 창 2026-09-28~10-09, 공개 데모 RC 현실 창 2026-12-18~2027-01-15, 유료 EA Go/No-Go 2027 Q1 이후. 날짜는 gate 통과 창이지 출시 약속이 아니다 |
@@ -38,7 +38,7 @@
 
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
-| P0 | `N2-PLAY-11` M1 실패 수정·재판정 | E-057이 지목한 cover 미도달+retreat reacquire 경로만 겨냥한 E-058이 1-run→5-run→packaged 수동 3판을 순서대로 통과 |
+| P0 | `N2-PLAY-11` M1 실패 수정·재판정 | E-059가 cover 미도달의 lethal timing을 행동 비개입으로 분리한 뒤 새 단일 후보가 1-run→5-run→packaged 수동 3판을 순서대로 통과 |
 | P1 | `N2-REL-01` Windows 릴리즈 기반 마감 | gameplay 후보를 고정한 clean tracked commit에서 PCK inventory·PE identity·전체 simulation·checksum/manifest/reboot를 다시 만들고, 사람 전체 루프·정상 기록/배지·cold PCK byte 재현성을 확인 |
 | P2 | `N2-M2-VIS-01` 대표 교전 슬라이스 | 수관 가림·야간 명도·캡슐 방향/무기/피격/사망·핵심 효과음·HUD/지도 위계를 한 구간에서 수동 통과 |
 | P3 | `N2-M2-UX-01` 첫 사용자 경험 | 밝기·감도·해상도/창 모드·UI 배율, 입력 안내, 언어 일관성, 메뉴→매치→결과→재시작 흐름을 무설명 테스터가 완주 |
@@ -49,7 +49,7 @@
 
 | 리스크 | 신호 | 대응 |
 |---|---|---|
-| M1 생존·continuity 실패 | E-057 5-run survival_break 사망 89건 중 cover 선택 후 미도달 83, counteraction 68, fast reacquire 55, 진입 대상 killer 58로 모든 seed에서 같은 방향이 반복됐다 | E-056 시간 연장은 재시도하지 않는다. E-058은 bot retreat counteraction의 target 소유만 좁게 분리하고 gun 방어·player·damage 대응은 보존한다 |
+| M1 생존·continuity 실패 | E-058은 episode fast reacquire를 `9/104`로 줄였지만 alive@60/120 `32/21`, T10 284.9초와 survival death 25로 실패해 reacquire 단독 원인을 반증했다 | E-056/E-058을 재혼합하지 않는다. E-059에서 cover 선택-미도달의 이동 진행·피격 시점을 먼저 exact 연결한다 |
 | 화면이 프로토타입으로 보임 | 겹친 수관, procedural capsule, 평면적 야간 재질, HUD 정보 경쟁 | 신규 콘텐츠보다 P2 대표 슬라이스를 우선하고 캡슐을 의도된 제품 정체성으로 승격 |
 | 기록·저장 무결성 | packaged smoke에서 legacy settings schema v1 migration·backup·재실행 멱등성과 simulation 중 기존 기록·배지 불변 확인 | 사람이 정상 매치 기록·배지 생성/재실행과 corrupt/empty/future-schema 화면 동작을 확인 |
 | 패키지 오염·식별 불일치 | `ac9fff8` clean PCK는 catalog 자산 44개·JSON 3개·runtime 경로 124개·payload closure exact와 archive smoke를 통과했지만 현재 gameplay/telemetry 후보보다 오래됐다 | 현재 후보 고정 뒤 독립 clean export를 다시 만들고 PCK byte 재현성·LICENSES/CREDITS·지원·unsigned 정책을 닫기 전 공개 승격 금지 |

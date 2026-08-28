@@ -2,13 +2,14 @@
 
 > 최종 업데이트: 2026-08-29. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
-## N2-PLAY-11 E-057 survival-break episode linkage
+## N2-PLAY-11 E-057 linkage와 E-058 원인 반증
 
 - 구현/검증: behavior-neutral exact aggregate가 entry 59초 이하 `survival_break` DISENGAGE의 HP·shield·target visibility/distance, cover 선택/도달, 피격·counteraction, release/reacquire, exit/death를 actor+state episode로 연결한다. gameplay/RNG는 이 값을 읽지 않으며 전체 `unit_smoke` 90.4초가 PASS했다.
 - 실행: `C:\tmp\n2_play_11_survival_break_episode_linkage_v2_5run_20260829` 5-run은 평균 709.4초(583.4-773.9), first upgrade 3.4초, fallback 0, AI 평균/최대 298.9/24,940us, `check_scale_telemetry` PASS다.
 - 생존: alive@30/60/120/260 중앙값 `51/35/24/15`, T50/T10 `30.7/305.1초`로 M1 watch는 여전히 FAIL이며 gameplay/package/manual PASS가 아니다.
 - 원인: 581 episode/89 death 중 cover 선택 후 미도달 83, counteraction 68, fast same-target reacquire 55, entry-target killer 58이었다. run별 미도달 사망도 `22/16/13/17/15`로 반복됐고 fast reacquire 277건 중 276건이 `retreat_counteraction`이었다.
-- 판정/다음: E-056 시간 연장은 실패 상태로 유지한다. E-058은 bot 대상 retreat counteraction이 release target을 다시 소유하지 않고 gun 방어만 유지하는 단일 seam을 1-run으로 검증하며 player·damage reacquire·일반 DISENGAGE는 바꾸지 않는다.
+- E-058: bot release target 소유만 막고 gun 방어·player·damage 대응을 보존한 pure/runtime seam은 `unit_smoke` 87.7초를 통과했다. `C:\tmp\n2_play_11_e058_counterfire_no_target_ownership_pilot_20260829`은 episode fast reacquire를 `9/104`로 낮췄지만 alive@60/120/260 `32/21/16`, T10 284.9초, survival death 25, stuck 상한 초과로 hard gate를 실패했다.
+- 판정/다음: E-058은 완전 revert·5-run 금지이며 reacquire 단독 원인을 폐기한다. E-059는 새 ray/scan 없이 cover 선택 후 진행·첫 피격/사망 지연·기존 perception LOS 단절을 같은 episode에 연결한다.
 
 ## N2-PLAY-11 opening survival exposure 진단과 릴리즈 재판정
 

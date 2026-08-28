@@ -42,7 +42,8 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 - 최신 E-057 생존: alive@30/60/120/260 중앙값 `51/35/24/15`, T50/T10 `30.7/305.1초`로 gameplay/survival FAIL이며 packaged 수동 결과는 없다
 - episode linkage: 581 episode/89 death 중 cover 선택-미도달 83, counteraction 68, fast reacquire 55, entry-target killer 58. fast reacquire 277건 중 retreat_counteraction 276건이며 run별 미도달 사망 `22/16/13/17/15`로 반복됐다
 - E-056 결과: 2.0초 `no_threat` hysteresis는 alive@60/120 `38/25`로 개선했지만 survival death `20>19`, 5m survival kill `14>13`, fast reacquire `35.8%>31.9%`로 hard gate를 실패했다. 완전 revert·5-run 금지이며 시간/조건 조정과 이전 실패 후보 재혼합을 하지 않는다
-- 다음 후보: E-058은 `survival_break` DISENGAGE의 bot retreat counteraction에서 release target 재소유만 분리하고 gun 방어는 유지한다. player·damage reacquire·일반 DISENGAGE는 불변이며 1-run 실패 시 즉시 revert한다
+- E-058 결과: release target 재소유를 막아 episode fast reacquire를 `9/104`로 낮췄지만 alive@60/120 `32/21`, T10 284.9초, survival death 25, stuck 상한 초과로 hard gate를 실패했다. 완전 revert·5-run 금지이며 재획득 단독 원인은 폐기한다
+- 다음 진단: E-059는 새 ray/scan 없이 cover 선택 후 최소 거리·진행, 첫 피격/사망 지연, 기존 perception의 첫 LOS 단절을 actor+state episode에 연결해 미도달의 원인을 분리한다
 - 보존 중인 자동 근거: N2-MAP-17의 Brush Camp·Survey Camp, release persistence/identity/settings와 exposure verifier를 포함한 `unit_smoke`, 고정 입력 `target_99_probe` 5-run
 - stale package 근거: `ac9fff8` clean package exact inventory·전체 simulation·archive smoke는 당시 source만 증명하며 현재 candidate package로 재사용하지 않는다
 - 최신 성능: windowed 1280×720 Forward+ p95/p99 15.429/19.948, 15.059/17.641, 15.197/17.924ms; p95 20ms 초과 0/3
@@ -75,7 +76,7 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 
 | 영역 | 현재 강점 | 릴리즈 공백 | 다음 gate |
 |---|---|---|---|
-| 매치/AI/맵 | 60봇 공통 표면, 실제 NavMesh·전투·전략 gate, continuity v2·exposure v1·E-057 episode exact aggregate | E-057은 cover 미도달과 retreat reacquire를 지목했지만 생존 watch는 실패한다 | E-058 target-ownership 단일 seam 1-run→유효할 때만 5-run |
+| 매치/AI/맵 | 60봇 공통 표면, 실제 NavMesh·전투·전략 gate, continuity v2·exposure v1·E-057 episode exact aggregate | E-058이 reacquire 단독 원인을 반증했고 cover 선택-미도달의 진행·피격 timing이 비어 있다 | E-059 behavior-neutral cover progression linkage→근거가 반복될 때만 새 단일 후보 |
 | 비주얼/오디오 | 일관된 low-poly 프롭, 픽업 glow·아이콘, 총성·발걸음 일부 | 겹친 수관, procedural capsule, 약한 전투 피드백, 핵심 fallback audio | N2-M2-VIS-01 |
 | UI/첫 사용자 | 메뉴·HUD·지도·아티팩트·결과·기록 골격 | HUD 위계, 혼합 언어, 밝기·감도·해상도·UI scale·첫 판 안내 | N2-M2-UX-01 |
 | 기록/저장 | 기존 자동 계약에 더해 packaged legacy settings migration/backup·재실행 멱등성·simulation 중 기록/배지 불변 확인 | 사람 정상 매치의 기록·배지 생성/재실행과 실제 future migration/rollback matrix | N2-REL-01/02 |
@@ -87,7 +88,7 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 
 | 순서 | 트랙 | 종료 조건 | 다음 slice |
 |---|---|---|---|
-| 1A | M1 종료 | E-058이 생존·continuity 1-run을 통과할 때만 5-run으로 확대해 실제 3판까지 통과 | N2-PLAY-11 |
+| 1A | M1 종료 | E-059가 지배 원인을 분리한 뒤 새 단일 후보가 생존·continuity 1-run→5-run→실제 3판을 통과 | N2-PLAY-11 |
 | 1B | 릴리즈 기반 마감 | gameplay 후보를 고정한 current commit에서 clean artifact를 재생성하고 사람 전체 루프·정상 기록/배지·cold PCK byte 재현성을 닫음 | N2-REL-01, 1A와 병행 |
 | 3 | M2 비주얼 슬라이스 | 수관·야간·캡슐/무기·전투 피드백·HUD/지도가 대표 구간에서 수동 통과 | N2-M2-VIS-01 |
 | 4 | M2 첫 사용자 UX | 무설명 사용자가 설정→첫 판→결과→재시작을 완료 | N2-M2-UX-01 |
@@ -102,7 +103,7 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 
 ## 우선순위 원칙
 
-1. N2-PLAY-11은 E-057이 지목한 retreat target 재소유만 E-058로 분리한다. 1-run에서 생존·continuity·정체/이탈·D-004가 함께 개선될 때만 5-run→packaged 수동 3판으로 확대하고 E-056 등 실패 후보를 재혼합하지 않는다.
+1. N2-PLAY-11은 E-058이 반증한 target 재소유를 다시 조정하지 않는다. E-059로 cover 미도달의 진행·피격 timing을 연결한 뒤 반복 lethal path 하나만 후보화하고, 1-run에서 생존·continuity·정체/이탈·D-004가 함께 개선될 때만 5-run→packaged 수동 3판으로 확대한다.
 2. 점수·저장·export·버전·고지는 화면 폴리시와 별개의 release blocker이므로 M2 전에 N2-REL-01로 제거한다.
 3. M2는 신규 콘텐츠가 아니라 플레이어가 실제로 보는 수관·캐릭터·전투·HUD·오디오·온보딩을 우선한다.
 4. 공개 승격은 소스 실행이 아니라 clean packaged artifact와 외부 사용자의 무설명 완주를 기준으로 한다.

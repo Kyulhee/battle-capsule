@@ -59,4 +59,4 @@
 - `visual_review`는 화면 캡처용 8봇 표면이며 gameplay 대표 preset으로 사용하지 않는다.
 - route 교전 비중만 올리려고 물리 cover를 추가하지 않는다. route 선택 표면과 이동 계약을 먼저 만든다.
 - N2-PLAY-11에서는 broad damage·opening grace·zone 일정 변경을 섞지 않고, ceasefire·bot-only HP buffer·DISENGAGE 첫 1초 counteraction grace는 완전 revert한 채 재혼합하지 않는다. 가방/악세서리, 무기군+Tab, 더블배럴, 대형 hard block은 메모 또는 다음 대표 슬라이스다.
-- E-057은 cover 미도달과 retreat reacquire의 반복을 확인했다. E-056 시간 연장·HP buffer·ceasefire·1초 grace를 재혼합하지 않고, E-058은 bot retreat counteraction의 target 소유만 단일 변수로 분리한다.
+- E-058은 bot retreat counteraction의 target 재소유를 거의 제거하고도 생존·정체 gate를 실패했다. E-056 시간 연장·HP buffer·ceasefire·1초 grace·target 소유 억제를 재혼합하지 않으며, E-059 전에는 cover 미도달의 진행·피격 시간만 behavior-neutral로 연결한다.
