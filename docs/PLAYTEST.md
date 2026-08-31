@@ -8,12 +8,12 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | E-059 schema v2 진단은 채택됐지만 생존은 FAIL이다. E-060 reachability/fallback이 1-run→5-run을 통과하기 전 packaged 수동 재판정은 보류 |
+| 현재 단위 | E-060 reachability/fallback은 hard FAIL로 완전 revert했다. E-061 cover 접근 이동이 1-run→5-run을 통과하기 전 packaged 수동 재판정은 보류 |
 | 승격 목적 | N2-PLAY-10에서 확인한 무기 공백·초기 인원 붕괴·지도 HUD 중첩을 닫고 오프닝·장소/경로·생존/완주를 다시 승인 |
 
 ## N2-PLAY-11 재판정 프로토콜
 
-E-059 5-run은 사망 68건의 cover 진행을 `no/partial/reached=34/32/2`로 분리했고 평균 선택 거리 12.98m·선택 후 사망 1.62초를 확인했다. E-060은 먼 cover reachability/fallback 한 축만 바꾸며 생존·continuity·정체/이탈·D-004를 1-run에서 함께 개선할 때만 5-run, 그 결과가 통과할 때만 packaged 수동 3판으로 판정한다. 새 packaged/manual PASS는 없다.
+E-059는 낮은 cover 진행을 확인했지만 E-060의 6m 제한/scatter는 duration 486.6초·survival death 21로 악화됐다. E-061은 기존 cover/nav를 보존한 접근 이동량만 바꾸며 생존·continuity·정체/이탈·D-004를 1-run에서 함께 개선할 때만 5-run과 packaged 수동 3판으로 확대한다. 새 packaged/manual PASS는 없다.
 
 | 판 | 초점 | 필수 기록 |
 |---|---|---|
@@ -85,6 +85,13 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 ```
 
 ## 최근 기록
+
+### 2026-09-01 - N2-PLAY-11 E-060 fallback 폐기
+
+표면: `C:\tmp\n2_play_11_e060_reachable_cover_fallback_pilot_20260901`, seed 41000. 6m 안 hard cover만 채택하고 없으면 deterministic scatter를 쓴 단일 후보다.
+결과: 486.6초, alive `54/27/24/22/21/18`, T50/T10 `30.5/306.2초`, survival death 21, stuck 0.04/entity/min, stage3 미도달로 hard FAIL이다.
+판정: cover 선택은 8/125로 줄었고 사망 21건 모두 cover 미선택이 되어 메커니즘은 작동했지만 생존·duration·정체가 악화됐다. 완전 revert·5-run 금지다.
+다음: E-061은 먼 cover를 버리지 않고 기존 nav commitment를 보존한 접근 이동 multiplier만 1-run한다.
 
 ### 2026-09-01 - N2-PLAY-11 E-059 진단 채택
 
