@@ -1,15 +1,15 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-08-29. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-09-01. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
-## N2-PLAY-11 E-057 linkage와 E-058 원인 반증
+## N2-PLAY-11 E-059 cover progression 진단
 
-- 구현/검증: behavior-neutral exact aggregate가 entry 59초 이하 `survival_break` DISENGAGE의 HP·shield·target visibility/distance, cover 선택/도달, 피격·counteraction, release/reacquire, exit/death를 actor+state episode로 연결한다. gameplay/RNG는 이 값을 읽지 않으며 전체 `unit_smoke` 90.4초가 PASS했다.
-- 실행: `C:\tmp\n2_play_11_survival_break_episode_linkage_v2_5run_20260829` 5-run은 평균 709.4초(583.4-773.9), first upgrade 3.4초, fallback 0, AI 평균/최대 298.9/24,940us, `check_scale_telemetry` PASS다.
-- 생존: alive@30/60/120/260 중앙값 `51/35/24/15`, T50/T10 `30.7/305.1초`로 M1 watch는 여전히 FAIL이며 gameplay/package/manual PASS가 아니다.
-- 원인: 581 episode/89 death 중 cover 선택 후 미도달 83, counteraction 68, fast same-target reacquire 55, entry-target killer 58이었다. run별 미도달 사망도 `22/16/13/17/15`로 반복됐고 fast reacquire 277건 중 276건이 `retreat_counteraction`이었다.
-- E-058: bot release target 소유만 막고 gun 방어·player·damage 대응을 보존한 pure/runtime seam은 `unit_smoke` 87.7초를 통과했다. `C:\tmp\n2_play_11_e058_counterfire_no_target_ownership_pilot_20260829`은 episode fast reacquire를 `9/104`로 낮췄지만 alive@60/120/260 `32/21/16`, T10 284.9초, survival death 25, stuck 상한 초과로 hard gate를 실패했다.
-- 판정/다음: E-058은 완전 revert·5-run 금지이며 reacquire 단독 원인을 폐기한다. E-059는 새 ray/scan 없이 cover 선택 후 진행·첫 피격/사망 지연·기존 perception LOS 단절을 같은 episode에 연결한다.
+- 구현/검증: survival-break exact aggregate를 schema v2로 올려 첫 cover의 최소 거리·진행률, 선택 후 첫 피격/사망 지연, 이미 유지되던 perception reveal의 첫 소실을 연결했다. 새 ray/scan은 없고 gameplay/RNG는 값을 읽지 않는다. schema v1 호환·검열 분모 fixture와 전체 `unit_smoke`가 PASS했다.
+- 실행: sanity `C:\tmp\n2_play_11_e059_cover_progression_pilot_20260901` 뒤 `C:\tmp\n2_play_11_e059_cover_progression_5run_20260901`을 seed 41000-41004로 실행했다. 5-run 평균 665.7초(640.8-684.8), first upgrade 3.4초, fallback 0, AI 평균/최대 276.2/22,076us, `check_scale_telemetry` PASS다.
+- 생존: alive@30/60/120/260 중앙값 `50/35/23/16`, T50/T10 `28.8/298.9초`로 M1 watch는 계속 FAIL이다. 진단 계약 채택이지 gameplay/package/manual PASS가 아니다.
+- 원인: 648 episode 중 cover 진행을 530건 관측했고 평균 진행률은 0.11, 선택 거리 평균은 12.98m다. 사망 68건은 `no_progress/partial/reached=34/32/2`, 선택 후 첫 피격 `under0.25/0.25-1/1s+=10/37/21`, perception 소실 `24/68`로 모든 seed에서 낮은 진행이 반복됐다.
+- 해석: 사망 counteraction `62/68`, fast reacquire `43/68`은 높지만 counteraction은 이동을 정지시키지 않고 E-058도 재획득 단독 원인을 반증했다. 평균 사망 선택 후 1.62초와 4m/s 이동에 비해 평균 12.98m cover가 멀다는 reachability가 더 직접적인 다음 축이다.
+- 판정/다음: E-059 진단을 채택한다. E-060은 survival-break에서 lethal window 안에 닿기 어려운 먼 cover를 고집하지 않는 reachability/fallback 정책만 1-run하며 사격 grace·target 소유·HP/damage·exit 시간·topology를 재혼합하지 않는다.
 
 ## N2-PLAY-11 opening survival exposure 진단과 릴리즈 재판정
 

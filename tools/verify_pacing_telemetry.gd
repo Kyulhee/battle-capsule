@@ -809,18 +809,20 @@ func _verify_survival_break_episode_exact_summary() -> bool:
 		main.free()
 		return _fail("survival_break episode start must be exact-once.")
 	main.match_timer = 1.2
-	if not tel.track_survival_break_episode_event(10, 4, "damage", {
+	if not tel.track_survival_break_episode_event(10, 4, "cover_selected", {
+		"distance": 6.0,
+	}) or not tel.track_survival_break_episode_event(10, 4, "damage", {
 		"amount": 5.0, "attacker_id": 20,
 	}) or not tel.track_survival_break_episode_event(10, 4, "damage", {
 		"amount": 7.0, "attacker_id": 20,
-	}) or not tel.track_survival_break_episode_event(10, 4, "cover_selected", {
-		"distance": 6.0,
 	}) or not tel.track_survival_break_episode_event(10, 4, "release", {
 		"target_id": 20,
 	}):
 		tel.free()
 		main.free()
 		return _fail("survival_break episode observations were rejected.")
+	main.match_timer = 1.4
+	tel.track_survival_break_episode_event(10, 4, "perception_lost")
 	main.match_timer = 1.5
 	tel.track_survival_break_episode_event(10, 4, "reacquire", {
 		"target_id": 20, "source": "retreat_counteraction",
@@ -834,6 +836,7 @@ func _verify_survival_break_episode_exact_summary() -> bool:
 		"reason": "death",
 		"exit_state": "dead",
 		"killer_id": 20,
+		"cover_min_distance": 1.0,
 	}) or tel.finish_survival_break_episode({
 		"actor_id": 10,
 		"state_episode_id": 4,
@@ -846,7 +849,7 @@ func _verify_survival_break_episode_exact_summary() -> bool:
 		return _fail("survival_break episode finish must be exact-once.")
 
 	var summary: Dictionary = tel.metrics.pacing.survival_break_episode_summary
-	if int(summary.get("schema_version", 0)) != 1 \
+	if int(summary.get("schema_version", 0)) != 2 \
 			or not bool(summary.get("exact", false)) \
 			or not bool(summary.get("complete", false)) \
 			or int(summary.get("episodes", 0)) != 1 \
@@ -856,6 +859,9 @@ func _verify_survival_break_episode_exact_summary() -> bool:
 			or int(summary.get("counteraction_episodes", 0)) != 1 \
 			or int(summary.get("cover_selected_episodes", 0)) != 1 \
 			or int(summary.get("cover_reached_episodes", 0)) != 1 \
+			or int(summary.get("cover_progress_observed_episodes", 0)) != 1 \
+			or int(summary.get("perception_lost_episodes", 0)) != 1 \
+			or int(summary.get("damage_after_cover_selected_episodes", 0)) != 1 \
 			or int(summary.get("release_episodes", 0)) != 1 \
 			or int(summary.get("fast_reacquired_1s_episodes", 0)) != 1:
 		tel.free()
@@ -865,6 +871,9 @@ func _verify_survival_break_episode_exact_summary() -> bool:
 			or not is_equal_approx(float(summary.incoming_raw_damage.get("sum", 0.0)), 12.0) \
 			or not is_equal_approx(float(summary.damage_events.get("sum", 0.0)), 2.0) \
 			or int(summary.death_by_cover_outcome.get("reached", 0)) != 1 \
+			or int(summary.death_by_cover_progress.get("reached", 0)) != 1 \
+			or int(summary.death_by_first_damage_after_cover.get("under_0_25s", 0)) != 1 \
+			or int(summary.death_by_perception_loss.get("yes", 0)) != 1 \
 			or int(summary.death_by_entry_visibility.get("revealed", 0)) != 1 \
 			or int(summary.death_by_counteraction.get("yes", 0)) != 1 \
 			or int(summary.death_by_fast_reacquired.get("yes", 0)) != 1 \
@@ -873,6 +882,22 @@ func _verify_survival_break_episode_exact_summary() -> bool:
 		tel.free()
 		main.free()
 		return _fail("survival_break linked death/measures changed.")
+	if not is_equal_approx(float(summary.cover_min_distance.get("sum", 0.0)), 1.0) \
+			or not is_equal_approx(
+				float(summary.cover_progress_ratio.get("sum", 0.0)), 5.0 / 6.0
+			) \
+			or not is_equal_approx(
+				float(summary.first_damage_after_cover_delay.get("sum", -1.0)), 0.0
+			) \
+			or not is_equal_approx(
+				float(summary.death_after_cover_selection_delay.get("sum", 0.0)), 0.8
+			) \
+			or not is_equal_approx(
+				float(summary.first_perception_loss_delay.get("sum", 0.0)), 0.4
+			):
+		tel.free()
+		main.free()
+		return _fail("survival_break v2 progression measures changed.")
 
 	# Entries after 59s are censored out; an admitted 59s episode is finalized
 	# at the 60s observation window rather than linked to later gameplay.
@@ -883,6 +908,13 @@ func _verify_survival_break_episode_exact_summary() -> bool:
 		tel.free()
 		main.free()
 		return _fail("A survival_break episode at the 59s censor edge was rejected.")
+	main.match_timer = 59.2
+	if not tel.track_survival_break_episode_event(11, 5, "cover_selected", {
+		"distance": 8.0,
+	}):
+		tel.free()
+		main.free()
+		return _fail("A pre-cutoff cover observation was rejected.")
 	main.match_timer = 60.2
 	if tel.track_survival_break_episode_event(11, 5, "damage", {"amount": 99.0}):
 		tel.free()
@@ -890,6 +922,10 @@ func _verify_survival_break_episode_exact_summary() -> bool:
 		return _fail("Post-window survival_break observations must be rejected.")
 	if int(summary.get("episodes", 0)) != 2 \
 			or int(summary.get("censored", 0)) != 1 \
+			or int(summary.get("cover_selected_episodes", 0)) != 2 \
+			or int(summary.get("cover_progress_observed_episodes", 0)) != 1 \
+			or int(summary.cover_min_distance.get("count", 0)) != 1 \
+			or int(summary.cover_progress_ratio.get("count", 0)) != 1 \
 			or int(summary.exit_by_state.get("censored", 0)) != 1 \
 			or not is_equal_approx(float(summary.exit_duration.get("max", 0.0)), 1.0):
 		tel.free()
@@ -926,6 +962,7 @@ func _verify_bot_survival_break_episode_shadow() -> bool:
 		target.free()
 		main.free()
 		return _fail("survival_break Bot fixture could not acquire its entry target.")
+	subject.perception_meters[target] = 1.0
 	subject.change_state(subject.State.CHASE, "episode_probe")
 	subject.current_health = 1.0
 	subject.stats.current_ammo = 1
@@ -940,6 +977,19 @@ func _verify_bot_survival_break_episode_shadow() -> bool:
 		target.free()
 		main.free()
 		return _fail("CHASE survival_break must preserve its pre-clear entry target context.")
+	subject._disengage_cover = Vector3(6.0, 0.0, 0.0)
+	subject._survival_break_cover_tracking_started = true
+	subject._survival_break_cover_min_distance = 6.0
+	subject.call("_track_survival_break_episode_event", "cover_selected", {
+		"distance": 6.0,
+	})
+	subject.call("_observe_survival_break_episode_progress")
+	subject.global_position = Vector3(3.0, 0.0, 0.0)
+	main.match_timer = 1.2
+	subject.call("_observe_survival_break_episode_progress")
+	subject.perception_meters.erase(target)
+	main.match_timer = 1.3
+	subject.call("_observe_survival_break_episode_progress")
 
 	main.match_timer = 1.4
 	if not subject.acquire_enemy_target(target, "retreat_counteraction"):
@@ -962,7 +1012,11 @@ func _verify_bot_survival_break_episode_shadow() -> bool:
 			or int(summary.get("damaged_episodes", 0)) != 1 \
 			or int(summary.get("release_episodes", 0)) != 1 \
 			or int(summary.get("fast_reacquired_1s_episodes", 0)) != 1 \
+			or int(summary.get("perception_lost_episodes", 0)) != 1 \
+			or not is_equal_approx(float(summary.cover_min_distance.get("sum", 0.0)), 3.0) \
+			or not is_equal_approx(float(summary.cover_progress_ratio.get("sum", 0.0)), 0.5) \
 			or int(summary.death_by_fast_reacquired.get("yes", 0)) != 1 \
+			or int(summary.death_by_perception_loss.get("yes", 0)) != 1 \
 			or int(summary.death_by_killer_relation.get("entry_target", 0)) != 1:
 		subject.free()
 		target.free()

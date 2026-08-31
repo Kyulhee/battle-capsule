@@ -168,6 +168,14 @@ var _opening_survival_death_logged: bool = false
 # Behavior-neutral E-057 linkage. Telemetry owns the episode aggregate; this
 # pending entry snapshot only survives the ATTACK/CHASE -> DISENGAGE transition.
 var _pending_survival_break_episode_entry: Dictionary = {}
+var _pending_survival_break_entry_target: Entity = null
+var _survival_break_episode_diagnostic_active: bool = false
+var _survival_break_entry_target: Entity = null
+var _survival_break_entry_was_revealed: bool = false
+var _survival_break_perception_loss_logged: bool = false
+var _survival_break_cover_tracking_started: bool = false
+var _survival_break_cover_reached_logged: bool = false
+var _survival_break_cover_min_distance: float = -1.0
 
 # Stuck detection
 var _stuck_timer: float = 0.0
@@ -1205,6 +1213,7 @@ func _should_pursue_supply(main: Node) -> bool:
 	return decision != "deny"
 
 func handle_disengage_state(delta):
+	_observe_survival_break_episode_progress()
 	# Reload retreat: once behind cover long enough, reload and re-engage
 	if _retreating_to_reload and state_timer > 1.5:
 		_try_reload()
@@ -1265,12 +1274,17 @@ func handle_disengage_state(delta):
 	# Normal disengage: seek tall cover
 	if _disengage_cover != Vector3.ZERO \
 			and global_position.distance_to(_disengage_cover) < 2.0:
+		_survival_break_cover_reached_logged = true
 		_track_survival_break_episode_event("cover_reached")
 	if _disengage_cover == Vector3.ZERO or global_position.distance_to(_disengage_cover) < 2.0:
 		_disengage_cover = _find_cover_point(nearest_threat.global_position)
 		if _disengage_cover != Vector3.ZERO:
+			var selected_cover_distance := global_position.distance_to(_disengage_cover)
+			if not _survival_break_cover_tracking_started:
+				_survival_break_cover_tracking_started = true
+				_survival_break_cover_min_distance = selected_cover_distance
 			_track_survival_break_episode_event("cover_selected", {
-				"distance": global_position.distance_to(_disengage_cover),
+				"distance": selected_cover_distance,
 			})
 
 	if _disengage_cover != Vector3.ZERO:
@@ -2022,6 +2036,7 @@ func _prepare_disengage_entry(reason_name: String) -> void:
 
 func _prepare_survival_break_episode_entry() -> void:
 	var entry_target := target_actor as Entity
+	_pending_survival_break_entry_target = entry_target
 	var target_id := -1
 	var target_kind := "none"
 	var target_distance := -1.0
@@ -2044,6 +2059,29 @@ func _prepare_survival_break_episode_entry() -> void:
 		"hp_ratio": clampf(current_health / maxf(1.0, stats.max_health), 0.0, 1.0),
 		"shield_ratio": clampf(current_shield / maxf(1.0, stats.max_shield), 0.0, 1.0),
 	}
+
+func _observe_survival_break_episode_progress() -> void:
+	if not _survival_break_episode_diagnostic_active \
+			or _disengage_entry_reason != "survival_break" \
+			or current_state != State.DISENGAGE:
+		return
+	if _survival_break_cover_tracking_started \
+			and not _survival_break_cover_reached_logged \
+			and _disengage_cover != Vector3.ZERO:
+		var cover_distance := global_position.distance_to(_disengage_cover)
+		if _survival_break_cover_min_distance < 0.0 \
+				or cover_distance < _survival_break_cover_min_distance:
+			_survival_break_cover_min_distance = cover_distance
+	if _survival_break_perception_loss_logged \
+			or not _survival_break_entry_was_revealed \
+			or not is_instance_valid(_survival_break_entry_target) \
+			or _survival_break_entry_target.is_dead:
+		return
+	# Observe the already-maintained perception meter only. This must not issue
+	# a ray query or alter target selection.
+	if not _survival_break_entry_target.is_revealed_to(self):
+		_survival_break_perception_loss_logged = \
+			_track_survival_break_episode_event("perception_lost")
 
 func _track_survival_break_episode_event(
 	event_name: String,
@@ -2075,6 +2113,18 @@ func _begin_disengage_shadow(previous_state: State) -> void:
 	_disengage_entry_spawn_age = _spawn_age
 	_disengage_entry_position = global_position
 	_disengage_entry_stuck_count = _stuck_event_count
+	_survival_break_episode_diagnostic_active = false
+	_survival_break_entry_target = null
+	_survival_break_entry_was_revealed = false
+	_survival_break_perception_loss_logged = false
+	_survival_break_cover_tracking_started = false
+	_survival_break_cover_reached_logged = false
+	_survival_break_cover_min_distance = -1.0
+	if _disengage_entry_reason == "survival_break":
+		_survival_break_entry_target = _pending_survival_break_entry_target
+		_survival_break_entry_was_revealed = String(
+			_pending_survival_break_episode_entry.get("entry_visibility", "unknown")
+		) == "revealed"
 	if has_node("/root/Telemetry"):
 		var tel = get_node("/root/Telemetry")
 		if tel.has_method("track_opening_survival_disengage_entry"):
@@ -2092,8 +2142,11 @@ func _begin_disengage_shadow(previous_state: State) -> void:
 			var episode_context := _pending_survival_break_episode_entry.duplicate(true)
 			episode_context["actor_id"] = get_instance_id()
 			episode_context["state_episode_id"] = _disengage_entry_state_episode
-			tel.start_survival_break_episode(episode_context)
+			_survival_break_episode_diagnostic_active = bool(
+				tel.start_survival_break_episode(episode_context)
+			)
 	_pending_survival_break_episode_entry.clear()
+	_pending_survival_break_entry_target = null
 
 func _record_disengage_exit(
 	new_state: State,
@@ -2123,7 +2176,10 @@ func _record_disengage_exit(
 				"reason": exit_reason,
 				"exit_state": exit_state_name,
 				"killer_id": killer_id,
+				"cover_min_distance": _survival_break_cover_min_distance,
 			})
+	_survival_break_episode_diagnostic_active = false
+	_survival_break_entry_target = null
 	if not _target_continuity_tracking_available():
 		return
 	var exit_context := {

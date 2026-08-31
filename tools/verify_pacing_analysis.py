@@ -180,7 +180,7 @@ def exposure_summary(
 
 def survival_break_summary() -> dict:
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "exact": True,
         "complete": True,
         "population": "opening_survival_break_disengage_episodes",
@@ -196,6 +196,9 @@ def survival_break_summary() -> dict:
         "counteraction_episodes": 1,
         "cover_selected_episodes": 1,
         "cover_reached_episodes": 1,
+        "cover_progress_observed_episodes": 1,
+        "perception_lost_episodes": 1,
+        "damage_after_cover_selected_episodes": 1,
         "nearest_target_missing_episodes": 1,
         "release_episodes": 1,
         "fast_reacquired_1s_episodes": 1,
@@ -205,7 +208,12 @@ def survival_break_summary() -> dict:
         "incoming_raw_damage": {"count": 1, "sum": 12.0, "max": 12.0},
         "damage_events": {"count": 1, "sum": 2.0, "max": 2.0},
         "cover_distance": {"count": 1, "sum": 6.0, "max": 6.0},
+        "cover_min_distance": {"count": 1, "sum": 1.0, "max": 1.0},
+        "cover_progress_ratio": {"count": 1, "sum": 0.833333, "max": 0.833333},
         "time_to_cover": {"count": 1, "sum": 0.5, "max": 0.5},
+        "first_damage_after_cover_delay": {"count": 1, "sum": 0.2, "max": 0.2},
+        "death_after_cover_selection_delay": {"count": 1, "sum": 1.0, "max": 1.0},
+        "first_perception_loss_delay": {"count": 1, "sum": 0.3, "max": 0.3},
         "exit_duration": {"count": 2, "sum": 3.0, "max": 2.0},
         "entry_by_hp_bucket": {"0_25": 1, "25_50": 1},
         "entry_by_shield_bucket": {"0_25": 1, "25_50": 1},
@@ -215,6 +223,9 @@ def survival_break_summary() -> dict:
         "exit_by_reason": {"death": 1, "no_threat": 1},
         "exit_by_state": {"dead": 1, "idle": 1},
         "death_by_cover_outcome": {"reached": 1},
+        "death_by_cover_progress": {"reached": 1},
+        "death_by_first_damage_after_cover": {"under_0_25s": 1},
+        "death_by_perception_loss": {"yes": 1},
         "death_by_entry_visibility": {"revealed": 1},
         "death_by_nearest_target_missing": {"no": 1},
         "death_by_counteraction": {"yes": 1},
@@ -1403,13 +1414,39 @@ def verify_survival_break_episode_contract() -> None:
     )
     assert_contains(
         report,
-        "schema v1 exact, entry<=59s; episodes=2, completed=2, censored=0, deaths=1",
+        "schema v2 exact, entry<=59s; episodes=2, completed=2, censored=0, deaths=1",
         "damaged=1/2, cover selected/reached=1/1",
         "nearest-target-missing=1, counteraction=1",
         "release/fast same-target reacquire<=1s=1/1",
         "cover=[reached=1]",
         "killer relation=[entry_target=1]",
         "fast reacquire sources=[retreat_counteraction=1]",
+        "cover progression: observed episodes=1/2, perception lost=1, "
+        "damage after selection=1; minimum distance avg=1.00m",
+        "death progression: cover=[reached=1]",
+    )
+
+    legacy = copy.deepcopy(summary)
+    legacy["schema_version"] = 1
+    for key in (
+        "perception_lost_episodes",
+        "damage_after_cover_selected_episodes",
+        "cover_progress_observed_episodes",
+        "cover_min_distance",
+        "cover_progress_ratio",
+        "first_damage_after_cover_delay",
+        "death_after_cover_selection_delay",
+        "first_perception_loss_delay",
+        "death_by_cover_progress",
+        "death_by_first_damage_after_cover",
+        "death_by_perception_loss",
+    ):
+        legacy.pop(key)
+    assert_contains(
+        survival_break_report_for(
+            [{"pacing": {"survival_break_episode_summary": legacy}}]
+        ),
+        "schema v1 exact, entry<=59s",
     )
 
     malformed_cases: list[tuple[str, dict, str]] = []
@@ -1444,6 +1481,22 @@ def verify_survival_break_episode_contract() -> None:
     malformed_cases.append(
         ("measure count", bad_measure, "incoming_raw_damage.count must equal 1")
     )
+    bad_progress = copy.deepcopy(summary)
+    bad_progress["cover_progress_ratio"] = {"count": 1, "sum": 1.1, "max": 1.1}
+    malformed_cases.append(
+        ("progress ratio", bad_progress, "cover_progress_ratio.max exceeds 1.0")
+    )
+    censored_progress = copy.deepcopy(summary)
+    censored_progress["completed"] = 0
+    censored_progress["censored"] = 2
+    censored_progress["deaths"] = 0
+    malformed_cases.append(
+        (
+            "censored progress",
+            censored_progress,
+            "cover_progress_observed_episodes exceeds completed episodes",
+        )
+    )
     for label, malformed, expected in malformed_cases:
         malformed_report = survival_break_report_for(
             [{"pacing": {"survival_break_episode_summary": malformed}}]
@@ -1457,7 +1510,7 @@ def verify_survival_break_episode_contract() -> None:
 
     assert_contains(
         survival_break_report_for([{"pacing": {}}]),
-        "unavailable (schema v1 exact summary missing)",
+        "unavailable (schema v1/v2 exact summary missing)",
     )
     mixed = [
         {"pacing": {"survival_break_episode_summary": survival_break_summary()}},

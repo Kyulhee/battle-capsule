@@ -72,7 +72,7 @@ const OPENING_SURVIVAL_EXPOSURE_SCHEMA_VERSION := 1
 const OPENING_SURVIVAL_EXPOSURE_SECONDS := 60.0
 const OPENING_SURVIVAL_EXPOSURE_INTERVAL_SECONDS := 0.25
 const MAX_OPENING_SURVIVAL_SUMMARY_KEYS := 64
-const SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION := 1
+const SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION := 2
 const SURVIVAL_BREAK_EPISODE_ENTRY_CENSOR_SECONDS := 59.0
 const SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS := 60.0
 var history_path: String = HISTORY_PATH
@@ -1010,6 +1010,35 @@ func _opening_survival_threat_bucket(additional_threats: int) -> String:
 		return "3_plus"
 	return str(additional_threats)
 
+func _survival_cover_progress_bucket(
+	selected: bool,
+	reached: bool,
+	progress_ratio: float
+) -> String:
+	if not selected:
+		return "not_selected"
+	if reached:
+		return "reached"
+	if progress_ratio < 0.10:
+		return "no_progress"
+	if progress_ratio < 0.75:
+		return "partial"
+	return "substantial"
+
+func _survival_cover_damage_delay_bucket(
+	selected: bool,
+	delay_seconds: float
+) -> String:
+	if not selected:
+		return "before_selection"
+	if delay_seconds < 0.0:
+		return "no_damage_after_selection"
+	if delay_seconds < 0.25:
+		return "under_0_25s"
+	if delay_seconds < 1.0:
+		return "0_25_1s"
+	return "1s_plus"
+
 func _new_survival_break_episode_summary() -> Dictionary:
 	return {
 		"schema_version": SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION,
@@ -1028,6 +1057,9 @@ func _new_survival_break_episode_summary() -> Dictionary:
 		"counteraction_episodes": 0,
 		"cover_selected_episodes": 0,
 		"cover_reached_episodes": 0,
+		"cover_progress_observed_episodes": 0,
+		"perception_lost_episodes": 0,
+		"damage_after_cover_selected_episodes": 0,
 		"nearest_target_missing_episodes": 0,
 		"release_episodes": 0,
 		"fast_reacquired_1s_episodes": 0,
@@ -1037,7 +1069,12 @@ func _new_survival_break_episode_summary() -> Dictionary:
 		"incoming_raw_damage": {"count": 0, "sum": 0.0, "max": 0.0},
 		"damage_events": {"count": 0, "sum": 0.0, "max": 0.0},
 		"cover_distance": {"count": 0, "sum": 0.0, "max": 0.0},
+		"cover_min_distance": {"count": 0, "sum": 0.0, "max": 0.0},
+		"cover_progress_ratio": {"count": 0, "sum": 0.0, "max": 0.0},
 		"time_to_cover": {"count": 0, "sum": 0.0, "max": 0.0},
+		"first_damage_after_cover_delay": {"count": 0, "sum": 0.0, "max": 0.0},
+		"death_after_cover_selection_delay": {"count": 0, "sum": 0.0, "max": 0.0},
+		"first_perception_loss_delay": {"count": 0, "sum": 0.0, "max": 0.0},
 		"exit_duration": {"count": 0, "sum": 0.0, "max": 0.0},
 		"entry_by_hp_bucket": {},
 		"entry_by_shield_bucket": {},
@@ -1047,6 +1084,9 @@ func _new_survival_break_episode_summary() -> Dictionary:
 		"exit_by_reason": {},
 		"exit_by_state": {},
 		"death_by_cover_outcome": {},
+		"death_by_cover_progress": {},
+		"death_by_first_damage_after_cover": {},
+		"death_by_perception_loss": {},
 		"death_by_entry_visibility": {},
 		"death_by_nearest_target_missing": {},
 		"death_by_counteraction": {},
@@ -1094,6 +1134,12 @@ func start_survival_break_episode(context: Dictionary) -> bool:
 		"counteraction": false,
 		"cover_selected": false,
 		"cover_reached": false,
+		"cover_selected_time": -1.0,
+		"cover_distance": -1.0,
+		"cover_min_distance": -1.0,
+		"first_damage_after_cover_time": -1.0,
+		"perception_lost": false,
+		"perception_loss_delay": -1.0,
 		"nearest_target_missing": false,
 		"released": bool(context.get("released_on_entry", false)),
 		"release_target_id": target_id \
@@ -1146,16 +1192,27 @@ func track_survival_break_episode_event(
 			episode.incoming_raw_damage = float(episode.incoming_raw_damage) \
 				+ maxf(0.0, float(context.get("amount", 0.0)))
 			episode.last_attacker_id = maxi(-1, int(context.get("attacker_id", -1)))
+			if bool(episode.cover_selected) \
+					and float(episode.first_damage_after_cover_time) < 0.0:
+				episode.first_damage_after_cover_time = elapsed
 		"counteraction":
 			episode.counteraction = true
 		"cover_selected":
 			if not bool(episode.cover_selected):
 				episode.cover_selected = true
 				episode.cover_distance = maxf(0.0, float(context.get("distance", 0.0)))
+				episode.cover_min_distance = float(episode.cover_distance)
+				episode.cover_selected_time = elapsed
 		"cover_reached":
 			if not bool(episode.cover_reached):
 				episode.cover_reached = true
 				episode.time_to_cover = maxf(0.0, elapsed - float(episode.entry_time))
+		"perception_lost":
+			if not bool(episode.perception_lost):
+				episode.perception_lost = true
+				episode.perception_loss_delay = maxf(
+					0.0, elapsed - float(episode.entry_time)
+				)
 		"nearest_target_missing":
 			episode.nearest_target_missing = true
 		"release":
@@ -1193,6 +1250,20 @@ func finish_survival_break_episode(context: Dictionary) -> bool:
 	if elapsed > SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS:
 		_finalize_survival_break_episode(episode_key, "window_end", "censored", -1)
 		return false
+	var episode: Dictionary = _survival_break_episodes[episode_key]
+	if bool(episode.cover_selected):
+		var observed_min := float(context.get(
+			"cover_min_distance", episode.cover_min_distance
+		))
+		if observed_min >= 0.0:
+			episode.cover_min_distance = minf(
+				float(episode.cover_distance), observed_min
+			)
+	var perception_loss_delay := float(context.get("perception_loss_delay", -1.0))
+	if perception_loss_delay >= 0.0:
+		episode.perception_lost = true
+		episode.perception_loss_delay = perception_loss_delay
+	_survival_break_episodes[episode_key] = episode
 	_finalize_survival_break_episode(
 		episode_key,
 		String(context.get("reason", "unknown")),
@@ -1245,9 +1316,46 @@ func _finalize_survival_break_episode(
 	if bool(episode.cover_selected):
 		summary.cover_selected_episodes = int(summary.cover_selected_episodes) + 1
 		_target_continuity_measure(summary.cover_distance, float(episode.cover_distance))
+		if not censored:
+			summary.cover_progress_observed_episodes = \
+				int(summary.cover_progress_observed_episodes) + 1
+			var cover_min_distance := maxf(
+				0.0,
+				float(episode.get("cover_min_distance", episode.cover_distance))
+			)
+			_target_continuity_measure(summary.cover_min_distance, cover_min_distance)
+			var cover_progress_ratio := 0.0
+			if float(episode.cover_distance) > 0.0:
+				cover_progress_ratio = clampf(
+					(float(episode.cover_distance) - cover_min_distance) \
+						/ float(episode.cover_distance),
+					0.0,
+					1.0
+				)
+			_target_continuity_measure(summary.cover_progress_ratio, cover_progress_ratio)
 	if bool(episode.cover_reached):
 		summary.cover_reached_episodes = int(summary.cover_reached_episodes) + 1
 		_target_continuity_measure(summary.time_to_cover, float(episode.time_to_cover))
+	if bool(episode.perception_lost):
+		summary.perception_lost_episodes = int(summary.perception_lost_episodes) + 1
+		_target_continuity_measure(
+			summary.first_perception_loss_delay,
+			float(episode.perception_loss_delay)
+		)
+	var first_damage_after_cover_delay := -1.0
+	if bool(episode.cover_selected) \
+			and float(episode.first_damage_after_cover_time) >= 0.0:
+		first_damage_after_cover_delay = maxf(
+			0.0,
+			float(episode.first_damage_after_cover_time) \
+				- float(episode.cover_selected_time)
+		)
+		summary.damage_after_cover_selected_episodes = \
+			int(summary.damage_after_cover_selected_episodes) + 1
+		_target_continuity_measure(
+			summary.first_damage_after_cover_delay,
+			first_damage_after_cover_delay
+		)
 	if bool(episode.nearest_target_missing):
 		summary.nearest_target_missing_episodes = \
 			int(summary.nearest_target_missing_episodes) + 1
@@ -1268,6 +1376,39 @@ func _finalize_survival_break_episode(
 	elif bool(episode.cover_selected):
 		cover_outcome = "selected_not_reached"
 	_target_continuity_increment(summary.death_by_cover_outcome, cover_outcome)
+	var death_cover_progress_ratio := 0.0
+	if bool(episode.cover_selected) and float(episode.cover_distance) > 0.0:
+		death_cover_progress_ratio = clampf(
+			(float(episode.cover_distance) - float(episode.cover_min_distance)) \
+				/ float(episode.cover_distance),
+			0.0,
+			1.0
+		)
+	_target_continuity_increment(
+		summary.death_by_cover_progress,
+		_survival_cover_progress_bucket(
+			bool(episode.cover_selected),
+			bool(episode.cover_reached),
+			death_cover_progress_ratio
+		)
+	)
+	_target_continuity_increment(
+		summary.death_by_first_damage_after_cover,
+		_survival_cover_damage_delay_bucket(
+			bool(episode.cover_selected),
+			first_damage_after_cover_delay
+		)
+	)
+	_target_continuity_increment(
+		summary.death_by_perception_loss,
+		"yes" if bool(episode.perception_lost) else "no"
+	)
+	if bool(episode.cover_selected):
+		_target_continuity_measure(
+			summary.death_after_cover_selection_delay,
+			maxf(0.0, float(episode.entry_time) + duration \
+				- float(episode.cover_selected_time))
+		)
 	_target_continuity_increment(
 		summary.death_by_entry_visibility,
 		String(episode.entry_visibility)

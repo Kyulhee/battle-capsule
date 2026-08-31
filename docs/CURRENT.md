@@ -1,6 +1,6 @@
 # 현재 트래커
 
-> 최종 업데이트: 2026-08-29. 작업 시작 전 이 문서를 먼저 읽는다.
+> 최종 업데이트: 2026-09-01. 작업 시작 전 이 문서를 먼저 읽는다.
 
 ## 큰 틀
 
@@ -16,14 +16,14 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | E-058은 release target 재소유를 거의 제거했지만 생존·정체 gate를 실패해 완전 revert했다. fast reacquire 단독이 opening 붕괴의 주원인이라는 가설은 폐기한다 |
-| 바로 다음 단위 | E-059 behavior-neutral 진단은 E-057 episode에 cover 선택 후 최소 거리·진행, 첫 피격/사망 지연, 기존 perception의 첫 LOS 단절을 연결해 미도달이 이동 실패인지 피격 시간 부족인지 분리한다. 새 ray/scan·gameplay 변경은 금지한다 |
-| 최신 검증 개발 단위 | E-058 pure/runtime seam과 전체 `unit_smoke` 87.7초는 PASS했으나 1-run 실패 후 코드·등록을 제거했고 기준 Bot policy/threat smoke와 `git diff --check`를 재통과했다. `ac9fff8` package는 현재 근거가 아니다 |
-| 최신 검증 게임플레이 단위 | E-058 seed 41000은 716.4초·upgrade 12.4초·fallback 0이지만 alive@60/120/260 `32/21/16`, T10 284.9초, survival death 25, stuck 상한 초과로 FAIL했다. 5-run·packaged/manual은 금지한다 |
+| 현재 단위 | E-059 behavior-neutral schema v2 진단을 채택했다. cover 진행·피격/사망 지연·기존 perception reveal 소실은 gameplay/RNG가 읽지 않으며 5-run exact aggregate와 scale gate를 통과했다 |
+| 바로 다음 단위 | E-060은 `survival_break`에서 현재 4m/s 이동으로 lethal window 안에 닿기 어려운 먼 cover를 고집하지 않는 reachability/fallback 정책 하나만 1-run한다. 사격 grace·target 소유·HP/damage·exit 시간·맵 topology는 바꾸지 않는다 |
+| 최신 검증 개발 단위 | E-059 telemetry/analyzer/Bot shadow와 schema v1 호환·검열 분모 fixture, 전체 `unit_smoke`가 PASS했다. `ac9fff8` package는 현재 근거가 아니다 |
+| 최신 검증 게임플레이 단위 | E-059 5-run은 평균 665.7초(640.8-684.8), upgrade 3.4초, fallback 0, scale PASS지만 alive@30/60/120/260 `50/35/23/16`, T50/T10 `28.8/298.9초`라 생존은 FAIL이다. 진단 채택이지 gameplay/package/manual PASS가 아니다 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 릴리즈 판정 | 현재 후보는 internal pre-alpha 전용이다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 새 packaged/manual 통과 전 공개판을 교체하지 않는다 |
 | 목표 창 | 폐쇄 알파 현실 창 2026-09-28~10-09, 공개 데모 RC 현실 창 2026-12-18~2027-01-15, 유료 EA Go/No-Go 2027 Q1 이후. 날짜는 gate 통과 창이지 출시 약속이 아니다 |
-| 브랜치 메모 | `master`는 원격과 동기화되어야 한다. 사용자 지시가 바뀌기 전까지 푸쉬 허용 |
+| 브랜치 메모 | 로컬 진단 커밋은 원격보다 앞설 수 있다. 새 커밋 푸쉬는 대상 commit을 명시한 사용자 승인을 다시 받은 뒤에만 한다 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
 
 ## 제품 방향
@@ -38,7 +38,7 @@
 
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
-| P0 | `N2-PLAY-11` M1 실패 수정·재판정 | E-059가 cover 미도달의 lethal timing을 행동 비개입으로 분리한 뒤 새 단일 후보가 1-run→5-run→packaged 수동 3판을 순서대로 통과 |
+| P0 | `N2-PLAY-11` M1 실패 수정·재판정 | E-059가 분리한 낮은 cover 진행을 E-060 단일 reachability 후보가 1-run→5-run→packaged 수동 3판 순서로 개선 |
 | P1 | `N2-REL-01` Windows 릴리즈 기반 마감 | gameplay 후보를 고정한 clean tracked commit에서 PCK inventory·PE identity·전체 simulation·checksum/manifest/reboot를 다시 만들고, 사람 전체 루프·정상 기록/배지·cold PCK byte 재현성을 확인 |
 | P2 | `N2-M2-VIS-01` 대표 교전 슬라이스 | 수관 가림·야간 명도·캡슐 방향/무기/피격/사망·핵심 효과음·HUD/지도 위계를 한 구간에서 수동 통과 |
 | P3 | `N2-M2-UX-01` 첫 사용자 경험 | 밝기·감도·해상도/창 모드·UI 배율, 입력 안내, 언어 일관성, 메뉴→매치→결과→재시작 흐름을 무설명 테스터가 완주 |
@@ -49,11 +49,11 @@
 
 | 리스크 | 신호 | 대응 |
 |---|---|---|
-| M1 생존·continuity 실패 | E-058은 episode fast reacquire를 `9/104`로 줄였지만 alive@60/120 `32/21`, T10 284.9초와 survival death 25로 실패해 reacquire 단독 원인을 반증했다 | E-056/E-058을 재혼합하지 않는다. E-059에서 cover 선택-미도달의 이동 진행·피격 시점을 먼저 exact 연결한다 |
+| M1 생존·continuity 실패 | E-059 사망 68건은 cover `no_progress/partial/reached=34/32/2`, counteraction 62, perception 소실 24, 선택 후 0.25초 미만 첫 피격 10이다. 즉사·시야 소실·재획득 하나보다 먼 cover 대비 짧은 이동 창이 반복된다 | E-056/E-058을 재혼합하지 않는다. E-060은 survival-break cover reachability/fallback 한 축만 바꾸고 1-run hard gate로 중단 여부를 정한다 |
 | 화면이 프로토타입으로 보임 | 겹친 수관, procedural capsule, 평면적 야간 재질, HUD 정보 경쟁 | 신규 콘텐츠보다 P2 대표 슬라이스를 우선하고 캡슐을 의도된 제품 정체성으로 승격 |
 | 기록·저장 무결성 | packaged smoke에서 legacy settings schema v1 migration·backup·재실행 멱등성과 simulation 중 기존 기록·배지 불변 확인 | 사람이 정상 매치 기록·배지 생성/재실행과 corrupt/empty/future-schema 화면 동작을 확인 |
 | 패키지 오염·식별 불일치 | `ac9fff8` clean PCK는 catalog 자산 44개·JSON 3개·runtime 경로 124개·payload closure exact와 archive smoke를 통과했지만 현재 gameplay/telemetry 후보보다 오래됐다 | 현재 후보 고정 뒤 독립 clean export를 다시 만들고 PCK byte 재현성·LICENSES/CREDITS·지원·unsigned 정책을 닫기 전 공개 승격 금지 |
-| 60봇 성능 | exposure 1-run은 849.696초·spawn 60/60·fallback 0, AI 평균 264.7us·최대 35,515us로 scale gate를 통과했다 | 계측 성능은 구조 PASS지만 실제 Forward+ 끊김·사람 전체 매치·restart soak·다중 해상도는 새 package에서 별도 확인 |
+| 60봇 성능 | E-059 5-run은 AI 평균/최대 276.2/22,076us, stuck/disengage 0.02/0.19 per entity/min, spawn fallback 0으로 scale gate를 통과했다 | 계측 성능은 구조 PASS지만 실제 Forward+ 끊김·사람 전체 매치·restart soak·다중 해상도는 새 package에서 별도 확인 |
 | 99봇 구조 여유 | 고정 입력 5-run은 통과했지만 disengage 0.44가 한계 0.45에 가까움 | 99봇은 gameplay로 승격하지 않고 규모 민감 변경마다 구조 profile을 다시 실행 |
 | 첫 사용자·호환성 공백 | exported binary 자동 부팅·전체 simulation은 통과했지만 UI·입력·가독성·정상 저장 생성은 사람이 확인하지 않음 | P3/P4에서 무설명 완주와 Win10/11·한글 경로·읽기 전용 설치·해상도/하드웨어 matrix를 gate로 유지 |
 | 범위 팽창 | 온라인·99봇·macOS·신규 콘텐츠가 공개 데모 critical path와 경쟁 | 첫 공개 범위 밖 기능은 M4 Go/No-Go 전까지 보류 |

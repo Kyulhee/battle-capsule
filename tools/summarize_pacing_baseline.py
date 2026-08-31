@@ -77,10 +77,11 @@ OPENING_SURVIVAL_EXPOSURE_EVENT_COUNTERS = {
 }
 
 SURVIVAL_BREAK_EPISODE_SUMMARY_KEY = "survival_break_episode_summary"
-SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION = 1
+SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION = 2
+SURVIVAL_BREAK_EPISODE_LEGACY_SCHEMA_VERSION = 1
 SURVIVAL_BREAK_EPISODE_ENTRY_CENSOR_SECONDS = 59.0
 SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS = 60.0
-SURVIVAL_BREAK_COUNT_KEYS = {
+SURVIVAL_BREAK_BASE_COUNT_KEYS = {
     "episodes",
     "completed",
     "censored",
@@ -93,7 +94,12 @@ SURVIVAL_BREAK_COUNT_KEYS = {
     "release_episodes",
     "fast_reacquired_1s_episodes",
 }
-SURVIVAL_BREAK_MEASURE_KEYS = {
+SURVIVAL_BREAK_V2_COUNT_KEYS = {
+    "cover_progress_observed_episodes",
+    "perception_lost_episodes",
+    "damage_after_cover_selected_episodes",
+}
+SURVIVAL_BREAK_BASE_MEASURE_KEYS = {
     "entry_hp_ratio",
     "entry_shield_ratio",
     "entry_target_distance",
@@ -103,7 +109,14 @@ SURVIVAL_BREAK_MEASURE_KEYS = {
     "time_to_cover",
     "exit_duration",
 }
-SURVIVAL_BREAK_COUNTER_KEYS = {
+SURVIVAL_BREAK_V2_MEASURE_KEYS = {
+    "cover_min_distance",
+    "cover_progress_ratio",
+    "first_damage_after_cover_delay",
+    "death_after_cover_selection_delay",
+    "first_perception_loss_delay",
+}
+SURVIVAL_BREAK_BASE_COUNTER_KEYS = {
     "entry_by_hp_bucket",
     "entry_by_shield_bucket",
     "entry_by_target_kind",
@@ -118,6 +131,11 @@ SURVIVAL_BREAK_COUNTER_KEYS = {
     "death_by_fast_reacquired",
     "death_by_killer_relation",
     "fast_reacquire_by_source",
+}
+SURVIVAL_BREAK_V2_COUNTER_KEYS = {
+    "death_by_cover_progress",
+    "death_by_first_damage_after_cover",
+    "death_by_perception_loss",
 }
 
 TARGET_CONTINUITY_RELEASE_SAMPLE_KEYS = {
@@ -1630,15 +1648,25 @@ def _validate_exact_survival_break_episode_summary(summary: object) -> list[str]
         "time_basis",
         "entry_visibility_basis",
     }
-    required = metadata | SURVIVAL_BREAK_COUNT_KEYS \
-        | SURVIVAL_BREAK_MEASURE_KEYS | SURVIVAL_BREAK_COUNTER_KEYS
+    schema_version = summary.get("schema_version")
+    schema_supported = type(schema_version) is int and schema_version in {
+        SURVIVAL_BREAK_EPISODE_LEGACY_SCHEMA_VERSION,
+        SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION,
+    }
+    count_keys = set(SURVIVAL_BREAK_BASE_COUNT_KEYS)
+    measure_keys = set(SURVIVAL_BREAK_BASE_MEASURE_KEYS)
+    counter_keys = set(SURVIVAL_BREAK_BASE_COUNTER_KEYS)
+    if schema_version == SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION:
+        count_keys.update(SURVIVAL_BREAK_V2_COUNT_KEYS)
+        measure_keys.update(SURVIVAL_BREAK_V2_MEASURE_KEYS)
+        counter_keys.update(SURVIVAL_BREAK_V2_COUNTER_KEYS)
+    required = metadata | count_keys | measure_keys | counter_keys
     reasons = [f"missing {key}" for key in sorted(required.difference(summary))]
     reasons.extend(
         f"unexpected {key}" for key in sorted(set(summary).difference(required))
     )
-    if type(summary.get("schema_version")) is not int \
-            or summary.get("schema_version") != SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION:
-        reasons.append("schema_version must be integer 1")
+    if not schema_supported:
+        reasons.append("schema_version must be integer 1 or 2")
     if type(summary.get("exact")) is not bool or summary.get("exact") is not True:
         reasons.append("exact must be boolean true")
     if type(summary.get("complete")) is not bool \
@@ -1660,7 +1688,7 @@ def _validate_exact_survival_break_episode_summary(summary: object) -> list[str]
                 or not math.isclose(float(value), expected, abs_tol=1.0e-9):
             reasons.append(f"{key} must equal {expected:.1f}")
     counts: dict[str, int] = {}
-    for key in SURVIVAL_BREAK_COUNT_KEYS:
+    for key in count_keys:
         value = summary.get(key)
         if not _is_strict_nonnegative_int(value):
             reasons.append(f"{key} must be a nonnegative integer")
@@ -1676,7 +1704,7 @@ def _validate_exact_survival_break_episode_summary(summary: object) -> list[str]
     if deaths >= 0 and completed >= 0 and deaths > completed:
         reasons.append("deaths exceeds completed episodes")
     if episodes >= 0:
-        for key in SURVIVAL_BREAK_COUNT_KEYS - {"episodes", "completed", "censored"}:
+        for key in count_keys - {"episodes", "completed", "censored"}:
             if counts.get(key, 0) > episodes:
                 reasons.append(f"{key} exceeds episodes")
         if counts.get("cover_reached_episodes", 0) \
@@ -1685,6 +1713,27 @@ def _validate_exact_survival_break_episode_summary(summary: object) -> list[str]
         if counts.get("fast_reacquired_1s_episodes", 0) \
                 > counts.get("release_episodes", 0):
             reasons.append("fast_reacquired_1s_episodes exceeds release_episodes")
+        if schema_version == SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION:
+            if counts.get("damage_after_cover_selected_episodes", 0) \
+                    > counts.get("cover_selected_episodes", 0):
+                reasons.append(
+                    "damage_after_cover_selected_episodes exceeds cover_selected_episodes"
+                )
+            if counts.get("damage_after_cover_selected_episodes", 0) \
+                    > counts.get("damaged_episodes", 0):
+                reasons.append(
+                    "damage_after_cover_selected_episodes exceeds damaged_episodes"
+                )
+            if counts.get("cover_progress_observed_episodes", 0) \
+                    > counts.get("cover_selected_episodes", 0):
+                reasons.append(
+                    "cover_progress_observed_episodes exceeds cover_selected_episodes"
+                )
+            if counts.get("cover_progress_observed_episodes", 0) \
+                    > completed:
+                reasons.append(
+                    "cover_progress_observed_episodes exceeds completed episodes"
+                )
         measure_counts = {
             "entry_hp_ratio": episodes,
             "entry_shield_ratio": episodes,
@@ -1695,10 +1744,35 @@ def _validate_exact_survival_break_episode_summary(summary: object) -> list[str]
             "time_to_cover": counts.get("cover_reached_episodes", 0),
             "exit_duration": episodes,
         }
+        if schema_version == SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION:
+            death_cover_outcomes = summary.get("death_by_cover_outcome", {})
+            selected_deaths = deaths
+            if isinstance(death_cover_outcomes, dict) \
+                    and _is_strict_nonnegative_int(
+                        death_cover_outcomes.get("not_selected", 0)
+                    ):
+                selected_deaths -= int(death_cover_outcomes.get("not_selected", 0))
+            measure_counts.update({
+                "cover_min_distance": counts.get("cover_progress_observed_episodes", 0),
+                "cover_progress_ratio": counts.get("cover_progress_observed_episodes", 0),
+                "first_damage_after_cover_delay": counts.get(
+                    "damage_after_cover_selected_episodes", 0
+                ),
+                "death_after_cover_selection_delay": max(0, selected_deaths),
+                "first_perception_loss_delay": counts.get(
+                    "perception_lost_episodes", 0
+                ),
+            })
         for key, expected_count in measure_counts.items():
             _validate_survival_break_measure(
                 summary, key, expected_count, episodes, reasons
             )
+        if schema_version == SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION:
+            progress = summary.get("cover_progress_ratio", {})
+            if isinstance(progress, dict) \
+                    and _is_finite_nonnegative_number(progress.get("max")) \
+                    and float(progress["max"]) > 1.0:
+                reasons.append("cover_progress_ratio.max exceeds 1.0")
     counter_totals = {
         "entry_by_hp_bucket": episodes,
         "entry_by_shield_bucket": episodes,
@@ -1715,6 +1789,12 @@ def _validate_exact_survival_break_episode_summary(summary: object) -> list[str]
         "death_by_killer_relation": deaths,
         "fast_reacquire_by_source": counts.get("fast_reacquired_1s_episodes", -1),
     }
+    if schema_version == SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION:
+        counter_totals.update({
+            "death_by_cover_progress": deaths,
+            "death_by_first_damage_after_cover": deaths,
+            "death_by_perception_loss": deaths,
+        })
     for key, expected_total in counter_totals.items():
         if expected_total >= 0:
             _validate_summary_counter(summary, key, expected_total, reasons)
@@ -1767,7 +1847,7 @@ def print_survival_break_episode_linkage(runs: list[dict]) -> None:
     if not advertised:
         print(
             "Opening survival_break episode linkage: unavailable "
-            "(schema v1 exact summary missing)."
+            "(schema v1/v2 exact summary missing)."
         )
         return
     if errors or len(summaries) != len(runs):
@@ -1775,7 +1855,7 @@ def print_survival_break_episode_linkage(runs: list[dict]) -> None:
         extra = len(errors) - 1
         suffix = f" (+{extra} more)" if extra > 0 else ""
         print(
-            "Opening survival_break episode linkage: schema v1 exact aggregate "
+            "Opening survival_break episode linkage: exact aggregate "
             f"INVALID ({reason}{suffix})."
         )
         return
@@ -1790,8 +1870,10 @@ def print_survival_break_episode_linkage(runs: list[dict]) -> None:
     counteraction = _survival_break_total(summaries, "counteraction_episodes")
     released = _survival_break_total(summaries, "release_episodes")
     reacquired = _survival_break_total(summaries, "fast_reacquired_1s_episodes")
+    schema_versions = sorted({int(summary["schema_version"]) for summary in summaries})
+    schema_label = "/".join(f"v{version}" for version in schema_versions)
     print(
-        "Opening survival_break episode linkage: schema v1 exact, entry<=59s; "
+        f"Opening survival_break episode linkage: schema {schema_label} exact, entry<=59s; "
         f"episodes={episodes}, completed={completed}, censored={censored}, deaths={deaths}."
     )
     print(
@@ -1820,6 +1902,38 @@ def print_survival_break_episode_linkage(runs: list[dict]) -> None:
         "exit duration "
         f"{_format_summary_measure(_summary_measure(summaries, 'exit_duration'), 's')}."
     )
+    if all(int(summary["schema_version"]) == 2 for summary in summaries):
+        progress_observed = _survival_break_total(
+            summaries, "cover_progress_observed_episodes"
+        )
+        perception_lost = _survival_break_total(
+            summaries, "perception_lost_episodes"
+        )
+        damaged_after_cover = _survival_break_total(
+            summaries, "damage_after_cover_selected_episodes"
+        )
+        print(
+            "  cover progression: observed episodes="
+            f"{progress_observed}/{completed}, perception lost={perception_lost}, "
+            f"damage after selection={damaged_after_cover}; minimum distance "
+            f"{_format_summary_measure(_summary_measure(summaries, 'cover_min_distance'), 'm')}, "
+            "progress ratio "
+            f"{_format_summary_measure(_summary_measure(summaries, 'cover_progress_ratio'), '')}, "
+            "first damage after selection "
+            f"{_format_summary_measure(_summary_measure(summaries, 'first_damage_after_cover_delay'), 's')}, "
+            "death after selection "
+            f"{_format_summary_measure(_summary_measure(summaries, 'death_after_cover_selection_delay'), 's')}, "
+            "first perception loss "
+            f"{_format_summary_measure(_summary_measure(summaries, 'first_perception_loss_delay'), 's')}."
+        )
+        print(
+            "  death progression: cover="
+            f"[{format_counts(_survival_break_counter(summaries, 'death_by_cover_progress'))}], "
+            "damage timing="
+            f"[{format_counts(_survival_break_counter(summaries, 'death_by_first_damage_after_cover'))}], "
+            "perception lost="
+            f"[{format_counts(_survival_break_counter(summaries, 'death_by_perception_loss'))}]."
+        )
     print(
         "  death linkage: cover="
         f"[{format_counts(_survival_break_counter(summaries, 'death_by_cover_outcome'))}], "

@@ -43,7 +43,8 @@
 | D-036 | target continuity schema v2는 `Main.match_timer` 기반 `complete=true` exact aggregate를 판정 근거로 쓰고, raw는 run마다 결정적 bottom-k release episode·DISENGAGE exit 각각 최대 128개로 제한한다 | 완전한 unique episode 집계와 bounded·순서 독립 진단을 분리하면 sample omitted을 gameplay 누락으로 오판하지 않고 파일 크기도 제한한다 | 결정적 실행기 또는 장기 episode 분석이 aggregate/sample 계약 변경을 요구함 |
 | D-037 | opening survival exposure schema v1은 `Main.match_timer`의 이전 held 상태·위치를 다음 관측까지 적분한 exact actor-seconds와 상태별 death/acquisition/entry를 판정 분모로 쓴다. POI·route 결과는 identity 일치·overflow 없음·actor/event known coverage 95% 이상일 때만 유효하다 | 1-run에서 444.3초가 known 100%·overflow false로 닫혔고 DISENGAGE와 RECOVER의 사망률을 raw 사망 수가 아닌 노출 분모로 분리했다 | taxonomy·sampling 계약 또는 canonical clock이 바뀌거나 bounded counter overflow가 실제로 발생함 |
 | D-038 | 현재 개발 후보는 internal pre-alpha로만 취급하고 공개 stable은 `v2.0.0-pre-expansion`을 유지한다 | 자동 구조 검증은 통과했지만 M1 생존, packaged 수동 3판, M2 비주얼/UX, 현재 commit의 clean package·호환성·고지가 닫히지 않았다 | R0/R1 필수 gate가 모두 닫혀 새 버전 승격 판정을 함 |
-| D-039 | survival-break episode 진단은 entry 59초 이하 exact aggregate로 cover·피격·반격·release/reacquire·exit/death를 연결하고 gameplay는 이 값을 읽지 않는다 | E-057 5-run에서 581 episode를 완전 집계해 cover 미도달과 retreat reacquire가 모든 seed에서 반복됐고 raw 표본 없이도 파일 크기와 분모를 고정했다 | state episode/60초 clock 계약이 바뀌거나 다른 원인이 5-run에서 지배함 |
+| D-039 | survival-break episode 진단은 entry 59초 이하 schema v2 exact aggregate로 cover 진행·피격/사망 지연·기존 perception reveal 소실·반격·release/reacquire·exit/death를 연결하고 gameplay는 이 값을 읽지 않는다 | E-059 5-run에서 648 episode를 완전 집계했고 검열 episode는 cover 진행 분모에서 제외하면서 damage/perception canonical event는 보존했다 | state episode/60초 clock 계약이 바뀌거나 다른 원인이 5-run에서 지배함 |
+| D-040 | E-059 다음 gameplay 후보는 survival-break의 먼 cover reachability/fallback 한 축만 바꾸고 기존 사격 grace·target 소유·HP/damage·exit 시간·topology 후보는 재혼합하지 않는다 | 사망 68건의 cover 진행은 `34/32/2` no/partial/reached, 선택 거리 평균 12.98m, 선택 후 사망 평균 1.62초다. 즉시 피격과 perception 소실은 각각 10/68·24/68이라 지배 원인이 아니며 counteraction은 이동 자체를 멈추지 않는다 | 1-run에서 생존·continuity·정체/이탈·D-004가 함께 개선되지 않거나 새 exact 근거가 다른 지배 경로를 보임 |
 
 ## 현재 설계 편향
 
@@ -59,4 +60,4 @@
 - `visual_review`는 화면 캡처용 8봇 표면이며 gameplay 대표 preset으로 사용하지 않는다.
 - route 교전 비중만 올리려고 물리 cover를 추가하지 않는다. route 선택 표면과 이동 계약을 먼저 만든다.
 - N2-PLAY-11에서는 broad damage·opening grace·zone 일정 변경을 섞지 않고, ceasefire·bot-only HP buffer·DISENGAGE 첫 1초 counteraction grace는 완전 revert한 채 재혼합하지 않는다. 가방/악세서리, 무기군+Tab, 더블배럴, 대형 hard block은 메모 또는 다음 대표 슬라이스다.
-- E-058은 bot retreat counteraction의 target 재소유를 거의 제거하고도 생존·정체 gate를 실패했다. E-056 시간 연장·HP buffer·ceasefire·1초 grace·target 소유 억제를 재혼합하지 않으며, E-059 전에는 cover 미도달의 진행·피격 시간만 behavior-neutral로 연결한다.
+- E-059는 낮은 cover 진행과 짧은 도달 창을 반복 확인했다. E-060은 먼 cover reachability/fallback만 후보화하며 E-056 시간 연장·HP buffer·ceasefire·1초 grace·E-058 target 소유 억제를 재혼합하지 않는다.
