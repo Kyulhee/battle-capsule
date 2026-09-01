@@ -36,6 +36,8 @@ source `ac9fff8fc115c86003da7a5685fbce0dc0b48d58`의 fresh clean worktree artifa
 
 현재 gameplay 후보 source `2acf965`도 fresh detached worktree에서 clean export했다. PCK exact contract와 EXE `Battle Capsule`/`2.1.0.0` identity는 PASS했고 packaged headless 2-run은 평균 661.8초·spawn 60/60·fallback 0이다. AI max `57.914/28.584ms`, 수동 3판과 실제 Mac 미검증은 `v2.1.0-demo-dev` known issue로 고지하며 stable/데모 RC 승격을 계속 차단한다.
 
+`v2.1.0-demo-dev`는 문서까지 고정한 source `c33cdabb3adfecfe1824d7c9eb45cd176917bc14`에서 clean export해 [GitHub 프리릴리즈](https://github.com/Kyulhee/battle-capsule/releases/tag/v2.1.0-demo-dev)에 게시했다. Windows archive는 37,990,493 bytes·SHA-256 `767412ae07ecb03da1ec04b955f010304fd274e31c2aac153408326ef228c922`, macOS Universal 2 archive는 64,771,016 bytes·SHA-256 `10364b171f32b30ad6c953200f4ef0749d424723dd7b4ca47eb90ec6133edd38`다. 두 archive의 PCK는 동일 hash `3a8c195e0507b8ec21d8ffb6dc46ac860db1d4658cd8052c4d0f5f8fe76d1829`와 exact 계약을 통과했다. Mac binary의 x86_64+arm64와 ZIP 실행 권한 속성 보존은 확인했지만 실기기 실행은 미완료다.
+
 이는 자동 package gate 근거이며 사람이 조작하는 Result/Records 흐름을 대신하지 않는다. 독립 clean worktree 두 곳의 EXE는 byte-identical이었지만 PCK는 2,060,916/2,060,900 bytes로 hash가 달랐으므로 cold PCK byte 재현성도 미해결이다. `N2-REL-01` 잔여 gate는 `N2-PLAY-10` 수동 3판, 메뉴→설정→매치→결과→재시작→재실행과 정상 기록·배지 저장, PCK 비결정성·반복 restart soak·호환성 matrix, LICENSES/CREDITS·회사/저작권·지원·unsigned 정책이다.
 
 ## 1. 소스 검증

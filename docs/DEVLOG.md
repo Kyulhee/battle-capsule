@@ -2,11 +2,12 @@
 
 > 최종 업데이트: 2026-09-01. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
-## v2.1.0-demo-dev 테스트 프리릴리즈 준비
+## v2.1.0-demo-dev 테스트 프리릴리즈 게시
 
 - 범위: 안정판 `v2.0.0-pre-expansion`은 유지하고 E-062 Night BR을 `v2.1.0-demo-dev` 프리릴리즈로 분리한다. Windows x64는 우선 검증 대상, macOS Universal 2는 Intel/Apple Silicon 호환성 피드백용 교차 빌드다.
 - 고지: README와 릴리즈 노트에 packaged AI max 1/2 strict 실패, 수동 3판·실제 Mac·서명/공증 미완료, PCK byte 재현성, legacy 저장 경로를 명시했다. Godot MIT와 CC0 오디오 출처 문서를 추가했다.
-- 승격 경계: tag와 artifact를 공개하더라도 stable/latest나 공개 데모 RC로 판정하지 않는다. 실제 artifact hash와 package 검사 결과는 clean export 뒤 확정한다.
+- artifact: source `c33cdab` clean export의 Windows ZIP 37,990,493 bytes(`767412ae…`)와 macOS ZIP 64,771,016 bytes(`10364b17…`)를 GitHub 프리릴리즈에 게시했다. manifest와 `SHA256SUMS.txt`를 함께 첨부했다.
+- 검증/경계: 최종 ZIP 재압축 해제 뒤 두 PCK의 exact 계약과 동일 hash `3a8c195e…`, Windows `Battle Capsule`/`2.1.0.0`, 짧은 packaged 부팅을 통과했다. Mac binary는 x86_64+arm64이고 ZIP 실행 권한 속성을 보존했지만 실기기 smoke는 하지 않았으므로 stable/latest나 공개 데모 RC로 판정하지 않는다.
 
 ## N2-PLAY-11 E-059 진단과 E-060 fallback 반증
 

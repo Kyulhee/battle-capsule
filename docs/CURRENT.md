@@ -16,8 +16,8 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | E-062를 `v2.1.0-demo-dev` 프리릴리즈로 고정해 Windows x64와 macOS Universal 2 clean artifact, manifest·고지·checksum을 만든다. 안정판·공개 데모 승격은 아니며 packaged AI max 57.9ms와 수동 3판 미완료를 known issue로 공개한다 |
-| 바로 다음 단위 | 프리릴리즈 artifact hash와 package 계약을 확인한 뒤 동일 Windows 빌드로 Forward+ 성능 반복과 수동 3판의 오프닝·파밍 이유·엄폐 이동·10-15분 완주·재시작을 판정한다 |
+| 현재 단위 | source `c33cdab`의 Windows x64와 macOS Universal 2 clean artifact, manifest·고지·checksum을 `v2.1.0-demo-dev` GitHub 프리릴리즈에 게시했다. 양쪽 PCK exact 계약과 Mac x86_64/arm64 구성을 통과했지만 stable·공개 데모 승격은 아니다 |
+| 바로 다음 단위 | 게시한 동일 Windows 빌드로 Forward+ 성능 반복과 수동 3판의 오프닝·파밍 이유·엄폐 이동·10-15분 완주·재시작을 판정한다. 이후 실제 Intel/Apple Silicon Mac smoke와 M2 대표 교전 슬라이스로 이어간다 |
 | 최신 검증 개발 단위 | E-062 pure policy/runtime seam과 전체 `unit_smoke`가 PASS했다. 일반 DISENGAGE·속도·플레이어 이동·사격·HP/damage·topology는 보존했다. `ac9fff8` package는 현재 근거가 아니다 |
 | 최신 검증 게임플레이 단위 | E-062 seed 41000-41004는 평균 753.5초(576.3-881.9), alive 중앙 `52/39/26/19`, T10 322.8초, cover selected/reached `269/42`, 진행률 0.26, stuck/disengage 0.02/0.17로 자동 PASS했다. 수동/package PASS는 아니다 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
