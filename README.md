@@ -7,12 +7,13 @@
 </p>
 
 <p align="center">
-  <strong>쿼터뷰 배틀로얄 프로토타입</strong><br>
-  루팅, 은신, 자기장 압박, 아티팩트 선택이 짧은 생존전 안에서 충돌하는 Godot 게임입니다.
+  <strong>60인 야간 쿼터뷰 배틀로얄</strong><br>
+  루팅, 은신, 자기장 압박, 아티팩트 선택이 10-15분 생존전 안에서 충돌하는 Godot 게임입니다.
 </p>
 
 <p align="center">
   <a href="https://godotengine.org/"><img alt="Godot 4.6.2" src="https://img.shields.io/badge/Godot-4.6.2-478CBF?style=for-the-badge&logo=godot-engine&logoColor=white"></a>
+  <a href="https://github.com/Kyulhee/battle-capsule/releases/tag/v2.1.0-demo-dev"><img alt="테스트 빌드" src="https://img.shields.io/badge/프리릴리즈-v2.1.0_demo--dev-D29922?style=for-the-badge"></a>
   <a href="https://github.com/Kyulhee/battle-capsule/releases/tag/v2.0.0-pre-expansion"><img alt="안정 빌드" src="https://img.shields.io/badge/안정판-v2.0.0_pre--expansion-2EA043?style=for-the-badge"></a>
   <a href="https://github.com/Kyulhee/battle-capsule/releases"><img alt="다운로드" src="https://img.shields.io/badge/다운로드-Windows%20%7C%20macOS-111111?style=for-the-badge"></a>
 </p>
@@ -21,18 +22,19 @@
 
 ## 다운로드
 
+현재 테스트 빌드: **v2.1.0-demo-dev**<br>
 현재 안정 빌드: **v2.0.0-pre-expansion**
 
 | 플랫폼 | 다운로드 | 비고 |
 |---|---|---|
-| Windows | [BattleRoyalePrototype_v2.0.0-pre-expansion_win64.zip](https://github.com/Kyulhee/battle-capsule/releases/download/v2.0.0-pre-expansion/BattleRoyalePrototype_v2.0.0-pre-expansion_win64.zip) | 로컬 최소 실행 검증 완료 |
-| macOS | [BattleRoyalePrototype_v2.0.0-pre-expansion_macos.zip](https://github.com/Kyulhee/battle-capsule/releases/download/v2.0.0-pre-expansion/BattleRoyalePrototype_v2.0.0-pre-expansion_macos.zip) | Windows에서 교차 내보내기. 첫 실행 시 개인정보 보호 및 보안 허용이 필요할 수 있음 |
+| Windows x64 | [BattleCapsule_v2.1.0-demo-dev_win64.zip](https://github.com/Kyulhee/battle-capsule/releases/download/v2.1.0-demo-dev/BattleCapsule_v2.1.0-demo-dev_win64.zip) | clean package 계약과 자동 전체 매치 검증. 미서명 테스트 빌드 |
+| macOS Universal 2 | [BattleCapsule_v2.1.0-demo-dev_macos_universal.zip](https://github.com/Kyulhee/battle-capsule/releases/download/v2.1.0-demo-dev/BattleCapsule_v2.1.0-demo-dev_macos_universal.zip) | Intel/Apple Silicon 교차 내보내기. 미서명·미공증, 실제 Mac 실행 미검증 |
 
-> 이 빌드는 대규모 확장 전 안정 스냅샷입니다. 99인/야간 맵 작업은 아직 개발용 probe 단계이며 기본 게임 모드로 승격하지 않았습니다.
+> `v2.1.0-demo-dev`는 현재 60봇 Night BR을 미리 확인하는 **프리릴리즈**입니다. 안정판 교체나 공개 데모 승격이 아니며, 알려진 제한은 [릴리즈 노트](docs/releases/v2.1.0-demo-dev.md)에 정리했습니다. macOS에서 처음 실행할 때 Gatekeeper 경고가 표시될 수 있습니다.
 
 ## 게임 요약
 
-배틀 캡슐은 플레이어 1명이 숲 형태의 전장에 진입해 봇들과 싸우는 작은 배틀로얄 프로토타입입니다. 무기와 보급품을 줍고, 아티팩트 하나를 선택한 뒤, 점점 좁아지는 자기장 안에서 마지막까지 살아남아야 합니다.
+배틀 캡슐은 플레이어 1명이 야간 숲 전장에 진입해 60명의 봇과 싸우는 싱글플레이 배틀로얄입니다. 지역별 보급품을 찾아 이동하고, 아티팩트 하나를 선택한 뒤, 점점 좁아지는 자기장 안에서 마지막까지 살아남아야 합니다.
 
 | 핵심 축 | 현재 구현 |
 |---|---|
@@ -40,7 +42,7 @@
 | 루팅 경로 | 무기, 탄약, 회복, 방어구, 보급 캡슐이 위험/보상 선택을 만듦 |
 | 은신과 가독성 | 부쉬, 웅크리기, 시야, 야간 가독성을 주요 설계 축으로 유지 |
 | 아티팩트 개성 | 강한 장점과 그에 맞는 패널티를 함께 부여 |
-| AI 확장 준비 | 더 큰 매치 실험을 위해 인식/감각 LOD를 정리 중 |
+| AI 전장 흐름 | POI, 보급, 엄폐, 자기장 압박을 함께 평가하며 이동·교전 |
 
 ## 아티팩트
 
@@ -55,12 +57,12 @@
 
 ## 현재 개발 방향
 
-프로젝트는 짧은 프로토타입에서 **10-15분 야간 배틀로얄** 구조로 확장하는 중입니다. 다만 한 번에 99인 완성판으로 올리지 않고, 아래 순서로 안전하게 검증합니다.
+프로젝트는 **10-15분 60봇 야간 배틀로얄**을 먼저 완성하는 중입니다. 한 번에 99인 완성판으로 올리지 않고, 아래 순서로 검증합니다.
 
-1. 대규모 확장 전 안정 빌드를 유지합니다.
-2. 전체 맵을 매번 완성 체감으로 검증하지 않고, POI 단위 probe와 구조 telemetry를 병행합니다.
-3. 야간 가독성, 손전등, 배터리, 봇 야간 인지를 단계적으로 추가합니다.
-4. scale telemetry는 최종 밸런스 지표가 아니라 구조 안전성 게이트로 사용합니다.
+1. 기존 안정 빌드는 유지하고 개발 후보는 프리릴리즈로 분리합니다.
+2. 자동 전체 매치와 사람이 직접 하는 3판 검증을 함께 사용합니다.
+3. 신규 콘텐츠보다 야간 가독성, 전투 피드백, HUD, 첫 사용자 흐름을 먼저 마감합니다.
+4. 99인 scale telemetry는 최종 밸런스가 아니라 구조 안전성 게이트로만 사용합니다.
 
 현재 로드맵과 야간 배틀로얄 페이싱 기준은 [docs/MASTERPLAN.md](docs/MASTERPLAN.md)에 함께 정리되어 있습니다.
 
@@ -118,14 +120,15 @@
 | [docs/reference/TESTING.md](docs/reference/TESTING.md) | 검증 명령과 telemetry 해석 |
 | [docs/assets/ASSET_STATUS.md](docs/assets/ASSET_STATUS.md) | 통합/보류 에셋 상태 |
 | [docs/reference/RELEASE.md](docs/reference/RELEASE.md) | 빌드와 릴리즈 절차 |
+| [docs/releases/v2.1.0-demo-dev.md](docs/releases/v2.1.0-demo-dev.md) | 현재 프리릴리즈 내용과 알려진 제한 |
 
 ## 개발
 
 필요 환경:
 
 - Godot **4.6.2**
-- Windows 내보내기가 우선 최소 실행 검증 대상입니다.
-- macOS 내보내기는 Godot에서 생성하며, 공개 배포 전 실제 Mac에서 한 번 더 실행 확인이 필요합니다.
+- Windows x64가 현재 우선 지원·검증 대상입니다.
+- macOS는 Universal 2로 내보내지만 현재 테스트 제공 범위이며, 지원 대상으로 승격하기 전에 실제 Intel/Apple Silicon Mac 실행·서명·공증 확인이 필요합니다.
 
 자주 쓰는 로컬 검증:
 
@@ -137,6 +140,6 @@
 
 ## 참고 사항
 
-- 일부 생성 에셋 경로가 로컬 빌드에서 없을 수 있지만 대체 표시가 활성화되어 있습니다.
-- 현재 작업 브랜치에는 기본 승격 전의 99인/야간 맵 probe가 포함될 수 있습니다.
+- 프리릴리즈에는 수동 3판, 실제 Mac, 다중 하드웨어 검증이 아직 남아 있습니다.
+- 99인 모드는 구조 회귀용 probe이며 현재 배포 gameplay가 아닙니다.
 - 최신 공개 안정 기준점은 GitHub 태그 `v2.0.0-pre-expansion`입니다.

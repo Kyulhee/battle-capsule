@@ -2,6 +2,12 @@
 
 > 최종 업데이트: 2026-09-01. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## v2.1.0-demo-dev 테스트 프리릴리즈 준비
+
+- 범위: 안정판 `v2.0.0-pre-expansion`은 유지하고 E-062 Night BR을 `v2.1.0-demo-dev` 프리릴리즈로 분리한다. Windows x64는 우선 검증 대상, macOS Universal 2는 Intel/Apple Silicon 호환성 피드백용 교차 빌드다.
+- 고지: README와 릴리즈 노트에 packaged AI max 1/2 strict 실패, 수동 3판·실제 Mac·서명/공증 미완료, PCK byte 재현성, legacy 저장 경로를 명시했다. Godot MIT와 CC0 오디오 출처 문서를 추가했다.
+- 승격 경계: tag와 artifact를 공개하더라도 stable/latest나 공개 데모 RC로 판정하지 않는다. 실제 artifact hash와 package 검사 결과는 clean export 뒤 확정한다.
+
 ## N2-PLAY-11 E-059 진단과 E-060 fallback 반증
 
 - 구현/검증: survival-break exact aggregate를 schema v2로 올려 첫 cover의 최소 거리·진행률, 선택 후 첫 피격/사망 지연, 이미 유지되던 perception reveal의 첫 소실을 연결했다. 새 ray/scan은 없고 gameplay/RNG는 값을 읽지 않는다. schema v1 호환·검열 분모 fixture와 전체 `unit_smoke`가 PASS했다.

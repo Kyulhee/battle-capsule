@@ -1,15 +1,15 @@
 # 릴리즈 가이드
 
-> 최종 업데이트: 2026-08-09. 릴리즈 준비는 활성 작업이지만 실제 tag·GitHub Release 공개는 사용자 명시 지시 뒤에만 진행한다.
+> 최종 업데이트: 2026-09-01. 릴리즈 준비는 활성 작업이며 실제 tag·GitHub Release 공개는 사용자 명시 지시 뒤에만 진행한다.
 
 ## 현재 범위
 
 - 저장소: `https://github.com/Kyulhee/battle-capsule`
 - 현재 공개 안정 태그: `v2.0.0-pre-expansion`
 - 첫 공개 목표: Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵 무료 데모
-- macOS는 실제 Mac 실행·서명·notarization을 통과하기 전 R0/R1 지원 대상에서 제외
+- macOS Universal 2 교차 빌드는 프리릴리즈 피드백용으로 제공할 수 있지만 실제 Intel/Apple Silicon Mac 실행·서명·notarization을 통과하기 전 R0/R1 지원 대상에서 제외
 - `target_99_probe`는 구조 회귀이며 출시 gameplay 규모가 아님
-- 공개 archive 이름: `BattleCapsule_${ReleaseVersion}_win64.zip`
+- archive 이름: `BattleCapsule_${ReleaseVersion}_win64.zip`, `BattleCapsule_${ReleaseVersion}_macos_universal.zip`
 
 ## 릴리즈 단계
 
@@ -30,11 +30,11 @@
 - clean source에서 만든 EXE/PCK가 첫 실행→한 판→결과→재시작→재실행 저장 확인을 통과
 - archive 파일 목록·크기, SHA-256, source commit, Godot 버전, known issues를 manifest에 기록
 
-이 단계의 산출물은 공개판이 아니라 `v2.1.0-demo-dev` 내부 build다.
+이 단계의 산출물은 공개판이 아니라 `v2.1.0-demo-dev` 테스트 프리릴리즈다. stable 최신 표시는 `v2.0.0-pre-expansion`에 유지한다.
 
 source `ac9fff8fc115c86003da7a5685fbce0dc0b48d58`의 fresh clean worktree artifact 자동 smoke까지 통과했다. PCK는 catalog 자산 44개·검토된 JSON 3개·runtime 논리 경로 124개·핵심 load probe 20개와 generated payload closure exact를 확인했고 테스트 맵·probe 데이터·도구·문서가 없었다. packaged headless 전체 simulation은 651.038초, spawn 60/60·fallback 0·최종 1위·오류 0이었으며 legacy settings migration·backup·재실행 멱등성, simulation 중 기존 기록·배지 불변, Windows x64 GUI·`2.1.0.0` metadata, internal archive 압축 해제 hash·재부팅도 통과했다.
 
-현재 gameplay 후보 source `2acf965`도 fresh detached worktree에서 clean export했다. PCK exact contract와 EXE `Battle Capsule`/`2.1.0.0` identity는 PASS했고 packaged headless 2-run은 평균 661.8초·spawn 60/60·fallback 0이다. 다만 AI max가 `57.914/28.584ms`라 첫 run의 50ms strict gate 실패가 남아 있고, `LICENSES/CREDITS`·`KNOWN_ISSUES`·build manifest도 아직 없으므로 이 EXE/PCK는 수동 smoke 전용이며 archive 또는 공개 후보가 아니다.
+현재 gameplay 후보 source `2acf965`도 fresh detached worktree에서 clean export했다. PCK exact contract와 EXE `Battle Capsule`/`2.1.0.0` identity는 PASS했고 packaged headless 2-run은 평균 661.8초·spawn 60/60·fallback 0이다. AI max `57.914/28.584ms`, 수동 3판과 실제 Mac 미검증은 `v2.1.0-demo-dev` known issue로 고지하며 stable/데모 RC 승격을 계속 차단한다.
 
 이는 자동 package gate 근거이며 사람이 조작하는 Result/Records 흐름을 대신하지 않는다. 독립 clean worktree 두 곳의 EXE는 byte-identical이었지만 PCK는 2,060,916/2,060,900 bytes로 hash가 달랐으므로 cold PCK byte 재현성도 미해결이다. `N2-REL-01` 잔여 gate는 `N2-PLAY-10` 수동 3판, 메뉴→설정→매치→결과→재시작→재실행과 정상 기록·배지 저장, PCK 비결정성·반복 restart soak·호환성 matrix, LICENSES/CREDITS·회사/저작권·지원·unsigned 정책이다.
 
@@ -113,6 +113,15 @@ archive에는 EXE/PCK, `README`, `KNOWN_ISSUES`, `LICENSES/CREDITS`, build manif
 - package manifest의 파일·크기·hash가 실제 archive와 일치
 
 R1 공개 후보는 외부 20회 이상 완주와 P0/P1 결함 0을 추가로 요구한다.
+
+## 5-1. macOS Universal 2 export
+
+- preset은 `universal`로 내보내 Intel x86_64와 Apple Silicon arm64를 함께 포함한다.
+- Windows에서 macOS를 내보낼 때는 `.app` 디렉터리를 직접 옮기지 않고 Godot가 만든 ZIP을 보존한다.
+- ZIP의 `.app/Contents`, `Info.plist`, 실행 파일, PCK를 검사하고 PCK exact verifier를 빈 host에서 실행한다.
+- 미서명·미공증 상태와 Gatekeeper 경고 가능성을 README, release note, known issues에 같은 표현으로 적는다.
+- 실제 Intel/Apple Silicon Mac에서 실행·저장·재시작을 확인하기 전에는 테스트 artifact이며 지원 플랫폼이 아니다.
+- 서명·공증을 적용할 때는 Apple Developer 인증서와 macOS 환경을 별도 release gate로 둔다.
 
 ## 6. 고지와 지원
 

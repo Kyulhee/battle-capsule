@@ -16,12 +16,12 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | E-062 source `2acf965` clean Windows EXE/PCK의 exact contract·identity와 packaged 전체 매치 2회가 완료됐다. 한 run의 AI max 57.9ms 때문에 strict package scale은 아직 FAIL이며 M1 승격은 수동 3판 전이다 |
-| 바로 다음 단위 | 동일 EXE/PCK로 Forward+ 성능 반복과 수동 3판의 오프닝·파밍 이유·엄폐 이동·10-15분 완주·재시작을 판정한다. 새 gameplay 수치를 섞거나 불완전한 archive를 공개하지 않는다 |
+| 현재 단위 | E-062를 `v2.1.0-demo-dev` 프리릴리즈로 고정해 Windows x64와 macOS Universal 2 clean artifact, manifest·고지·checksum을 만든다. 안정판·공개 데모 승격은 아니며 packaged AI max 57.9ms와 수동 3판 미완료를 known issue로 공개한다 |
+| 바로 다음 단위 | 프리릴리즈 artifact hash와 package 계약을 확인한 뒤 동일 Windows 빌드로 Forward+ 성능 반복과 수동 3판의 오프닝·파밍 이유·엄폐 이동·10-15분 완주·재시작을 판정한다 |
 | 최신 검증 개발 단위 | E-062 pure policy/runtime seam과 전체 `unit_smoke`가 PASS했다. 일반 DISENGAGE·속도·플레이어 이동·사격·HP/damage·topology는 보존했다. `ac9fff8` package는 현재 근거가 아니다 |
 | 최신 검증 게임플레이 단위 | E-062 seed 41000-41004는 평균 753.5초(576.3-881.9), alive 중앙 `52/39/26/19`, T10 322.8초, cover selected/reached `269/42`, 진행률 0.26, stuck/disengage 0.02/0.17로 자동 PASS했다. 수동/package PASS는 아니다 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
-| 릴리즈 판정 | 현재 후보는 internal pre-alpha 전용이다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 새 packaged/manual 통과 전 공개판을 교체하지 않는다 |
+| 릴리즈 판정 | `v2.1.0-demo-dev`는 제한을 명시한 테스트 프리릴리즈다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 packaged/manual·M2/M3 gate 전 공개판을 교체하지 않는다 |
 | 목표 창 | 폐쇄 알파 현실 창 2026-09-28~10-09, 공개 데모 RC 현실 창 2026-12-18~2027-01-15, 유료 EA Go/No-Go 2027 Q1 이후. 날짜는 gate 통과 창이지 출시 약속이 아니다 |
 | 브랜치 메모 | 로컬 진단 커밋은 원격보다 앞설 수 있다. 새 커밋 푸쉬는 대상 commit을 명시한 사용자 승인을 다시 받은 뒤에만 한다 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
@@ -31,7 +31,7 @@
 - 텔레메트리만 통과하는 시뮬레이션이 아니라, 외부 사용자가 설명 없이 한 판을 설치·완주·재시작할 수 있는 Night BR을 만든다.
 - M1 개발 기준은 `data/mapSpec_night_forest_expanded_candidate.json`의 `night_br_m1_60`이다. 일반 실행·수동 플레이·후보 페이싱 검증이 같은 표면을 쓴다.
 - M1 수동 승격 전 공개 배포는 금지하지만 저장·패키징·브랜딩·릴리즈 검증 기반은 지금부터 병행한다.
-- 99명 기본값, macOS 공개 지원, 온라인 기능, 완전한 flashlight/fear/battery, 신규 장비·장소 확장은 공개 데모 이후 증거가 생길 때까지 보류한다.
+- 99명 기본값, macOS 정식 지원, 온라인 기능, 완전한 flashlight/fear/battery, 신규 장비·장소 확장은 공개 데모 이후 증거가 생길 때까지 보류한다. macOS Universal 2 미서명 교차 빌드는 호환성 피드백용으로만 제공한다.
 - 수치 검증은 구조 안전망이다. M1/M2 승격에는 수동 플레이·가독성·첫 사용자 기록이 필요하다.
 
 ## 다음 작업 큐
@@ -39,7 +39,7 @@
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
 | P0 | `N2-PLAY-11` M1 실패 수정·재판정 | `2acf965` clean package의 성능 spike를 반복 판정하고 수동 3판에서 초기 붕괴·이동 이유·완주·navigation·재시작을 통과 |
-| P1 | `N2-REL-01` Windows 릴리즈 기반 마감 | gameplay 후보를 고정한 clean tracked commit에서 PCK inventory·PE identity·전체 simulation·checksum/manifest/reboot를 다시 만들고, 사람 전체 루프·정상 기록/배지·cold PCK byte 재현성을 확인 |
+| P1 | `N2-REL-01` 테스트 프리릴리즈와 Windows 기반 마감 | clean tracked commit에서 Windows/macOS artifact·PCK inventory·identity·checksum/manifest/고지를 만들고, 사람 전체 루프·정상 기록/배지·cold PCK byte 재현성과 실제 Mac 실행을 후속 확인 |
 | P2 | `N2-M2-VIS-01` 대표 교전 슬라이스 | 수관 가림·야간 명도·캡슐 방향/무기/피격/사망·핵심 효과음·HUD/지도 위계를 한 구간에서 수동 통과 |
 | P3 | `N2-M2-UX-01` 첫 사용자 경험 | 밝기·감도·해상도/창 모드·UI 배율, 입력 안내, 언어 일관성, 메뉴→매치→결과→재시작 흐름을 무설명 테스터가 완주 |
 | P4 | `N2-REL-02` 공개 데모 RC | clean artifact 재현, 전체 매치/반복 재시작 soak, 다중 해상도·하드웨어, 외부 20회 이상 완주, P0/P1 0, 고지·지원·릴리즈 노트 완료 |

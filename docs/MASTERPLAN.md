@@ -6,7 +6,7 @@
 
 Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 현재 목표는 “많은 봇이 도는 시뮬레이션”을 넘어, 외부 사용자가 설명 없이 설치하고 10-15분 Night BR 한 판을 완주·재시작할 수 있는 Windows 무료 데모를 만드는 것이다.
 
-첫 공개 범위는 Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵이다. 99봇 기본값, 온라인, macOS 공개 지원, 영어·controller, 완전한 flashlight/fear/battery는 이 범위에 포함하지 않는다.
+첫 공개 지원 범위는 Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵이다. macOS Universal 2는 프리릴리즈 호환성 피드백용 교차 빌드를 제공할 수 있지만 실제 Mac·서명·공증 gate 전에는 지원 플랫폼으로 승격하지 않는다. 99봇 기본값, 온라인, 영어·controller, 완전한 flashlight/fear/battery는 이 범위에 포함하지 않는다.
 
 ## 마일스톤
 
@@ -103,7 +103,7 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 
 - 신규 장소·무기·방어구 티어보다 현재 한 판의 가독성·피드백·첫 사용자 완주를 먼저 닫는다.
 - 공개 데모 이후 반복성 부족이 실제 이탈 원인일 때만 두 번째 콘텐츠 축이나 보이는 진행을 추가한다.
-- online/99 default/macOS/영어/controller는 각자의 비용·QA·운영 gate를 가진 별도 범위 결정으로 다룬다.
+- online/99 default/macOS 정식 지원/영어/controller는 각자의 비용·QA·운영 gate를 가진 별도 범위 결정으로 다룬다. 테스트 artifact 제공과 정식 지원 선언을 구분한다.
 
 ## 우선순위 원칙
 
