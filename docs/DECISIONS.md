@@ -47,6 +47,7 @@
 | D-040 | E-059 다음 gameplay 후보는 survival-break의 먼 cover reachability/fallback 한 축만 바꾸고 기존 사격 grace·target 소유·HP/damage·exit 시간·topology 후보는 재혼합하지 않는다 | 사망 68건의 cover 진행은 `34/32/2` no/partial/reached, 선택 거리 평균 12.98m, 선택 후 사망 평균 1.62초다. 즉시 피격과 perception 소실은 각각 10/68·24/68이라 지배 원인이 아니며 counteraction은 이동 자체를 멈추지 않는다 | 1-run에서 생존·continuity·정체/이탈·D-004가 함께 개선되지 않거나 새 exact 근거가 다른 지배 경로를 보임 |
 | D-041 | E-060의 reachable-cover 제한과 scatter fallback은 폐기하고 다음 후보는 기존 cover commitment를 보존한 접근 이동량만 바꾼다 | E-060은 cover 선택 8/125·사망 미선택 21/21로 메커니즘은 작동했지만 duration 486.6초·alive@60 27·stuck 0.04로 hard FAIL했다 | E-061 1-run이 낮은 cover 진행과 생존을 함께 개선하며 D-004·continuity·정체 gate를 보존함 |
 | D-042 | E-061의 survival-break cover 접근 1.25배는 폐기하고, 다음 후보는 perception 소실 시 이미 선택한 cover까지 이동을 마치는 공간 조건만 바꾼다 | E-061은 cover selected/reached 87/4·진행률 0.09로 속도 증가가 전달되지 않았고 108 episode 중 `no_threat` 종료 91건·perception 소실 84건·평균 exit 0.68초였다. 536.0초·stuck 0.03으로 구조 gate도 실패했다 | E-062 1-run이 cover 진행/도달·생존·continuity를 함께 개선하고 D-004·정체 gate를 보존함 |
+| D-043 | E-062 spatial cover commitment를 자동 gameplay 후보로 유지하고 다음 단계는 새 수치 변경 없이 clean packaged 수동 3판으로 고정한다 | 5-run이 평균 753.5초, alive 중앙 52/39/26/19, cover 진행 0.26·도달 42, survival-state death rate 4.18/100s, 빠른 재획득 25.3%, stuck/disengage 0.02/0.17로 기준선과 구조 gate를 함께 개선했다 | 수동 3판에서 엄폐 후퇴가 부자연스럽거나 전체 DISENGAGE reengage 25.0%가 churn으로 읽힘, 초기 붕괴·후반 교착·성능·재시작 중 하나가 실패함 |
 
 ## 현재 설계 편향
 
@@ -62,4 +63,4 @@
 - `visual_review`는 화면 캡처용 8봇 표면이며 gameplay 대표 preset으로 사용하지 않는다.
 - route 교전 비중만 올리려고 물리 cover를 추가하지 않는다. route 선택 표면과 이동 계약을 먼저 만든다.
 - N2-PLAY-11에서는 broad damage·opening grace·zone 일정 변경을 섞지 않고, ceasefire·bot-only HP buffer·DISENGAGE 첫 1초 counteraction grace는 완전 revert한 채 재혼합하지 않는다. 가방/악세서리, 무기군+Tab, 더블배럴, 대형 hard block은 메모 또는 다음 대표 슬라이스다.
-- E-060 reachability/fallback과 E-061 접근 속도 증가는 반증됐다. E-062는 `survival_break`의 선택된 cover에 한해 `no_threat` 뒤 공간 목표를 완수하며 blanket hysteresis·속도·HP·grace·target·fallback을 재혼합하지 않는다.
+- E-060 reachability/fallback과 E-061 접근 속도 증가는 반증됐다. E-062는 `survival_break`의 선택된 cover에 한해 `no_threat` 뒤 공간 목표를 완수하는 자동 후보로 유지하며, packaged 수동 판정 전 blanket hysteresis·속도·HP·grace·target·fallback을 재혼합하지 않는다.

@@ -12,6 +12,9 @@
 - E-060: 4m/s×1.5초의 6m 안 cover만 채택하고 없으면 기존 deterministic scatter를 쓰는 pure/runtime seam은 전체 `unit_smoke`를 통과했다. `C:\tmp\n2_play_11_e060_reachable_cover_fallback_pilot_20260901`은 486.6초, alive `54/27/24/22/21/18`, survival death 21, stuck 0.04/entity/min, stage3 미도달로 hard FAIL했다.
 - E-061: 기존 cover/nav를 보존하고 `survival_break` 접근 속도만 1.25배로 올린 후보는 전체 `unit_smoke`를 통과했다. `C:\tmp\n2_play_11_e061_cover_approach_speed_125_pilot_20260901`은 536.0초, alive `50/34/25/22/18/12`, T50/T10 `29.2/276.3초`, survival death 17, cover selected/reached `87/4`, 진행률 0.09, stuck 0.03/entity/min, stage3 미도달로 hard FAIL했다.
 - 판정/다음: E-061은 코드·테스트 완전 revert·5-run 금지다. 동일 seed E-059의 806.8초·cover 진행 0.11·stuck 0.01에 비해 생존/도달은 그대로이고 구조 gate가 악화됐다. episode 108건 중 `no_threat` 종료 91건, perception 소실 84건, 평균 exit 0.68초이므로 E-062는 속도나 blanket 시간 연장이 아니라 선택한 cover까지의 spatial commitment만 단일 후보화한다.
+- E-062 구현/검증: `survival_break`에서 cover가 이미 선택됐고 threat가 사라진 경우에만 해당 공간 목표 도달까지 nav를 유지한다. 도달·8초 timeout·zone/ammo override는 유지하고 일반 DISENGAGE와 플레이어는 바꾸지 않았다. pure policy fixture, headless parse와 전체 `unit_smoke`가 PASS했다.
+- E-062 실행: pilot `C:\tmp\n2_play_11_e062_spatial_cover_commitment_pilot_20260901` 뒤 `C:\tmp\n2_play_11_e062_spatial_cover_commitment_5run_20260901`을 seed 41000-41004로 실행했다. 5-run 평균 753.5초(576.3-881.9), first upgrade 3.4초, fallback 0, AI 평균/최대 305.3/35,241us, `check_scale_telemetry` PASS다.
+- E-062 판정: alive 중앙 `52/39/30/26/23/19`, T50/T10 `33.2/322.8초`, survival-state death rate `4.78→4.18/100s`, DISENGAGE death rate `6.40→5.30/100s`, cover selected/reached `269/42`, 진행률 `0.11→0.26`, 빠른 동일 표적 재획득 `28.3→25.3%`, stuck/disengage `0.02/0.17`로 자동 후보를 유지한다. episode death `68→84`와 전체 DISENGAGE reengage `14.9→25.0%`는 수동 watch이며 M1/package PASS는 아니다.
 
 ## N2-PLAY-11 opening survival exposure 진단과 릴리즈 재판정
 

@@ -86,3 +86,15 @@ static func position_utility(context: Dictionary) -> float:
 		- maxf(0.0, float(context.get("fallback_penalty", 0.0))) \
 		- maxf(0.0, float(context.get("zone_penalty", 0.0))) \
 		- maxf(0.0, float(context.get("exposure_penalty", 0.0)))
+
+
+static func should_complete_survival_cover_after_threat_loss(
+	context: Dictionary
+) -> bool:
+	if String(context.get("entry_reason", "none")) != "survival_break":
+		return false
+	if not bool(context.get("has_cover", false)):
+		return false
+	var cover_distance := maxf(0.0, float(context.get("cover_distance", 0.0)))
+	var reached_distance := maxf(0.0, float(context.get("reached_distance", 0.0)))
+	return cover_distance > reached_distance

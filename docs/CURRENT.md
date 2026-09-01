@@ -16,10 +16,10 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | E-061 survival-break cover 접근 1.25배 후보는 1-run hard gate를 실패해 코드·테스트를 완전 revert했다. 속도만 올려도 cover 진행·도달·생존은 개선되지 않았다 |
-| 바로 다음 단위 | E-062는 `survival_break`에서 이미 선택한 cover가 있을 때 perception이 끊겨도 그 공간 목표까지 이동을 마치는 spatial commitment 하나만 1-run한다. 일반 DISENGAGE·속도·사격·target 소유·HP/damage·topology는 바꾸지 않는다 |
-| 최신 검증 개발 단위 | E-059 telemetry/analyzer/Bot shadow와 schema v1 호환·검열 분모 fixture, 전체 `unit_smoke`가 PASS했다. `ac9fff8` package는 현재 근거가 아니다 |
-| 최신 검증 게임플레이 단위 | E-061 seed 41000은 536.0초, alive@30/60/120/260 `50/34/22/12`, survival death 17, cover selected/reached `87/4`, 진행률 0.09, stuck 0.03/entity/min, stage3 미도달로 hard FAIL했다. 5-run·package/manual 금지이며 E-059가 최신 유효 기준선이다 |
+| 현재 단위 | E-062 spatial cover commitment가 1-run과 5-run 자동 gate를 통과해 코드 후보를 유지한다. M1 승격은 아직 packaged 수동 3판 전이라 미완료다 |
+| 바로 다음 단위 | E-062 current tracked commit으로 clean Windows package를 만들고 수동 3판에서 오프닝·파밍 이유·엄폐 이동·10-15분 완주·재시작을 판정한다. 새 gameplay 수치를 섞지 않는다 |
+| 최신 검증 개발 단위 | E-062 pure policy/runtime seam과 전체 `unit_smoke`가 PASS했다. 일반 DISENGAGE·속도·플레이어 이동·사격·HP/damage·topology는 보존했다. `ac9fff8` package는 현재 근거가 아니다 |
+| 최신 검증 게임플레이 단위 | E-062 seed 41000-41004는 평균 753.5초(576.3-881.9), alive 중앙 `52/39/26/19`, T10 322.8초, cover selected/reached `269/42`, 진행률 0.26, stuck/disengage 0.02/0.17로 자동 PASS했다. 수동/package PASS는 아니다 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 릴리즈 판정 | 현재 후보는 internal pre-alpha 전용이다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 새 packaged/manual 통과 전 공개판을 교체하지 않는다 |
 | 목표 창 | 폐쇄 알파 현실 창 2026-09-28~10-09, 공개 데모 RC 현실 창 2026-12-18~2027-01-15, 유료 EA Go/No-Go 2027 Q1 이후. 날짜는 gate 통과 창이지 출시 약속이 아니다 |
@@ -38,7 +38,7 @@
 
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
-| P0 | `N2-PLAY-11` M1 실패 수정·재판정 | E-062 단일 spatial cover commitment 후보가 1-run→5-run→packaged 수동 3판 순서로 낮은 진행과 생존을 함께 개선 |
+| P0 | `N2-PLAY-11` M1 실패 수정·재판정 | E-062 자동 후보를 clean package로 고정하고 수동 3판에서 초기 붕괴·이동 이유·완주·navigation·재시작을 통과 |
 | P1 | `N2-REL-01` Windows 릴리즈 기반 마감 | gameplay 후보를 고정한 clean tracked commit에서 PCK inventory·PE identity·전체 simulation·checksum/manifest/reboot를 다시 만들고, 사람 전체 루프·정상 기록/배지·cold PCK byte 재현성을 확인 |
 | P2 | `N2-M2-VIS-01` 대표 교전 슬라이스 | 수관 가림·야간 명도·캡슐 방향/무기/피격/사망·핵심 효과음·HUD/지도 위계를 한 구간에서 수동 통과 |
 | P3 | `N2-M2-UX-01` 첫 사용자 경험 | 밝기·감도·해상도/창 모드·UI 배율, 입력 안내, 언어 일관성, 메뉴→매치→결과→재시작 흐름을 무설명 테스터가 완주 |
@@ -49,11 +49,11 @@
 
 | 리스크 | 신호 | 대응 |
 |---|---|---|
-| M1 생존·continuity 실패 | E-061은 1.25배 접근에도 cover 도달 4회·진행률 0.09로 개선이 없고 duration 536.0초·stuck 0.03으로 hard FAIL했다. episode 108건 중 91건이 `no_threat` 종료라 이동 속도보다 목표 조기 폐기가 다음 병목이다 | E-060/E-061을 재조정하지 않는다. E-062는 선택된 cover를 perception 소실 뒤에도 도달까지 유지하는 공간 조건만 1-run hard gate로 판정한다 |
+| M1 생존·continuity 수동 미판정 | E-062 5-run은 E-059 대비 alive@60/120/260 `35/23/16→39/26/19`, survival-state death rate `4.78→4.18/100s`, cover 진행 `0.11→0.26`, 빠른 동일 표적 재획득 `28.3→25.3%`로 개선했다. 다만 episode death `68→84`, 전체 DISENGAGE reengage `14.9→25.0%`, duration 범위 576.3-881.9초는 수동 watch다 | 새 수치 조정 없이 clean package 수동 3판에서 엄폐 완주가 합리적 후퇴인지, 재교전이 churn인지, 실제 첫 축소 전 붕괴와 후반 교착이 해소됐는지 판정한다 |
 | 화면이 프로토타입으로 보임 | 겹친 수관, procedural capsule, 평면적 야간 재질, HUD 정보 경쟁 | 신규 콘텐츠보다 P2 대표 슬라이스를 우선하고 캡슐을 의도된 제품 정체성으로 승격 |
 | 기록·저장 무결성 | packaged smoke에서 legacy settings schema v1 migration·backup·재실행 멱등성과 simulation 중 기존 기록·배지 불변 확인 | 사람이 정상 매치 기록·배지 생성/재실행과 corrupt/empty/future-schema 화면 동작을 확인 |
 | 패키지 오염·식별 불일치 | `ac9fff8` clean PCK는 catalog 자산 44개·JSON 3개·runtime 경로 124개·payload closure exact와 archive smoke를 통과했지만 현재 gameplay/telemetry 후보보다 오래됐다 | 현재 후보 고정 뒤 독립 clean export를 다시 만들고 PCK byte 재현성·LICENSES/CREDITS·지원·unsigned 정책을 닫기 전 공개 승격 금지 |
-| 60봇 성능 | E-059 5-run은 AI 평균/최대 276.2/22,076us, stuck/disengage 0.02/0.19 per entity/min, spawn fallback 0으로 scale gate를 통과했다 | 계측 성능은 구조 PASS지만 실제 Forward+ 끊김·사람 전체 매치·restart soak·다중 해상도는 새 package에서 별도 확인 |
+| 60봇 성능 | E-062 5-run은 AI 평균/최대 305.3/35,241us, stuck/disengage 0.02/0.17 per entity/min, spawn fallback 0으로 scale gate를 통과했다 | 계측 성능은 구조 PASS지만 실제 Forward+ 끊김·사람 전체 매치·restart soak·다중 해상도는 새 package에서 별도 확인 |
 | 99봇 구조 여유 | 고정 입력 5-run은 통과했지만 disengage 0.44가 한계 0.45에 가까움 | 99봇은 gameplay로 승격하지 않고 규모 민감 변경마다 구조 profile을 다시 실행 |
 | 첫 사용자·호환성 공백 | exported binary 자동 부팅·전체 simulation은 통과했지만 UI·입력·가독성·정상 저장 생성은 사람이 확인하지 않음 | P3/P4에서 무설명 완주와 Win10/11·한글 경로·읽기 전용 설치·해상도/하드웨어 matrix를 gate로 유지 |
 | 범위 팽창 | 온라인·99봇·macOS·신규 콘텐츠가 공개 데모 critical path와 경쟁 | 첫 공개 범위 밖 기능은 M4 Go/No-Go 전까지 보류 |

@@ -1257,6 +1257,22 @@ func handle_disengage_state(delta):
 	var nearest_threat = _find_nearest_target()
 	if not nearest_threat:
 		_track_survival_break_episode_event("nearest_target_missing")
+		var cover_distance := 0.0
+		if _disengage_cover != Vector3.ZERO:
+			cover_distance = global_position.distance_to(_disengage_cover)
+		var complete_selected_cover := \
+			BOT_DECISION_POLICY.should_complete_survival_cover_after_threat_loss({
+				"entry_reason": _disengage_entry_reason,
+				"has_cover": _disengage_cover != Vector3.ZERO,
+				"cover_distance": cover_distance,
+				"reached_distance": 2.0,
+			})
+		if complete_selected_cover:
+			_nav_move_toward(_disengage_cover, delta)
+			return
+		if _disengage_cover != Vector3.ZERO and cover_distance <= 2.0:
+			_survival_break_cover_reached_logged = true
+			_track_survival_break_episode_event("cover_reached")
 		change_state(State.IDLE, "no_threat")
 		return
 	var counter_threat = _find_retreat_threat(BOT_TUNING.RETREAT_THREAT_SCAN_RANGE)

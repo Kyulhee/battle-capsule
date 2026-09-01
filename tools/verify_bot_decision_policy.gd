@@ -13,7 +13,9 @@ func _init() -> void:
 		return
 	if not _verify_position_policy():
 		return
-	print("Bot decision policy smoke passed: threat, target, engagement, position.")
+	if not _verify_survival_cover_commitment_policy():
+		return
+	print("Bot decision policy smoke passed: threat, target, engagement, position, survival cover.")
 	quit(0)
 
 
@@ -124,6 +126,30 @@ func _verify_position_policy() -> bool:
 	})
 	if unsafe_utility != -INF:
 		return _fail_bool("Position utility must reject cover inside threat clearance.")
+	return true
+
+
+func _verify_survival_cover_commitment_policy() -> bool:
+	var active := {
+		"entry_reason": "survival_break",
+		"has_cover": true,
+		"cover_distance": 6.0,
+		"reached_distance": 2.0,
+	}
+	if not POLICY.should_complete_survival_cover_after_threat_loss(active):
+		return _fail_bool("Survival break must complete its selected spatial cover goal.")
+	var ordinary := active.duplicate()
+	ordinary["entry_reason"] = "outnumbered"
+	if POLICY.should_complete_survival_cover_after_threat_loss(ordinary):
+		return _fail_bool("Ordinary disengage must preserve immediate no-threat exit.")
+	var no_cover := active.duplicate()
+	no_cover["has_cover"] = false
+	if POLICY.should_complete_survival_cover_after_threat_loss(no_cover):
+		return _fail_bool("A missing cover goal must preserve immediate no-threat exit.")
+	var reached := active.duplicate()
+	reached["cover_distance"] = 2.0
+	if POLICY.should_complete_survival_cover_after_threat_loss(reached):
+		return _fail_bool("A reached cover goal must allow the no-threat exit.")
 	return true
 
 
