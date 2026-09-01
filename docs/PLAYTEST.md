@@ -8,7 +8,7 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | E-062 spatial cover commitment가 1-run·5-run 자동 gate를 통과했다. current tracked 후보의 clean packaged 수동 3판을 준비한다 |
+| 현재 단위 | E-062 source `2acf965` clean EXE/PCK가 준비됐다. exact contract·identity는 PASS, packaged 2-run 중 AI max spike 1회가 남아 Forward+ 반복 뒤 수동 3판을 연다 |
 | 승격 목적 | N2-PLAY-10에서 확인한 무기 공백·초기 인원 붕괴·지도 HUD 중첩을 닫고 오프닝·장소/경로·생존/완주를 다시 승인 |
 
 ## N2-PLAY-11 재판정 프로토콜
@@ -92,6 +92,8 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 결과: 평균 753.5초(576.3-881.9), alive 중앙 `52/39/30/26/23/19`, T50/T10 `33.2/322.8초`, first upgrade 3.4초, stage2/3 `260.0/540.1초`, scale PASS다. cover selected/reached `269/42`, 진행률 0.26, survival-state/DISENGAGE death rate `4.18/5.30`, 빠른 재획득 25.3%, stuck/disengage `0.02/0.17`이다.
 판정: E-059 대비 alive@60/120/260 `35/23/16→39/26/19`, cover 진행 `0.11→0.26`, death rate `4.78→4.18/100s`로 자동 후보를 유지한다. 다만 episode death `68→84`, 전체 DISENGAGE reengage `14.9→25.0%`, 한 판 576.3초는 수동 watch다.
 다음: current tracked E-062의 clean Windows package에서 아래 3판 프로토콜을 수행한다. 새 gameplay 수치를 섞지 않으며 자동 PASS를 M1 PASS로 승격하지 않는다.
+
+packaged 자동 준비: `C:\tmp\battle_capsule_e062_release\builds\staging\v2.1.0-demo-dev\windows\BattleCapsule.exe`, source `2acf965`. 빈 host PCK exact contract와 `Battle Capsule`/`2.1.0.0` identity는 PASS했다. headless 전체 2-run은 평균 661.8초·spawn 60/60·fallback 0이지만 AI max `57.9/28.6ms`로 첫 run strict FAIL, 둘째 PASS다. Forward+ 반복과 아래 사람 조작 기록 전에는 packaged/M1 PASS가 아니다.
 
 ### 2026-09-01 - N2-PLAY-11 E-061 접근 속도 폐기
 

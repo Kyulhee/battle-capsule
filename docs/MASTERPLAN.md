@@ -46,7 +46,8 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 - E-060 결과: 6m reachable-cover/fallback은 486.6초·alive@60/120 `27/22`·survival death 21·stuck 0.04·stage3 미도달로 hard FAIL해 완전 revert했다
 - E-061 결과: survival-break cover 접근 1.25배는 536.0초·alive@60/120 `34/22`·cover selected/reached `87/4`·진행률 0.09·stuck 0.03·stage3 미도달로 hard FAIL해 완전 revert했다
 - E-062 결과: 선택 cover의 spatial commitment는 cover 진행 `0.11→0.26`, 도달 42, survival-state death rate `4.78→4.18/100s`, 빠른 재획득 `28.3→25.3%`, stuck/disengage `0.02/0.17`로 1-run·5-run 자동 gate를 통과해 후보를 유지한다
-- 다음 gameplay gate: current tracked E-062를 clean package로 고정하고 수동 3판에서 초기 붕괴·엄폐 후퇴/재교전 체감·파밍 이동 이유·10-15분 완주·재시작을 판정한다. 새 gameplay 수치는 섞지 않는다
+- current clean package: source `2acf965` PCK exact contract와 EXE `Battle Capsule`/`2.1.0.0` identity가 PASS했다. packaged 2-run은 평균 661.8초·spawn 60/60이지만 AI max `57.9/28.6ms`라 strict 합산 gate는 FAIL이다
+- 다음 gameplay gate: 동일 E-062 package의 Forward+ 성능 반복 뒤 수동 3판에서 초기 붕괴·엄폐 후퇴/재교전 체감·파밍 이동 이유·10-15분 완주·재시작을 판정한다. 새 gameplay 수치는 섞지 않는다
 - 보존 중인 자동 근거: N2-MAP-17의 Brush Camp·Survey Camp, release persistence/identity/settings와 exposure verifier를 포함한 `unit_smoke`, 고정 입력 `target_99_probe` 5-run
 - stale package 근거: `ac9fff8` clean package exact inventory·전체 simulation·archive smoke는 당시 source만 증명하며 현재 candidate package로 재사용하지 않는다
 - 최신 성능: windowed 1280×720 Forward+ p95/p99 15.429/19.948, 15.059/17.641, 15.197/17.924ms; p95 20ms 초과 0/3
@@ -83,7 +84,7 @@ Battle Capsule은 low-poly quarter-view tactical roguelite battle royale이다. 
 | 비주얼/오디오 | 일관된 low-poly 프롭, 픽업 glow·아이콘, 총성·발걸음 일부 | 겹친 수관, procedural capsule, 약한 전투 피드백, 핵심 fallback audio | N2-M2-VIS-01 |
 | UI/첫 사용자 | 메뉴·HUD·지도·아티팩트·결과·기록 골격 | HUD 위계, 혼합 언어, 밝기·감도·해상도·UI scale·첫 판 안내 | N2-M2-UX-01 |
 | 기록/저장 | 기존 자동 계약에 더해 packaged legacy settings migration/backup·재실행 멱등성·simulation 중 기록/배지 불변 확인 | 사람 정상 매치의 기록·배지 생성/재실행과 실제 future migration/rollback matrix | N2-REL-01/02 |
-| 빌드/법적 고지 | `ac9fff8`에서 clean PCK exact inventory, Windows x64 GUI metadata, 전체 headless simulation, internal manifest/checksum·archive extract/reboot 통과 | 근거가 현재 후보보다 오래됐다. current commit clean package, 사람 전체 루프, cold PCK byte 재현성, LICENSE/NOTICE/CREDITS·지원/서명 범위 | N2-REL-01/02 |
+| 빌드/법적 고지 | `2acf965` clean PCK exact inventory·Windows x64 metadata·packaged 전체 simulation 2회 | AI max spike 1/2, 사람 전체 루프, cold PCK byte 재현성, LICENSES/CREDITS·KNOWN_ISSUES·manifest·지원/서명 범위 | N2-REL-01/02 |
 | 호환성/외부 QA | 1280x720 개발 머신의 짧은 profile과 같은 머신 packaged headless 전체 simulation | 사람 전체 매치·restart soak, Win10/11·한글/읽기 전용 경로·저사양·다중 해상도·지원 경로 부재 | N2-REL-02 |
 | 콘텐츠 반복성 | 한 맵, 5개 무기, 6개 artifact, 4개 난이도, 미션 | 배지 노출·장기 진행·두 번째 콘텐츠 축 부족 | 공개 데모 반응 뒤 M4 |
 

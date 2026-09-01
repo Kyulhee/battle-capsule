@@ -34,6 +34,8 @@
 
 source `ac9fff8fc115c86003da7a5685fbce0dc0b48d58`의 fresh clean worktree artifact 자동 smoke까지 통과했다. PCK는 catalog 자산 44개·검토된 JSON 3개·runtime 논리 경로 124개·핵심 load probe 20개와 generated payload closure exact를 확인했고 테스트 맵·probe 데이터·도구·문서가 없었다. packaged headless 전체 simulation은 651.038초, spawn 60/60·fallback 0·최종 1위·오류 0이었으며 legacy settings migration·backup·재실행 멱등성, simulation 중 기존 기록·배지 불변, Windows x64 GUI·`2.1.0.0` metadata, internal archive 압축 해제 hash·재부팅도 통과했다.
 
+현재 gameplay 후보 source `2acf965`도 fresh detached worktree에서 clean export했다. PCK exact contract와 EXE `Battle Capsule`/`2.1.0.0` identity는 PASS했고 packaged headless 2-run은 평균 661.8초·spawn 60/60·fallback 0이다. 다만 AI max가 `57.914/28.584ms`라 첫 run의 50ms strict gate 실패가 남아 있고, `LICENSES/CREDITS`·`KNOWN_ISSUES`·build manifest도 아직 없으므로 이 EXE/PCK는 수동 smoke 전용이며 archive 또는 공개 후보가 아니다.
+
 이는 자동 package gate 근거이며 사람이 조작하는 Result/Records 흐름을 대신하지 않는다. 독립 clean worktree 두 곳의 EXE는 byte-identical이었지만 PCK는 2,060,916/2,060,900 bytes로 hash가 달랐으므로 cold PCK byte 재현성도 미해결이다. `N2-REL-01` 잔여 gate는 `N2-PLAY-10` 수동 3판, 메뉴→설정→매치→결과→재시작→재실행과 정상 기록·배지 저장, PCK 비결정성·반복 restart soak·호환성 matrix, LICENSES/CREDITS·회사/저작권·지원·unsigned 정책이다.
 
 ## 1. 소스 검증

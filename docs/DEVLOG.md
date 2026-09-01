@@ -40,6 +40,9 @@
 
 ## N2-REL-01 릴리즈 저장·식별·export 기반
 
+- 현재 E-062 clean artifact: source `2acf9651eeff1c79a64d9190ea4c8e66f83a0c7d`의 fresh detached worktree에서 `BattleCapsule.exe` 104,548,352 bytes와 PCK 2,132,932 bytes를 export했다. 빈 host package verifier가 catalog 자산 44개·JSON 3개·runtime 경로 124개·load probe 20개·generated payload closure exact를 통과했고 EXE product/file description과 `2.1.0.0` metadata도 일치했다.
+- 현재 packaged smoke: `C:\tmp\n2_rel_01_e062_packaged_smoke_20260901`의 seed 41000/41001은 평균 661.8초(630.4-693.2), alive 중앙 `55.5/39.5/30/26/24/19`, first upgrade 평균 6.3초, spawn 60/60·fallback 0, stuck/disengage 0.02/0.20이다. AI max는 `57.914/28.584ms`라 두 번째 run은 PASS지만 합산 strict gate는 첫 spike 때문에 FAIL이다.
+- 현재 artifact hash: EXE `B241A13F6FB1E7FB297018D6D622601F9D68A5B4F8B0B389ED7F6CD5690E238D`, PCK `488EA4B94BFEFB73C4857A0A2EC875F999A07D89383D0AE92411EB9341B20A20`. `LICENSES/CREDITS`·`KNOWN_ISSUES`·build manifest가 없고 Forward+ 반복·사람 전체 루프·정상 저장·재시작도 미판정이라 archive는 만들지 않았다.
 - 저장: 미션 판정 뒤 Result와 Records가 같은 점수를 커밋하고 simulation은 기록·배지를 남기지 않는다. 설정·기록·배지는 schema v1, 원자 교체, last-good backup, corrupt fallback과 legacy migration을 쓰며 기록은 난이도별 50개로 제한한다. 현재 공개판 rollback root write를 병합하고 지원하지 않는 미래 schema는 덮어쓰지 않는다.
 - 식별: 공개 이름 `Battle Capsule`, 실행 파일 `BattleCapsule.exe`, 내부 채널 `v2.1.0-demo-dev`, Windows metadata `2.1.0.0`을 고정했다. 보이는 브랜드는 바꾸되 기존 `BattleRoyalePrototype` user data 경로는 유지한다.
 - export: `Main.tscn` selected-scene 경계와 runtime source/assets·검토된 JSON만 포함하고 도구·테스트·문서·로컬 생성 원본·debug 산출물을 제외했다. verifier는 catalog 자산·runtime 논리 경로와 import/remap payload closure를 exact 비교한다.
@@ -47,7 +50,7 @@
 - 과거 clean artifact: source `ac9fff8fc115c86003da7a5685fbce0dc0b48d58`의 fresh worktree PCK에서 catalog 자산 44개·JSON 3개·runtime 경로 124개·핵심 load probe 20개와 generated payload closure exact를 확인했다. packaged headless 전체 simulation은 651.038초, spawn 60/60·fallback 0·최종 1위·오류 0이었고 legacy settings migration/backup·재실행 멱등성, 기존 기록·배지 불변, Windows x64 GUI·`2.1.0.0` metadata를 통과했다. 현재 후보 근거는 아니다.
 - 과거 internal archive: EXE `B241A13…`, PCK `560CFD44…` SHA-256을 manifest에 기록하고 archive `92891081…` SHA-256을 산출했다. 압축 해제 뒤 세 파일 hash와 EXE 재부팅·오류 0도 확인했다. 이 archive는 공개 고지가 없는 stale internal smoke다.
 - 재현성: 독립 clean worktree 두 곳의 EXE는 byte-identical이었지만 PCK는 2,060,916/2,060,900 bytes와 서로 다른 hash였다. 두 PCK 모두 exact contract를 통과했으나 cold PCK byte 재현성은 닫지 않았다.
-- 잔여 gate: `N2-PLAY-11` 단일 후보 1-run→생존·continuity·정체/이탈 비회귀가 있을 때만 M1 5-run→packaged 수동 3판, 현재 commit의 clean package, 사람이 조작하는 전체 루프·정상 기록/배지 저장, cold PCK 비결정성·restart soak·호환성 matrix, LICENSES/CREDITS·지원·unsigned 정책은 아직 닫지 않았다.
+- 잔여 gate: E-062 자동 gameplay와 current clean EXE/PCK는 확보했지만 packaged AI max spike 반복 판정, 수동 3판, 사람이 조작하는 전체 루프·정상 기록/배지 저장, cold PCK 비결정성·restart soak·호환성 matrix, LICENSES/CREDITS·KNOWN_ISSUES·manifest·지원·unsigned 정책은 아직 닫지 않았다.
 
 ## N2-PLAN-01 릴리즈 로드맵 통합
 
