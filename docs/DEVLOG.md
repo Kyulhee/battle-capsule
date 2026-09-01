@@ -10,7 +10,8 @@
 - 원인: 648 episode 중 cover 진행을 530건 관측했고 평균 진행률은 0.11, 선택 거리 평균은 12.98m다. 사망 68건은 `no_progress/partial/reached=34/32/2`, 선택 후 첫 피격 `under0.25/0.25-1/1s+=10/37/21`, perception 소실 `24/68`로 모든 seed에서 낮은 진행이 반복됐다.
 - 해석: 사망 counteraction `62/68`, fast reacquire `43/68`은 높지만 counteraction은 이동을 정지시키지 않고 E-058도 재획득 단독 원인을 반증했다. 평균 사망 선택 후 1.62초와 4m/s 이동에 비해 평균 12.98m cover가 멀다는 reachability가 더 직접적인 다음 축이다.
 - E-060: 4m/s×1.5초의 6m 안 cover만 채택하고 없으면 기존 deterministic scatter를 쓰는 pure/runtime seam은 전체 `unit_smoke`를 통과했다. `C:\tmp\n2_play_11_e060_reachable_cover_fallback_pilot_20260901`은 486.6초, alive `54/27/24/22/21/18`, survival death 21, stuck 0.04/entity/min, stage3 미도달로 hard FAIL했다.
-- 판정/다음: E-060은 코드·테스트 완전 revert·5-run 금지다. cover 선택 `8/125`, 사망 cover 미선택 `21/21`은 먼 cover 방향의 commitment를 scatter로 없애면 더 나쁘다는 반증이다. E-061은 cover/nav를 보존한 접근 이동 multiplier 한 축만 1-run한다.
+- E-061: 기존 cover/nav를 보존하고 `survival_break` 접근 속도만 1.25배로 올린 후보는 전체 `unit_smoke`를 통과했다. `C:\tmp\n2_play_11_e061_cover_approach_speed_125_pilot_20260901`은 536.0초, alive `50/34/25/22/18/12`, T50/T10 `29.2/276.3초`, survival death 17, cover selected/reached `87/4`, 진행률 0.09, stuck 0.03/entity/min, stage3 미도달로 hard FAIL했다.
+- 판정/다음: E-061은 코드·테스트 완전 revert·5-run 금지다. 동일 seed E-059의 806.8초·cover 진행 0.11·stuck 0.01에 비해 생존/도달은 그대로이고 구조 gate가 악화됐다. episode 108건 중 `no_threat` 종료 91건, perception 소실 84건, 평균 exit 0.68초이므로 E-062는 속도나 blanket 시간 연장이 아니라 선택한 cover까지의 spatial commitment만 단일 후보화한다.
 
 ## N2-PLAY-11 opening survival exposure 진단과 릴리즈 재판정
 

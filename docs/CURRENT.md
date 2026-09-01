@@ -16,10 +16,10 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | E-060 reachable-cover/fallback은 1-run hard gate를 실패해 코드·테스트를 완전 revert했다. 먼 cover 선택을 없애면 사망이 모두 cover 미선택으로 이동해 fallback 방향은 폐기한다 |
-| 바로 다음 단위 | E-061은 cover 선택·nav target을 보존한 채 `survival_break` cover 접근 이동 multiplier 하나만 1-run한다. 사격·target·HP/damage·exit 시간·topology는 바꾸지 않는다 |
+| 현재 단위 | E-061 survival-break cover 접근 1.25배 후보는 1-run hard gate를 실패해 코드·테스트를 완전 revert했다. 속도만 올려도 cover 진행·도달·생존은 개선되지 않았다 |
+| 바로 다음 단위 | E-062는 `survival_break`에서 이미 선택한 cover가 있을 때 perception이 끊겨도 그 공간 목표까지 이동을 마치는 spatial commitment 하나만 1-run한다. 일반 DISENGAGE·속도·사격·target 소유·HP/damage·topology는 바꾸지 않는다 |
 | 최신 검증 개발 단위 | E-059 telemetry/analyzer/Bot shadow와 schema v1 호환·검열 분모 fixture, 전체 `unit_smoke`가 PASS했다. `ac9fff8` package는 현재 근거가 아니다 |
-| 최신 검증 게임플레이 단위 | E-060 seed 41000은 486.6초, alive@30/60/120/260 `54/27/22/18`, survival death 21, stuck 0.04/entity/min, stage3 미도달로 hard FAIL했다. 5-run·package/manual 금지이며 E-059가 최신 유효 진단이다 |
+| 최신 검증 게임플레이 단위 | E-061 seed 41000은 536.0초, alive@30/60/120/260 `50/34/22/12`, survival death 17, cover selected/reached `87/4`, 진행률 0.09, stuck 0.03/entity/min, stage3 미도달로 hard FAIL했다. 5-run·package/manual 금지이며 E-059가 최신 유효 기준선이다 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 릴리즈 판정 | 현재 후보는 internal pre-alpha 전용이다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 새 packaged/manual 통과 전 공개판을 교체하지 않는다 |
 | 목표 창 | 폐쇄 알파 현실 창 2026-09-28~10-09, 공개 데모 RC 현실 창 2026-12-18~2027-01-15, 유료 EA Go/No-Go 2027 Q1 이후. 날짜는 gate 통과 창이지 출시 약속이 아니다 |
@@ -38,7 +38,7 @@
 
 | 우선순위 | 작업 | 종료 조건 |
 |---|---|---|
-| P0 | `N2-PLAY-11` M1 실패 수정·재판정 | E-061 단일 cover 접근 이동 후보가 1-run→5-run→packaged 수동 3판 순서로 낮은 진행과 생존을 함께 개선 |
+| P0 | `N2-PLAY-11` M1 실패 수정·재판정 | E-062 단일 spatial cover commitment 후보가 1-run→5-run→packaged 수동 3판 순서로 낮은 진행과 생존을 함께 개선 |
 | P1 | `N2-REL-01` Windows 릴리즈 기반 마감 | gameplay 후보를 고정한 clean tracked commit에서 PCK inventory·PE identity·전체 simulation·checksum/manifest/reboot를 다시 만들고, 사람 전체 루프·정상 기록/배지·cold PCK byte 재현성을 확인 |
 | P2 | `N2-M2-VIS-01` 대표 교전 슬라이스 | 수관 가림·야간 명도·캡슐 방향/무기/피격/사망·핵심 효과음·HUD/지도 위계를 한 구간에서 수동 통과 |
 | P3 | `N2-M2-UX-01` 첫 사용자 경험 | 밝기·감도·해상도/창 모드·UI 배율, 입력 안내, 언어 일관성, 메뉴→매치→결과→재시작 흐름을 무설명 테스터가 완주 |
@@ -49,7 +49,7 @@
 
 | 리스크 | 신호 | 대응 |
 |---|---|---|
-| M1 생존·continuity 실패 | E-060은 cover 선택을 8/125로 제한하자 사망 21건 모두 cover 미선택, duration 486.6초, stuck 0.04로 악화됐다. 먼 cover라도 향하는 동작을 scatter로 바꾸면 보호가 사라진다 | E-060을 재조정하지 않는다. E-061은 기존 cover commitment를 보존하고 접근 이동량 한 축만 1-run hard gate로 판정한다 |
+| M1 생존·continuity 실패 | E-061은 1.25배 접근에도 cover 도달 4회·진행률 0.09로 개선이 없고 duration 536.0초·stuck 0.03으로 hard FAIL했다. episode 108건 중 91건이 `no_threat` 종료라 이동 속도보다 목표 조기 폐기가 다음 병목이다 | E-060/E-061을 재조정하지 않는다. E-062는 선택된 cover를 perception 소실 뒤에도 도달까지 유지하는 공간 조건만 1-run hard gate로 판정한다 |
 | 화면이 프로토타입으로 보임 | 겹친 수관, procedural capsule, 평면적 야간 재질, HUD 정보 경쟁 | 신규 콘텐츠보다 P2 대표 슬라이스를 우선하고 캡슐을 의도된 제품 정체성으로 승격 |
 | 기록·저장 무결성 | packaged smoke에서 legacy settings schema v1 migration·backup·재실행 멱등성과 simulation 중 기존 기록·배지 불변 확인 | 사람이 정상 매치 기록·배지 생성/재실행과 corrupt/empty/future-schema 화면 동작을 확인 |
 | 패키지 오염·식별 불일치 | `ac9fff8` clean PCK는 catalog 자산 44개·JSON 3개·runtime 경로 124개·payload closure exact와 archive smoke를 통과했지만 현재 gameplay/telemetry 후보보다 오래됐다 | 현재 후보 고정 뒤 독립 clean export를 다시 만들고 PCK byte 재현성·LICENSES/CREDITS·지원·unsigned 정책을 닫기 전 공개 승격 금지 |

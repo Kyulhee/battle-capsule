@@ -8,12 +8,12 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | E-060 reachability/fallback은 hard FAIL로 완전 revert했다. E-061 cover 접근 이동이 1-run→5-run을 통과하기 전 packaged 수동 재판정은 보류 |
+| 현재 단위 | E-061 cover 접근 1.25배는 hard FAIL로 완전 revert했다. E-062 spatial cover commitment가 1-run→5-run을 통과하기 전 packaged 수동 재판정은 보류 |
 | 승격 목적 | N2-PLAY-10에서 확인한 무기 공백·초기 인원 붕괴·지도 HUD 중첩을 닫고 오프닝·장소/경로·생존/완주를 다시 승인 |
 
 ## N2-PLAY-11 재판정 프로토콜
 
-E-059는 낮은 cover 진행을 확인했지만 E-060의 6m 제한/scatter는 duration 486.6초·survival death 21로 악화됐다. E-061은 기존 cover/nav를 보존한 접근 이동량만 바꾸며 생존·continuity·정체/이탈·D-004를 1-run에서 함께 개선할 때만 5-run과 packaged 수동 3판으로 확대한다. 새 packaged/manual PASS는 없다.
+E-059는 낮은 cover 진행을 확인했지만 E-060의 6m 제한/scatter와 E-061의 접근 1.25배는 각각 duration 486.6초·536.0초로 악화됐다. E-062는 선택 cover를 `no_threat` 뒤에도 도달까지 유지하는 공간 조건만 바꾸며 cover 진행/도달·생존·continuity·정체/이탈·D-004를 1-run에서 함께 개선할 때만 5-run과 packaged 수동 3판으로 확대한다. 새 packaged/manual PASS는 없다.
 
 | 판 | 초점 | 필수 기록 |
 |---|---|---|
@@ -85,6 +85,13 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 ```
 
 ## 최근 기록
+
+### 2026-09-01 - N2-PLAY-11 E-061 접근 속도 폐기
+
+표면: `C:\tmp\n2_play_11_e061_cover_approach_speed_125_pilot_20260901`, seed 41000. 기존 cover/nav target을 유지하고 survival-break cover 접근만 1.25배로 한 단일 후보다.
+결과: 536.0초, alive `50/34/25/22/18/12`, T50/T10 `29.2/276.3초`, survival death 17, cover selected/reached `87/4`, 진행률 0.09, stuck 0.03/entity/min, stage3 미도달로 hard FAIL이다.
+판정: 동일 seed E-059의 806.8초·진행률 0.11·stuck 0.01보다 구조가 악화됐고 cover 도달도 4회로 그대로다. 코드·테스트 완전 revert·5-run 금지다.
+다음: episode `no_threat` 91/108·perception 소실 84/108·평균 exit 0.68초를 근거로, E-062는 선택한 cover까지의 spatial commitment만 1-run한다.
 
 ### 2026-09-01 - N2-PLAY-11 E-060 fallback 폐기
 
