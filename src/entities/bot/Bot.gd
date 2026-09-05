@@ -64,6 +64,7 @@ var scan_timer: float = 0.0
 var scan_target_rotation: float = 0.0
 var fire_cooldown: float = 0.0
 var last_known_target_pos: Vector3 = Vector3.ZERO
+var _los_escape_pressure_active: bool = false
 
 # Individual combat doctrine. Bots periodically pick a plan instead of
 # sliding in a constant pattern while shooting.
@@ -849,8 +850,11 @@ func handle_attack_state(delta):
 
 	var can_see = target_actor.is_revealed_to(self)
 	if can_see:
+		_finish_los_escape_pressure("los_restored")
 		last_known_target_pos = target_actor.global_position
 		if state_timer > 0.1: state_timer = 0.0
+	elif not is_targeting_loot:
+		_begin_los_escape_pressure()
 
 	if not can_see and state_timer > BOT_DECISION_POLICY.target_memory_seconds(_is_targeting_player()):
 		_record_enemy_target_release("memory_expired", "attack")
@@ -1913,6 +1917,7 @@ func _clear_tracked_enemy_target_shadow() -> void:
 	_tracked_enemy_target_spawn_age = -1.0
 
 func _record_enemy_target_release(reason_name: String, source_name: String) -> void:
+	_finish_los_escape_pressure(reason_name)
 	_ensure_continuity_shadow()
 	var target_id := _continuity_current_target_id()
 	if target_id < 0:
@@ -2241,6 +2246,60 @@ func _kill_context_disengage_same_target() -> bool:
 			and current_target_id == _disengage_entry_target_id \
 			and _continuity_target_is_nonterminal(current_target_id)
 	return false
+
+func _los_escape_pressure_context() -> Dictionary:
+	var context := {
+		"distance": -1.0,
+		"bot_position": Vector2(global_position.x, global_position.z),
+		"weapon": stats.weapon_type if stats != null else "unknown",
+	}
+	if is_instance_valid(target_actor):
+		context.distance = global_position.distance_to(target_actor.global_position)
+		context.target_kind = "player" if target_actor.is_in_group("players") else "bot"
+		context.target_position = Vector2(
+			target_actor.global_position.x,
+			target_actor.global_position.z
+		)
+	return context
+
+func _begin_los_escape_pressure() -> void:
+	if _los_escape_pressure_active or is_targeting_loot \
+			or not has_node("/root/Telemetry"):
+		return
+	var tel = get_node("/root/Telemetry")
+	if tel.has_method("start_los_escape_pressure_episode"):
+		_los_escape_pressure_active = bool(tel.start_los_escape_pressure_episode(
+			get_instance_id(),
+			_los_escape_pressure_context()
+		))
+
+func _finish_los_escape_pressure(outcome_name: String) -> void:
+	if not _los_escape_pressure_active:
+		return
+	_los_escape_pressure_active = false
+	if not has_node("/root/Telemetry"):
+		return
+	var tel = get_node("/root/Telemetry")
+	if tel.has_method("finish_los_escape_pressure_episode"):
+		tel.finish_los_escape_pressure_episode(
+			get_instance_id(),
+			outcome_name,
+			_los_escape_pressure_context()
+		)
+
+func _track_los_escape_pressure_shot() -> void:
+	if not _los_escape_pressure_active or not has_node("/root/Telemetry"):
+		return
+	var tel = get_node("/root/Telemetry")
+	if tel.has_method("track_los_escape_pressure_shot"):
+		tel.track_los_escape_pressure_shot(get_instance_id())
+
+func _track_los_escape_pressure_hit() -> void:
+	if not _los_escape_pressure_active or not has_node("/root/Telemetry"):
+		return
+	var tel = get_node("/root/Telemetry")
+	if tel.has_method("track_los_escape_pressure_hit"):
+		tel.track_los_escape_pressure_hit(get_instance_id())
 
 func _start_loot_objective(loot_target: Node3D, source_name: String, recovering: bool) -> void:
 	_record_enemy_target_release("enemy_to_loot", source_name)
@@ -3669,6 +3728,7 @@ func die(killer: Node3D = null):
 	# Death terminates an active DISENGAGE episode even though it does not pass
 	# through change_state(). This observation is recorded before drops/super
 	# without mutating state, target selection, navigation, or RNG.
+	_finish_los_escape_pressure("bot_died")
 	if current_state == State.DISENGAGE:
 		_record_disengage_exit(
 			State.IDLE,
@@ -3918,12 +3978,42 @@ func shoot_predictive(target_pos: Vector3):
 		flash.position = Vector3(0, 0.5, -0.5)
 	var base_spread = 0.1 * _aim_spread_mult
 	var total_spread = base_spread + state_timer * 0.4
-	var local_dir = Vector3(
+	var supplied_local_offset := global_transform.basis.inverse() * (target_pos - global_position)
+	var local_target_offset := predictive_base_local_offset(
+		supplied_local_offset,
+		_is_targeting_player()
+	)
+	var local_dir := predictive_local_shot_vector(
+		local_target_offset,
+		stats.attack_range,
 		randf_range(-total_spread, total_spread),
-		randf_range(-total_spread * 0.2, total_spread * 0.2),
-		-1.0
-	).normalized() * stats.attack_range
+		randf_range(-total_spread * 0.2, total_spread * 0.2)
+	)
+	_track_los_escape_pressure_shot()
 	_cast_and_visualize(local_dir)
+
+static func predictive_base_local_offset(
+	supplied_local_offset: Vector3,
+	target_is_player: bool
+) -> Vector3:
+	if target_is_player and supplied_local_offset.length_squared() > 0.000001:
+		return supplied_local_offset
+	return Vector3.FORWARD
+
+static func predictive_local_shot_vector(
+	local_target_offset: Vector3,
+	attack_range: float,
+	horizontal_spread: float,
+	vertical_spread: float
+) -> Vector3:
+	var aim_direction := local_target_offset.normalized()
+	if aim_direction.length_squared() <= 0.000001:
+		aim_direction = Vector3.FORWARD
+	return Vector3(
+		aim_direction.x + horizontal_spread,
+		aim_direction.y + vertical_spread,
+		aim_direction.z
+	).normalized() * maxf(0.0, attack_range)
 
 func _play_shot_sfx() -> void:
 	var sfx = get_node_or_null("/root/Sfx")
@@ -3957,6 +4047,8 @@ func _cast_and_visualize(local_target_pos: Vector3):
 			_active_attack_origin = "gun"
 			hit.take_damage(_outgoing_damage_for(hit, stats.attack_damage), "gun", stats.weapon_type, self)
 			_active_attack_origin = previous_origin
+			if _los_escape_pressure_active and hit == target_actor:
+				_track_los_escape_pressure_hit()
 	if BULLET_TRAIL_SCN:
 		var trail = BULLET_TRAIL_SCN.instantiate()
 		get_tree().root.add_child(trail)
@@ -3976,6 +4068,8 @@ func _log_disengage_entry(reason: String):
 
 func change_state(new_state: State, transition_reason: String = ""):
 	if current_state == new_state: return
+	if current_state == State.ATTACK and new_state != State.ATTACK:
+		_finish_los_escape_pressure("state_exit_%s" % State.keys()[new_state].to_lower())
 	_ensure_continuity_shadow()
 	var previous_state := current_state
 	_flush_doctrine_state_telemetry(false)

@@ -60,7 +60,7 @@ const SIM_RESULT_PATH = "user://sim_result_latest.json"
 const HISTORY_SCHEMA_VERSION := 1
 const HISTORY_LIMIT_PER_DIFFICULTY := 50
 const MAX_KILL_CONTEXT_EVENTS := 128
-const OPENING_KILL_CONTEXT_SECONDS := 60.0
+const EARLY_KILL_CONTEXT_SECONDS := 120.0
 const OPENING_TARGET_CONTINUITY_SECONDS := 60.0
 const TARGET_CONTINUITY_RELEASE_CENSOR_SECONDS := 59.0
 const TARGET_CONTINUITY_REACQUIRE_SECONDS := 1.0
@@ -75,6 +75,7 @@ const MAX_OPENING_SURVIVAL_SUMMARY_KEYS := 64
 const SURVIVAL_BREAK_EPISODE_SCHEMA_VERSION := 2
 const SURVIVAL_BREAK_EPISODE_ENTRY_CENSOR_SECONDS := 59.0
 const SURVIVAL_BREAK_EPISODE_WINDOW_SECONDS := 60.0
+const LOS_ESCAPE_PRESSURE_SCHEMA_VERSION := 1
 var history_path: String = HISTORY_PATH
 var sim_result_path: String = SIM_RESULT_PATH
 
@@ -116,6 +117,7 @@ var _opening_survival_tracked_actors: Dictionary = {}
 var _opening_survival_held_by_actor: Dictionary = {}
 var _opening_survival_death_actors: Dictionary = {}
 var _survival_break_episodes: Dictionary = {}
+var _los_escape_pressure_episodes: Dictionary = {}
 
 func _reset_metrics():
 	_pending_weapon_collect_context = {}
@@ -128,6 +130,7 @@ func _reset_metrics():
 	_opening_survival_held_by_actor = {}
 	_opening_survival_death_actors = {}
 	_survival_break_episodes = {}
+	_los_escape_pressure_episodes = {}
 	metrics = {
 		# core (always present — used by Main.gd result screen)
 		"session": {
@@ -246,6 +249,7 @@ func _reset_metrics():
 			# This deliberately avoids per-frame actor identifiers and payloads.
 			"kill_context_events": [],
 			"kill_context_dropped": 0,
+			"kill_context_window_seconds": EARLY_KILL_CONTEXT_SECONDS,
 			# Linked, deterministic bottom-k samples. The exact summary below is
 			# authoritative even when either diagnostic sample is incomplete.
 			"target_continuity_episode_samples": [],
@@ -305,6 +309,9 @@ func _reset_metrics():
 			# Exact, fixed-shape linkage for opening survival_break DISENGAGE
 			# episodes. Runtime decisions never read this diagnostic state.
 			"survival_break_episode_summary": _new_survival_break_episode_summary(),
+			# Exact player-facing pressure after a bot loses line of sight. Active
+			# episodes live only in Telemetry and are never read by bot decisions.
+			"los_escape_pressure_summary": _new_los_escape_pressure_summary(),
 			"first_shot_time": -1.0,
 			"first_target_acquisition_time": -1.0,
 			"first_target_acquisition_source": "none",
@@ -535,6 +542,7 @@ func end_match(
 		)
 	_finalize_all_opening_survival_holds(_elapsed_seconds())
 	_finalize_all_survival_break_episodes("match_end", "censored")
+	_finalize_all_los_escape_pressure_episodes("match_end")
 	match_in_progress = false
 	metrics.core.zone_stage_reached = zone_stage
 	metrics.session.rank = rank
@@ -615,6 +623,145 @@ func log_alive_sample(
 	})
 	return true
 
+func start_los_escape_pressure_episode(actor_id: int, context: Dictionary) -> bool:
+	if not match_in_progress or not _g("pacing") or actor_id < 0:
+		return false
+	if _los_escape_pressure_episodes.has(actor_id):
+		return false
+	var target_position = context.get("target_position", Vector2.ZERO)
+	var bot_position = context.get("bot_position", Vector2.ZERO)
+	if not target_position is Vector2 or not bot_position is Vector2:
+		return false
+	_los_escape_pressure_episodes[actor_id] = {
+		"start_time": _elapsed_seconds(),
+		"start_distance": maxf(-1.0, float(context.get("distance", -1.0))),
+		"target_start_position": target_position,
+		"bot_start_position": bot_position,
+		"weapon": _normalized_key(String(context.get("weapon", "unknown")), "unknown"),
+		"target_kind": _normalized_key(String(context.get("target_kind", "unknown")), "unknown"),
+		"shots": 0,
+		"hits": 0,
+	}
+	var summary: Dictionary = metrics.pacing.los_escape_pressure_summary
+	summary.episodes = int(summary.episodes) + 1
+	_add_bucket_count(summary.episodes_by_target_kind, String(_los_escape_pressure_episodes[actor_id].target_kind))
+	return true
+
+func track_los_escape_pressure_shot(actor_id: int) -> bool:
+	if not match_in_progress or not _g("pacing") \
+			or not _los_escape_pressure_episodes.has(actor_id):
+		return false
+	var episode: Dictionary = _los_escape_pressure_episodes[actor_id]
+	episode.shots = int(episode.get("shots", 0)) + 1
+	_los_escape_pressure_episodes[actor_id] = episode
+	return true
+
+func track_los_escape_pressure_hit(actor_id: int) -> bool:
+	if not match_in_progress or not _g("pacing") \
+			or not _los_escape_pressure_episodes.has(actor_id):
+		return false
+	var episode: Dictionary = _los_escape_pressure_episodes[actor_id]
+	episode.hits = int(episode.get("hits", 0)) + 1
+	_los_escape_pressure_episodes[actor_id] = episode
+	return true
+
+func finish_los_escape_pressure_episode(
+	actor_id: int,
+	outcome_name: String,
+	context: Dictionary = {}
+) -> bool:
+	if not _g("pacing") or not _los_escape_pressure_episodes.has(actor_id):
+		return false
+	var episode: Dictionary = _los_escape_pressure_episodes[actor_id]
+	_los_escape_pressure_episodes.erase(actor_id)
+	var summary: Dictionary = metrics.pacing.los_escape_pressure_summary
+	var outcome := _normalized_key(outcome_name, "unknown")
+	var duration := maxf(0.0, _elapsed_seconds() - float(episode.get("start_time", 0.0)))
+	var shots := maxi(0, int(episode.get("shots", 0)))
+	var hits := clampi(int(episode.get("hits", 0)), 0, shots)
+	if outcome == "match_end":
+		summary.censored = int(summary.censored) + 1
+	else:
+		summary.completed = int(summary.completed) + 1
+	summary.shots_after_los = int(summary.shots_after_los) + shots
+	summary.hits_after_los = int(summary.hits_after_los) + hits
+	if shots > 0:
+		summary.episodes_with_shots = int(summary.episodes_with_shots) + 1
+	if hits > 0:
+		summary.episodes_with_hits = int(summary.episodes_with_hits) + 1
+	var target_kind := String(episode.get("target_kind", "unknown"))
+	_add_bucket_count(summary.by_outcome, outcome)
+	_add_bucket_count(summary.by_duration_bucket, _los_escape_duration_bucket(duration))
+	_add_bucket_count(summary.shots_by_weapon, String(episode.get("weapon", "unknown")), shots)
+	_add_bucket_count(summary.shots_by_target_kind, target_kind, shots)
+	_add_bucket_count(summary.hits_by_target_kind, target_kind, hits)
+	_record_exact_measure(summary.duration_seconds, duration)
+	_record_exact_measure(summary.start_distance, float(episode.get("start_distance", -1.0)))
+	_record_exact_measure(summary.end_distance, float(context.get("distance", -1.0)))
+	var target_end = context.get("target_position", null)
+	var bot_end = context.get("bot_position", null)
+	if target_end is Vector2:
+		_record_exact_measure(
+			summary.target_displacement,
+			(episode.get("target_start_position", target_end) as Vector2).distance_to(target_end)
+		)
+	if bot_end is Vector2:
+		_record_exact_measure(
+			summary.bot_displacement,
+			(episode.get("bot_start_position", bot_end) as Vector2).distance_to(bot_end)
+		)
+	return true
+
+func _finalize_all_los_escape_pressure_episodes(outcome_name: String) -> void:
+	var actor_ids: Array = _los_escape_pressure_episodes.keys()
+	for actor_id in actor_ids:
+		finish_los_escape_pressure_episode(int(actor_id), outcome_name)
+
+func _new_los_escape_pressure_summary() -> Dictionary:
+	return {
+		"schema_version": LOS_ESCAPE_PRESSURE_SCHEMA_VERSION,
+		"exact": true,
+		"complete": true,
+		"population": "bot_attack_entity_los_loss",
+		"time_basis": "match_elapsed",
+		"episodes": 0,
+		"completed": 0,
+		"censored": 0,
+		"episodes_with_shots": 0,
+		"episodes_with_hits": 0,
+		"shots_after_los": 0,
+		"hits_after_los": 0,
+		"by_outcome": {},
+		"by_duration_bucket": {},
+		"episodes_by_target_kind": {},
+		"shots_by_weapon": {},
+		"shots_by_target_kind": {},
+		"hits_by_target_kind": {},
+		"duration_seconds": {"count": 0, "sum": 0.0, "max": 0.0},
+		"start_distance": {"count": 0, "sum": 0.0, "max": 0.0},
+		"end_distance": {"count": 0, "sum": 0.0, "max": 0.0},
+		"target_displacement": {"count": 0, "sum": 0.0, "max": 0.0},
+		"bot_displacement": {"count": 0, "sum": 0.0, "max": 0.0},
+	}
+
+func _los_escape_duration_bucket(seconds: float) -> String:
+	if seconds < 0.25:
+		return "under_0_25s"
+	if seconds < 1.0:
+		return "0_25_1s"
+	if seconds < 2.5:
+		return "1_2_5s"
+	if seconds < 5.0:
+		return "2_5_5s"
+	return "5s_plus"
+
+func _record_exact_measure(block: Dictionary, value: float) -> void:
+	if value < 0.0 or is_nan(value) or is_inf(value):
+		return
+	block.count = int(block.get("count", 0)) + 1
+	block.sum = float(block.get("sum", 0.0)) + value
+	block.max = maxf(float(block.get("max", 0.0)), value)
+
 func log_kill_context(
 	cause: String,
 	weapon: String,
@@ -625,7 +772,7 @@ func log_kill_context(
 	if not match_in_progress or not _g("pacing"):
 		return false
 	var elapsed := _elapsed_seconds()
-	if elapsed > OPENING_KILL_CONTEXT_SECONDS:
+	if elapsed > EARLY_KILL_CONTEXT_SECONDS:
 		return false
 	var events: Array = metrics.pacing.kill_context_events
 	if events.size() >= MAX_KILL_CONTEXT_EVENTS:
@@ -2902,6 +3049,18 @@ func _print_report():
 			metrics.pacing.first_non_pistol_upgrade_nearest_route_role,
 		])
 		print("  Stage times: %s" % str(metrics.pacing.stage_times))
+		var escape: Dictionary = metrics.pacing.los_escape_pressure_summary
+		var escape_episodes := int(escape.get("episodes", 0))
+		var escape_duration: Dictionary = escape.get("duration_seconds", {})
+		var escape_duration_mean: float = float(escape_duration.get("sum", 0.0)) \
+			/ float(maxi(1, int(escape_duration.get("count", 0))))
+		print("  LOS escape pressure: episodes=%d mean=%.2fs shots/hits=%d/%d outcomes=%s" % [
+			escape_episodes,
+			escape_duration_mean,
+			int(escape.get("shots_after_los", 0)),
+			int(escape.get("hits_after_los", 0)),
+			str(escape.get("by_outcome", {})),
+		])
 	if _g("spawn") and int(metrics.spawn.placed_count) > 0:
 		print("── Spawn ───────────────────────────────────")
 		print("  Placed:         %d/%d  fallback: %d" % [

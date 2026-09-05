@@ -1,6 +1,6 @@
 # 플레이테스트 노트
 
-> 최종 업데이트: 2026-09-01. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
+> 최종 업데이트: 2026-09-05. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
 
 ## 현재 수동 테스트 대상
 
@@ -8,8 +8,8 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | E-062 source `2acf965` clean EXE/PCK가 준비됐다. exact contract·identity는 PASS, packaged 2-run 중 AI max spike 1회가 남아 Forward+ 반복 뒤 수동 3판을 연다 |
-| 승격 목적 | N2-PLAY-10에서 확인한 무기 공백·초기 인원 붕괴·지도 HUD 중첩을 닫고 오프닝·장소/경로·생존/완주를 다시 승인 |
+| 현재 단위 | E-062 프리릴리즈 수동 3판은 첫 축소 4명과 약한 추격/이탈 압력으로 FAIL했다. 현재는 같은 행동의 LOS-loss 계측 기준선을 만든다 |
+| 승격 목적 | 초기 인원 붕괴가 이동 수렴인지 교전 지속/연쇄 사망인지 분리하고, 플레이어 이탈이 쉬운 직접 원인을 맵 변경 전에 확인 |
 
 ## N2-PLAY-11 재판정 프로토콜
 
@@ -85,6 +85,42 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 ```
 
 ## 최근 기록
+
+### 2026-09-05 - N2-PLAY-11 E-062 수동 3판 거부
+
+표면: `v2.1.0-demo-dev` Windows 빌드, `night_br_m1_60`, 사용자 직접 플레이 3판.
+결과: E-062 자동 후보의 M1 수동 승격을 거부한다. 한 판은 비교적 오래 생존했지만 첫 존 축소 시점에 이미 4명만 남아 목표 생존 곡선과 크게 달랐다.
+체감: 현재 전투는 원하면 비교적 쉽게 이탈할 수 있었다. 개활지 이동이 피격 위험으로 이어져 엄폐를 계획하게 만들기보다, LOS를 한 번 끊은 뒤 압력이 빠르게 사라지는 쪽에 가깝다. 파밍·자기장·안전한 엄폐 거점 사이의 이동 이유도 물리 공간과 충분히 연결되지 않았다.
+판정: D-043 재검토 조건 충족. 대형 접근 불가 지형을 전역에 추가해 시간을 인위적으로 늘리는 안은 보류한다. hard block은 조우를 늦출 수도 있지만 우회로 없는 choke와 봇 수렴으로 초반 사망을 더 빠르게 만들 수 있다.
+다음: E-062 행동을 보존한 채 전투 표적 LOS 상실 뒤 추적 지속시간·양측 이동·예측 사격·명중을 player/bot별 exact 집계한다. 이후 `shoot_predictive(target_pos)`가 실제 target position을 무시하는 결함만 E-063으로 분리한다. 물리 흐름 후보는 Survey Camp↔Central Meadow 한 구간에 빠른 노출 경로·긴 엄폐 우회·보상 거점·2개 이상 우회로를 함께 두고 별도 평가한다.
+
+### 2026-09-05 - N2-PLAY-11 E-062 LOS 이탈 계측 기준선 sanity
+
+표면: 현재 E-062 행동, `night_br_m1_60`, seed 41000, behavior/RNG가 읽지 않는 `los_escape_pressure_summary` schema v1.
+결과: 628.6초, alive `60/51/32/27/25/23/21`(@15/30/60/90/120/180/260), stage2/3 `260.0/540.1초`, spawn 60/60·fallback 0이다. LOS 상실 episode 808건은 모두 닫혔고 평균 0.42초·최대 7.97초, 종료는 LOS 복구 709·memory expiry 38·DISENGAGE 30·loot 전환 15·target switch 8 등이었다.
+압력: 예측 사격이 발생한 episode는 98/808, 총 112발 중 같은 표적 명중은 12발(10.7%)이었다. 평균 이동은 표적 0.72m·봇 0.74m, 평균 시작/종료 거리는 7.59/8.02m다.
+판정: 짧은 시야 깜박임이 분모 대부분이라 이 1-run을 gameplay PASS로 쓰지 않는다. 다만 마지막 위치 사격이 압력으로 연결되는지 E-063과 같은 계약으로 비교할 충분한 표본이며, E-063은 확산식·target memory·damage·HP·zone을 유지하고 target position 사용만 바꾼다.
+
+### 2026-09-05 - N2-PLAY-11 E-063 전 표적 예측 사격 폐기
+
+표면: `night_br_m1_60`, seed 41000. `shoot_predictive(target_pos)`가 모든 전투 표적의 전달된 마지막 위치를 사용하도록 고치고 확산식·target memory·damage·HP·zone은 보존했다.
+결과: 방향 계산·damage 격리·LOS exact 계측 smoke는 PASS했다. 1-run은 524.6초, alive `60/53/31/23/22/20/17`(@15/30/60/90/120/180/260), stage3 미도달이었다. LOS episode 796건, 사격/명중 92/34로 명중률은 E-062 sanity의 10.7%에서 37.0%로 증가했다.
+판정: 마지막 위치 사용이 이탈 압력을 실제로 높이는 직접 레버임은 확인했다. 그러나 bot 대 bot에도 적용되어 alive@120/260 `25/21→22/17`, duration `628.6→524.6초`로 초기 붕괴를 악화하는 방향이므로 전 표적 후보는 폐기하고 5-run하지 않는다.
+다음: E-064는 플레이어 대상 예측 사격만 마지막 위치를 사용하고 bot 대상은 E-062 벡터를 보존한다. 60봇 자동 생존 기준선과 플레이어 이탈 압력을 분리하며, player 표본은 격리 arena와 다음 수동 플레이에서 판정한다.
+
+### 2026-09-05 - N2-PLAY-11 E-064 player-only 예측 사격 자동 후보 유지
+
+표면: `C:\tmp\n2_play_11_e064_player_predictive_5run_20260905`, `night_br_m1_60`, seed 41000-41004. 플레이어 표적은 전달된 마지막 위치를 사용하고 bot 표적은 E-062 전방+기존 확산 벡터를 보존한다.
+결과: 평균 694.3초(599.2-855.0), alive 중앙 `53/38/32/27/22/17`(@30/60/90/120/180/260), first upgrade 평균 3.40초, spawn 60/60·fallback 0이다. stuck/disengage `0.020/0.191 entity/min`, recover death ratio 0.083, AI 평균/최대 `353µs/29.0ms`다.
+LOS 계약: 5-run bot-target episode 4,104건, 예측 사격/명중 `644/70`(10.87%)로 E-062 sanity 10.7%를 보존했다. E-063 전 표적 37.0% 증폭은 제거됐다. pure/runtime, pacing exact, target lifetime, decision policy 검증은 PASS했다.
+판정: 자동 후보 유지. 플레이어 표본이 없는 60봇 headless 결과는 플레이어 이탈 압력 PASS가 아니며, E-062 수동 실패도 뒤집지 않는다. 다음은 player-target 격리 runtime과 새 수동 3판 전에 자동-수동 생존 곡선 괴리·초기 수렴 원인을 좁히는 것이다.
+
+### 2026-09-05 - N2-PLAY-11 E-064 첫 60초 연쇄 사망 진단
+
+표면: E-064 seed 41000-41004의 bounded `kill_context_events`, 첫 60초 사망 111건. 위치 role은 실제 시야/엄폐 판정이 아니라 map taxonomy이므로 인과가 아닌 분류로만 사용한다.
+결과: 사망은 `0-15/15-30/30-45/45-60초 = 2/34/50/25`, 원인은 gun 76·melee 35였다. victim state는 DISENGAGE 88·RECOVER 8·CHASE 6·ATTACK 5·IDLE 3·ZONE 1, victim POI role은 transit_choke 52·loot_hub 34·concealment 16·recovery 9였다. 앞선 사망 1초 이내 35건, 3초 이내 83건이며 임의 5초 창 최대 사망은 7건이다.
+판정: 시작 15초의 직접 spawn kill보다 15-45초 목적지 수렴 뒤 DISENGAGE/recovery/re-engagement 연쇄가 더 강한 신호다. 접근 불가 지형을 전역에 늘리면 같은 choke 집중을 악화할 수 있어 보류한다.
+다음: behavior-neutral kill context 창만 120초로 확장해 첫 축소 직전까지 같은 분류를 보존한다. 그 자료와 Forward+/수동 관찰을 비교한 뒤에만 대표 구간의 노출 경로·엄폐 우회·보상 거점을 한 후보로 시험한다.
 
 ### 2026-09-01 - N2-PLAY-11 E-062 자동 후보 유지
 

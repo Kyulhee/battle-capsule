@@ -41,6 +41,9 @@ func _run() -> void:
 	if not _verify_pacing_uses_game_seconds():
 		quit(1)
 		return
+	if not _verify_los_escape_pressure_exact_summary():
+		quit(1)
+		return
 	if not _verify_opening_survival_exposure_exact_summary():
 		quit(1)
 		return
@@ -91,6 +94,9 @@ func _verify_pacing_schema_and_hooks() -> bool:
 	if not tel.metrics.pacing.has("kill_context_events"):
 		tel.free()
 		return _fail("Pacing should expose bounded kill context events.")
+	if not is_equal_approx(float(tel.metrics.pacing.get("kill_context_window_seconds", 0.0)), 120.0):
+		tel.free()
+		return _fail("Pacing should expose the first-zone 120-second kill context window.")
 	if not tel.metrics.pacing.has("target_continuity_episode_samples") \
 			or not tel.metrics.pacing.has("target_continuity_episode_sample_metadata") \
 			or not tel.metrics.pacing.has("target_continuity_disengage_exit_samples") \
@@ -506,11 +512,13 @@ func _verify_pacing_uses_game_seconds() -> bool:
 	var death_duplicate_recorded: bool = tel.log_alive_sample(60, 2, "death", true, "bot", "gun")
 	var same_frame_death_recorded: bool = tel.log_alive_sample(59, 2, "death", true, "bot", "zone")
 	main.match_timer = 60.0
-	var cutoff_recorded: bool = tel.log_kill_context("gun", "pistol", 4.0, {}, {})
 	var continuity_cutoff_available: bool = tel.can_track_target_continuity()
 	main.match_timer = 60.01
-	var outside_cutoff_recorded: bool = tel.log_kill_context("gun", "pistol", 4.0, {}, {})
 	var continuity_outside_cutoff_available: bool = tel.can_track_target_continuity()
+	main.match_timer = 120.0
+	var cutoff_recorded: bool = tel.log_kill_context("gun", "pistol", 4.0, {}, {})
+	main.match_timer = 120.01
+	var outside_cutoff_recorded: bool = tel.log_kill_context("gun", "pistol", 4.0, {}, {})
 	main.match_timer = 3.0
 	tel.end_match(1, "Bot", 2, false)
 
@@ -1938,6 +1946,89 @@ func _verify_entity_death_hook_exact_once() -> bool:
 	if String(zone_event.get("cause", "")) != "zone" \
 			or String(zone_attacker.get("kind", "")) != "none":
 		return _fail("Null-killer zone deaths should retain an explicit empty attacker context.")
+	return true
+
+
+func _verify_los_escape_pressure_exact_summary() -> bool:
+	var telemetry_script = load("res://src/core/Telemetry.gd")
+	var main := FakeMain.new()
+	main.name = "Main"
+	root.add_child(main)
+	var tel = telemetry_script.new()
+	root.add_child(tel)
+	tel.start_match()
+	main.match_timer = 10.0
+	if not tel.start_los_escape_pressure_episode(101, {
+		"distance": 12.0,
+		"bot_position": Vector2(0.0, 0.0),
+		"target_position": Vector2(12.0, 0.0),
+		"weapon": "Pistol",
+		"target_kind": "player",
+	}):
+		tel.free()
+		main.free()
+		return _fail("Player escape pressure should start one exact LOS-loss episode.")
+	if tel.start_los_escape_pressure_episode(101, {
+		"bot_position": Vector2.ZERO,
+		"target_position": Vector2.ZERO,
+	}):
+		tel.free()
+		main.free()
+		return _fail("Player escape pressure should reject duplicate actor episodes.")
+	tel.track_los_escape_pressure_shot(101)
+	tel.track_los_escape_pressure_hit(101)
+	tel.track_los_escape_pressure_shot(101)
+	main.match_timer = 12.5
+	if not tel.finish_los_escape_pressure_episode(101, "LOS_Restored", {
+		"distance": 10.0,
+		"bot_position": Vector2(2.0, 0.0),
+		"target_position": Vector2(12.0, 3.0),
+	}):
+		tel.free()
+		main.free()
+		return _fail("Player escape pressure should finish an active episode.")
+	main.match_timer = 13.0
+	tel.start_los_escape_pressure_episode(202, {
+		"distance": 8.0,
+		"bot_position": Vector2(1.0, 1.0),
+		"target_position": Vector2(9.0, 1.0),
+		"weapon": "AR",
+		"target_kind": "bot",
+	})
+	main.match_timer = 16.0
+	tel.end_match(2, "Bot", 1, false)
+	var summary: Dictionary = tel.metrics.pacing.los_escape_pressure_summary
+	var valid := (
+		int(summary.get("schema_version", 0)) == 1
+		and bool(summary.get("exact", false))
+		and bool(summary.get("complete", false))
+		and String(summary.get("population", "")) == "bot_attack_entity_los_loss"
+		and int(summary.get("episodes", -1)) == 2
+		and int(summary.get("completed", -1)) == 1
+		and int(summary.get("censored", -1)) == 1
+		and int(summary.get("episodes_with_shots", -1)) == 1
+		and int(summary.get("episodes_with_hits", -1)) == 1
+		and int(summary.get("shots_after_los", -1)) == 2
+		and int(summary.get("hits_after_los", -1)) == 1
+		and int(summary.get("by_outcome", {}).get("los_restored", 0)) == 1
+		and int(summary.get("by_outcome", {}).get("match_end", 0)) == 1
+		and int(summary.get("by_duration_bucket", {}).get("2_5_5s", 0)) == 2
+		and int(summary.get("shots_by_weapon", {}).get("pistol", 0)) == 2
+		and int(summary.get("episodes_by_target_kind", {}).get("player", 0)) == 1
+		and int(summary.get("episodes_by_target_kind", {}).get("bot", 0)) == 1
+		and int(summary.get("shots_by_target_kind", {}).get("player", 0)) == 2
+		and int(summary.get("hits_by_target_kind", {}).get("player", 0)) == 1
+		and int(summary.get("duration_seconds", {}).get("count", 0)) == 2
+		and is_equal_approx(float(summary.get("duration_seconds", {}).get("sum", 0.0)), 5.5)
+		and int(summary.get("target_displacement", {}).get("count", 0)) == 1
+		and is_equal_approx(float(summary.get("target_displacement", {}).get("sum", 0.0)), 3.0)
+		and int(summary.get("bot_displacement", {}).get("count", 0)) == 1
+		and is_equal_approx(float(summary.get("bot_displacement", {}).get("sum", 0.0)), 2.0)
+	)
+	tel.free()
+	main.free()
+	if not valid:
+		return _fail("Player escape pressure exact summary did not preserve lifecycle, shots, hits, or movement.")
 	return true
 
 

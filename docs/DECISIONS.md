@@ -1,6 +1,6 @@
 # 결정 기록
 
-> 최종 업데이트: 2026-08-29. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
+> 최종 업데이트: 2026-09-05. 안정된 결정을 짧게 유지한다. 상세 경위는 devlog와 experiments에 둔다.
 
 ## 재검토 전까지 유지
 
@@ -47,7 +47,11 @@
 | D-040 | E-059 다음 gameplay 후보는 survival-break의 먼 cover reachability/fallback 한 축만 바꾸고 기존 사격 grace·target 소유·HP/damage·exit 시간·topology 후보는 재혼합하지 않는다 | 사망 68건의 cover 진행은 `34/32/2` no/partial/reached, 선택 거리 평균 12.98m, 선택 후 사망 평균 1.62초다. 즉시 피격과 perception 소실은 각각 10/68·24/68이라 지배 원인이 아니며 counteraction은 이동 자체를 멈추지 않는다 | 1-run에서 생존·continuity·정체/이탈·D-004가 함께 개선되지 않거나 새 exact 근거가 다른 지배 경로를 보임 |
 | D-041 | E-060의 reachable-cover 제한과 scatter fallback은 폐기하고 다음 후보는 기존 cover commitment를 보존한 접근 이동량만 바꾼다 | E-060은 cover 선택 8/125·사망 미선택 21/21로 메커니즘은 작동했지만 duration 486.6초·alive@60 27·stuck 0.04로 hard FAIL했다 | E-061 1-run이 낮은 cover 진행과 생존을 함께 개선하며 D-004·continuity·정체 gate를 보존함 |
 | D-042 | E-061의 survival-break cover 접근 1.25배는 폐기하고, 다음 후보는 perception 소실 시 이미 선택한 cover까지 이동을 마치는 공간 조건만 바꾼다 | E-061은 cover selected/reached 87/4·진행률 0.09로 속도 증가가 전달되지 않았고 108 episode 중 `no_threat` 종료 91건·perception 소실 84건·평균 exit 0.68초였다. 536.0초·stuck 0.03으로 구조 gate도 실패했다 | E-062 1-run이 cover 진행/도달·생존·continuity를 함께 개선하고 D-004·정체 gate를 보존함 |
-| D-043 | E-062 spatial cover commitment를 자동 gameplay 후보로 유지하고 다음 단계는 새 수치 변경 없이 clean packaged 수동 3판으로 고정한다 | 5-run이 평균 753.5초, alive 중앙 52/39/26/19, cover 진행 0.26·도달 42, survival-state death rate 4.18/100s, 빠른 재획득 25.3%, stuck/disengage 0.02/0.17로 기준선과 구조 gate를 함께 개선했다 | 수동 3판에서 엄폐 후퇴가 부자연스럽거나 전체 DISENGAGE reengage 25.0%가 churn으로 읽힘, 초기 붕괴·후반 교착·성능·재시작 중 하나가 실패함 |
+| D-043 | E-062 spatial cover commitment는 자동 PASS·수동 FAIL 기준선으로 유지하며 M1 승격하지 않는다 | 자동 5-run은 개선됐지만 수동 3판의 장기 생존 판도 첫 축소 때 4명만 남았고 플레이어가 교전에서 쉽게 이탈했다. 재검토 조건이 충족됐다 | LOS-loss 압력 결함과 이동 수렴을 분리한 후 새 후보가 자동·수동 생존 곡선을 함께 통과함 |
+| D-044 | 다음 순서는 행동 중립 LOS escape pressure exact 계측 → E-062 1-run 기준선 → `shoot_predictive(target_pos)`만 고친 E-063 1-run이다 | 현재 함수는 target position 인자를 사용하지 않고 전방 사격에 `state_timer*0.4` 확산을 더해 LOS 상실 뒤 압력이 급감한다. 60봇 자동 실행은 bot 표본, arena/수동은 player 표본을 같은 계약으로 분리한다. 맵·damage·HP·zone을 동시에 바꾸면 수동 이탈 체감과 초기 붕괴의 원인을 분리할 수 없다 | 계측이 압력 공백을 반증하거나 E-063이 생존·continuity·성능 gate를 악화함 |
+| D-045 | E-063 전 표적 target-position 예측 사격은 폐기하고 E-064는 플레이어 표적에만 같은 수정을 적용한다 | E-063 1-run에서 LOS 후 명중률은 10.7→37.0%로 올라 직접 레버를 확인했지만 alive@120/260은 25/21→22/17, duration은 628.6→524.6초로 악화하고 stage3 전에 끝났다. bot 대 bot 0.55 피해 계약처럼 플레이어 압력과 봇 생존을 분리해야 한다 | E-064 arena/수동에서 플레이어 이탈 압력이 그대로이거나 과도하고, 60봇 5-run에서 E-062 생존·duration·성능을 보존하지 못함 |
+| D-046 | E-064 player-only target-position 예측 사격을 자동 후보로 유지하되 수동 PASS 전 승격하지 않는다 | 5-run 평균 694.3초·alive 중앙 53/38/32/27/22/17·first upgrade 3.40초·stuck/disengage 0.020/0.191로 구조 gate를 통과했고 bot LOS 명중률 10.87%로 E-062를 보존했다. headless에는 player 표본이 없다 | player-target 격리 runtime 또는 수동 3판에서 이탈 압력이 그대로/과도함, 자동-수동 생존 곡선 괴리가 해소되지 않음 |
+| D-047 | kill context 진단 창을 60초에서 첫 축소 직전인 120초까지 늘리고 topology 변경 전 자동-수동 괴리를 먼저 분해한다 | E-064 5-run의 첫 60초 사망 111건은 15-45초에 84건이 몰렸고 victim state는 DISENGAGE 88건, 앞선 사망 3초 이내 연쇄가 83건이었다. 전역 hard block은 수렴 choke를 악화할 수 있고 60초 창만으로 첫 축소 4명 현상을 직접 설명할 수 없다 | 120초 자료에서 위치·교전 참가·연쇄 사망이 원인을 좁히지 못하거나 대표 슬라이스 topology 후보가 더 안전한 인과 근거를 제공함 |
 
 ## 현재 설계 편향
 

@@ -16,10 +16,10 @@ func _init():
 	var source = bot_script.new()
 	source.configure_runtime_combat(candidate_combat)
 
-	var bot_target = Node.new()
+	var bot_target = Node3D.new()
 	root.add_child(bot_target)
 	bot_target.add_to_group("bots")
-	var player_target = Node.new()
+	var player_target = Node3D.new()
 	root.add_child(player_target)
 	player_target.add_to_group("players")
 
@@ -29,11 +29,52 @@ func _init():
 	if not is_equal_approx(source._outgoing_damage_for(player_target, 20.0), 20.0):
 		_fail("Runtime combat multiplier must not change damage to the player.")
 		return
+	source.target_actor = player_target
+	var player_base: Vector3 = bot_script.predictive_base_local_offset(
+		Vector3(10.0, 0.0, 0.0),
+		source._is_targeting_player()
+	)
+	var side_target: Vector3 = bot_script.predictive_local_shot_vector(
+		player_base,
+		20.0,
+		0.0,
+		0.0
+	)
+	if not side_target.is_equal_approx(Vector3(20.0, 0.0, 0.0)):
+		_fail("Predictive fire should aim at the supplied last-known target offset.")
+		return
+	source.target_actor = bot_target
+	var bot_base: Vector3 = bot_script.predictive_base_local_offset(
+		Vector3(10.0, 0.0, 0.0),
+		source._is_targeting_player()
+	)
+	if not bot_base.is_equal_approx(Vector3.FORWARD):
+		_fail("Bot-target predictive fire should preserve the E-062 forward baseline.")
+		return
+	var fallback_target: Vector3 = bot_script.predictive_local_shot_vector(
+		Vector3.ZERO,
+		20.0,
+		0.0,
+		0.0
+	)
+	if not fallback_target.is_equal_approx(Vector3(0.0, 0.0, -20.0)):
+		_fail("Predictive fire should retain a safe local-forward fallback.")
+		return
+	var spread_target: Vector3 = bot_script.predictive_local_shot_vector(
+		Vector3(0.0, 0.0, -10.0),
+		20.0,
+		0.2,
+		0.1
+	)
+	if not is_equal_approx(spread_target.length(), 20.0) \
+			or spread_target.x <= 0.0 or spread_target.y <= 0.0 or spread_target.z >= 0.0:
+		_fail("Predictive spread should offset the supplied aim while preserving range.")
+		return
 
 	source.free()
 	bot_target.free()
 	player_target.free()
-	print("Bot runtime combat smoke passed: bot_vs_bot=0.55 player=1.00.")
+	print("Bot runtime combat smoke passed: damage isolation and predictive target vector.")
 	quit(0)
 
 
