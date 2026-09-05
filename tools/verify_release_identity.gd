@@ -43,7 +43,7 @@ func _init() -> void:
 
 	print("Release identity smoke passed: %s %s (%s)." % [
 		BuildInfoScript.PRODUCT_NAME,
-		BuildInfoScript.DISPLAY_VERSION,
+		BuildInfoScript.MENU_VERSION,
 		BuildInfoScript.WINDOWS_VERSION,
 	])
 	quit(0)
@@ -65,6 +65,15 @@ func _verify_build_info() -> bool:
 		BuildInfoScript.RELEASE_CHANNEL,
 	]:
 		return _fail_bool("Display version must derive from product version and channel.")
+	var playtest_pattern := RegEx.new()
+	if playtest_pattern.compile("^E-\\d{3}$") != OK \
+			or playtest_pattern.search(BuildInfoScript.PLAYTEST_BUILD) == null:
+		return _fail_bool("Playtest build must expose an E-NNN experiment identifier.")
+	if BuildInfoScript.MENU_VERSION != "%s | %s" % [
+		BuildInfoScript.DISPLAY_VERSION,
+		BuildInfoScript.PLAYTEST_BUILD,
+	]:
+		return _fail_bool("Menu version must include both release and playtest identifiers.")
 	if BuildInfoScript.LEGACY_USER_DIR_NAME != "Godot/app_userdata/BattleRoyalePrototype":
 		return _fail_bool("Legacy user directory changed without a save migration.")
 	return true
@@ -164,7 +173,7 @@ func _verify_menu_version() -> bool:
 	label._ready()
 	var rendered_version := label.text
 	label.free()
-	if rendered_version != BuildInfoScript.DISPLAY_VERSION:
+	if rendered_version != BuildInfoScript.MENU_VERSION:
 		return _fail_bool("Main menu version label does not use BuildInfo.")
 
 	var scene_text := FileAccess.get_file_as_string("res://src/Main.tscn")
@@ -179,9 +188,9 @@ func _verify_menu_version() -> bool:
 	if label_start < 0 or label_end < 0:
 		return _fail_bool("Could not find the Main menu version-label scene block.")
 	var label_block := scene_text.substr(label_start, label_end - label_start)
-	if not label_block.contains("offset_left = -168.0") \
+	if not label_block.contains("offset_left = -248.0") \
 			or not label_block.contains("offset_right = -8.0"):
-		return _fail_bool("Main menu version label is too narrow for the release channel.")
+		return _fail_bool("Main menu version label is too narrow for release and playtest identifiers.")
 	return true
 
 

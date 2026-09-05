@@ -16,7 +16,7 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | E-062 수동 실패 뒤 LOS 이탈 exact 계측을 추가했고 E-063 전 표적 사격은 폐기했다. E-064 player-only 마지막 위치 사격은 관련 runtime과 60봇 5-run 보존 gate를 통과했지만 player 실제 표본은 아직 없다 |
+| 현재 단위 | E-062 수동 실패 뒤 LOS 이탈 exact 계측을 추가했고 E-063 전 표적 사격은 폐기했다. E-064 player-only 마지막 위치 사격은 관련 runtime과 60봇 5-run 보존 gate를 통과했으며, 메뉴 식별자를 `v2.1.0-demo-dev | E-064`로 분리한 새 수동 EXE를 만든다 |
 | 바로 다음 단위 | 120초 kill context로 자동 alive@120 중앙 27명과 수동 첫 축소 4명의 괴리를 초기 목적지·무장 거점·교전 참가/연쇄 사망으로 분해하고 E-064 player-target 격리 runtime을 만든다. 물리 변경은 그 뒤 Survey Camp↔Central Meadow 대표 슬라이스의 별도 후보로 둔다 |
 | 최신 검증 개발 단위 | E-064 LOS exact schema, player-only predictive vector, bot damage 격리, target lifetime·decision policy와 전체 `unit_smoke`가 PASS했다. 전 표적에 적용한 E-063은 즉시 폐기했고 맵·존·HP·피해·확산·기억시간은 바꾸지 않았다 |
 | 최신 검증 게임플레이 단위 | E-064 seed 41000-41004는 평균 694.3초(599.2-855.0), alive 중앙 `53/38/32/27/22/17`, first upgrade 3.40초, fallback 0, stuck/disengage 0.020/0.191로 자동 gate를 통과했다. bot LOS 명중률 10.87%로 E-062를 보존했지만 player 표본과 수동 3판은 아직 PASS가 아니다 |

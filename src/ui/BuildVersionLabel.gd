@@ -5,4 +5,4 @@ const BuildInfoScript = preload("res://src/core/BuildInfo.gd")
 
 
 func _ready() -> void:
-	text = BuildInfoScript.DISPLAY_VERSION
+	text = BuildInfoScript.MENU_VERSION

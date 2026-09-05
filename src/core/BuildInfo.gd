@@ -8,6 +8,8 @@ const PRODUCT_VERSION := "2.1.0"
 const WINDOWS_VERSION := PRODUCT_VERSION + ".0"
 const RELEASE_CHANNEL := "demo-dev"
 const DISPLAY_VERSION := "v" + PRODUCT_VERSION + "-" + RELEASE_CHANNEL
+const PLAYTEST_BUILD := "E-064"
+const MENU_VERSION := DISPLAY_VERSION + " | " + PLAYTEST_BUILD
 const FILE_DESCRIPTION := "Battle Capsule Windows demo"
 const ICON_PATH := "res://icon.svg"
 

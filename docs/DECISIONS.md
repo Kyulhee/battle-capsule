@@ -52,6 +52,7 @@
 | D-045 | E-063 전 표적 target-position 예측 사격은 폐기하고 E-064는 플레이어 표적에만 같은 수정을 적용한다 | E-063 1-run에서 LOS 후 명중률은 10.7→37.0%로 올라 직접 레버를 확인했지만 alive@120/260은 25/21→22/17, duration은 628.6→524.6초로 악화하고 stage3 전에 끝났다. bot 대 bot 0.55 피해 계약처럼 플레이어 압력과 봇 생존을 분리해야 한다 | E-064 arena/수동에서 플레이어 이탈 압력이 그대로이거나 과도하고, 60봇 5-run에서 E-062 생존·duration·성능을 보존하지 못함 |
 | D-046 | E-064 player-only target-position 예측 사격을 자동 후보로 유지하되 수동 PASS 전 승격하지 않는다 | 5-run 평균 694.3초·alive 중앙 53/38/32/27/22/17·first upgrade 3.40초·stuck/disengage 0.020/0.191로 구조 gate를 통과했고 bot LOS 명중률 10.87%로 E-062를 보존했다. headless에는 player 표본이 없다 | player-target 격리 runtime 또는 수동 3판에서 이탈 압력이 그대로/과도함, 자동-수동 생존 곡선 괴리가 해소되지 않음 |
 | D-047 | kill context 진단 창을 60초에서 첫 축소 직전인 120초까지 늘리고 topology 변경 전 자동-수동 괴리를 먼저 분해한다 | E-064 5-run의 첫 60초 사망 111건은 15-45초에 84건이 몰렸고 victim state는 DISENGAGE 88건, 앞선 사망 3초 이내 연쇄가 83건이었다. 전역 hard block은 수렴 choke를 악화할 수 있고 60초 창만으로 첫 축소 4명 현상을 직접 설명할 수 없다 | 120초 자료에서 위치·교전 참가·연쇄 사망이 원인을 좁히지 못하거나 대표 슬라이스 topology 후보가 더 안전한 인과 근거를 제공함 |
+| D-048 | 수동 판정 요청 전에는 현재 후보를 새 EXE로 export하고 메뉴에 릴리즈 채널과 `E-NNN` 실험 식별자를 함께 표시하며 정확한 실행 경로를 전달한다 | 릴리즈 버전만 표시하면 Godot 실행과 오래된 GitHub artifact를 구분할 수 없고 stale build 판정 위험이 있다 | 자동 build provenance가 화면·manifest·파일명에 commit까지 일관되게 주입됨 |
 
 ## 현재 설계 편향
 
