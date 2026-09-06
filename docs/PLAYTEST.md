@@ -11,11 +11,11 @@
 | 현재 단위 | E-066 티어 가독성 후보: 메뉴 `v2.1.0-demo-dev \| E-066`. E-065 소리 반응을 보존하고 경제/건물은 미구현. GitHub 첨부는 이전 E-062다 |
 | 승격 목적 | 초기 인원 붕괴가 이동 수렴인지 교전 지속/연쇄 사망인지 분리하고, 플레이어 이탈이 쉬운 직접 원인을 맵 변경 전에 확인 |
 
-직전 E-065 비교 파일(신규 E-066 경로는 clean export 검증 뒤 갱신):
+현재 전달 파일(clean 소스 커밋 `e16b089`, E-066):
 
-- Windows: `C:\test\game_dev\builds\playtest\E-065_04bed12\BattleCapsule_E065_04bed12.exe` — 같은 폴더의 `.pck`를 함께 유지한다.
-- macOS: `C:\test\game_dev\builds\playtest\E-065_04bed12\BattleCapsule_E065_04bed12_macos_unsigned.zip` — 미서명/미공증 교차 빌드, 실제 Mac 실행 미검증.
-- SHA256/출처: 같은 폴더 `PLAYTEST_BUILD.txt`. Windows 실제 EXE headless 기본 맵 부팅/종료 PASS; 두 플랫폼 PCK는 empty host에서 catalog 44·JSON 3·runtime 124·load probe 20·payload closure와 실제 label `v2.1.0-demo-dev | E-065` PASS.
+- Windows: `C:\test\game_dev\builds\playtest\E-066_e16b089\BattleCapsule_E066_e16b089.exe` — 같은 폴더의 `.pck`를 함께 유지한다.
+- macOS: `C:\test\game_dev\builds\playtest\E-066_e16b089\BattleCapsule_E066_e16b089_macos_unsigned.zip` — 미서명/미공증 교차 빌드, 실제 Mac 실행 미검증.
+- SHA256/출처: 같은 폴더 `PLAYTEST_BUILD.txt`. Windows EXE headless/Forward+ 기본 맵 부팅/종료 PASS; 두 플랫폼 PCK는 empty host에서 catalog 44·JSON 3·runtime 124·load probe 20·payload closure와 실제 label `v2.1.0-demo-dev | E-066` PASS.
 - 이 파일은 로컬 진단 후보다. 기존 GitHub 릴리즈 첨부를 교체하지 않았고, 공개 데모 승격이나 사람 전체 루프 PASS를 의미하지 않는다.
 
 ## N2-PLAY-11 재판정 프로토콜
@@ -100,6 +100,8 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 표시/검증: 필드 이름/색·focus 비교와 HUD 배지/티어 테두리/사용 표시를 연결했다. 선택·탄약 없음·재장전에도 티어를 보존한다. 작은 픽업 라벨과 슬롯 바 오프셋도 보정했다. `verify_item_tier_presentation.gd`와 전체 `unit_smoke` PASS, `capture_item_tier_runtime.gd`로 Night `night_br_m1_60` 정지 fixture의 720p/1080p×6상태(노후·업그레이드·재장전·빈 탄창/저체력·근접·빈 슬롯) 12캡처와 화면 경계/중앙 정렬을 확인했다. 결과는 `builds/verification/E066_visual/`; 실제 매치 재미/페이싱 PASS는 아니다.
 
 다음 수동: 새 E-066 EXE에서 낡은/표준 산탄총을 습득 전후 구분하고 탄약 경고가 읽히는지만 짧게 확인한다. 재화량·총기 성능·교체/탄약 규칙·AI·존·맵 데이터는 불변이며, 보급 이동 후보를 평가할 새 5-run을 이번 표시 수정의 근거로 대신하지 않는다.
+
+패키지 화면: 최종 PCK를 콘솔 엔진에 `--main-pack`으로 직접 로드한 tier fixture와 Forward+ 12캡처도 PASS(`builds/verification/E066_pck_visual`). EXE에 외부 capture script를 붙인 시도는 로그 없이 완료되지 않아 해당 테스트 프로세스를 중단했고, EXE 기본 부팅과 PCK 캡처로 검증을 분리했다. 사람 입력/전체 매치 PASS로 간주하지 않는다.
 
 ### 2026-09-06 - E-065 반응 개선과 다음 이동 압력 설계
 
