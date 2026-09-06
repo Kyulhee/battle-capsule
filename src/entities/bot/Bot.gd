@@ -20,6 +20,7 @@ const PERCEPTION_LOD_IDLE_INTERVAL := 0.12
 const SENSORY_CLOSE_RANGE_INTERVAL := 0.05
 const SENSORY_GUNSHOT_INTERVAL := 0.10
 const SENSORY_FOOTSTEP_INTERVAL := 0.15
+const PLAYER_SOUND_LOOK_SECONDS := 0.6
 const TARGET_SEARCH_INTERVAL := 0.10
 const RETREAT_THREAT_SEARCH_INTERVAL := 0.10
 const THREAT_PRESSURE_INTERVAL := 0.10
@@ -104,6 +105,11 @@ var _combat_loot_radius: float = 15.0
 var _scan_interval_max: float = 3.0  # idle scan max interval — difficulty-scaled
 var _scan_phase: int = 0             # cycles: right flank → left flank → random
 var _scan_alert: bool = false        # true when sound/event set scan_target; use full rotation speed
+# E-065: a sampled human cue owns passive facing briefly. Store a position,
+# never a live target reference; sight/target acquisition still use perception.
+var _player_sound_look_remaining := 0.0
+var _player_sound_look_position := Vector3.ZERO
+var _player_sound_look_priority := 0
 var _objective_scan_timer: float = 0.0
 var _objective_scan_offset: float = 0.0
 var _close_range_check_timer: float = 0.0
@@ -294,6 +300,8 @@ func _on_died_zone_log():
 
 func _physics_process(delta):
 	if is_dead: return
+	var facing_before_state := rotation.y
+	_player_sound_look_remaining = maxf(0.0, _player_sound_look_remaining - delta)
 	_ensure_continuity_shadow()
 	_register_opening_survival_actor()
 	var log_ai_update := _ai_update_telemetry_phase == 0
@@ -347,6 +355,7 @@ func _physics_process(delta):
 		State.RECOVER:     handle_recover_state(delta)
 		State.DISENGAGE:   handle_disengage_state(delta)
 
+	_apply_player_sound_look(delta, facing_before_state)
 	super._physics_process(delta)
 
 	# Crouch: RECOVER, DISENGAGE, or IDLE while stationary — reduces player visibility
@@ -2587,6 +2596,34 @@ func _check_late_game():
 # Nearby idle/recovering bots boost their perception toward the source,
 # making running stealthy risky near bots.
 
+func _request_player_sound_look(actor: Entity, priority: int) -> void:
+	if not actor.is_in_group("players"):
+		return
+	if current_state not in [State.IDLE, State.RECOVER] \
+			and not (current_state == State.CHASE and is_targeting_loot):
+		return
+	if _player_sound_look_remaining > 0.0 and priority < _player_sound_look_priority:
+		return
+	_player_sound_look_position = actor.global_position
+	_player_sound_look_remaining = PLAYER_SOUND_LOOK_SECONDS
+	_player_sound_look_priority = priority
+
+func _apply_player_sound_look(delta: float, facing_before_state: float) -> void:
+	if _player_sound_look_remaining <= 0.0:
+		return
+	if current_state not in [State.IDLE, State.RECOVER] \
+			and not (current_state == State.CHASE and is_targeting_loot):
+		# Combat/escape owns facing now. Do not replay this cue on later IDLE.
+		_player_sound_look_remaining = 0.0
+		return
+	var offset := _player_sound_look_position - global_position
+	offset.y = 0.0
+	if offset.length_squared() < 0.01:
+		return
+	var bearing := atan2(offset.x, offset.z) + PI
+	# Use the pre-handler yaw so patrol or movement cannot add an opposing turn.
+	rotation.y = lerp_angle(facing_before_state, bearing, 1.0 - exp(-stats.rotation_speed * delta))
+
 func _check_footstep_sounds(delta: float):
 	_footstep_check_timer -= delta
 	if _footstep_check_timer > 0.0:
@@ -2598,7 +2635,6 @@ func _check_footstep_sounds(delta: float):
 	var actors = get_tree().get_nodes_in_group("actors")
 	for actor in actors:
 		if actor == self or not actor is Entity or actor.is_dead: continue
-		if perception_meters.get(actor, 0.0) >= 1.0: continue
 		var spd = Vector2(actor.velocity.x, actor.velocity.z).length()
 		if spd < actor.stats.move_speed * 0.5: continue
 		var dist = global_position.distance_to(actor.global_position)
@@ -2606,8 +2642,13 @@ func _check_footstep_sounds(delta: float):
 		if actor.has_method("get_footstep_radius_mult"):
 			eff_range *= actor.get_footstep_radius_mult()
 		if dist > eff_range: continue
+		_request_player_sound_look(actor, 1)
+		if perception_meters.get(actor, 0.0) >= 1.0: continue
 		if not perception_meters.has(actor): perception_meters[actor] = 0.0
-		perception_meters[actor] = min(perception_meters[actor] + 0.4, 0.85)
+		var previous_awareness := float(perception_meters[actor])
+		perception_meters[actor] = min(previous_awareness + 0.4, 0.85)
+		if actor.is_in_group("players"):
+			perception_meters[actor] = maxf(previous_awareness, perception_meters[actor])
 		last_known_target_pos = actor.global_position
 		# Turn passive or objective-focused bots toward the sound source.
 		if current_state == State.IDLE or (current_state == State.CHASE and is_targeting_loot):
@@ -2632,11 +2673,15 @@ func _check_gunshot_sounds(delta: float):
 		var dist = global_position.distance_to(actor.global_position)
 		var range_limit = maxf(BOT_TUNING.HARD_GUNSHOT_MIN_RANGE, stats.vision_range) if _awareness_level >= 2 else 15.0
 		if dist > range_limit: continue
+		_request_player_sound_look(actor, 2)
 		if not perception_meters.has(actor): perception_meters[actor] = 0.0
 		var direct_noise_lock = _awareness_level >= 2 and (has_los_to(actor) or dist <= BOT_TUNING.HARD_GUNSHOT_CLOSE_COMMIT_RANGE)
 		var max_awareness = 1.0 if direct_noise_lock else 0.75
 		var boost = 1.0 if direct_noise_lock else (0.65 if _awareness_level >= 2 else 0.5)
-		perception_meters[actor] = min(perception_meters[actor] + boost, max_awareness)
+		var previous_awareness := float(perception_meters[actor])
+		perception_meters[actor] = min(previous_awareness + boost, max_awareness)
+		if actor.is_in_group("players"):
+			perception_meters[actor] = maxf(previous_awareness, perception_meters[actor])
 		last_known_target_pos = actor.global_position
 		var dir_to = (actor.global_position - global_position).normalized()
 		scan_target_rotation = atan2(dir_to.x, dir_to.z) + PI
@@ -2703,7 +2748,10 @@ func _check_ambient_awareness(delta: float):
 
 		if not perception_meters.has(actor): perception_meters[actor] = 0.0
 		var boost = 0.2 if _awareness_level == 1 else 0.35
-		perception_meters[actor] = min(perception_meters[actor] + boost, 0.75)
+		var previous_awareness := float(perception_meters[actor])
+		perception_meters[actor] = min(previous_awareness + boost, 0.75)
+		if actor.is_in_group("players"):
+			perception_meters[actor] = maxf(previous_awareness, perception_meters[actor])
 		last_known_target_pos = actor.global_position
 		if current_state == State.IDLE or current_state == State.RECOVER or (current_state == State.CHASE and is_targeting_loot):
 			var dir_to = (actor.global_position - global_position).normalized()
@@ -3909,6 +3957,7 @@ func take_damage(amount: float, source: String = "gun", weapon_type: String = ""
 	if source_node is Entity and is_instance_valid(source_node) and not source_node.is_dead:
 		perception_meters[source_node] = 1.0
 		last_known_target_pos = source_node.global_position
+		_request_player_sound_look(source_node, 3)
 
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
 		if current_state != State.RECOVER and current_state != State.ZONE_ESCAPE:

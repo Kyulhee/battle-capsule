@@ -1,6 +1,6 @@
 # 플레이테스트 노트
 
-> 최종 업데이트: 2026-09-05. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
+> 최종 업데이트: 2026-09-06. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
 
 ## 현재 수동 테스트 대상
 
@@ -8,12 +8,12 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | E-062 프리릴리즈 수동 3판은 첫 축소 4명과 약한 추격/이탈 압력으로 FAIL했다. E-064 수동 후보는 메뉴에서 `v2.1.0-demo-dev | E-064`로 식별하며 새로 export한 EXE만 판정에 사용한다 |
+| 현재 단위 | E-065 소리 반응 수정 후보. 메뉴에서 `v2.1.0-demo-dev \| E-065`로 식별하며 새로 export한 EXE만 판정에 사용한다. GitHub의 기존 v2.1.0-demo-dev 첨부는 E-062이므로 이번 수정이 없다 |
 | 승격 목적 | 초기 인원 붕괴가 이동 수렴인지 교전 지속/연쇄 사망인지 분리하고, 플레이어 이탈이 쉬운 직접 원인을 맵 변경 전에 확인 |
 
 ## N2-PLAY-11 재판정 프로토콜
 
-E-060의 6m 제한/scatter와 E-061의 접근 1.25배는 폐기했다. E-062는 선택 cover를 `no_threat` 뒤에도 도달까지 유지하는 공간 조건만 바꿔 1-run·5-run의 cover 진행/도달·생존 노출률·빠른 재획득·정체/이탈·D-004를 통과했다. 다음은 새 gameplay 수치 없이 current tracked clean package의 수동 3판이며 아직 packaged/manual PASS는 없다.
+먼저 E-065 새 EXE에서 Normal 1판으로 가까운 발소리 방향 확인, 노출 사격 뒤 반격, 엄폐 뒤 시야 상실을 확인한다. 수동 난이도·메뉴 식별자와 120초/260초 생존자를 함께 남긴다. 반응 결함 확인 뒤 아래 3판 프로토콜로 돌아간다. E-060/061은 폐기했고 E-062 cover commitment와 E-064 player-only 마지막 위치 사격은 유지하지만 M1 수동 승격은 아직 아니다.
 
 | 판 | 초점 | 필수 기록 |
 |---|---|---|
@@ -85,6 +85,18 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 ```
 
 ## 최근 기록
+
+### 2026-09-06 - N2-PLAY-11 E-064 수동 소리 반응 실패 → E-065
+
+체감: 사용자 1판에서 발소리 방향 전환과 발사 후 대응이 느렸다. 보존한 수동 telemetry는 `builds/playtest/E-064_8ea825a/manual_results/run_001.json`이며 372.5초·2위·5킬/1어시스트, alive@30/60/90/120/180/260 `40/26/21/18/13/4`다. 난이도와 telemetry 자체 build provenance는 미기록이므로 엄격한 자동/수동 쌍 비교는 아니다. player LOS episode 11·예측 사격 4발/1명중으로 이탈 압력 PASS도 선언하지 않는다.
+
+원인/수정: 소리의 scan 방향을 idle 무작위 탐색·처치 후 탐색·회복 순찰·파밍 이동이 덮어썼다. 인지도 boost의 cap은 더 높아진 인지도까지 낮췄다. E-065는 플레이어 cue 위치 snapshot을 0.6초만 유지하고 피격>총성>발소리 우선권으로 비전투 시선을 돌린다. 해당 cue는 전투/도주 시선 소유권을 침범하지 않고, 소리만으로 Normal target을 확정하지 않는다. player 인지도는 footstep/gunshot/ambient cap으로 낮추지 않는다. bot끼리는 기존 계약을 유지한다.
+
+검증: 기존 idle 발소리 재현은 0.4초 후 오차 39.2도로 실패했다. 수정 후 12개 cue/state 조합은 0.1-2.8도, Normal 8m 측면 노출 총성에서 실제 탐지 0.383초·첫 사격 0.433초다. 차폐 벽 너머 미탐지/미발사, cue 위치 snapshot/만료/우선권, 기존 인지도 유지와 bot-only cap을 통과했다. `unit_smoke` 전체와 보강 runtime PASS; 기존 종료 leak/일부 dummy material 로그는 남아 있어 warning-free 판정이 아니다.
+
+60봇 sanity: seed 41000 1-run은 683.2초·stage4, alive `55/36/28/24/24/12`, first upgrade 11.9초, fallback 0, stuck/disengage 0.016/0.189다. AI 평균/최대 331.6/34,705us. 이는 `builds/verification/E065_pilot`의 기본 난이도 봇-only 점검이며 5-run 페이싱 승격이나 수동 반응 PASS가 아니다.
+
+빌드 절차: `powershell -File tools/export_playtest.ps1 -IncludeMac`은 HEAD의 clean git archive만 사용하고 E번호+commit 파일명·SHA256 manifest를 만든다. Windows PCK를 empty host에서 `verify_release_package.gd`의 `expected_menu`와 함께 검증하고 EXE를 부팅한 뒤 정확한 경로를 전달한다. macOS는 미서명 교차 export와 실제 Mac 실행 검증을 구분한다.
 
 ### 2026-09-05 - N2-PLAY-11 E-062 수동 3판 거부
 

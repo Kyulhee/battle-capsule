@@ -201,6 +201,20 @@ func _init() -> void:
 		return
 
 	var failures: Array[String] = []
+	var expected_menu := String(args.get("expected_menu", ""))
+	if not expected_menu.is_empty():
+		# Load the actual exported label script, not the workspace BuildInfo.
+		var label_script = load("res://src/ui/BuildVersionLabel.gd")
+		if label_script == null:
+			failures.append("Packaged build label script is missing.")
+		else:
+			var label = label_script.new()
+			label._ready()
+			if label.text != expected_menu:
+				failures.append("Packaged menu identity mismatch: %s." % label.text)
+			else:
+				print("PACKAGE_MENU ", label.text)
+			label.free()
 	for path in REQUIRED_RESOURCE_PATHS:
 		var loader_exists := ResourceLoader.exists(path)
 		if not loader_exists and not FileAccess.file_exists(path):
