@@ -174,6 +174,7 @@ def profile_steps(
             godot_script(godot, "verify_spawn_distribution_metrics.gd"),
             godot_script(godot, "verify_bot_opening_loot_rules.gd"),
             godot_script(godot, "verify_loot_drop_stability.gd"),
+            godot_script(godot, "verify_item_tier_presentation.gd"),
             godot_script(godot, "verify_bot_runtime_combat.gd"),
             godot_script_args(
                 godot,

@@ -197,9 +197,9 @@ func _update_label_node() -> void:
 	label.name = "PickupLabel"
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.no_depth_test = false
-	label.font_size = 26
-	label.pixel_size = 0.005
-	label.position = Vector3(0, 1.1, 0)
+	label.font_size = 32
+	label.pixel_size = 0.0075
+	label.position = Vector3(0, 1.35, 0)
 	label.outline_size = 6
 	label.visible = false  # hidden until LOS confirmed
 	add_child(label)
@@ -222,12 +222,18 @@ func _refresh_label_for_player(player: Node3D = null, sensed: bool = false) -> v
 	var dist = player.global_position.distance_to(global_position)
 	if _focused:
 		_label.text = _label_detail_text()
+		if item.type == ItemData.Type.WEAPON and player.has_method("get_weapon_pickup_comparison"):
+			var comparison: String = player.get_weapon_pickup_comparison(item.weapon_stats)
+			if not comparison.is_empty():
+				_label.text += "\n" + comparison
 		_label.modulate = PickupPresentationScript.label_color(item, true)
+		_label.pixel_size = 0.009
 		_label.scale = PickupPresentationScript.FOCUSED_LABEL_SCALE
 		_label.visible = true
 	elif dist <= PickupPresentationScript.LABEL_NAME_RANGE and _should_show_cluster_label(player, dist):
 		_label.text = _label_name_text()
 		_label.modulate = PickupPresentationScript.label_color(item, false)
+		_label.pixel_size = 0.0075
 		_label.scale = PickupPresentationScript.NORMAL_LABEL_SCALE
 		_label.visible = true
 	else:

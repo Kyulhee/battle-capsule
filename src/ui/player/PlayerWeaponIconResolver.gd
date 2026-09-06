@@ -20,14 +20,14 @@ func make_weapon_icon(wtype: String, catalog = null) -> Texture2D:
 			for x in range(22, 26): img.set_pixel(x, 7, c)
 			for y in range(4, 10): img.set_pixel(2, y, c); img.set_pixel(3, y, c)
 		"pistol":
-			c = Color(0.55, 0.78, 1.0)
+			c = Color(0.9, 0.9, 0.9)
 			for x in range(7, 19):
 				for y in range(5, 9): img.set_pixel(x, y, c)
 			for x in range(18, 26): img.set_pixel(x, 6, c); img.set_pixel(x, 7, c)
 			for x in range(8, 12):
 				for y in range(8, 13): img.set_pixel(x, y, c)
 		"ar":
-			c = Color(0.2, 0.88, 0.35)
+			c = Color(0.9, 0.9, 0.9)
 			for x in range(2, 23):
 				for y in range(6, 9): img.set_pixel(x, y, c)
 			for x in range(2, 5):
@@ -36,7 +36,7 @@ func make_weapon_icon(wtype: String, catalog = null) -> Texture2D:
 			for x in range(11, 17):
 				for y in range(9, 14): img.set_pixel(x, y, c)
 		"shotgun":
-			c = Color(1.0, 0.6, 0.1)
+			c = Color(0.9, 0.9, 0.9)
 			for x in range(2, 21):
 				for y in range(5, 10): img.set_pixel(x, y, c)
 			for y in range(4, 10): img.set_pixel(2, y, c); img.set_pixel(3, y, c)
@@ -44,7 +44,7 @@ func make_weapon_icon(wtype: String, catalog = null) -> Texture2D:
 				for y in range(5, 10): img.set_pixel(x, y, c)
 			for x in range(20, 27): img.set_pixel(x, 7, Color(0, 0, 0, 0.6))
 		"railgun":
-			c = Color(0.85, 0.2, 1.0)
+			c = Color(0.9, 0.9, 0.9)
 			for x in range(0, W): img.set_pixel(x, 7, c)
 			for x in range(0, 6):
 				for y in range(5, 10): img.set_pixel(x, y, c)

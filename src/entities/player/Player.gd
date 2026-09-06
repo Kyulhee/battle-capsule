@@ -652,8 +652,9 @@ func _update_status_hud(alive: int, total: int = 0):
 	if _stat_heal_val:  _stat_heal_val.text  = "×%d" % stats.heal_items
 	if _stat_mk_val:    _stat_mk_val.text    = "×%d" % stats.advanced_heals
 	if _stat_armor_val:
-		_stat_armor_val.text = "%d%%" % int(round(armor_damage_reduction * 100.0)) \
+		_stat_armor_val.text = "T%d · %d%%" % [equipped_armor_tier, int(round(armor_damage_reduction * 100.0))] \
 			if equipped_armor_tier > 0 else "0"
+		_stat_armor_val.add_theme_color_override("font_color", DropDisplayCatalogScript.tier_color(equipped_armor_tier))
 	if _stat_kill_val:  _stat_kill_val.text  = "%d" % kills
 	if _stat_asst_val:  _stat_asst_val.text  = "%d" % assists
 	if _stat_alive_val: _stat_alive_val.text = "%d/%d" % [alive, total] if total > 0 else "%d" % alive
@@ -746,6 +747,9 @@ func _refresh_slot_hud():
 		slots,
 		Callable(_weapon_icon_resolver, "make_weapon_icon").bind(_get_asset_catalog())
 	)
+
+func get_weapon_pickup_comparison(wstats: StatsData) -> String:
+	return ItemDisplayFormatterScript.weapon_pickup_comparison(wstats, slots)
 
 func _get_asset_catalog():
 	var main = get_tree().root.get_node_or_null("Main")

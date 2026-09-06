@@ -218,8 +218,10 @@ static func build_slot_hud(root: Control) -> Dictionary:
 	slot_bar.set_anchors_and_offsets_preset(Control.PRESET_CENTER_BOTTOM)
 	slot_bar.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	slot_bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	slot_bar.position.y -= 18
-	slot_bar.position.x -= 201
+	slot_bar.offset_left = -201
+	slot_bar.offset_right = 201
+	slot_bar.offset_top = -114
+	slot_bar.offset_bottom = -18
 	slot_bar.add_theme_constant_override("separation", 8)
 
 	var slot_panels = []
@@ -228,16 +230,18 @@ static func build_slot_hud(root: Control) -> Dictionary:
 	var slot_labels = ["`", "1", "2", "3", "4"]
 	for i in range(slot_labels.size()):
 		var panel = PanelContainer.new()
-		panel.custom_minimum_size = Vector2(74, 84)
+		panel.custom_minimum_size = Vector2(74, 96)
 		slot_bar.add_child(panel)
 		slot_panels.append(panel)
 
 		var vbox = VBoxContainer.new()
+		vbox.name = "Content"
 		panel.add_child(vbox)
 		vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 		vbox.add_theme_constant_override("separation", 1)
 
 		var key_lbl = Label.new()
+		key_lbl.name = "SlotKey"
 		key_lbl.text = slot_labels[i]
 		key_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		key_lbl.add_theme_font_size_override("font_size", 12)
@@ -247,12 +251,18 @@ static func build_slot_hud(root: Control) -> Dictionary:
 		var icon_rect = TextureRect.new()
 		icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon_rect.custom_minimum_size = Vector2(48, 48)
+		icon_rect.custom_minimum_size = Vector2(40, 40)
 		icon_rect.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		icon_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		icon_rect.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
 		vbox.add_child(icon_rect)
 		slot_icon_rects.append(icon_rect)
+
+		var tier_lbl = Label.new()
+		tier_lbl.name = "TierLabel"
+		tier_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tier_lbl.add_theme_font_size_override("font_size", 12)
+		vbox.add_child(tier_lbl)
 
 		var ammo_lbl = Label.new()
 		ammo_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
