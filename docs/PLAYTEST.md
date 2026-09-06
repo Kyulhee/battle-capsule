@@ -11,6 +11,13 @@
 | 현재 단위 | E-065 소리 반응 수정 후보. 메뉴에서 `v2.1.0-demo-dev \| E-065`로 식별하며 새로 export한 EXE만 판정에 사용한다. GitHub의 기존 v2.1.0-demo-dev 첨부는 E-062이므로 이번 수정이 없다 |
 | 승격 목적 | 초기 인원 붕괴가 이동 수렴인지 교전 지속/연쇄 사망인지 분리하고, 플레이어 이탈이 쉬운 직접 원인을 맵 변경 전에 확인 |
 
+현재 전달 파일(소스 커밋 `04bed123d74c4e988d1fc0bb7d0e8bcb30a12293`):
+
+- Windows: `C:\test\game_dev\builds\playtest\E-065_04bed12\BattleCapsule_E065_04bed12.exe` — 같은 폴더의 `.pck`를 함께 유지한다.
+- macOS: `C:\test\game_dev\builds\playtest\E-065_04bed12\BattleCapsule_E065_04bed12_macos_unsigned.zip` — 미서명/미공증 교차 빌드, 실제 Mac 실행 미검증.
+- SHA256/출처: 같은 폴더 `PLAYTEST_BUILD.txt`. Windows 실제 EXE headless 기본 맵 부팅/종료 PASS; 두 플랫폼 PCK는 empty host에서 catalog 44·JSON 3·runtime 124·load probe 20·payload closure와 실제 label `v2.1.0-demo-dev | E-065` PASS.
+- 이 파일은 로컬 진단 후보다. 기존 GitHub 릴리즈 첨부를 교체하지 않았고, 공개 데모 승격이나 사람 전체 루프 PASS를 의미하지 않는다.
+
 ## N2-PLAY-11 재판정 프로토콜
 
 먼저 E-065 새 EXE에서 Normal 1판으로 가까운 발소리 방향 확인, 노출 사격 뒤 반격, 엄폐 뒤 시야 상실을 확인한다. 수동 난이도·메뉴 식별자와 120초/260초 생존자를 함께 남긴다. 반응 결함 확인 뒤 아래 3판 프로토콜로 돌아간다. E-060/061은 폐기했고 E-062 cover commitment와 E-064 player-only 마지막 위치 사격은 유지하지만 M1 수동 승격은 아직 아니다.
