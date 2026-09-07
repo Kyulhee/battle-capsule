@@ -57,6 +57,9 @@ func _run() -> void:
 			failed = true
 		await _capture(player, "%d_worn" % dimensions.x)
 		player.receive_weapon(Items.WEAPON_SHOTGUN.weapon_stats.duplicate())
+		if player.slots.slot_reserve[2] != 6:
+			push_error("Same-family upgrade must preserve the fixture's six reserve shells.")
+			failed = true
 		pickup._refresh_label_for_player()
 		await _capture(player, "%d_upgraded" % dimensions.x)
 		player.slots.slot_ammo[2] = 0
@@ -74,6 +77,8 @@ func _run() -> void:
 		player._process(0.0)
 		await _capture(player, "%d_empty_low_hp" % dimensions.x)
 		player.current_health = player.stats.max_health
+		player.notify_survival_pickup_blocked("ammo_not_needed")
+		await _capture(player, "%d_ammo_blocked" % dimensions.x)
 		player.slots.switch_to(0)
 		await _capture(player, "%d_knife" % dimensions.x)
 		player.slots.weapon_slots[4] = null

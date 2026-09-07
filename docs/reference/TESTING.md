@@ -128,6 +128,8 @@ AI 오류를 짧게 재현할 때는 제품 맵 대신 96m 전용 표면을 먼�
 
 ## 시뮬레이션 분석
 
+초기 유효 보급은 `audit_initial_loot_runtime.gd`에 명시적 M1 맵/preset, `simulation_seed=41000`, 새 `audit_output=C:/test/game_dev/builds/verification/loot_audit/run.json`을 전달해 검사한다. 실제 `Main.start_game()` 직후 physics 이전의 총·탄종·발 수·POI/3m 호환 여부를 출력한다. 같은 묶음이 여러 총의 존재 지표에 포함될 수 있으며 경로 접근성/고갈 시간/생존을 뜻하지 않는다. 강제 player 수집/업그레이드 재현은 자연 플레이 빈도와 분리하고 최신 수동 결과를 저장하지 않는다. `verify_loot_flow_audit.gd`와 `verify_player_ammo_retention.gd`는 `unit_smoke`에 포함된다.
+
 ```powershell
 python tools\simulate_matches.py 5 map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=night_br_m1_60 seed_base=41000 out_dir=C:\tmp\manual_run
 python tools\analyze_results.py C:\tmp\manual_run

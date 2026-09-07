@@ -431,6 +431,12 @@ func _can_player_collect(collector: Entity) -> bool:
 		return false
 	if not collector.is_in_group("players"):
 		return true
+	if item.type == ItemData.Type.AMMO and not item.ammo_weapon_type.is_empty() \
+			and collector.has_method("can_receive_ammo") \
+			and not collector.can_receive_ammo(item.ammo_weapon_type, item.amount):
+		if collector.has_method("notify_survival_pickup_blocked"):
+			collector.notify_survival_pickup_blocked("ammo_not_needed")
+		return false
 	var main = collector.get_tree().root.get_node_or_null("Main")
 	if item.type == ItemData.Type.HEAL:
 		if main and main.heal_pickup_banned:

@@ -579,6 +579,7 @@ func notify_survival_pickup_blocked(kind: String) -> void:
 		"armor_combat": show_status_flash("COMBAT: ARMOR BLOCKED", false)
 		"armor_not_better": show_status_flash("ARMOR NOT BETTER", false)
 		"weapon_not_better": show_status_flash("WEAPON NOT BETTER", false)
+		"ammo_not_needed": show_status_flash("탄약 수집 불가", false)
 
 
 func health_movement_multiplier() -> float:
@@ -679,6 +680,9 @@ func receive_armor_equipment(item_data: ItemData) -> bool:
 		)
 		_update_hud()
 	return equipped
+
+func can_receive_ammo(weapon_type: String, amount: int) -> bool:
+	return slots.can_receive_ammo(weapon_type, amount)
 
 func receive_ammo(weapon_type: String, amount: int):
 	slots.receive_ammo(weapon_type, amount)

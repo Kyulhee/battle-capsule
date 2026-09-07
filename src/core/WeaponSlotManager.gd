@@ -45,7 +45,7 @@ func receive_weapon(wstats: StatsData) -> bool:
 		if weapon_slots[i] != null and weapon_slots[i].weapon_type == wstats.weapon_type:
 			weapon_slots[i] = wstats
 			slot_ammo[i] = wstats.current_ammo
-			slot_reserve[i] = 0
+			# 같은 탄종의 상위 무기로 교체해도 모아 둔 예비탄은 유지한다.
 			switch_to(i)
 			_emit_gun_count()
 			return true
@@ -66,7 +66,18 @@ func receive_weapon(wstats: StatsData) -> bool:
 		return true
 	return false
 
+func can_receive_ammo(weapon_type: String, amount: int) -> bool:
+	if amount <= 0:
+		return false
+	for i in range(1, 5):
+		var wdata = weapon_slots[i]
+		if wdata and wdata.weapon_type == weapon_type:
+			return slot_reserve[i] < get_reserve_max(weapon_type)
+	return false
+
 func receive_ammo(weapon_type: String, amount: int) -> void:
+	if not can_receive_ammo(weapon_type, amount):
+		return
 	for i in range(1, 5):
 		var wdata = weapon_slots[i]
 		if wdata and wdata.weapon_type == weapon_type:
