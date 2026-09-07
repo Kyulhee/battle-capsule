@@ -130,6 +130,10 @@ AI 오류를 짧게 재현할 때는 제품 맵 대신 96m 전용 표면을 먼�
 
 초기 유효 보급은 `audit_initial_loot_runtime.gd`에 명시적 M1 맵/preset, `simulation_seed=41000`, 새 `audit_output=C:/test/game_dev/builds/verification/loot_audit/run.json`을 전달해 검사한다. 실제 `Main.start_game()` 직후 physics 이전의 총·탄종·발 수·POI/3m 호환 여부를 출력한다. 같은 묶음이 여러 총의 존재 지표에 포함될 수 있으며 경로 접근성/고갈 시간/생존을 뜻하지 않는다. 강제 player 수집/업그레이드 재현은 자연 플레이 빈도와 분리하고 최신 수동 결과를 저장하지 않는다. `verify_loot_flow_audit.gd`와 `verify_player_ammo_retention.gd`는 `unit_smoke`에 포함된다.
 
+`probe_loot_flow_runtime.gd`는 같은 Main을 bot-only로 시작해 0/120/260초 재고·보유 탄약·위치·점유/전략 목적지를 저장하고 매치를 끝까지 실행한다. `autostart=true`는 전달하지 않는다. M1 맵/preset·seed와 서로 다른 새 절대 경로 `flow_output=.../flow/run_1.json`, `result_output=.../results/run_1.json`이 필수다. Telemetry 출력 경로를 바꾸므로 최신 수동 결과를 덮어쓰지 않는다. `initial_only=true`는 초기 배치만, `loot_match_candidate=true`는 Central Meadow/Survey Camp의 호환 탄약 후보만 켠다. 제품 맵 기본 플래그는 없다.
+
+첫 probe는 대조/후보 순차 실행으로 방향만 본다. 승격 검증은 각각 별도 5-run의 같은 입력 41000-41004를 쓰고 완료·누락 checkpoint·실제 관측 시각·인원 일치를 확인한다. `results/`만 기존 pacing/scale 분석기에 전달한다. flow의 `ammo_without_initial_weapon`은 집계기 재사용으로 **해당 시점 필드 총**의 부재를 뜻하며 보유 총의 탄약 사용 가능성과는 다르다. `no_long_gun`은 무장 해제가 아니라 권총 이하를 포함하고, `low_loaded_no_reserve`는 `no_ammo`와 중첩한다. 위치 표본은 이동 거리/체류 시간 적분이나 사람 부족 시간의 근거가 아니다.
+
 ```powershell
 python tools\simulate_matches.py 5 map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=night_br_m1_60 seed_base=41000 out_dir=C:\tmp\manual_run
 python tools\analyze_results.py C:\tmp\manual_run

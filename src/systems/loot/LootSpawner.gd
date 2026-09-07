@@ -72,6 +72,8 @@ func register_from_map_spec(map_spec) -> void:
 		}
 		if poi.has("initial_weapon_slots"):
 			hotspot["initial_weapon_slots"] = max(0, int(poi.get("initial_weapon_slots", 0)))
+		if poi.has("initial_ammo_match"):
+			hotspot["initial_ammo_match"] = bool(poi["initial_ammo_match"])
 		var loot_anchors := _loot_anchors_from_poi(poi)
 		if not loot_anchors.is_empty():
 			hotspot["loot_anchors"] = loot_anchors

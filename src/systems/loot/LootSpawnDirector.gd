@@ -36,6 +36,7 @@ static func spawn_initial_loot(
 	var spawned = 0
 	for hotspot in hotspots:
 		var placement_index := 0
+		var local_weapons: Array = []
 		var weapon_slots: int = loot_spawner.initial_weapon_slots(hotspot) \
 			if loot_spawner.has_method("initial_weapon_slots") else -1
 		var weapon_spawn_count: int = weapon_slots
@@ -52,6 +53,7 @@ static func spawn_initial_loot(
 				hotspot
 			) if loot_spawner.has_method("choose_initial_weapon_template") else _random_item(weapon_templates)
 			if weapon_template:
+				local_weapons.append(weapon_template)
 				_spawn_pickup(pickup_scene, loot_parent, Vector3(weapon_pos.x, 0.5, weapon_pos.y), weapon_template, true, "initial_loot")
 				spawned += 1
 		var equipment_chance = loot_spawner.initial_equipment_chance(hotspot) \
@@ -69,14 +71,56 @@ static func spawn_initial_loot(
 			)
 			spawned += 1
 		var consumable_count = loot_spawner.initial_consumable_count(hotspot)
+		var consumable_positions: Array[Vector2] = []
+		var local_consumables: Array = []
 		for _i in range(consumable_count):
 			if consumable_templates.is_empty():
 				break
 			var consumable_pos = _call_initial_position(random_position, hotspot, placement_index)
 			placement_index += 1
-			_spawn_pickup(pickup_scene, loot_parent, Vector3(consumable_pos.x, 0.5, consumable_pos.y), _random_item(consumable_templates), false, "initial_loot")
+			consumable_positions.append(consumable_pos)
+			local_consumables.append(_random_item(consumable_templates))
+		if bool(hotspot.get("initial_ammo_match", false)):
+			local_consumables = match_initial_ammo(local_consumables, local_weapons, consumable_templates)
+		for index in range(local_consumables.size()):
+			var consumable_pos: Vector2 = consumable_positions[index]
+			_spawn_pickup(pickup_scene, loot_parent, Vector3(consumable_pos.x, 0.5, consumable_pos.y), local_consumables[index], false, "initial_loot")
 			spawned += 1
 	return spawned
+
+# 첫 배치 총의 탄약 한 묶음만 보장한다. 재추첨/추가 슬롯/재생성은 없다.
+# 이미 호환 묶음이 있으면 원본 유지, 없으면 기존 탄약을 우선 교체한다.
+static func match_initial_ammo(consumables: Array, weapons: Array, templates: Array) -> Array:
+	var result := consumables.duplicate()
+	if weapons.is_empty() or not weapons[0] or not weapons[0].weapon_stats:
+		return result
+	var family: String = weapons[0].weapon_stats.weapon_type
+	for item in consumables:
+		if item and item.type == ItemDataScript.Type.AMMO \
+				and item.ammo_weapon_type == family and item.amount > 0:
+			return result
+	var matching_template = null
+	for item in templates:
+		if item and item.type == ItemDataScript.Type.AMMO \
+				and item.ammo_weapon_type == family and item.amount > 0:
+			matching_template = item
+			break
+	if not matching_template:
+		return result
+	var replacement_index := -1
+	for index in range(consumables.size()):
+		var item = consumables[index]
+		if not item or not item.equipment_id.is_empty() \
+				or item.type == ItemDataScript.Type.WEAPON:
+			continue
+		if replacement_index < 0:
+			replacement_index = index
+		if item.type == ItemDataScript.Type.AMMO:
+			replacement_index = index
+			break
+	if replacement_index >= 0:
+		result[replacement_index] = matching_template
+	return result
 
 static func spawn_loot_wave(
 	pickup_scene: PackedScene,

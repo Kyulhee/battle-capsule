@@ -6,6 +6,7 @@
 
 | ID | 질문 | 최신 증거 | 판단 |
 |---|---|---|---|
+| E-068 | 두 POI의 기존 소모품 한 슬롯을 첫 총과 호환되는 탄약으로 구성하면 유효 재고가 개선되는가? | `builds/verification/E068_initial` 5쌍: 총/위치/RNG/비대상 불변·1-2슬롯 교체. `E068_control`/`E068_candidate` 각 1-run 725.0/854.5초, alive@120/260 `26/18`·`28/17`, T10 293.9/299.1초, 구조 PASS | 도구에서만 활성, 기본/EXE 미적용. 초기 호환 계약만 확인했으며 생존 개선 근거 부족. 후보의 Survey 초기 탄약은 120초에 잔존·260초 소진; 완전 탄약 소진 봇은 대조 `8/8`, 후보 `10/6`. 대조/후보 각 별도 5-run 전 승격 금지 |
 | E-067 | 탄약 부족이 총량 부족인가, 호환/수집 손실인가? | `builds/verification/loot_flow_e066/validated` seed 41000-41004 초기 스냅샷: 18자루 중 같은 POI 호환 탄약 없음 6-15, 3m 내 없음 10-16; 초기 레일건 없이 레일탄 4-6묶음. 실제 player 강제 재현에서 미보유/가득 찬 탄약 소실과 상위 동일 탄종 교체 예비탄 15→0 확인 | 수집/교체 손실을 독립 수정. 거점 내 위치 교환만으로 탄종 부재를 해결할 수 없으므로 다음은 제한된 탄종 구성 후보. 초기 스냅샷은 생존 5-run·사람 부족 시간·실제 경로 접근성의 근거가 아님 |
 | E-001 | `playable_pacing_v2`가 late-zone pacing을 지탱하는가? | N2-PACE-25: avg 533.3초, stage2 268.1초, stage3 638.4초, scale gate PASS | late-zone 참조로 유지 |
 | E-002 | 단순 global economy cut이 first upgrade를 안전하게 늦추는가? | N2-PACE-26: first upgrade 56.0초, avg duration 454.1초, stage3 없음 | 다음 lever로 폐기 |

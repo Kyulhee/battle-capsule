@@ -175,6 +175,7 @@ def profile_steps(
             godot_script(godot, "verify_bot_opening_loot_rules.gd"),
             godot_script(godot, "verify_loot_drop_stability.gd"),
             godot_script(godot, "verify_loot_flow_audit.gd"),
+            godot_script(godot, "verify_initial_ammo_match.gd"),
             godot_script(godot, "verify_player_ammo_retention.gd"),
             godot_script(godot, "verify_item_tier_presentation.gd"),
             godot_script(godot, "verify_bot_runtime_combat.gd"),
