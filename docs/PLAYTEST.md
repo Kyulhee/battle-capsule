@@ -8,19 +8,21 @@
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | E-066 티어 가독성 후보: 메뉴 `v2.1.0-demo-dev \| E-066`. E-065 소리 반응을 보존하고 경제/건물은 미구현. GitHub 첨부는 이전 E-062다 |
+| 현재 단위 | E-067 탄약 보존 후보: 메뉴 `v2.1.0-demo-dev \| E-067`. E-065 소리 반응/E-066 티어 표시를 보존하며 거점 재배치·건물은 미구현. GitHub 첨부는 이전 E-062다 |
 | 승격 목적 | 초기 인원 붕괴가 이동 수렴인지 교전 지속/연쇄 사망인지 분리하고, 플레이어 이탈이 쉬운 직접 원인을 맵 변경 전에 확인 |
 
-현재 전달 파일(clean 소스 커밋 `e16b089`, E-066):
+현재 전달 파일(clean 소스 커밋 `78b5180`, E-067):
 
-- Windows: `C:\test\game_dev\builds\playtest\E-066_e16b089\BattleCapsule_E066_e16b089.exe` — 같은 폴더의 `.pck`를 함께 유지한다.
-- macOS: `C:\test\game_dev\builds\playtest\E-066_e16b089\BattleCapsule_E066_e16b089_macos_unsigned.zip` — 미서명/미공증 교차 빌드, 실제 Mac 실행 미검증.
-- SHA256/출처: 같은 폴더 `PLAYTEST_BUILD.txt`. Windows EXE headless/Forward+ 기본 맵 부팅/종료 PASS; 두 플랫폼 PCK는 empty host에서 catalog 44·JSON 3·runtime 124·load probe 20·payload closure와 실제 label `v2.1.0-demo-dev | E-066` PASS.
+- Windows: `C:\test\game_dev\builds\playtest\E-067_78b5180\BattleCapsule_E067_78b5180.exe` — 같은 폴더의 `.pck`를 함께 유지한다.
+- macOS: `C:\test\game_dev\builds\playtest\E-067_78b5180\BattleCapsule_E067_78b5180_macos_unsigned.zip` — 미서명/미공증 교차 빌드, 실제 Mac 실행 미검증.
+- SHA256/출처: 같은 폴더 `PLAYTEST_BUILD.txt`. Windows EXE Forward+ 기본 맵 부팅/종료 PASS; 두 플랫폼 PCK는 empty host에서 catalog 44·JSON 3·runtime 124·load probe 20·payload closure와 실제 label `v2.1.0-demo-dev | E-067` PASS.
 - 이 파일은 로컬 진단 후보다. 기존 GitHub 릴리즈 첨부를 교체하지 않았고, 공개 데모 승격이나 사람 전체 루프 PASS를 의미하지 않는다.
+
+E-067 수동 초점: 총이 없는 탄종/예비탄이 가득 찬 묶음이 바닥에 남고, 낡은→표준 같은 계열 교체 시 예비탄이 유지되는지 확인한다. 가방 기능은 없으며 일부 용량만 남았을 때는 기존처럼 용량만 채우고 묶음을 소비한다. 총량·AI·맵·존은 불변이다. `builds/verification/E067_pck_visual`의 실제 PCK Forward+ 720p/1080p×7상태 14캡처에서 상위 산탄총 예비탄 +6 및 수집 불가 안내를 확인했고 packaged 수집 회귀 테스트도 PASS했다. 사람의 자연 파밍/생존 결과는 아직 없다.
 
 ## N2-PLAY-11 재판정 프로토콜
 
-E-065는 가까이 가면 방향 전환이 개선됐다는 사용자 피드백을 받았다. 후방 발소리의 급회전은 거리·걷기/달리기·봇 상태·난이도를 함께 확인할 잔여 관찰로 두고 청취/회전 수치를 즉시 높이지 않는다. 다음은 티어 가독성 전용 후보, 이어 별도 보급 흐름 후보이며 아래 3판은 M1 승격용으로 유지한다. 신규 후보를 실제 내보내기 전에는 새 수동 판정을 요청하지 않는다.
+E-065는 가까이 가면 방향 전환이 개선됐다는 사용자 피드백을 받았다. 후방 발소리의 급회전은 거리·걷기/달리기·봇 상태·난이도를 함께 확인할 잔여 관찰로 두고 청취/회전 수치를 즉시 높이지 않는다. E-067은 인벤토리 손실 수정이며 다음 거점 보급 후보와 아래 M1 승격용 3판은 분리한다. 신규 후보를 실제 내보내기 전에는 새 수동 판정을 요청하지 않는다.
 
 | 판 | 초점 | 필수 기록 |
 |---|---|---|

@@ -16,9 +16,9 @@
 
 | 항목 | 값 |
 |---|---|
-| 현재 단위 | E-066 `N2-ITEM-VIS-01` 구현·패키지 검증 완료, 수동 대기. clean 소스 `e16b089`; Windows `builds/playtest/E-066_e16b089/BattleCapsule_E066_e16b089.exe`, 메뉴 `v2.1.0-demo-dev \| E-066`. macOS ZIP·checksum은 같은 폴더, 실기기 Mac 미검증 |
-| 바로 다음 단위 | `N2-LOOT-FLOW-01` E-067: 무효 탄약 수집/같은 계열 업그레이드 예비탄 손실을 먼저 수정하고 패키지로 확인한다. 이후 Survey Camp↔Central Meadow 유한 보급의 탄종 구성 후보를 별도로 검증한다. 120/260초 재고·이동·생존 계측은 남아 있으며 후방 급회전·폭격·건물은 섞지 않음 |
-| 최신 검증 개발 단위 | E-066 전체 `unit_smoke` PASS. tier fixture는 획득 경로/색 독립성, 등급 비교, 가림, 슬롯 상태/업그레이드 규칙을 확인했다. Forward+ 실제 Night 60봇 표면의 정지 fixture 720p/1080p×6상태 12캡처에서 라벨·HUD 경계/중앙 정렬 PASS. 새 페이싱 5-run이나 사람 완주 근거는 아님 |
+| 현재 단위 | E-067 `N2-LOOT-FLOW-01` 탄약 손실 수정·패키지 검증 완료, 수동 대기. clean 소스 `78b5180`; Windows `builds/playtest/E-067_78b5180/BattleCapsule_E067_78b5180.exe`, 메뉴 `v2.1.0-demo-dev \| E-067`. macOS ZIP·checksum은 같은 폴더, 실기기 Mac 미검증 |
+| 바로 다음 단위 | E-067에서 무효 탄약이 바닥에 남는지/같은 계열 상위 총 교체 후 예비탄이 유지되는지 확인한다. 다음 개발은 Survey Camp↔Central Meadow의 제한된 탄종 구성 후보와 120/260초 재고·이동·생존 진단이다. 초기 5개 배치에서 호환 탄종 부재를 확인했으므로 위치 교환만으로 해결됐다고 보지 않는다. 후방 급회전·폭격·건물은 섞지 않음 |
+| 최신 검증 개발 단위 | E-067 전체 `unit_smoke`, 실제 Main 수집 재현, 최종 PCK 탄약 보존 fixture PASS. 두 플랫폼 PCK inventory/identity, Windows EXE Forward+ 부팅·종료, 최종 PCK 720p/1080p×7상태 14캡처 PASS. 최신 수동 JSON hash 불변. 초기 보급 5개 스냅샷은 생존 5-run이나 사람 부족 시간의 근거가 아님 |
 | 최신 검증 게임플레이 단위 | E-065 60봇 1-run sanity는 683.2초, alive@30/60/90/120/180/260 `55/36/28/24/24/12`, stuck/disengage 0.016/0.189, fallback 0. 5-run 승격 근거가 아니다. 직전 E-064 5-run 평균 694.3초와 수동 1판 372.5초·alive@120/260 18/4의 괴리는 미해결 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 릴리즈 판정 | `v2.1.0-demo-dev`는 제한을 명시한 테스트 프리릴리즈다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 packaged/manual·M2/M3 gate 전 공개판을 교체하지 않는다 |
