@@ -5,7 +5,7 @@ const AUDIT = preload("res://tools/LootFlowAudit.gd")
 const CHECKPOINTS := [0.0, 120.0, 260.0]
 const CANDIDATE_POIS := ["Central Meadow", "Survey Camp"]
 var main
-var report := {"schema_version": 1, "complete": false, "snapshots": []}
+var report := {"schema_version": 2, "complete": false, "snapshots": []}
 var report_path := ""
 var result_path := ""
 var checkpoint_index := 0
@@ -116,6 +116,12 @@ func _snapshot(requested_time: float) -> void:
 	snapshot["alive"] = main.alive_count
 	snapshot["zone_stage"] = main.zone.stage
 	snapshot["zone_shrinking"] = main.zone.shrinking
+	snapshot["zone"] = {
+		"center": [main.zone.current_center.x, main.zone.current_center.y],
+		"radius": main.zone.current_radius,
+		"next_center": [main.zone.next_center.x, main.zone.next_center.y],
+		"next_radius": main.zone.next_radius, "timer": main.zone.timer,
+	}
 	var actors: Array = []
 	var occupancy := {}
 	var needs := {"no_long_gun": 0, "no_ammo": 0, "low_loaded_no_reserve": 0}
@@ -134,11 +140,27 @@ func _snapshot(requested_time: float) -> void:
 		var poi_name := String(context["poi_name"])
 		occupancy[poi_name] = int(occupancy.get(poi_name, 0)) + 1
 		var destination: Dictionary = bot._strategic_destination
+		var strategy_target: Vector2 = destination.get("target", Vector2.INF)
+		var nearest_ammo_distance := INF
+		for record in records:
+			if record["kind"] == "ammo" and record["family"] == family and record["amount"] > 0:
+				var ammo_pos := Vector2(record["position"][0], record["position"][1])
+				nearest_ammo_distance = minf(nearest_ammo_distance, pos.distance_to(ammo_pos))
+		# 이미 존재하는 계획/위치를 읽기만 한다. 탐색·LOS·nav query나 AI 갱신은 호출하지 않는다.
+		# geometry=true도 실제 idle 분기 실행의 증거는 아니다(적 감지/사후 탐색이 우선).
 		actors.append({
 			"id": bot.get_instance_id(), "poi": poi_name, "position": [pos.x, pos.y],
 			"family": family, "loaded": bot.stats.current_ammo, "reserve": bot.reserve_ammo,
 			"state": bot.current_state, "destination": destination.get("name", "none"),
 			"planning_mode": destination.get("planning_mode", "none"),
+			"planned_zone_stage": destination.get("planned_zone_stage", -1),
+			"strategy_target_distance": pos.distance_to(strategy_target) if strategy_target.is_finite() else null,
+			"holding_preposition_geometry": bot._is_holding_strategic_preposition(main),
+			"health_ratio": bot.current_health / maxf(1.0, bot.stats.max_health),
+			"post_kill_scan_active": bot._post_kill_scan_timer > 0.0,
+			"outside_current_zone": pos.distance_to(main.zone.current_center) > main.zone.current_radius,
+			"outside_next_zone": pos.distance_to(main.zone.next_center) > main.zone.next_radius,
+			"nearest_compatible_ammo_distance": nearest_ammo_distance if is_finite(nearest_ammo_distance) else null,
 		})
 	snapshot["actors"] = actors
 	snapshot["occupancy"] = occupancy

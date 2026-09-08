@@ -134,6 +134,8 @@ AI 오류를 짧게 재현할 때는 제품 맵 대신 96m 전용 표면을 먼�
 
 첫 probe는 대조/후보 순차 실행으로 방향만 본다. 승격 검증은 각각 별도 5-run의 같은 입력 41000-41004를 쓰고 완료·누락 checkpoint·실제 관측 시각·인원 일치를 확인한다. `results/`만 기존 pacing/scale 분석기에 전달한다. flow의 `ammo_without_initial_weapon`은 집계기 재사용으로 **해당 시점 필드 총**의 부재를 뜻하며 보유 총의 탄약 사용 가능성과는 다르다. `no_long_gun`은 무장 해제가 아니라 권총 이하를 포함하고, `low_loaded_no_reserve`는 `no_ammo`와 중첩한다. 위치 표본은 이동 거리/체류 시간 적분이나 사람 부족 시간의 근거가 아니다.
 
+flow schema v2(E-069)는 현재/다음 존, 계획한 존 stage·목표 거리, `holding_preposition_geometry`, HP 비율·사후 탐색 여부, 가장 가까운 필드 호환 탄약 거리를 추가한다. 기존 계획/위치만 읽으며 새 AI 판단·LOS/nav query는 호출하지 않는다. 호환 탄약 부재는 거리 `null`로 쓰고, 거리는 2D 직선이지 가시성/안전/경로 도달의 증거가 아니다. 도착 기하가 참이어도 적 반응 등 앞선 분기가 실행될 수 있어 실제 대기 분기나 체류 시간으로 집계하지 않는다. v1 반복 결과와 v2 단발 sanity는 별도 분포로 유지한다.
+
 ```powershell
 python tools\simulate_matches.py 5 map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=night_br_m1_60 seed_base=41000 out_dir=C:\tmp\manual_run
 python tools\analyze_results.py C:\tmp\manual_run
