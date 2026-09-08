@@ -7,8 +7,8 @@
 </p>
 
 <p align="center">
-  <strong>60인 야간 쿼터뷰 배틀로얄</strong><br>
-  루팅, 은신, 자기장 압박, 아티팩트 선택이 10-15분 생존전 안에서 충돌하는 Godot 게임입니다.
+  <strong>60봇 야간 쿼터뷰 배틀로얄</strong><br>
+  루팅, 은신, 자기장 압박, 아티팩트 선택을 결합한 10-15분 생존전을 목표로 개발 중인 Godot 게임입니다.
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@
 
 ## 다운로드
 
-현재 테스트 빌드: **v2.1.0-demo-dev**<br>
+현재 공개 테스트 빌드: **v2.1.0-demo-dev (E-062 기준)**<br>
 현재 안정 빌드: **v2.0.0-pre-expansion**
 
 | 플랫폼 | 다운로드 | 비고 |
@@ -30,11 +30,22 @@
 | Windows x64 | [BattleCapsule_v2.1.0-demo-dev_win64.zip](https://github.com/Kyulhee/battle-capsule/releases/download/v2.1.0-demo-dev/BattleCapsule_v2.1.0-demo-dev_win64.zip) | clean package 계약과 자동 전체 매치 검증. 미서명 테스트 빌드 |
 | macOS Universal 2 | [BattleCapsule_v2.1.0-demo-dev_macos_universal.zip](https://github.com/Kyulhee/battle-capsule/releases/download/v2.1.0-demo-dev/BattleCapsule_v2.1.0-demo-dev_macos_universal.zip) | Intel/Apple Silicon 교차 내보내기. 미서명·미공증, 실제 Mac 실행 미검증 |
 
-> `v2.1.0-demo-dev`는 현재 60봇 Night BR을 미리 확인하는 **프리릴리즈**입니다. 안정판 교체나 공개 데모 승격이 아니며, 알려진 제한은 [릴리즈 노트](docs/releases/v2.1.0-demo-dev.md)에 정리했습니다. macOS에서 처음 실행할 때 Gatekeeper 경고가 표시될 수 있습니다.
+> `v2.1.0-demo-dev`는 60봇 Night BR 개발 상태를 확인하는 **프리릴리즈**입니다. 아래 개발 변경이 공개 첨부에 자동 반영되지는 않습니다. 안정판 교체나 공개 데모 승격이 아니며, 알려진 제한은 [릴리즈 노트](docs/releases/v2.1.0-demo-dev.md)에 정리했습니다. macOS는 Gatekeeper 경고 또는 실행 차단이 있을 수 있습니다.
+
+## 개발 빌드와 검증 상태
+
+2026-09-08 기준, 일반 플레이 설정과 최신 검증된 로컬 실행 파일은 **E-067**입니다. 메뉴 표시는 `v2.1.0-demo-dev | E-067`이며, 이후 E-068/E-069는 기본 게임플레이에 적용하지 않은 실험·진단입니다.
+
+| 구분 | 내용 | 상태 |
+|---|---|---|
+| 공개 다운로드 | 위 `v2.1.0-demo-dev` 첨부 | E-062 기준. 이후 E-064~E-067 수정 미포함 |
+| E-065~E-067 개발 변경 | 근접 소리 반응, 아이템 티어 표시, 플레이어 탄약 보존 | E-067 로컬 Windows/macOS 패키지에 포함. 수동 판정 대기 |
+| E-068 보급 후보 | 두 거점의 기존 슬롯을 호환 탄약으로 구성 | 대조 5판·후보 5판 구조 검증 통과, 생존 개선 불명확으로 **기본 미적용** |
+| E-069 보급 진단 | 빈 탄약 봇의 존·선점 목표·호환 탄약 거리 관측 | 읽기 전용 진단 추가. 봇 행동·드랍률 변경 없음 |
+
+E-067의 Windows EXE와 macOS 미서명 ZIP은 개발 머신의 로컬 산출물이며 저장소나 공개 다운로드에 포함하지 않았습니다. 실제 파일 경로·소스 커밋·checksum 안내·수동 확인 항목은 [플레이테스트 노트](docs/PLAYTEST.md), 최신 판정과 다음 작업은 [현재 트래커](docs/CURRENT.md)를 따릅니다. Windows 실행·패키지 검증과 별개로 **Mac 실기기 실행·서명·공증은 미완료**입니다.
 
 ## 게임 요약
-
-개발 중 수동 후보는 공개 첨부와 별개입니다. 최신 실행 파일 경로·메뉴 E번호·확인 항목은 [플레이테스트 노트](docs/PLAYTEST.md)를 따릅니다. 기존 `v2.1.0-demo-dev` 다운로드에는 이후 E-064/E-065/E-066 수정이 포함되지 않습니다.
 
 배틀 캡슐은 플레이어 1명이 야간 숲 전장에 진입해 60명의 봇과 싸우는 싱글플레이 배틀로얄입니다. 지역별 보급품을 찾아 이동하고, 아티팩트 하나를 선택한 뒤, 점점 좁아지는 자기장 안에서 마지막까지 살아남아야 합니다.
 
@@ -63,8 +74,9 @@
 
 1. 기존 안정 빌드는 유지하고 개발 후보는 프리릴리즈로 분리합니다.
 2. 자동 전체 매치와 사람이 직접 하는 3판 검증을 함께 사용합니다.
-3. 신규 콘텐츠보다 야간 가독성, 전투 피드백, HUD, 첫 사용자 흐름을 먼저 마감합니다.
-4. 99인 scale telemetry는 최종 밸런스가 아니라 구조 안전성 게이트로만 사용합니다.
+3. 당장은 빈 탄약 봇의 보급 탐색과 목표까지의 이동을 진단합니다. 자동 매치 길이 통과만으로 초기 생존·자기장 압력 문제가 해결됐다고 판단하지 않습니다.
+4. 이어 야간 가독성·전투 피드백·HUD와 기존 cabin 한 동의 비파괴 내부, 첫 사용자 흐름을 검증합니다. 폭격·건물 붕괴·특수 장비는 조건부 후속입니다.
+5. 99인 scale telemetry는 최종 밸런스가 아니라 구조 안전성 게이트로만 사용합니다.
 
 현재 로드맵과 야간 배틀로얄 페이싱 기준은 [docs/MASTERPLAN.md](docs/MASTERPLAN.md)에 함께 정리되어 있습니다.
 
@@ -106,9 +118,12 @@
 |---|---|
 | 회복 아이템 | HP 회복 |
 | 고급 회복 아이템 | 더 큰 회복량 |
-| 방어구 | 실드 추가 |
+| 실드 충전 | 실드 회복 |
+| 방탄 조끼 | 총기·근접 피해 15% 감소, 이동 속도 96%. 존 피해는 감소하지 않음 |
 | 탄약 | 해당 무기의 예비 탄약 추가 |
 | 보급 캡슐 | 자기장 진행 후 희귀 전투 옵션 제공 |
+
+E-067 개발 빌드에서는 플레이어가 보유하지 않은 총의 탄약이나 예비탄이 가득 찬 탄약은 바닥에 남습니다. 같은 계열 상위 무기로 교체해도 예비탄을 유지합니다. 가방을 통한 별도 탄약 보관은 아직 없으며, 일부 용량만 남은 경우에는 기존처럼 그 용량만 채우고 묶음을 소비합니다.
 
 </details>
 
@@ -117,6 +132,8 @@
 | 문서 | 용도 |
 |---|---|
 | [docs/DOCS_INDEX.md](docs/DOCS_INDEX.md) | 처음 읽을 문서 안내 |
+| [docs/CURRENT.md](docs/CURRENT.md) | 최신 검증 상태와 바로 다음 작업 |
+| [docs/PLAYTEST.md](docs/PLAYTEST.md) | 실제 개발 빌드 경로·메뉴 E번호·수동 확인 항목 |
 | [docs/MASTERPLAN.md](docs/MASTERPLAN.md) | 현재 로드맵과 작업 범위 |
 | [docs/DEVLOG.md](docs/DEVLOG.md) | 최근 검증 작업 로그 |
 | [docs/reference/TESTING.md](docs/reference/TESTING.md) | 검증 명령과 telemetry 해석 |
@@ -135,6 +152,8 @@
 자주 쓰는 로컬 검증:
 
 ```powershell
+python tools\run_verify.py --profile docs_only
+python tools\run_verify.py --profile unit_smoke
 .\Godot_v4.6.2-stable_win64_console.exe --headless --script res://tools/verify_ai_lod_perception.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --script res://tools/verify_pickup_light_lod.gd
 .\Godot_v4.6.2-stable_win64_console.exe --headless --script res://tools/verify_player_night_readability.gd
