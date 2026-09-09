@@ -138,6 +138,10 @@ flow schema v2(E-069)는 현재/다음 존, 계획한 존 stage·목표 거리, 
 
 schema v3(E-070)의 `trace_progress=true progress_window_only=true`는 **실시간 260초 진단 창**이다. 같은 필수 맵/preset/seed/별도 출력 경로를 전달하며 상태 episode·회복 하위 상태·아이템 목표/캐시·전략 목표/위치를 1초 간격으로 읽는다. 창 종료 시 flow만 저장하고 매치를 중단하므로 result 파일은 생성하지 않으며 pacing/scale run 수에 포함하지 않는다. `initial_only`와 동시 사용은 거부한다. `trace_progress=true` 단독은 기존 5배 가속 전체 매치지만 초반 관측 지연이 반복되어 정밀 진행 근거로 사용하지 않는다.
 
+E-071 `loot_progress_candidate=true`는 같은 probe에서만 봇의 진행 기반 추적 제한을 켠다. E-068 `loot_match_candidate=true`와 혼합은 거부한다. 제품 기본값은 기존 5초이며 후보는 최단 목표 거리 0.5m 개선 때 정체 시계를 갱신하고, 5초간 진전 없음 또는 총15초 초과 시 기존 재탐색/포기 분기를 사용한다. 수집 반경2.5m 안은 수집을 우선한다. 직선 거리 기준이라 길게 멀어지는 우회는 여전히 포기할 수 있다. 추가 전역 탐색·LOS·nav query는 없다.
+
+`verify_bot_loot_progress.gd`는 실제 chase/start/finish/수집 분기에 결정적 이동·지각 fixture를 연결해 30m 대조 포기/후보 수집, 정체·미세 왕복·총시간 상한·도착·목표 교체·목표 삭제·적 반응 우선순위를 검사하며 `unit_smoke`에 포함된다. 이동 fixture 통과는 NavMesh/안전한 수집 증명이 아니므로 실제 M1 실행을 별도로 확인한다. 기본 승격은 대조/후보 각각 5-run과 수동 판정 뒤에만 한다.
+
 `python tools/analyze_loot_progress.py <flow.json>`은 0-260초 261개 표본, 시각 순서/0.25초 이내 관측 지연, 인원/ID 중복, 기존 0/120/260초 checkpoint를 검사한다. 상태별 빈 탄약 표본·재무장 관측·같은 목표/episode 내 직선 접근량·동일 아이템 재추적을 출력하며 지연/누락은 실패시킨다. 인접 표본 사이 재무장/재소진이나 빠른 상태 전환은 놓칠 수 있다. 상태 체류 시간·실제 경로 길이·추적 중단 이유·가시성으로 단정하지 않는다. `tooling`과 `unit_smoke`에 불변성/회복/목표 교체/누락/지연/중복 fixture를 포함한다.
 
 ```powershell

@@ -68,10 +68,12 @@ class ProgressTests(unittest.TestCase):
 
     def test_window_is_labelled_separately(self):
         report = fixture()
-        report.update(progress_window_only=True, time_scale=1.0)
+        report.update(progress_window_only=True, time_scale=1.0, loot_progress_candidate=True)
         result = analyze(report)
         self.assertTrue(result["progress_window_only"])
         self.assertEqual(result["time_scale"], 1.0)
+        self.assertTrue(result["loot_progress_candidate"])
+        self.assertFalse(result["ammo_pairing_candidate"])
 
     def test_invalid_inputs(self):
         for mode in ["incomplete", "missing", "duplicate", "lag", "checkpoint", "initial", "nan", "order", "stock"]:

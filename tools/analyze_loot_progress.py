@@ -97,6 +97,8 @@ def analyze(report):
             repeated[(s["actor"], s["target"])].add(s["episode"])
     return {
         "seed": report["seed"], "time_scale": report.get("time_scale"),
+        "ammo_pairing_candidate": report.get("candidate", False),
+        "loot_progress_candidate": report.get("loot_progress_candidate", False),
         "progress_window_only": report.get("progress_window_only", False),
         "sample_count": len(frames), "actor_samples": all_samples,
         "max_observation_lag": max(f["observed_time"] - f["requested_time"] for f in frames),

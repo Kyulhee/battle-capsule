@@ -177,6 +177,7 @@ def profile_steps(
             godot_script(godot, "verify_zone_initial_radius_tuning.gd"),
             godot_script(godot, "verify_spawn_distribution_metrics.gd"),
             godot_script(godot, "verify_bot_opening_loot_rules.gd"),
+            godot_script(godot, "verify_bot_loot_progress.gd"),
             godot_script(godot, "verify_loot_drop_stability.gd"),
             godot_script(godot, "verify_loot_flow_audit.gd"),
             godot_script(godot, "verify_initial_ammo_match.gd"),

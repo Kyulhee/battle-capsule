@@ -14,6 +14,7 @@ var failed := false
 var trace_progress := false
 var next_progress_time := 1.0
 var progress_window_only := false
+var loot_progress_candidate := false
 
 func _init() -> void:
 	_run.call_deferred()
@@ -33,11 +34,16 @@ func _run() -> void:
 			trace_progress = true
 		elif arg == "progress_window_only=true":
 			progress_window_only = true
+		elif arg == "loot_progress_candidate=true":
+			loot_progress_candidate = true
 		elif arg == "autostart=true":
 			_fail("Use this probe's controlled start, not autostart=true.")
 			return
 	if progress_window_only and (not trace_progress or initial_only):
 		_fail("progress_window_only requires trace_progress and excludes initial_only.")
+		return
+	if candidate and loot_progress_candidate:
+		_fail("Do not mix E-068 ammo pairing and E-071 chase progress candidates.")
 		return
 	if report_path.is_empty() or result_path.is_empty() or report_path == result_path \
 			or FileAccess.file_exists(report_path) or FileAccess.file_exists(result_path):
@@ -72,7 +78,10 @@ func _run() -> void:
 	# 정밀 진행 창만 실시간으로 읽으며 전체 pacing 실행과 섞지 않는다.
 	Engine.time_scale = 1.0 if progress_window_only else 5.0
 	main.start_game()
+	for bot in get_nodes_in_group("bots"):
+		bot._loot_progress_timeout_enabled = loot_progress_candidate
 	report["candidate"] = candidate
+	report["loot_progress_candidate"] = loot_progress_candidate
 	report["map"] = main.map_spec_path
 	report["preset"] = main.map_scale_preset
 	report["seed"] = main.simulation_seed

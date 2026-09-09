@@ -25,6 +25,9 @@ const TARGET_SEARCH_INTERVAL := 0.10
 const RETREAT_THREAT_SEARCH_INTERVAL := 0.10
 const THREAT_PRESSURE_INTERVAL := 0.10
 const PICKUP_SEARCH_INTERVAL := 0.25
+const LOOT_NO_PROGRESS_SECONDS := 5.0
+const LOOT_MAX_CHASE_SECONDS := 15.0
+const LOOT_PROGRESS_DISTANCE := 0.5
 const DOCTRINE_STATE_TELEMETRY_INTERVAL := 0.25
 const IDLE_LOOT_INTERRUPT_GRACE_SECONDS := 2.0
 const IDLE_LOOT_INTERRUPT_CLOSE_RANGE := 5.0
@@ -92,6 +95,10 @@ var _loot_objective_source: String = ""
 var _loot_objective_mode: String = "none"
 var _loot_objective_kind: String = "none"
 var _loot_objective_selection_context: Dictionary = {}
+# E-071 외부 probe 전용 opt-in. 반복/수동 승격 전 제품 기본값은 유지한다.
+var _loot_progress_timeout_enabled: bool = false
+var _loot_best_distance: float = INF
+var _loot_last_progress_time: float = 0.0
 # True when bot decided to rush with knife instead of retreating to RECOVER
 var _knife_mode: bool = false
 var _knife_mode_origin: String = "none"
@@ -683,8 +690,8 @@ func handle_chase_state(delta):
 		_update_objective_scan(delta, target_actor.global_position)
 		if _maybe_interrupt_objective_for_enemy():
 			return
-		# Give up if stuck chasing loot too long — switch to a different target
-		if state_timer > 5.0:
+		# 기본은 기존 5초 제한. 후보만 정상 접근과 정체를 분리한다.
+		if _loot_chase_timed_out(dist):
 			var alt = _find_best_pickup(_loot_radius, true)
 			if is_instance_valid(alt) and alt != target_actor:
 				var was_recovering := _recovering
@@ -2316,6 +2323,8 @@ func _start_loot_objective(loot_target: Node3D, source_name: String, recovering:
 	_target_acquisition_source = "none"
 	is_targeting_loot = true
 	_recovering = recovering
+	_loot_best_distance = global_position.distance_to(loot_target.global_position)
+	_loot_last_progress_time = 0.0
 	_loot_objective_source = source_name.strip_edges().to_lower()
 	if _loot_objective_source == "":
 		_loot_objective_source = "unknown"
@@ -2324,7 +2333,22 @@ func _start_loot_objective(loot_target: Node3D, source_name: String, recovering:
 	_loot_objective_selection_context = _loot_selection_context(loot_target)
 	_log_loot_objective_start(loot_target)
 
+func _loot_chase_timed_out(distance: float) -> bool:
+	if not _loot_progress_timeout_enabled:
+		return state_timer > 5.0
+	# 이미 수집 반경이면 같은 프레임에 수집한다. 멀리 있는 목표만 시간 제한 대상이다.
+	if distance <= 2.5:
+		return false
+	# 왕복/미세 흔들림은 진전이 아니다. 이전 최단 거리보다 누적 0.5m 가까워져야 한다.
+	if distance <= _loot_best_distance - LOOT_PROGRESS_DISTANCE:
+		_loot_best_distance = distance
+		_loot_last_progress_time = state_timer
+	return state_timer > LOOT_MAX_CHASE_SECONDS \
+		or state_timer - _loot_last_progress_time > LOOT_NO_PROGRESS_SECONDS
+
 func _finish_loot_objective(outcome_name: String) -> void:
+	_loot_best_distance = INF
+	_loot_last_progress_time = 0.0
 	if _loot_objective_source == "":
 		return
 	_log_loot_objective_outcome(outcome_name)
