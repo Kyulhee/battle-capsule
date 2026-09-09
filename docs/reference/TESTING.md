@@ -136,6 +136,10 @@ AI 오류를 짧게 재현할 때는 제품 맵 대신 96m 전용 표면을 먼�
 
 flow schema v2(E-069)는 현재/다음 존, 계획한 존 stage·목표 거리, `holding_preposition_geometry`, HP 비율·사후 탐색 여부, 가장 가까운 필드 호환 탄약 거리를 추가한다. 기존 계획/위치만 읽으며 새 AI 판단·LOS/nav query는 호출하지 않는다. 호환 탄약 부재는 거리 `null`로 쓰고, 거리는 2D 직선이지 가시성/안전/경로 도달의 증거가 아니다. 도착 기하가 참이어도 적 반응 등 앞선 분기가 실행될 수 있어 실제 대기 분기나 체류 시간으로 집계하지 않는다. v1 반복 결과와 v2 단발 sanity는 별도 분포로 유지한다.
 
+schema v3(E-070)의 `trace_progress=true progress_window_only=true`는 **실시간 260초 진단 창**이다. 같은 필수 맵/preset/seed/별도 출력 경로를 전달하며 상태 episode·회복 하위 상태·아이템 목표/캐시·전략 목표/위치를 1초 간격으로 읽는다. 창 종료 시 flow만 저장하고 매치를 중단하므로 result 파일은 생성하지 않으며 pacing/scale run 수에 포함하지 않는다. `initial_only`와 동시 사용은 거부한다. `trace_progress=true` 단독은 기존 5배 가속 전체 매치지만 초반 관측 지연이 반복되어 정밀 진행 근거로 사용하지 않는다.
+
+`python tools/analyze_loot_progress.py <flow.json>`은 0-260초 261개 표본, 시각 순서/0.25초 이내 관측 지연, 인원/ID 중복, 기존 0/120/260초 checkpoint를 검사한다. 상태별 빈 탄약 표본·재무장 관측·같은 목표/episode 내 직선 접근량·동일 아이템 재추적을 출력하며 지연/누락은 실패시킨다. 인접 표본 사이 재무장/재소진이나 빠른 상태 전환은 놓칠 수 있다. 상태 체류 시간·실제 경로 길이·추적 중단 이유·가시성으로 단정하지 않는다. `tooling`과 `unit_smoke`에 불변성/회복/목표 교체/누락/지연/중복 fixture를 포함한다.
+
 ```powershell
 python tools\simulate_matches.py 5 map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json scale_preset=night_br_m1_60 seed_base=41000 out_dir=C:\tmp\manual_run
 python tools\analyze_results.py C:\tmp\manual_run

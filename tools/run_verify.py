@@ -149,6 +149,8 @@ def profile_steps(
         "tools/verify_survival_curve.py",
         "tools/check_scale_telemetry.py",
         "tools/analyze_map_structure.py",
+        "tools/analyze_loot_progress.py",
+        "tools/verify_loot_progress_analysis.py",
         "tools/simulate_matches.py",
         "tools/run_verify.py",
     ]
@@ -157,7 +159,8 @@ def profile_steps(
         return docs_only
 
     if profile == "tooling":
-        return [*docs_only, py_compile(report_scripts)]
+        return [*docs_only, py_compile(report_scripts),
+                Step("loot progress analysis", [sys.executable, rel("tools/verify_loot_progress_analysis.py")])]
 
     if profile == "unit_smoke":
         return [
@@ -165,6 +168,7 @@ def profile_steps(
             py_compile(report_scripts),
             Step("verify_pacing_analysis.py", [sys.executable, rel("tools/verify_pacing_analysis.py")]),
             Step("verify_survival_curve.py", [sys.executable, rel("tools/verify_survival_curve.py")]),
+            Step("verify_loot_progress_analysis.py", [sys.executable, rel("tools/verify_loot_progress_analysis.py")]),
             godot_script(godot, "verify_release_identity.gd"),
             godot_script(godot, "verify_pacing_telemetry.gd"),
             godot_script(godot, "verify_release_persistence.gd"),

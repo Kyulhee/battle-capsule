@@ -5,12 +5,15 @@ const AUDIT = preload("res://tools/LootFlowAudit.gd")
 const CHECKPOINTS := [0.0, 120.0, 260.0]
 const CANDIDATE_POIS := ["Central Meadow", "Survey Camp"]
 var main
-var report := {"schema_version": 2, "complete": false, "snapshots": []}
+var report := {"schema_version": 3, "complete": false, "snapshots": []}
 var report_path := ""
 var result_path := ""
 var checkpoint_index := 0
 var initial_only := false
 var failed := false
+var trace_progress := false
+var next_progress_time := 1.0
+var progress_window_only := false
 
 func _init() -> void:
 	_run.call_deferred()
@@ -26,9 +29,16 @@ func _run() -> void:
 			candidate = true
 		elif arg == "initial_only=true":
 			initial_only = true
+		elif arg == "trace_progress=true":
+			trace_progress = true
+		elif arg == "progress_window_only=true":
+			progress_window_only = true
 		elif arg == "autostart=true":
 			_fail("Use this probe's controlled start, not autostart=true.")
 			return
+	if progress_window_only and (not trace_progress or initial_only):
+		_fail("progress_window_only requires trace_progress and excludes initial_only.")
+		return
 	if report_path.is_empty() or result_path.is_empty() or report_path == result_path \
 			or FileAccess.file_exists(report_path) or FileAccess.file_exists(result_path):
 		_fail("Provide distinct new flow_output and result_output paths.")
@@ -58,13 +68,23 @@ func _run() -> void:
 		_fail("Candidate POI scope no longer matches the map.")
 		return
 	main.is_simulation = true
-	Engine.time_scale = 5.0
+	# 고밀도 초기 구간의 5배 가속은 process 관측을 0.5초 이상 늦출 수 있다.
+	# 정밀 진행 창만 실시간으로 읽으며 전체 pacing 실행과 섞지 않는다.
+	Engine.time_scale = 1.0 if progress_window_only else 5.0
 	main.start_game()
 	report["candidate"] = candidate
 	report["map"] = main.map_spec_path
 	report["preset"] = main.map_scale_preset
 	report["seed"] = main.simulation_seed
 	report["initial_only"] = initial_only
+	report["progress_enabled"] = trace_progress
+	report["progress_window_only"] = progress_window_only
+	report["time_scale"] = Engine.time_scale
+	if trace_progress:
+		report["progress_interval"] = 1.0
+		report["progress_until"] = 260.0
+		report["progress"] = []
+		_sample_progress(0.0)
 	report["scope"] = "bot-only; checkpoint stock/positions, not player scarcity duration or path-length; POI containment, open otherwise"
 	_snapshot(0.0)
 	if failed:
@@ -93,6 +113,65 @@ func _on_frame() -> void:
 	if checkpoint_index < CHECKPOINTS.size() and main.match_timer >= CHECKPOINTS[checkpoint_index]:
 		_snapshot(CHECKPOINTS[checkpoint_index])
 		checkpoint_index += 1
+	if trace_progress and next_progress_time <= 260.0 and main.match_timer >= next_progress_time:
+		_sample_progress(next_progress_time)
+		if failed:
+			return
+		# 누락된 시점을 같은 현재 상태로 채우지 않는다. 지연은 observed_time에 남긴다.
+		next_progress_time = floorf(main.match_timer) + 1.0
+	if progress_window_only and next_progress_time > 260.0:
+		report["complete"] = true
+		report["end_time"] = main.match_timer
+		report["checkpoints_not_reached"] = CHECKPOINTS.slice(checkpoint_index)
+		_save()
+		if not failed:
+			main.queue_free()
+			quit(0)
+
+func _sample_progress(requested_time: float) -> void:
+	var actors: Array = []
+	for bot in get_nodes_in_group("bots"):
+		if not is_instance_valid(bot) or bot.is_dead:
+			continue
+		var target = bot.target_actor
+		var target_valid: bool = is_instance_valid(target) and not target.is_queued_for_deletion()
+		var cached = bot._cached_pickup
+		var cached_valid: bool = is_instance_valid(cached) and not cached.is_queued_for_deletion()
+		var destination: Dictionary = bot._strategic_destination
+		var strategy_target: Vector2 = destination.get("target", Vector2.INF)
+		# 상태/캐시/이동 의도만 읽는다. 탐색, 지각, navigation 진행 함수는 호출하지 않는다.
+		actors.append({
+			"id": bot.get_instance_id(), "position": _xz(bot.global_position),
+			"family": bot.stats.weapon_type, "loaded": bot.stats.current_ammo,
+			"reserve": bot.reserve_ammo, "state": bot.State.keys()[bot.current_state],
+			"episode": bot._state_episode_id, "state_timer": bot.state_timer,
+			"recovery_substate": bot.recovery_substate, "recovery_timer": bot.recovery_timer,
+			"targeting_loot": bot.is_targeting_loot, "recovering": bot._recovering,
+			"loot_source": bot._loot_objective_source, "loot_kind": bot._loot_objective_kind,
+			"target_id": target.get_instance_id() if target_valid else null,
+			"target_position": _xz(target.global_position) if target_valid else null,
+			"cached_pickup_id": cached.get_instance_id() if cached_valid else null,
+			"pickup_search_timer": bot._pickup_search_timer,
+			"cached_search_radius": bot._cached_pickup_radius,
+			"vision_range": bot.stats.vision_range, "near_range": bot.stats.fov_near_range,
+			"fov_angle": bot.stats.fov_angle, "yaw": bot.rotation.y,
+			"health_ratio": bot.current_health / maxf(1.0, bot.stats.max_health),
+			"destination": destination.get("name", "none"),
+			"strategy_target": [strategy_target.x, strategy_target.y] if strategy_target.is_finite() else null,
+			"planning_mode": destination.get("planning_mode", "none"),
+			"holding_preposition_geometry": bot._is_holding_strategic_preposition(main),
+			"nav_target": _xz(bot._nav_target_position) if bot._has_nav_target else null,
+			"patrol_target": _xz(bot.patrol_target) if bot.current_state == bot.State.RECOVER \
+				and bot.recovery_substate == "patrol" else null,
+		})
+	if actors.size() != main.alive_count:
+		_fail("Progress population differs from simulation alive count.")
+		return
+	report["progress"].append({"requested_time": requested_time,
+		"observed_time": main.match_timer, "alive": main.alive_count, "actors": actors})
+
+func _xz(pos: Vector3) -> Array:
+	return [pos.x, pos.z]
 
 func _snapshot(requested_time: float) -> void:
 	var records: Array = []
