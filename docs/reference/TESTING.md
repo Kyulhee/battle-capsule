@@ -142,6 +142,10 @@ E-071 `loot_progress_candidate=true`는 같은 probe에서만 봇의 진행 기�
 
 `verify_bot_loot_progress.gd`는 실제 chase/start/finish/수집 분기에 결정적 이동·지각 fixture를 연결해 30m 대조 포기/후보 수집, 정체·미세 왕복·총시간 상한·도착·목표 교체·목표 삭제·적 반응 우선순위를 검사하며 `unit_smoke`에 포함된다. 이동 fixture 통과는 NavMesh/안전한 수집 증명이 아니므로 실제 M1 실행을 별도로 확인한다. 기본 승격은 대조/후보 각각 5-run과 수동 판정 뒤에만 한다.
 
+E-072 `trace_ai_phases=true`는 같은 probe의 선택적 성능 진단이다. 기존 4회당1회 AI 계측에서 준비·상태 override/stuck·감지/label·상태 handler·Entity 이동/감지·시각·보고 구간을 나눈다. 전체와 같은 종료 시각을 쓰고, 5ms 이상 표본 수·50ms 초과 수·가장 느린32개를 기록한다. sink 저장 비용은 AI timer 밖에 있으므로 계측 실행을 비계측 pacing 승격 run으로 세지 않는다. 시작/handler 진입/종료 상태는 구분하며 `entity_movement`에는 Entity의 perception 갱신도 포함된다. CPU 작업과 OS 스케줄링/중단을 이 값만으로 구분할 수 없다.
+
+`python tools/analyze_ai_phases.py <flow.json> <result.json>`은 완료·전체 표본 수·최대 시간·구간 합계·32개 상한/누락 수·시각/상태/후보 맥락을 검증한다. 정상 JSON 출력을 성능 PASS로 읽지 않는다. `max_gate_pass`와 별도 `check_scale_telemetry.py`의 기존50ms 기준을 유지하고 이전 실패를 제외하지 않는다. 합성6ms handler 지연 배선 검증은 `verify_ai_phase_runtime.gd`, 저장 상한은 `verify_ai_phase_audit.gd`, 파일 분석 검증은 tooling에 포함된다.
+
 `python tools/analyze_loot_progress.py <flow.json>`은 0-260초 261개 표본, 시각 순서/0.25초 이내 관측 지연, 인원/ID 중복, 기존 0/120/260초 checkpoint를 검사한다. 상태별 빈 탄약 표본·재무장 관측·같은 목표/episode 내 직선 접근량·동일 아이템 재추적을 출력하며 지연/누락은 실패시킨다. 인접 표본 사이 재무장/재소진이나 빠른 상태 전환은 놓칠 수 있다. 상태 체류 시간·실제 경로 길이·추적 중단 이유·가시성으로 단정하지 않는다. `tooling`과 `unit_smoke`에 불변성/회복/목표 교체/누락/지연/중복 fixture를 포함한다.
 
 ```powershell

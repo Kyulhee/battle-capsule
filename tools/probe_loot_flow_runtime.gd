@@ -2,6 +2,7 @@ extends SceneTree
 
 # 제품 동작에 진단 CLI를 추가하지 않고 동일한 Main으로 대조/후보를 실행한다.
 const AUDIT = preload("res://tools/LootFlowAudit.gd")
+const AI_AUDIT = preload("res://tools/AiPhaseAudit.gd")
 const CHECKPOINTS := [0.0, 120.0, 260.0]
 const CANDIDATE_POIS := ["Central Meadow", "Survey Camp"]
 var main
@@ -15,6 +16,8 @@ var trace_progress := false
 var next_progress_time := 1.0
 var progress_window_only := false
 var loot_progress_candidate := false
+var trace_ai_phases := false
+var ai_audit = AI_AUDIT.new()
 
 func _init() -> void:
 	_run.call_deferred()
@@ -36,6 +39,8 @@ func _run() -> void:
 			progress_window_only = true
 		elif arg == "loot_progress_candidate=true":
 			loot_progress_candidate = true
+		elif arg == "trace_ai_phases=true":
+			trace_ai_phases = true
 		elif arg == "autostart=true":
 			_fail("Use this probe's controlled start, not autostart=true.")
 			return
@@ -80,6 +85,8 @@ func _run() -> void:
 	main.start_game()
 	for bot in get_nodes_in_group("bots"):
 		bot._loot_progress_timeout_enabled = loot_progress_candidate
+		if trace_ai_phases:
+			bot._ai_phase_trace_sink = Callable(self, "_record_ai_phase")
 	report["candidate"] = candidate
 	report["loot_progress_candidate"] = loot_progress_candidate
 	report["map"] = main.map_spec_path
@@ -89,6 +96,7 @@ func _run() -> void:
 	report["progress_enabled"] = trace_progress
 	report["progress_window_only"] = progress_window_only
 	report["time_scale"] = Engine.time_scale
+	report["ai_phase_trace_enabled"] = trace_ai_phases
 	if trace_progress:
 		report["progress_interval"] = 1.0
 		report["progress_until"] = 260.0
@@ -260,7 +268,19 @@ func _snapshot(requested_time: float) -> void:
 	_save()
 	print("LOOT_FLOW t=%.2f alive=%d packs=%d needs=%s" % [main.match_timer, main.alive_count, snapshot["totals"]["ammo_packs"], JSON.stringify(needs)])
 
+func _record_ai_phase(sample: Dictionary) -> void:
+	if failed or main.game_over:
+		return
+	ai_audit.record(sample, main.match_timer)
+	if not ai_audit.report["valid"]:
+		_fail("AI phase timing identity failed.")
+
 func _save() -> void:
+	if trace_ai_phases:
+		report["ai_phase_trace"] = ai_audit.report
+		var metrics: Dictionary = root.get_node("Telemetry").metrics["ai"]
+		report["ai_phase_trace"]["telemetry_samples"] = metrics["update_samples"]
+		report["ai_phase_trace"]["telemetry_max_usec"] = metrics["update_max_usec"]
 	var file := FileAccess.open(report_path, FileAccess.WRITE)
 	if file == null:
 		_fail("Cannot write loot flow report.")

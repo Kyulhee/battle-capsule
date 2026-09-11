@@ -151,6 +151,8 @@ def profile_steps(
         "tools/analyze_map_structure.py",
         "tools/analyze_loot_progress.py",
         "tools/verify_loot_progress_analysis.py",
+        "tools/analyze_ai_phases.py",
+        "tools/verify_ai_phase_analysis.py",
         "tools/simulate_matches.py",
         "tools/run_verify.py",
     ]
@@ -160,7 +162,8 @@ def profile_steps(
 
     if profile == "tooling":
         return [*docs_only, py_compile(report_scripts),
-                Step("loot progress analysis", [sys.executable, rel("tools/verify_loot_progress_analysis.py")])]
+                Step("loot progress analysis", [sys.executable, rel("tools/verify_loot_progress_analysis.py")]),
+                Step("AI phase analysis", [sys.executable, rel("tools/verify_ai_phase_analysis.py")])]
 
     if profile == "unit_smoke":
         return [
@@ -178,6 +181,8 @@ def profile_steps(
             godot_script(godot, "verify_spawn_distribution_metrics.gd"),
             godot_script(godot, "verify_bot_opening_loot_rules.gd"),
             godot_script(godot, "verify_bot_loot_progress.gd"),
+            godot_script(godot, "verify_ai_phase_audit.gd"),
+            godot_script(godot, "verify_ai_phase_runtime.gd"),
             godot_script(godot, "verify_loot_drop_stability.gd"),
             godot_script(godot, "verify_loot_flow_audit.gd"),
             godot_script(godot, "verify_initial_ammo_match.gd"),

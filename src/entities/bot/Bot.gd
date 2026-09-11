@@ -99,6 +99,8 @@ var _loot_objective_selection_context: Dictionary = {}
 var _loot_progress_timeout_enabled: bool = false
 var _loot_best_distance: float = INF
 var _loot_last_progress_time: float = 0.0
+# 외부 진단에서만 연결한다. 기본 실행에는 시간표본 배열/추가 시계 읽기가 없다.
+var _ai_phase_trace_sink: Callable
 # True when bot decided to rush with knife instead of retreating to RECOVER
 var _knife_mode: bool = false
 var _knife_mode_origin: String = "none"
@@ -313,6 +315,11 @@ func _physics_process(delta):
 	_register_opening_survival_actor()
 	var log_ai_update := _ai_update_telemetry_phase == 0
 	var ai_update_start_usec := Time.get_ticks_usec() if log_ai_update else 0
+	var trace_ai: bool = log_ai_update and _ai_phase_trace_sink.is_valid()
+	var phase_marks = null
+	var trace_entry_state := current_state
+	if trace_ai:
+		phase_marks = [ai_update_start_usec]
 	_ai_update_telemetry_phase = (_ai_update_telemetry_phase + 1) % AI_UPDATE_TELEMETRY_SAMPLE_INTERVAL
 	if fire_cooldown > 0: fire_cooldown -= delta
 	if _disengage_cooldown > 0: _disengage_cooldown -= delta
@@ -342,17 +349,24 @@ func _physics_process(delta):
 
 	if current_health < stats.max_health * 0.82 and (stats.heal_items > 0 or stats.advanced_heals > 0):
 		use_heal()
+	if trace_ai:
+		phase_marks.append(Time.get_ticks_usec())
 
 	_check_late_game()
 	_check_state_overrides(delta)
 	_check_survival_overrides()
 	_update_stuck(delta)
+	if trace_ai:
+		phase_marks.append(Time.get_ticks_usec())
 	_check_footstep_sounds(delta)
 	_check_close_range(delta)
 	_check_gunshot_sounds(delta)
 	_check_ambient_awareness(delta)
 	_update_state_label_visibility()
 	_update_archetype_marker_visibility()
+	if trace_ai:
+		phase_marks.append(Time.get_ticks_usec())
+	var trace_handler_state := current_state
 
 	match current_state:
 		State.IDLE:        handle_idle_state(delta)
@@ -361,9 +375,13 @@ func _physics_process(delta):
 		State.ZONE_ESCAPE: handle_zone_escape_state(delta)
 		State.RECOVER:     handle_recover_state(delta)
 		State.DISENGAGE:   handle_disengage_state(delta)
+	if trace_ai:
+		phase_marks.append(Time.get_ticks_usec())
 
 	_apply_player_sound_look(delta, facing_before_state)
 	super._physics_process(delta)
+	if trace_ai:
+		phase_marks.append(Time.get_ticks_usec())
 
 	# Crouch: RECOVER, DISENGAGE, or IDLE while stationary — reduces player visibility
 	is_crouching = current_state in [State.RECOVER, State.DISENGAGE] or \
@@ -374,8 +392,10 @@ func _physics_process(delta):
 		$MeshInstance3D.scale.y = 0.62 if is_crouching else 1.0
 		$MeshInstance3D.position.y = _mesh_origin_y - 0.19 if is_crouching else _mesh_origin_y
 	_visual_skin.sync(self)
+	if trace_ai:
+		phase_marks.append(Time.get_ticks_usec())
 	if log_ai_update:
-		_log_ai_update_budget(ai_update_start_usec)
+		_log_ai_update_budget(ai_update_start_usec, phase_marks, trace_entry_state, trace_handler_state)
 
 func use_heal():
 	if stats.advanced_heals > 0:
@@ -2532,13 +2552,27 @@ func _position_cell_key(world_pos: Vector3) -> String:
 	var cell_z := int(floor(world_pos.z / 10.0)) * 10
 	return "%d,%d" % [cell_x, cell_z]
 
-func _log_ai_update_budget(start_usec: int):
+func _log_ai_update_budget(start_usec: int, phase_marks = null, entry_state: int = -1, handler_state: int = -1):
 	if not has_node("/root/Telemetry"):
 		return
 	var tel = get_node("/root/Telemetry")
 	if not tel.has_method("log_ai_update"):
 		return
-	tel.log_ai_update(_archetype_name(), State.keys()[current_state], Time.get_ticks_usec() - start_usec)
+	var archetype_name := _archetype_name()
+	var state_name: String = State.keys()[current_state]
+	var end_usec := Time.get_ticks_usec()
+	var elapsed_usec := end_usec - start_usec
+	tel.log_ai_update(archetype_name, state_name, elapsed_usec)
+	# 같은 계측값을 사용하며 sink 비용은 기존 AI timer에 포함하지 않는다.
+	# 5ms 이상만 전송한다. 저장/분석과 50ms gate는 외부 도구가 소유한다.
+	if phase_marks != null and elapsed_usec >= 5000 and _ai_phase_trace_sink.is_valid():
+		phase_marks.append(end_usec)
+		_ai_phase_trace_sink.call({"elapsed_usec": elapsed_usec, "marks": phase_marks,
+			"entry_state": State.keys()[entry_state], "handler_state": State.keys()[handler_state],
+			"exit_state": state_name, "archetype": archetype_name,
+			"physics_frame": Engine.get_physics_frames(), "actor": get_instance_id(),
+			"position": [global_position.x, global_position.z],
+			"loot_candidate": _loot_progress_timeout_enabled, "targeting_loot": is_targeting_loot})
 
 # ─── DOCTRINE & DIFFICULTY ───────────────────────────────────────────────────
 
