@@ -2,7 +2,6 @@ extends SceneTree
 
 # 제품 동작에 진단 CLI를 추가하지 않고 동일한 Main으로 대조/후보를 실행한다.
 const AUDIT = preload("res://tools/LootFlowAudit.gd")
-const AI_AUDIT = preload("res://tools/AiPhaseAudit.gd")
 const CHECKPOINTS := [0.0, 120.0, 260.0]
 const CANDIDATE_POIS := ["Central Meadow", "Survey Camp"]
 var main
@@ -17,7 +16,7 @@ var next_progress_time := 1.0
 var progress_window_only := false
 var loot_progress_candidate := false
 var trace_ai_phases := false
-var ai_audit = AI_AUDIT.new()
+var ai_audit = null
 
 func _init() -> void:
 	_run.call_deferred()
@@ -83,6 +82,10 @@ func _run() -> void:
 	# 정밀 진행 창만 실시간으로 읽으며 전체 pacing 실행과 섞지 않는다.
 	Engine.time_scale = 1.0 if progress_window_only else 5.0
 	main.start_game()
+	# 비활성 진단은 Resource/RefCounted ID도 소비하지 않는다.
+	# 봇 생성 뒤에만 로드해 초기 ID 기반 엄폐/조향 선택을 보존한다.
+	if trace_ai_phases:
+		ai_audit = load("res://tools/AiPhaseAudit.gd").new()
 	for bot in get_nodes_in_group("bots"):
 		bot._loot_progress_timeout_enabled = loot_progress_candidate
 		if trace_ai_phases:
@@ -97,6 +100,8 @@ func _run() -> void:
 	report["progress_window_only"] = progress_window_only
 	report["time_scale"] = Engine.time_scale
 	report["ai_phase_trace_enabled"] = trace_ai_phases
+	report["ai_phase_audit_created"] = ai_audit != null
+	report["ai_phase_audit_loaded"] = ResourceLoader.has_cached("res://tools/AiPhaseAudit.gd")
 	if trace_progress:
 		report["progress_interval"] = 1.0
 		report["progress_until"] = 260.0

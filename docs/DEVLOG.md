@@ -1,6 +1,11 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-09-11. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-09-12. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## E-074 비활성 진단의 초기 ID 중립성
+
+- E-073의 대조/후보4+4를 보존하고 비교에서 제외했다. OFF에서도 eager 진단 Resource/RefCounted가 ID를 소비해 첫 입력60봇 모두의 ID%8 방향이 달랐다. ID를 제외한 초기 필드 일치만으로 중립성을 판정한 검증 공백이다.
+- probe의 진단 스크립트/객체는 ON일 때 봇 생성 뒤에만 로드한다. 부모 `9f23dde`와 OFF/ON의 초기 스냅샷을 원시 ID까지 exact 확인했다. OFF 미로드·미생성과 OFF/ON/loot 후보 전체 초기 일치를 검사하는 실제 실행 fixture를 추가했고 전체 unit_smoke PASS다. E-074 별도 출력에 비계측5+5를 재수행하며 기본 게임 동작·패키지는 유지한다.
 
 ## E-072 AI 단계 계측과 실제 추적 확인
 
@@ -99,19 +104,9 @@
 - 종료 문맥: opening kill 132건 중 생존 상태 피해자 100건·2초 이내 71건이며 59초 이내 생존 상태 unique release 414·1초 내 재획득 132(31.9%)·opening DISENGAGE exit 1284다. 기록된 `tactics.disengage_entries/(spawned×duration_min)` 보조 watch는 run2 0.782·run4 0.864로 2/5에서 0.70을 넘었다.
 - 폐기/상태: bot-only HP buffer와 DISENGAGE 첫 1초 counteraction grace는 각각 1-run 방향 gate를 실패해 완전 revert하고 5-run을 금지했다. ceasefire 등 기존 실패 후보와도 재혼합하지 않으며 gameplay PASS·새 package·packaged 수동 결과는 없다. 다음은 behavior-neutral opening 생존 상태 노출 분모로 반복 이탈과 근거리 교전 집중의 위치·상태 원인을 좁힌다.
 
-## N2-REL-01 릴리즈 저장·식별·export 기반
+## N2-REL-01 과거 기반 요약
 
-- 현재 E-062 clean artifact: source `2acf9651eeff1c79a64d9190ea4c8e66f83a0c7d`의 fresh detached worktree에서 `BattleCapsule.exe` 104,548,352 bytes와 PCK 2,132,932 bytes를 export했다. 빈 host package verifier가 catalog 자산 44개·JSON 3개·runtime 경로 124개·load probe 20개·generated payload closure exact를 통과했고 EXE product/file description과 `2.1.0.0` metadata도 일치했다.
-- 현재 packaged smoke: `C:\tmp\n2_rel_01_e062_packaged_smoke_20260901`의 seed 41000/41001은 평균 661.8초(630.4-693.2), alive 중앙 `55.5/39.5/30/26/24/19`, first upgrade 평균 6.3초, spawn 60/60·fallback 0, stuck/disengage 0.02/0.20이다. AI max는 `57.914/28.584ms`라 두 번째 run은 PASS지만 합산 strict gate는 첫 spike 때문에 FAIL이다.
-- 현재 artifact hash: EXE `B241A13F6FB1E7FB297018D6D622601F9D68A5B4F8B0B389ED7F6CD5690E238D`, PCK `488EA4B94BFEFB73C4857A0A2EC875F999A07D89383D0AE92411EB9341B20A20`. `LICENSES/CREDITS`·`KNOWN_ISSUES`·build manifest가 없고 Forward+ 반복·사람 전체 루프·정상 저장·재시작도 미판정이라 archive는 만들지 않았다.
-- 저장: 미션 판정 뒤 Result와 Records가 같은 점수를 커밋하고 simulation은 기록·배지를 남기지 않는다. 설정·기록·배지는 schema v1, 원자 교체, last-good backup, corrupt fallback과 legacy migration을 쓰며 기록은 난이도별 50개로 제한한다. 현재 공개판 rollback root write를 병합하고 지원하지 않는 미래 schema는 덮어쓰지 않는다.
-- 식별: 공개 이름 `Battle Capsule`, 실행 파일 `BattleCapsule.exe`, 내부 채널 `v2.1.0-demo-dev`, Windows metadata `2.1.0.0`을 고정했다. 보이는 브랜드는 바꾸되 기존 `BattleRoyalePrototype` user data 경로는 유지한다.
-- export: `Main.tscn` selected-scene 경계와 runtime source/assets·검토된 JSON만 포함하고 도구·테스트·문서·로컬 생성 원본·debug 산출물을 제외했다. verifier는 catalog 자산·runtime 논리 경로와 import/remap payload closure를 exact 비교한다.
-- 자동 검증: release persistence/identity/settings가 포함된 `unit_smoke`를 84.6초에 통과했다. windowed 1280×720 Forward+ 3회 p95 15.059-15.429ms·p99 17.641-19.948ms로 p95 20ms 초과 0/3, 고정 입력 99봇 구조 5-run은 정체/이탈 0.01/0.44 per entity/min로 통과했다.
-- 과거 clean artifact: source `ac9fff8fc115c86003da7a5685fbce0dc0b48d58`의 fresh worktree PCK에서 catalog 자산 44개·JSON 3개·runtime 경로 124개·핵심 load probe 20개와 generated payload closure exact를 확인했다. packaged headless 전체 simulation은 651.038초, spawn 60/60·fallback 0·최종 1위·오류 0이었고 legacy settings migration/backup·재실행 멱등성, 기존 기록·배지 불변, Windows x64 GUI·`2.1.0.0` metadata를 통과했다. 현재 후보 근거는 아니다.
-- 과거 internal archive: EXE `B241A13…`, PCK `560CFD44…` SHA-256을 manifest에 기록하고 archive `92891081…` SHA-256을 산출했다. 압축 해제 뒤 세 파일 hash와 EXE 재부팅·오류 0도 확인했다. 이 archive는 공개 고지가 없는 stale internal smoke다.
-- 재현성: 독립 clean worktree 두 곳의 EXE는 byte-identical이었지만 PCK는 2,060,916/2,060,900 bytes와 서로 다른 hash였다. 두 PCK 모두 exact contract를 통과했으나 cold PCK byte 재현성은 닫지 않았다.
-- 잔여 gate: E-062 자동 gameplay와 current clean EXE/PCK는 확보했지만 packaged AI max spike 반복 판정, 수동 3판, 사람이 조작하는 전체 루프·정상 기록/배지 저장, cold PCK 비결정성·restart soak·호환성 matrix, LICENSES/CREDITS·KNOWN_ISSUES·manifest·지원·unsigned 정책은 아직 닫지 않았다.
+- 저장의 원자 교체/backup/migration, simulation의 기록·배지 미기록, 브랜드/기존 user data 경로 유지, PCK payload exact 검증은 유지한다. 과거 E-062 export와 AI max57.914ms 실패 등 상세 근거는 Git 이력에 보존한다. 현재 패키지와 미해결 수동·성능·배포 gate는 CURRENT가 기준이다.
 
 ## 기록 보존
 

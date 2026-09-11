@@ -146,6 +146,8 @@ E-072 `trace_ai_phases=true`는 같은 probe의 선택적 성능 진단이다. �
 
 `python tools/analyze_ai_phases.py <flow.json> <result.json>`은 완료·전체 표본 수·최대 시간·구간 합계·32개 상한/누락 수·시각/상태/후보 맥락을 검증한다. 정상 JSON 출력을 성능 PASS로 읽지 않는다. `max_gate_pass`와 별도 `check_scale_telemetry.py`의 기존50ms 기준을 유지하고 이전 실패를 제외하지 않는다. 합성6ms handler 지연 배선 검증은 `verify_ai_phase_runtime.gd`, 저장 상한은 `verify_ai_phase_audit.gd`, 파일 분석 검증은 tooling에 포함된다.
 
+E-074부터 진단 OFF에서는 `AiPhaseAudit` 스크립트를 로드하거나 객체를 만들지 않으며 ON에서도 봇 생성 뒤에만 로드한다. ID 기반 조향/엄폐 선택 때문에 초기 비교에서 actor ID를 제거하면 안 된다. `verify_ai_phase_probe.py --godot <console.exe>`는 실제 probe의 OFF/ON/loot 후보 초기 스냅샷을 ID까지 exact 비교하고 OFF의 미로드·미생성을 검사한다(`unit_smoke` 포함). 부모 소스와의 비교는 별도 사전 검증한다. 초기 일치는 전체 매치의 결정적 재현이나 계측 ON의 실행 중 중립성을 보장하지 않는다. E-073의 오염된4+4는 보존하되 승격 근거에서 제외한다.
+
 `python tools/analyze_loot_progress.py <flow.json>`은 0-260초 261개 표본, 시각 순서/0.25초 이내 관측 지연, 인원/ID 중복, 기존 0/120/260초 checkpoint를 검사한다. 상태별 빈 탄약 표본·재무장 관측·같은 목표/episode 내 직선 접근량·동일 아이템 재추적을 출력하며 지연/누락은 실패시킨다. 인접 표본 사이 재무장/재소진이나 빠른 상태 전환은 놓칠 수 있다. 상태 체류 시간·실제 경로 길이·추적 중단 이유·가시성으로 단정하지 않는다. `tooling`과 `unit_smoke`에 불변성/회복/목표 교체/누락/지연/중복 fixture를 포함한다.
 
 ```powershell

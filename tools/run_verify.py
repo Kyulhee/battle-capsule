@@ -153,6 +153,7 @@ def profile_steps(
         "tools/verify_loot_progress_analysis.py",
         "tools/analyze_ai_phases.py",
         "tools/verify_ai_phase_analysis.py",
+        "tools/verify_ai_phase_probe.py",
         "tools/simulate_matches.py",
         "tools/run_verify.py",
     ]
@@ -183,6 +184,7 @@ def profile_steps(
             godot_script(godot, "verify_bot_loot_progress.gd"),
             godot_script(godot, "verify_ai_phase_audit.gd"),
             godot_script(godot, "verify_ai_phase_runtime.gd"),
+            Step("AI phase probe identity", [sys.executable, rel("tools/verify_ai_phase_probe.py"), "--godot", godot]),
             godot_script(godot, "verify_loot_drop_stability.gd"),
             godot_script(godot, "verify_loot_flow_audit.gd"),
             godot_script(godot, "verify_initial_ammo_match.gd"),
