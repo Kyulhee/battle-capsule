@@ -101,6 +101,7 @@ var _loot_best_distance: float = INF
 var _loot_last_progress_time: float = 0.0
 # 외부 진단에서만 연결한다. 기본 실행에는 시간표본 배열/추가 시계 읽기가 없다.
 var _ai_phase_trace_sink: Callable
+var _loot_search_trace_sink: Callable
 # True when bot decided to rush with knife instead of retreating to RECOVER
 var _knife_mode: bool = false
 var _knife_mode_origin: String = "none"
@@ -2821,6 +2822,16 @@ func _check_ambient_awareness(delta: float):
 # Lower score = higher priority.
 
 func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = false) -> Node3D:
+	var search_audit = null
+	if _loot_search_trace_sink.is_valid() and (current_state == State.IDLE or current_state == State.RECOVER) \
+			and stats.current_ammo <= 0 and reserve_ammo <= 0:
+		search_audit = {"actor_id": get_instance_id(), "state": State.keys()[current_state],
+			"recovery_substate": recovery_substate, "position": [global_position.x, global_position.z],
+			"radius": search_radius, "prefer_immediate": prefer_immediate_value,
+			"loaded": stats.current_ammo, "reserve": reserve_ammo,
+			"search_timer": _pickup_search_timer,
+			"counts": {"pool": 0, "invalid": 0, "out_of_radius": 0, "not_sensed": 0,
+				"ammo_mismatch": 0, "weapon_rejected": 0, "armor_not_upgrade": 0, "accepted": 0}}
 	var matching_query := is_equal_approx(search_radius, _cached_pickup_radius) \
 		and prefer_immediate_value == _cached_pickup_prefer_immediate_value \
 		and is_equal_approx(current_health, _cached_pickup_health) \
@@ -2835,21 +2846,33 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 		and reserve_ammo == _cached_pickup_reserve_ammo
 	if _pickup_search_timer > 0.0 and matching_query:
 		if _cached_pickup == null:
+			if search_audit != null:
+				_emit_loot_search(search_audit, "cached_none", null)
 			return null
 		if is_instance_valid(_cached_pickup) and not _cached_pickup.is_queued_for_deletion():
+			if search_audit != null:
+				_emit_loot_search(search_audit, "cached_hit", _cached_pickup)
 			return _cached_pickup
 
 	var pickups = get_tree().get_nodes_in_group("pickups")
+	if search_audit != null:
+		search_audit["counts"]["pool"] = pickups.size()
 	var best: Node3D = null
 	var best_score: float = INF
 	var ammo_ratio := 1.0
 	if stats.max_ammo > 0:
 		ammo_ratio = float(stats.current_ammo) / maxf(1.0, float(stats.max_ammo))
 	for p in pickups:
-		if not is_instance_valid(p): continue
+		if not is_instance_valid(p):
+			if search_audit != null: search_audit["counts"]["invalid"] += 1
+			continue
 		var d = global_position.distance_to(p.global_position)
-		if d > search_radius: continue
-		if not can_sense_item(p.global_position): continue
+		if d > search_radius:
+			if search_audit != null: search_audit["counts"]["out_of_radius"] += 1
+			continue
+		if not can_sense_item(p.global_position):
+			if search_audit != null: search_audit["counts"]["not_sensed"] += 1
+			continue
 		var score = d
 		var item = p.get("item")
 		if item:
@@ -2859,6 +2882,7 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 						score *= 0.3
 				ItemData.Type.AMMO:
 					if item.ammo_weapon_type != "" and item.ammo_weapon_type != stats.weapon_type:
+						if search_audit != null: search_audit["counts"]["ammo_mismatch"] += 1
 						continue
 					if stats.current_ammo == 0 and reserve_ammo == 0:
 						score *= 0.35
@@ -2868,6 +2892,7 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 						score *= 0.7
 				ItemData.Type.WEAPON:
 					if item.weapon_stats == null or not can_receive_weapon(item.weapon_stats):
+						if search_audit != null: search_audit["counts"]["weapon_rejected"] += 1
 						continue
 					if stats.weapon_type == "knife" or stats.weapon_type == "":
 						score *= 0.5
@@ -2879,10 +2904,12 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 				ItemData.Type.ARMOR:
 					if not item.equipment_id.is_empty():
 						if item.equipment_tier <= equipped_armor_tier:
+							if search_audit != null: search_audit["counts"]["armor_not_upgrade"] += 1
 							continue
 						score *= 0.45
 			if prefer_immediate_value:
 				score *= _immediate_value_pickup_score_mult(item)
+		if search_audit != null: search_audit["counts"]["accepted"] += 1
 		if score < best_score:
 			best_score = score
 			best = p
@@ -2900,7 +2927,16 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 	_cached_pickup_max_ammo = stats.max_ammo
 	_cached_pickup_reserve_ammo = reserve_ammo
 	_pickup_search_timer = PICKUP_SEARCH_INTERVAL
+	if search_audit != null:
+		_emit_loot_search(search_audit, "scan", best)
 	return best
+
+func _emit_loot_search(sample: Dictionary, mode: String, selected: Node3D) -> void:
+	sample["mode"] = mode
+	sample["selected_id"] = selected.get_instance_id() if is_instance_valid(selected) else null
+	var item = selected.get("item") if is_instance_valid(selected) else null
+	sample["selected_kind"] = ItemData.Type.keys()[item.type].to_lower() if item != null else "none"
+	_loot_search_trace_sink.call(sample)
 
 func _immediate_value_pickup_score_mult(item) -> float:
 	if item == null:

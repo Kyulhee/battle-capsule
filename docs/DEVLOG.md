@@ -1,6 +1,12 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-09-12. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-09-13. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## E-076 빈 탄약 실제 검색 필터
+
+- 기본 비활성 sink는 실제 IDLE/RECOVER 검색을 cache/fresh 및 첫 탈락 조건으로 기록한다. 선택/동점·RNG·감지/장비 판정 횟수·cache/만료·96콜/64저장/32누락 fixture와 Python24종 오류·초기5모드 ID exact·전체 unit_smoke/tooling PASS. 개발 fixture 오류 로그는 보존했다.
+- 실시간seed41001 창은44,368콜·fresh2,907: 감지 없음1,835(63.12%), 탄종/장비1,031(35.47%), 반경만9·선택32다. 예시27/누락44,341 및 합계/시각/인원 PASS, 부모 초기ID exact·수동 hash불변. 단일 콜 분포이지 부족 체류 시간/생존 개선이 아니며 다음은 감지의 거리/FOV/LOS 분리다.
+- OFF 단발631.5초·AI 평균268.3/최대17,112us·stuck/disengage0.01/0.18은 비용/구조 항목을 통과했지만 initial shotgun upgrade0.577초로 전체 gate FAIL이다. 실패를 보존하고 하한·기본 후보·지도/드랍·EXE를 바꾸지 않았다. 원시/판정은 E076_loot_search/RESULTS.md, 푸시 없음.
 
 ## E-075 구역 전환 뒤 재고 관측
 
@@ -102,14 +108,8 @@
 
 ## N2-PLAY-11 continuity v2 기준선과 후보 폐기
 
-- 근거: N2-PLAY-10 packaged 6판은 16-240초, 88초 `25/61`, 92초 우승과 초기 무기 5개·주울 수 없는 권총 드랍 55개·전체 지도 HUD 중첩으로 M1을 거부했다.
-- 경제/스폰: 14개 POI에 초기 장총 18개와 오브젝트 앵커를 명시하고 기본 권총 무기 드랍을 제거했다. 반경 스폰은 면적 균등화하고 `bot_drop` soft/hard 120/150초, `stage_wave` 180/210초 TTL과 비무기 pool을 적용했다.
-- 화면/계측: 전체 지도에서 gameplay HUD를 격리하고 미니맵을 220px로 줄여 최근 교전 중 정적 배경만 흐리게 했다. 사망별 alive event staircase, 절대 50명/10명과 중앙값·완료 carry/수동 censor 분석을 추가했다.
-- continuity 계약: behavior-neutral schema v2는 `Main.match_timer`를 canonical clock으로 쓰고 unique episode의 `complete=true` exact aggregate를 판정 근거로 둔다. raw는 run마다 결정적 bottom-k release episode·DISENGAGE exit 각각 최대 128개로 제한하며 population/stored/omitted/complete를 분리하고 terminal target release를 제외한다.
-- 사전 확인: v2 1-run sanity는 aggregate/sample data contract를 통과했지만 stuck gate를 실패해 기준선이나 gameplay 근거로 승격하지 않았다.
-- 5-run 기준선: `C:\tmp\n2_play_11_continuity_v2_5run_20260814`은 평균 668.8초·범위 531.5-805.5초, first upgrade 3.5초, fallback 0, alive@30/60/90/120/180/260 중앙값 `54/34/24/23/21/15`, T50/T10 `31.5/306.7초`였다. D-004와 `check_scale_telemetry`를 통과했다.
-- 종료 문맥: opening kill 132건 중 생존 상태 피해자 100건·2초 이내 71건이며 59초 이내 생존 상태 unique release 414·1초 내 재획득 132(31.9%)·opening DISENGAGE exit 1284다. 기록된 `tactics.disengage_entries/(spawned×duration_min)` 보조 watch는 run2 0.782·run4 0.864로 2/5에서 0.70을 넘었다.
-- 폐기/상태: bot-only HP buffer와 DISENGAGE 첫 1초 counteraction grace는 각각 1-run 방향 gate를 실패해 완전 revert하고 5-run을 금지했다. ceasefire 등 기존 실패 후보와도 재혼합하지 않으며 gameplay PASS·새 package·packaged 수동 결과는 없다. 다음은 behavior-neutral opening 생존 상태 노출 분모로 반복 이탈과 근거리 교전 집중의 위치·상태 원인을 좁힌다.
+- 과거 v2는 canonical match clock·unique episode·완료 aggregate와 bounded raw/누락 수를 분리했다. 2026-08-14 5-run 평균668.8초와 초기 교전/생존 노출 문제, 경제/스폰·HUD 변경의 상세 원시는 Git 이력과 기존 tmp 증거에 보존한다.
+- bot-only HP buffer와 DISENGAGE counteraction grace는 각각1-run 실패로 revert·5-run 금지했다. 과거 기준선을 수동/게임플레이 합격으로 올리거나 실패 후보를 재혼합하지 않는다. 현재 판정/다음 작업은 CURRENT가 기준이다.
 
 ## N2-REL-01 과거 기반 요약
 

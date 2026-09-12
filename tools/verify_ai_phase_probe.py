@@ -20,6 +20,7 @@ def main():
         ("off", []), ("phase_on", ["trace_ai_phases=true"]),
         ("loot_on", ["loot_progress_candidate=true"]),
         ("stock_phase_on", ["trace_loot_phase=true"]),
+        ("search_on", ["trace_loot_search=true"]),
     ):
         flow_path = output / f"{name}.json"
         result_path = output / f"{name}-unused.json"
@@ -40,6 +41,10 @@ def main():
         assert flow["loot_phase_enabled"] == (name == "stock_phase_on")
         if name == "stock_phase_on":
             assert flow["phase_snapshots"] == []
+        assert flow["loot_search_enabled"] == (name == "search_on")
+        assert flow["search_audit_created"] == flow["search_audit_loaded"] == (name == "search_on")
+        if name == "search_on":
+            assert flow["loot_search"]["calls"] == 0
         snapshot = flow["snapshots"][0]
         assert snapshot["alive"] == len(snapshot["actors"]) == 60
         if reference is None:

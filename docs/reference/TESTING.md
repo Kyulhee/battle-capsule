@@ -1,6 +1,6 @@
 # 테스트와 검증 가이드
 
-> 최종 업데이트: 2026-08-09. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
+> 최종 업데이트: 2026-09-13. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
 
 ## 원칙
 
@@ -153,6 +153,10 @@ E-074부터 진단 OFF에서는 `AiPhaseAudit` 스크립트를 로드하거나 �
 E-075 `trace_loot_phase=true`는 기존0/120/260초 표본을 그대로 두고 `phase_snapshots`에 `stage2_post_wave_1s`를 한 번 추가한다. Telemetry의 stage2 시작 시각+1초에 stage2/비수축 상태만 읽으며 AI 검색/LOS/nav query를 호출하지 않는다. 구역 단계를 놓치면 다른 단계로 대체하지 않는다. `phase_window_only=true`를 함께 쓰면 실시간(1배)으로 관측 직후 종료하며 전체 매치 결과는 만들지 않는다. 초기5배 진단은 한 표본이 지연0.25초를 넘어 보존·제외했고 기준을 완화하지 않았다. 일반 전체 실행은5배이며 두 모드는 페이싱/정밀 관측 근거로 혼합하지 않는다. progress/AI 단계 계측과는 혼합을 거부하고 결과 경로는 항상 기존 파일과 분리한다.
 
 `python tools/analyze_loot_phase.py <control-flow.json> <candidate-flow.json>`은 초기 ID 포함 exact, 입력/후보/창 모드와 배속, phase anchor와 Telemetry stage clock, +1초 offset/0.25초 지연, 인원/중복/빈 탄약/재고 재계산을 검사한다. 서로 다른 절대 전환 시각은 허용하지만 두 실행 모두 동일한 상대 phase여야 한다. 단일 관측의 RECOVER 하위 상태는 탐색 실패 이유·경로 접근성·부족 체류 시간의 증거가 아니다. 초기 ID fixture와 분석기의21종 잘못된 입력 검사는 unit_smoke/tooling에서 회귀 검증한다.
+
+E-076 `trace_loot_search=true`는 실제 IDLE/RECOVER 빈 탄약 검색의 cache 반환과 fresh scan을 구분한다. 기존 거리·감지·탄종·장비 분기를 재호출하지 않고 첫 탈락 조건을 센다. `search_window_only=true`는1배 실시간260초 뒤 종료하며 전체 매치 결과를 만들지 않는다. 다른 추가 trace와 혼합하지 않으며 일반 전체 실행(5배)의 계측 결과를 비계측 성능 승격 run으로 세지 않는다. 기본 OFF는 기록 객체/추가 시계/검색·predicate 호출이 없고, ON helper는 봇 생성 뒤에만 로드한다.
+
+`python tools/analyze_loot_search.py <flow.json>`은 입력/배속/창·global/scope/call/scan/filter 합계, 0~260초 관측, event 분류·시각·선택과 저장 상한을 검사한다. 최초 예시2개×4scope×8outcome, 최대64개만 저장하고 나머지도 aggregate에는 포함한다. cache 없음은 새 검색 실패가 아니고, accepted/selected는 탄약 습득이 아니다. 전역 pool 방문 비율을 고유 아이템·부족 시간·경로 접근성으로 해석하지 않는다. `verify_loot_search_runtime.gd`는 ON/OFF의 선택/동점·난수·감지/장비 판정 횟수와 cache/만료/gating/저장 상한을, Python fixture는24종 오류 입력과 합계/불변성을 검증한다. 초기 ID 일치도 ON의 전체 physics/성능 중립성을 보장하지 않는다.
 
 `python tools/analyze_loot_progress.py <flow.json>`은 0-260초 261개 표본, 시각 순서/0.25초 이내 관측 지연, 인원/ID 중복, 기존 0/120/260초 checkpoint를 검사한다. 상태별 빈 탄약 표본·재무장 관측·같은 목표/episode 내 직선 접근량·동일 아이템 재추적을 출력하며 지연/누락은 실패시킨다. 인접 표본 사이 재무장/재소진이나 빠른 상태 전환은 놓칠 수 있다. 상태 체류 시간·실제 경로 길이·추적 중단 이유·가시성으로 단정하지 않는다. `tooling`과 `unit_smoke`에 불변성/회복/목표 교체/누락/지연/중복 fixture를 포함한다.
 

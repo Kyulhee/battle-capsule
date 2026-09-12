@@ -20,6 +20,9 @@ var ai_audit = null
 var trace_loot_phase := false
 var phase_window_only := false
 var phase_sampled := false
+var trace_loot_search := false
+var search_window_only := false
+var search_audit = null
 
 func _init() -> void:
 	_run.call_deferred()
@@ -47,6 +50,10 @@ func _run() -> void:
 			trace_loot_phase = true
 		elif arg == "phase_window_only=true":
 			phase_window_only = true
+		elif arg == "trace_loot_search=true":
+			trace_loot_search = true
+		elif arg == "search_window_only=true":
+			search_window_only = true
 		elif arg == "autostart=true":
 			_fail("Use this probe's controlled start, not autostart=true.")
 			return
@@ -58,6 +65,12 @@ func _run() -> void:
 		return
 	if trace_loot_phase and (trace_progress or trace_ai_phases):
 		_fail("Keep loot phase stock observations separate from progress/AI tracing.")
+		return
+	if search_window_only and (not trace_loot_search or initial_only):
+		_fail("search_window_only requires trace_loot_search and excludes initial_only.")
+		return
+	if trace_loot_search and (trace_progress or trace_ai_phases or trace_loot_phase):
+		_fail("Keep loot search diagnostics separate from progress/AI/phase tracing.")
 		return
 	if candidate and loot_progress_candidate:
 		_fail("Do not mix E-068 ammo pairing and E-071 chase progress candidates.")
@@ -93,16 +106,20 @@ func _run() -> void:
 	main.is_simulation = true
 	# 고밀도 초기 구간의 5배 가속은 process 관측을 0.5초 이상 늦출 수 있다.
 	# 정밀 진행 창만 실시간으로 읽으며 전체 pacing 실행과 섞지 않는다.
-	Engine.time_scale = 1.0 if progress_window_only or phase_window_only else 5.0
+	Engine.time_scale = 1.0 if progress_window_only or phase_window_only or search_window_only else 5.0
 	main.start_game()
 	# 비활성 진단은 Resource/RefCounted ID도 소비하지 않는다.
 	# 봇 생성 뒤에만 로드해 초기 ID 기반 엄폐/조향 선택을 보존한다.
 	if trace_ai_phases:
 		ai_audit = load("res://tools/AiPhaseAudit.gd").new()
+	if trace_loot_search:
+		search_audit = load("res://tools/LootSearchAudit.gd").new()
 	for bot in get_nodes_in_group("bots"):
 		bot._loot_progress_timeout_enabled = loot_progress_candidate
 		if trace_ai_phases:
 			bot._ai_phase_trace_sink = Callable(self, "_record_ai_phase")
+		if trace_loot_search:
+			bot._loot_search_trace_sink = Callable(self, "_record_loot_search")
 	report["candidate"] = candidate
 	report["loot_progress_candidate"] = loot_progress_candidate
 	report["map"] = main.map_spec_path
@@ -117,6 +134,12 @@ func _run() -> void:
 	report["ai_phase_audit_loaded"] = ResourceLoader.has_cached("res://tools/AiPhaseAudit.gd")
 	report["loot_phase_enabled"] = trace_loot_phase
 	report["phase_window_only"] = phase_window_only
+	report["loot_search_enabled"] = trace_loot_search
+	report["search_window_only"] = search_window_only
+	report["search_audit_created"] = search_audit != null
+	report["search_audit_loaded"] = ResourceLoader.has_cached("res://tools/LootSearchAudit.gd")
+	if trace_loot_search:
+		report["search_until"] = 260.0
 	if trace_loot_phase:
 		report["phase_snapshots"] = []
 	if trace_progress:
@@ -144,6 +167,9 @@ func _on_frame() -> void:
 	if failed or not is_instance_valid(main) or report["complete"]:
 		return
 	if main.game_over:
+		if search_window_only:
+			_fail("Match ended before the search diagnostic window completed.")
+			return
 		if phase_window_only and not phase_sampled:
 			_fail("Match ended before the requested loot phase observation.")
 			return
@@ -155,6 +181,15 @@ func _on_frame() -> void:
 	if checkpoint_index < CHECKPOINTS.size() and main.match_timer >= CHECKPOINTS[checkpoint_index]:
 		_snapshot(CHECKPOINTS[checkpoint_index])
 		checkpoint_index += 1
+	if search_window_only and main.match_timer >= 260.0:
+		report["complete"] = true
+		report["end_time"] = main.match_timer
+		report["checkpoints_not_reached"] = CHECKPOINTS.slice(checkpoint_index)
+		_save()
+		if not failed:
+			main.queue_free()
+			quit(0)
+		return
 	if trace_loot_phase and not phase_sampled:
 		_sample_loot_phase()
 		if failed:
@@ -338,7 +373,16 @@ func _record_ai_phase(sample: Dictionary) -> void:
 	if not ai_audit.report["valid"]:
 		_fail("AI phase timing identity failed.")
 
+func _record_loot_search(sample: Dictionary) -> void:
+	if failed or main.game_over or main.match_timer > 260.0:
+		return
+	search_audit.record(sample, main.match_timer)
+	if not search_audit.report["valid"]:
+		_fail("Loot search filter accounting failed.")
+
 func _save() -> void:
+	if trace_loot_search:
+		report["loot_search"] = search_audit.report
 	if trace_loot_phase:
 		report["phase_stage_times"] = root.get_node("Telemetry").metrics["pacing"]["stage_times"].duplicate()
 	if trace_ai_phases:
