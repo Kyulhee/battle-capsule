@@ -17,6 +17,9 @@ var progress_window_only := false
 var loot_progress_candidate := false
 var trace_ai_phases := false
 var ai_audit = null
+var trace_loot_phase := false
+var phase_window_only := false
+var phase_sampled := false
 
 func _init() -> void:
 	_run.call_deferred()
@@ -40,11 +43,21 @@ func _run() -> void:
 			loot_progress_candidate = true
 		elif arg == "trace_ai_phases=true":
 			trace_ai_phases = true
+		elif arg == "trace_loot_phase=true":
+			trace_loot_phase = true
+		elif arg == "phase_window_only=true":
+			phase_window_only = true
 		elif arg == "autostart=true":
 			_fail("Use this probe's controlled start, not autostart=true.")
 			return
 	if progress_window_only and (not trace_progress or initial_only):
 		_fail("progress_window_only requires trace_progress and excludes initial_only.")
+		return
+	if phase_window_only and (not trace_loot_phase or initial_only or trace_progress or trace_ai_phases):
+		_fail("phase_window_only requires trace_loot_phase and excludes initial/progress/AI tracing.")
+		return
+	if trace_loot_phase and (trace_progress or trace_ai_phases):
+		_fail("Keep loot phase stock observations separate from progress/AI tracing.")
 		return
 	if candidate and loot_progress_candidate:
 		_fail("Do not mix E-068 ammo pairing and E-071 chase progress candidates.")
@@ -80,7 +93,7 @@ func _run() -> void:
 	main.is_simulation = true
 	# 고밀도 초기 구간의 5배 가속은 process 관측을 0.5초 이상 늦출 수 있다.
 	# 정밀 진행 창만 실시간으로 읽으며 전체 pacing 실행과 섞지 않는다.
-	Engine.time_scale = 1.0 if progress_window_only else 5.0
+	Engine.time_scale = 1.0 if progress_window_only or phase_window_only else 5.0
 	main.start_game()
 	# 비활성 진단은 Resource/RefCounted ID도 소비하지 않는다.
 	# 봇 생성 뒤에만 로드해 초기 ID 기반 엄폐/조향 선택을 보존한다.
@@ -102,6 +115,10 @@ func _run() -> void:
 	report["ai_phase_trace_enabled"] = trace_ai_phases
 	report["ai_phase_audit_created"] = ai_audit != null
 	report["ai_phase_audit_loaded"] = ResourceLoader.has_cached("res://tools/AiPhaseAudit.gd")
+	report["loot_phase_enabled"] = trace_loot_phase
+	report["phase_window_only"] = phase_window_only
+	if trace_loot_phase:
+		report["phase_snapshots"] = []
 	if trace_progress:
 		report["progress_interval"] = 1.0
 		report["progress_until"] = 260.0
@@ -127,6 +144,9 @@ func _on_frame() -> void:
 	if failed or not is_instance_valid(main) or report["complete"]:
 		return
 	if main.game_over:
+		if phase_window_only and not phase_sampled:
+			_fail("Match ended before the requested loot phase observation.")
+			return
 		report["complete"] = true
 		report["end_time"] = main.match_timer
 		report["checkpoints_not_reached"] = CHECKPOINTS.slice(checkpoint_index)
@@ -135,6 +155,19 @@ func _on_frame() -> void:
 	if checkpoint_index < CHECKPOINTS.size() and main.match_timer >= CHECKPOINTS[checkpoint_index]:
 		_snapshot(CHECKPOINTS[checkpoint_index])
 		checkpoint_index += 1
+	if trace_loot_phase and not phase_sampled:
+		_sample_loot_phase()
+		if failed:
+			return
+	if phase_window_only and phase_sampled:
+		report["complete"] = true
+		report["end_time"] = main.match_timer
+		report["checkpoints_not_reached"] = CHECKPOINTS.slice(checkpoint_index)
+		_save()
+		if not failed:
+			main.queue_free()
+			quit(0)
+		return
 	if trace_progress and next_progress_time <= 260.0 and main.match_timer >= next_progress_time:
 		_sample_progress(next_progress_time)
 		if failed:
@@ -195,7 +228,21 @@ func _sample_progress(requested_time: float) -> void:
 func _xz(pos: Vector3) -> Array:
 	return [pos.x, pos.z]
 
-func _snapshot(requested_time: float) -> void:
+func _sample_loot_phase() -> void:
+	# Main의 단계 전환/보급 생성 콜백이 끝난 후의 canonical game-time을 기준으로 읽는다.
+	var stages: Dictionary = root.get_node("Telemetry").metrics["pacing"]["stage_times"]
+	if not stages.has("2"):
+		return
+	var stage_started := float(stages["2"])
+	if main.match_timer < stage_started + 1.0:
+		return
+	if main.zone.stage != 2 or main.zone.shrinking:
+		_fail("Requested stage2 post-wave phase was missed; do not substitute another phase.")
+		return
+	_snapshot(stage_started + 1.0, stage_started)
+	phase_sampled = not failed
+
+func _snapshot(requested_time: float, phase_anchor: float = -1.0) -> void:
 	var records: Array = []
 	for pickup in get_nodes_in_group("pickups"):
 		if not is_instance_valid(pickup) or pickup.is_queued_for_deletion() or pickup.item == null:
@@ -263,13 +310,24 @@ func _snapshot(requested_time: float) -> void:
 			"outside_next_zone": pos.distance_to(main.zone.next_center) > main.zone.next_radius,
 			"nearest_compatible_ammo_distance": nearest_ammo_distance if is_finite(nearest_ammo_distance) else null,
 		})
+		if phase_anchor >= 0.0:
+			actors[-1].merge({"state_name": bot.State.keys()[bot.current_state],
+				"recovery_substate": bot.recovery_substate, "recovery_timer": bot.recovery_timer,
+				"pickup_search_timer": bot._pickup_search_timer,
+				"cached_search_radius": bot._cached_pickup_radius})
 	snapshot["actors"] = actors
 	snapshot["occupancy"] = occupancy
 	snapshot["needs"] = needs
 	if actors.size() != main.alive_count:
 		_fail("Bot snapshot population differs from simulation alive count.")
 		return
-	report["snapshots"].append(snapshot)
+	if phase_anchor >= 0.0:
+		snapshot["phase_key"] = "stage2_post_wave_1s"
+		snapshot["phase_anchor_time"] = phase_anchor
+		snapshot["phase_offset_seconds"] = 1.0
+		report["phase_snapshots"].append(snapshot)
+	else:
+		report["snapshots"].append(snapshot)
 	_save()
 	print("LOOT_FLOW t=%.2f alive=%d packs=%d needs=%s" % [main.match_timer, main.alive_count, snapshot["totals"]["ammo_packs"], JSON.stringify(needs)])
 
@@ -281,6 +339,8 @@ func _record_ai_phase(sample: Dictionary) -> void:
 		_fail("AI phase timing identity failed.")
 
 func _save() -> void:
+	if trace_loot_phase:
+		report["phase_stage_times"] = root.get_node("Telemetry").metrics["pacing"]["stage_times"].duplicate()
 	if trace_ai_phases:
 		report["ai_phase_trace"] = ai_audit.report
 		var metrics: Dictionary = root.get_node("Telemetry").metrics["ai"]

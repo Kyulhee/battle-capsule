@@ -19,6 +19,7 @@ def main():
     for name, flags in (
         ("off", []), ("phase_on", ["trace_ai_phases=true"]),
         ("loot_on", ["loot_progress_candidate=true"]),
+        ("stock_phase_on", ["trace_loot_phase=true"]),
     ):
         flow_path = output / f"{name}.json"
         result_path = output / f"{name}-unused.json"
@@ -36,6 +37,9 @@ def main():
         assert flow["ai_phase_trace_enabled"] == (name == "phase_on")
         assert flow["ai_phase_audit_created"] == flow["ai_phase_audit_loaded"] == (name == "phase_on")
         assert flow["loot_progress_candidate"] == (name == "loot_on")
+        assert flow["loot_phase_enabled"] == (name == "stock_phase_on")
+        if name == "stock_phase_on":
+            assert flow["phase_snapshots"] == []
         snapshot = flow["snapshots"][0]
         assert snapshot["alive"] == len(snapshot["actors"]) == 60
         if reference is None:

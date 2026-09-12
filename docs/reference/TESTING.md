@@ -150,6 +150,10 @@ E-074부터 진단 OFF에서는 `AiPhaseAudit` 스크립트를 로드하거나 �
 
 재고 비교는 관측 지연뿐 아니라 양군의 `zone_stage`/`zone_shrinking`도 일치해야 한다. E-074의260초는 대조4판만 stage2 wave 생성 이후를 읽어184~186개 추가 아이템이 섞였다. 0.25초 이내 시각 검사를 통과해도 이러한 재고 평균을 직접 비교하지 않는다. 같은 시각의 생존 관측, 동일 phase의 재고, 전체 매치 gate를 별도 판정하고 경계 불일치 원시 자료를 버리거나 phase가 맞는 한 쌍만5-run 근거로 쓰지 않는다.
 
+E-075 `trace_loot_phase=true`는 기존0/120/260초 표본을 그대로 두고 `phase_snapshots`에 `stage2_post_wave_1s`를 한 번 추가한다. Telemetry의 stage2 시작 시각+1초에 stage2/비수축 상태만 읽으며 AI 검색/LOS/nav query를 호출하지 않는다. 구역 단계를 놓치면 다른 단계로 대체하지 않는다. `phase_window_only=true`를 함께 쓰면 실시간(1배)으로 관측 직후 종료하며 전체 매치 결과는 만들지 않는다. 초기5배 진단은 한 표본이 지연0.25초를 넘어 보존·제외했고 기준을 완화하지 않았다. 일반 전체 실행은5배이며 두 모드는 페이싱/정밀 관측 근거로 혼합하지 않는다. progress/AI 단계 계측과는 혼합을 거부하고 결과 경로는 항상 기존 파일과 분리한다.
+
+`python tools/analyze_loot_phase.py <control-flow.json> <candidate-flow.json>`은 초기 ID 포함 exact, 입력/후보/창 모드와 배속, phase anchor와 Telemetry stage clock, +1초 offset/0.25초 지연, 인원/중복/빈 탄약/재고 재계산을 검사한다. 서로 다른 절대 전환 시각은 허용하지만 두 실행 모두 동일한 상대 phase여야 한다. 단일 관측의 RECOVER 하위 상태는 탐색 실패 이유·경로 접근성·부족 체류 시간의 증거가 아니다. 초기 ID fixture와 분석기의21종 잘못된 입력 검사는 unit_smoke/tooling에서 회귀 검증한다.
+
 `python tools/analyze_loot_progress.py <flow.json>`은 0-260초 261개 표본, 시각 순서/0.25초 이내 관측 지연, 인원/ID 중복, 기존 0/120/260초 checkpoint를 검사한다. 상태별 빈 탄약 표본·재무장 관측·같은 목표/episode 내 직선 접근량·동일 아이템 재추적을 출력하며 지연/누락은 실패시킨다. 인접 표본 사이 재무장/재소진이나 빠른 상태 전환은 놓칠 수 있다. 상태 체류 시간·실제 경로 길이·추적 중단 이유·가시성으로 단정하지 않는다. `tooling`과 `unit_smoke`에 불변성/회복/목표 교체/누락/지연/중복 fixture를 포함한다.
 
 ```powershell

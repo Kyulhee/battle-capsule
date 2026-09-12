@@ -154,6 +154,8 @@ def profile_steps(
         "tools/analyze_ai_phases.py",
         "tools/verify_ai_phase_analysis.py",
         "tools/verify_ai_phase_probe.py",
+        "tools/analyze_loot_phase.py",
+        "tools/verify_loot_phase_analysis.py",
         "tools/simulate_matches.py",
         "tools/run_verify.py",
     ]
@@ -164,7 +166,8 @@ def profile_steps(
     if profile == "tooling":
         return [*docs_only, py_compile(report_scripts),
                 Step("loot progress analysis", [sys.executable, rel("tools/verify_loot_progress_analysis.py")]),
-                Step("AI phase analysis", [sys.executable, rel("tools/verify_ai_phase_analysis.py")])]
+                Step("AI phase analysis", [sys.executable, rel("tools/verify_ai_phase_analysis.py")]),
+                Step("loot phase analysis", [sys.executable, rel("tools/verify_loot_phase_analysis.py")])]
 
     if profile == "unit_smoke":
         return [
@@ -173,6 +176,7 @@ def profile_steps(
             Step("verify_pacing_analysis.py", [sys.executable, rel("tools/verify_pacing_analysis.py")]),
             Step("verify_survival_curve.py", [sys.executable, rel("tools/verify_survival_curve.py")]),
             Step("verify_loot_progress_analysis.py", [sys.executable, rel("tools/verify_loot_progress_analysis.py")]),
+            Step("verify_loot_phase_analysis.py", [sys.executable, rel("tools/verify_loot_phase_analysis.py")]),
             godot_script(godot, "verify_release_identity.gd"),
             godot_script(godot, "verify_pacing_telemetry.gd"),
             godot_script(godot, "verify_release_persistence.gd"),
