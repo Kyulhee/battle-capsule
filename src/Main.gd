@@ -62,6 +62,8 @@ var alive_count: int = 0
 var game_over: bool = false
 var player_ref: Entity = null
 var match_timer: float = 0.0
+# E081 외부 probe 전용 후보. 일반 플레이는 기존 process 기반을 유지한다.
+var _physics_match_clock_enabled := false
 var mission_tracker = null  # MissionTracker instance
 var pressure_missions_enabled: bool = false
 var pressure_opt_in_hard: bool = false  # 어려움 난이도 압박 미션 opt-in
@@ -144,6 +146,7 @@ var zone_ring: MeshInstance3D = null
 
 func _ready():
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	set_physics_process(false)
 	night_world_readability = NightWorldReadabilityScript.new()
 	night_world_readability.attach($WorldEnvironment, $DirectionalLight3D)
 	loot_spawner = LootSpawnerScript.new()
@@ -285,6 +288,8 @@ func start_game():
 	current_state = GameState.PLAYING
 	game_over = false
 	match_timer = 0.0
+	set_physics_process(_physics_match_clock_enabled)
+	process_physics_priority = -100 if _physics_match_clock_enabled else 0
 	zone = MatchBootstrapScript.create_zone(
 		ZoneControllerScript,
 		zone_wait_time,
@@ -745,7 +750,19 @@ func _process(delta):
 	if get_tree().paused: return
 	if current_state != GameState.PLAYING: return
 	if game_over: return
-	
+	if _physics_match_clock_enabled:
+		WorldPresentationBuilderScript.sync_zone_ring(zone_ring, zone)
+		if supply_telegraphed and not supply_spawned and supply_pillar:
+			_sync_supply_pillar()
+		return
+	_advance_match(delta, true)
+
+func _physics_process(delta):
+	if not _physics_match_clock_enabled or get_tree().paused: return
+	if current_state != GameState.PLAYING or game_over: return
+	_advance_match(delta, false)
+
+func _advance_match(delta: float, update_visuals: bool) -> void:
 	match_timer += delta
 	handle_zone_lifecycle(delta)
 	handle_damage_tick(delta)
@@ -754,7 +771,8 @@ func _process(delta):
 		hell_events.tick(delta, match_timer, zone)
 	_process_pressure_mission(delta)
 	
-	WorldPresentationBuilderScript.sync_zone_ring(zone_ring, zone)
+	if update_visuals:
+		WorldPresentationBuilderScript.sync_zone_ring(zone_ring, zone)
 
 	if zone.stage == 2 and not supply_telegraphed:
 		telegraph_supply_zone()
@@ -762,12 +780,15 @@ func _process(delta):
 	if supply_telegraphed and not supply_spawned:
 		supply_timer -= delta
 		# Move pillar down over time
-		if supply_pillar:
-			var t = supply_controller.pillar_progress(supply_timer) if supply_controller else 1.0
-			WorldPresentationBuilderScript.update_supply_pillar_drop(supply_pillar, t)
+		if update_visuals and supply_pillar:
+			_sync_supply_pillar()
 			
 		if supply_timer <= 0:
 			activate_supply_zone()
+
+func _sync_supply_pillar() -> void:
+	var t = supply_controller.pillar_progress(supply_timer) if supply_controller else 1.0
+	WorldPresentationBuilderScript.update_supply_pillar_drop(supply_pillar, t)
 
 func handle_zone_lifecycle(delta):
 	zone.tick_lifecycle(delta)

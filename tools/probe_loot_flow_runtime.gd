@@ -26,6 +26,7 @@ var search_window_only := false
 var search_audit = null
 var first_collection_scale := 0.0
 var first_collection_start_delay_ms := 0
+var physics_clock_candidate := false
 
 func _init() -> void:
 	_run.call_deferred()
@@ -49,6 +50,8 @@ func _run() -> void:
 			loot_progress_candidate = true
 		elif arg == "recovery_patrol_candidate=true":
 			recovery_patrol_candidate = true
+		elif arg == "physics_clock_candidate=true":
+			physics_clock_candidate = true
 		elif arg == "trace_ai_phases=true":
 			trace_ai_phases = true
 		elif arg == "trace_loot_phase=true":
@@ -76,6 +79,9 @@ func _run() -> void:
 			return
 	if first_collection_start_delay_ms > 0 and first_collection_scale == 0.0:
 		_fail("Start delay requires first_collection_scale; never use it in performance runs.")
+		return
+	if physics_clock_candidate and (recovery_patrol_candidate or candidate or loot_progress_candidate or trace_progress or trace_ai_phases or trace_loot_phase or trace_loot_search):
+		_fail("Keep physics clock candidate separate from AI/loot candidates and other traces.")
 		return
 	if first_collection_scale > 0.0 and (candidate or loot_progress_candidate or trace_progress or trace_ai_phases or trace_loot_phase or trace_loot_search or progress_window_only or phase_window_only or search_window_only):
 		_fail("Keep first collection observations separate from other diagnostics/tuning.")
@@ -135,6 +141,7 @@ func _run() -> void:
 	Engine.time_scale = 1.0 if progress_window_only or phase_window_only or search_window_only else 5.0
 	if first_collection_scale > 0.0:
 		Engine.time_scale = first_collection_scale
+	main._physics_match_clock_enabled = physics_clock_candidate
 	main.start_game()
 	# 비활성 진단은 Resource/RefCounted ID도 소비하지 않는다.
 	# 봇 생성 뒤에만 로드해 초기 ID 기반 엄폐/조향 선택을 보존한다.
@@ -150,6 +157,9 @@ func _run() -> void:
 		if trace_loot_search:
 			bot._loot_search_trace_sink = Callable(self, "_record_loot_search")
 	report["candidate"] = candidate
+	report["physics_clock_candidate"] = physics_clock_candidate
+	report["clock_physics_priority"] = main.process_physics_priority
+	report["clock_physics_processing"] = main.is_physics_processing()
 	report["loot_progress_candidate"] = loot_progress_candidate
 	report["recovery_patrol_candidate"] = recovery_patrol_candidate
 	if recovery_patrol_candidate: report["recovery_patrol_observations"] = []

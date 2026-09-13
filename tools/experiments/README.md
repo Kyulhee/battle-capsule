@@ -33,3 +33,20 @@ probe 전용 `first_collection_scale=1|5`는 초기 비권총 pickup에만 성�
 `first_collection_start_delay_ms=100`은 이 진단에서만 허용하는 명시적 시작 지연이다. 자연 스케줄링·성능·승격 결과와 섞지 않는다. 다른 trace/튜닝 혼합은 거부하고 E078 순찰 후보만 별도 대조한다. 초기 ID 일치는 계측 중 전체 물리 결정성을 보증하지 않는다.
 
 현재 보관 자료는 `E080_first_collection`(초기 자연 관측), `E080_start_delay`(100ms 지연), `E080_natural_final`(지연 실험과 같은 소스의 자연 대조)이다. 입력은 Git에 포함되지 않는다. 판정은 DEVLOG에서 관리하며 E078 당시 프레임 이력이 없다는 한계를 유지한다.
+
+## E081 선택적 물리 시계 후보
+
+동일 실행기에 `--clock-candidate`를 주면 E078 순찰 후보 대신 E081 시계 후보를 비교한다. `--full-match`를 함께 주면 진단/지연 없이 기존 시계와 후보를 5배속 한 판씩 끝까지 실행한다. 전체 매치 모드는 `--start-delay-ms 100`과 혼합할 수 없고 승격을 의미하지 않는다.
+
+```powershell
+python tools/experiments/run_first_collection.py --reference-flow builds/verification/E078_recovery_patrol/control/flow.json --out-dir builds/verification/E081_repeat_clock --clock-candidate --start-delay-ms 100
+python tools/experiments/run_first_collection.py --reference-flow builds/verification/E078_recovery_patrol/control/flow.json --out-dir builds/verification/E081_repeat_full --clock-candidate --full-match
+```
+
+probe 전용 `physics_clock_candidate=true`는 Main의 비공개 기본 OFF 플래그를 시작 전에 켠다. 일반 플레이의 process 경로는 유지하고, 후보만 physics priority -100에서 `match_timer`와 기존 존·피해·미션·보급 갱신을 같은 delta로 진행한다. 화면은 process에서 그리며 시간을 두 번 누적하거나 배속을 다시 곱하지 않는다. 수집 시각만 임의 보정하는 방식이 아니다.
+
+물리 tick은 process보다 먼저 실행되며 낮은 priority 값이 먼저 호출된다. delta는 이미 배속을 반영한다. 이 동작을 사용하되 wall-clock이나 전체 매치 결정성을 보장하지 않는다. [Godot 4.6 Node](https://docs.godotengine.org/en/4.6/classes/class_node.html#class-node-private-method-physics-process), [Engine](https://docs.godotengine.org/en/4.6/classes/class_engine.html#class-engine-property-time-scale)
+
+후보의 lifecycle/피해 호출 시점·빈도가 바뀌므로 초기 수집 검증만으로 기본 승격하지 않는다. 전체 매치 pair는 초기 ID·0/120/260초 checkpoint·flow/core 종료 시각·수동 hash를 검사한다. 각 case의 `run_1.json`은 기존 분석기의 입력이며 `case_summary.json`은 매치 결과 목록이 아니다. 최소 5-run, 전체 gate, 수동 성능/체감은 별도다. 새로운 clock의 시간 분포를 기존 process 기준선과 그대로 합산하지 않는다.
+
+시계 후보 식별은 `inputs.json`과 `flow.json`의 `physics_clock_candidate`를 함께 보관해 확인한다. 기존 `run_1.json` 단독으로 시계 종류를 추정하지 않는다.

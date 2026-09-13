@@ -2,6 +2,14 @@
 
 > 최종 업데이트: 2026-09-14. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## E-081 선택적 물리 시계 후보
+
+- 기본 OFF 후보는 Main의 physics priority -100에서 canonical 시계와 기존 존·피해·미션·보급 갱신을 같은 delta로 실행한다. 일반 플레이는 기존 process 경로, 화면 갱신은 process로 유지한다. 별도 시계/임의 양수 보정/배속 재곱셈은 없고 Telemetry는 계속 Main.match_timer를 읽는다.
+- E080 실행기에 `--clock-candidate`와 선택적 `--full-match`를 추가했다. 100ms 시작 지연의 기존 방식 1x/5x는 0.595913/0초, 후보는 0.600/0.666667초에 같은 actor/pickup의 성공 장착을 기록했다. OFF 물리 처리 비활성/priority 0, ON 활성/-100과 초기 원시 ID 일치를 확인했다.
+- 비계측 5배속 대조/후보 1+1은 698.708/761.667초, 첫 upgrade 0.654742/0.666667초다. 초기 ID·0/120/260초 checkpoint·flow/core 종료 시각·소스/수동 hash 보존과 정상 종료를 통과했다. 단발 수치 검사(`--min-runs 1`, 나머지 기존 duration/upgrade/scale 기준)는 양군 모두 첫 upgrade 2초 하한만 FAIL이다. AI 평균/최대는 292.0/26,745us와 291.1/20,422us, stuck/disengage는 0.01/0.19와 0.01/0.18 per entity/min이다. 단발 차이를 밸런스/성능 개선으로 해석하지 않는다.
+- 시계·pacing telemetry·첫 수집 fixture 통과. 새 시계 fixture는 실제 Main 분기로 단일 누적·1x/5x·pause/menu/result/end·존 경계·피해/미션/보급 delta를 검사한다. 최초 Main 조기 로드의 Sfx compile 오류는 autoload 이후 helper 로드로 고친 뒤 해당 fixture만 재검증했다. 실제 시작/전체 매치 로그에는 script/runtime ERROR가 없다. 시계/AI 혼합 2종과 전체 매치/지연 오용 2종도 출력 쓰기 전에 거부됐다.
+- 근거는 `builds/verification/E081_clock_delayed`, `E081_clock_full`의 inputs/command/flow/exit/integrity/case_summary와 run_1.json이다. 전체 unit_smoke·5-run·수동/EXE 검증은 하지 않았다. lifecycle/피해 호출 순서가 달라지는 후보이므로 기본 승격하지 않으며, 약 0.6초 첫 획득 문제와 기존 E078 FAIL은 별도로 유지한다.
+
 ## E-080 실제 첫 수집과 시계 순서
 
 - `Pickup.collect`의 실제 적용 성공 뒤 선택적 callback으로 actor/pickup/source·장착·거리·physics/process frame·canonical 시각을 연결했다. 기본 OFF는 성공 끝의 유효성 검사만 추가하며 추가 시계/검색/Resource 생성은 없다. probe는 봇 생성 뒤 초기 비권총에 연결하며 성공 8건·process 경계 16개로 제한한다. 거부된 수집에는 callback이 없다.

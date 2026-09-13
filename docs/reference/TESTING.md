@@ -48,6 +48,8 @@ python tools\run_verify.py --profile visual_review
 
 E080 첫 수집 순서의 짧은 실행과 지연 주입은 [실험 안내의 명령](../../tools/experiments/README.md#e080-실제-첫-수집-순서)을 사용한다. 성공 callback/거부 경계는 `focused --test verify_first_upgrade_clock.gd`로 검사한다. 진단 창과 지연 주입 결과는 pacing/scale run 수에 포함하지 않는다.
 
+E081의 기본 OFF 물리 시계 후보는 `focused --test verify_match_clock.gd`로 단일 시간 누적·pause/menu/result/end·존 경계·미션/피해/보급 delta와 canonical telemetry를 검사한다. 실제 시작/전체 한 판 비교 명령은 [실험 안내](../../tools/experiments/README.md#e081-선택적-물리-시계-후보)를 따른다. 일반 플레이는 기존 process 시계이며 전체 gate 기준은 변경하지 않는다.
+
 ## 현재 pacing candidate gate
 
 `pacing_candidate`는 다음을 요구한다.
