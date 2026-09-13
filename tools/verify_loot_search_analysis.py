@@ -95,6 +95,7 @@ class SearchAnalysisTests(unittest.TestCase):
         mutations = {
             "incomplete": lambda f: f.update(complete=False),
             "mixed": lambda f: f.update(ai_phase_trace_enabled=True),
+            "patrol_candidate": lambda f: f.update(recovery_patrol_candidate=True),
             "unloaded": lambda f: f.update(search_audit_loaded=False),
             "scale": lambda f: f.update(time_scale=5),
             "missing_checkpoint": lambda f: f.update(checkpoints_not_reached=[260]),

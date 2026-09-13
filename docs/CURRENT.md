@@ -17,13 +17,13 @@
 | 항목 | 값 |
 |---|---|
 | 현재 단위 | E-067 `N2-LOOT-FLOW-01` 탄약 손실 수정·패키지 검증 완료, 수동 대기. clean 소스 `78b5180`; Windows `builds/playtest/E-067_78b5180/BattleCapsule_E067_78b5180.exe`, 메뉴 `v2.1.0-demo-dev \| E-067`. macOS ZIP·checksum은 같은 폴더, 실기기 Mac 미검증 |
-| 바로 다음 단위 | E-078: RECOVER 순찰 목적지 선택(supply→doctrine bush/hotspot/random zone)을 소형 재현하고, 기존 POI 지식을 이용한 보급 지향 목적지의 별도 opt-in 후보를 검토한다. E-077 감지 탈락 아이템 방문의84.93%가 거리 밖이지만 호환성/접근 가능성은 미판정이다. 적/존 우선·fallback·RNG/초기ID를 명시하고 단일 후보/회귀→1-run 순서로 진행한다. 전역 시야/반경/드랍 확대·E-071 기본 적용·새 EXE 없음 |
-| 최신 검증 개발 단위 | E-077 실제 감지 첫 반환을 거리/FOV/LOS로 분리, 추가 ray/predicate 없이 OFF/ON 결정·RNG·호출·초기5모드 ID exact·전체 unit_smoke/tooling PASS. 실시간54,195콜/fresh3,517·감지 탈락23,567방문 중 거리20,016/FOV3,169/LOS382, 예시26/누락54,169·시각/합계 PASS. OFF 단발546.6초·AI309.3/41,112us지만 duration/upgrade0.664초 하한으로 전체 gate FAIL 보존. `builds/verification/E077_loot_sensing/RESULTS.md`, 수동 hash불변·게임플레이 승격 없음 |
+| 바로 다음 단위 | E-079: E-076~078에서 반복된 첫 비권총 수집0~0.7초 하한 실패를 소형 재현한다. Telemetry는 Main.match_timer를 읽으므로 실제 초기 근접 픽업과 시작 시 physics/process 시계 순서를 구분하고 actor/source/time을 확인한다. 하한·스폰·드랍을 임의 변경하거나 실패 run을 재시도해 교체하지 않는다. E-078은 기본OFF·5-run 보류이며 원인 확인 뒤 재판정한다. E-071 기본 적용·새 EXE 없음 |
+| 최신 검증 개발 단위 | E-078 빈 탄약 RECOVER/patrol의 지도 기반 보급 목적지 opt-in·기본/fallback RNG·보급/적/존/loot 우선순위·6모드 ID/혼합6종 거부·전체 unit_smoke/tooling PASS. 진단 없는1+1은663.9/678.6초·AI max25,943/25,020us지만 양군 first upgrade0초로 전체 gate FAIL. 빈 탄약120초10/23→6/25,260초6/16→8/19이며260초 phase 불일치로 재고 비교 제외. 선택 활성24/21회는 생존 봇 계수일 뿐이다. `builds/verification/E078_recovery_patrol/RESULTS.md`, 수동 hash불변·기본/EXE 승격 없음 |
 | 최신 검증 게임플레이 단위 | E-065 60봇 1-run sanity는 683.2초, alive@30/60/90/120/180/260 `55/36/28/24/24/12`, stuck/disengage 0.016/0.189, fallback 0. 5-run 승격 근거가 아니다. 직전 E-064 5-run 평균 694.3초와 수동 1판 372.5초·alive@120/260 18/4의 괴리는 미해결 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 릴리즈 판정 | `v2.1.0-demo-dev`는 제한을 명시한 테스트 프리릴리즈다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 packaged/manual·M2/M3 gate 전 공개판을 교체하지 않는다 |
 | 목표 창 | 폐쇄 알파 현실 창 2026-09-28~10-09, 공개 데모 RC 현실 창 2026-12-18~2027-01-15, 유료 EA Go/No-Go 2027 Q1 이후. 날짜는 gate 통과 창이지 출시 약속이 아니다 |
-| 브랜치 메모 | 원격 마지막 확인은 E-074 `1eb345379c48b9d7bec952c87779af1fec107c44`다. 2026-09-13 사용자 푸시 요청으로 E-075/E-076 `190fdb2`·`1559e9f`를 `Kyulhee/battle-capsule` master에 보내려 했으나 자동 검토가 전송 대상/내용의 명시적 승인을 요구해 차단했다. 해당 두 커밋 승인을 질문했고 재시도하지 않았다. E-077은 별도 로컬 작업 |
+| 브랜치 메모 | 2026-09-13 사용자 명시적 재승인으로 E-075/E-076 `190fdb2`·`1559e9f`를 `Kyulhee/battle-capsule` master에 푸시했다. 원격 SHA `1559e9f430e434ec63c25ed19d19b6529489ee7c` 확인 완료. E-077 `fb4ece3` 및 이후 작업은 이번 승인 범위 밖의 로컬이며 추가 푸시하지 않는다 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
 | 작업 운영 | 일반 구현·검증은 중간 확인 없이 계속한다. 사용자 판단이 필요한 중대한 문제나 범위/출시 변경 때 확인한다. 수동 체감·릴리즈 판정은 자동 실행으로 대체하지 않는다 |
 

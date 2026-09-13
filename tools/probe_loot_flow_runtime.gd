@@ -15,6 +15,7 @@ var trace_progress := false
 var next_progress_time := 1.0
 var progress_window_only := false
 var loot_progress_candidate := false
+var recovery_patrol_candidate := false
 var trace_ai_phases := false
 var ai_audit = null
 var trace_loot_phase := false
@@ -44,6 +45,8 @@ func _run() -> void:
 			progress_window_only = true
 		elif arg == "loot_progress_candidate=true":
 			loot_progress_candidate = true
+		elif arg == "recovery_patrol_candidate=true":
+			recovery_patrol_candidate = true
 		elif arg == "trace_ai_phases=true":
 			trace_ai_phases = true
 		elif arg == "trace_loot_phase=true":
@@ -74,6 +77,9 @@ func _run() -> void:
 		return
 	if candidate and loot_progress_candidate:
 		_fail("Do not mix E-068 ammo pairing and E-071 chase progress candidates.")
+		return
+	if recovery_patrol_candidate and (candidate or loot_progress_candidate or trace_progress or trace_ai_phases or trace_loot_phase or trace_loot_search):
+		_fail("Keep E-078 patrol candidate separate from E-068/E-071 and diagnostics.")
 		return
 	if report_path.is_empty() or result_path.is_empty() or report_path == result_path \
 			or FileAccess.file_exists(report_path) or FileAccess.file_exists(result_path):
@@ -116,12 +122,15 @@ func _run() -> void:
 		search_audit = load("res://tools/LootSearchAudit.gd").new()
 	for bot in get_nodes_in_group("bots"):
 		bot._loot_progress_timeout_enabled = loot_progress_candidate
+		bot._recovery_loot_patrol_enabled = recovery_patrol_candidate
 		if trace_ai_phases:
 			bot._ai_phase_trace_sink = Callable(self, "_record_ai_phase")
 		if trace_loot_search:
 			bot._loot_search_trace_sink = Callable(self, "_record_loot_search")
 	report["candidate"] = candidate
 	report["loot_progress_candidate"] = loot_progress_candidate
+	report["recovery_patrol_candidate"] = recovery_patrol_candidate
+	if recovery_patrol_candidate: report["recovery_patrol_observations"] = []
 	report["map"] = main.map_spec_path
 	report["preset"] = main.map_scale_preset
 	report["seed"] = main.simulation_seed
@@ -278,6 +287,16 @@ func _sample_loot_phase() -> void:
 	phase_sampled = not failed
 
 func _snapshot(requested_time: float, phase_anchor: float = -1.0) -> void:
+	if recovery_patrol_candidate:
+		var survivor_selections := 0
+		var selected_survivors := 0
+		for bot in get_nodes_in_group("bots"):
+			if not is_instance_valid(bot) or bot.is_dead: continue
+			survivor_selections += bot._recovery_loot_patrol_selections
+			selected_survivors += int(bot._recovery_loot_patrol_selections > 0)
+		report["recovery_patrol_observations"].append({"requested_time": requested_time,
+			"observed_time": main.match_timer, "survivor_selections": survivor_selections,
+			"selected_survivors": selected_survivors})
 	var records: Array = []
 	for pickup in get_nodes_in_group("pickups"):
 		if not is_instance_valid(pickup) or pickup.is_queued_for_deletion() or pickup.item == null:

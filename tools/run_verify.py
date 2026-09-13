@@ -183,6 +183,7 @@ def profile_steps(
             Step("verify_loot_search_analysis.py", [sys.executable, rel("tools/verify_loot_search_analysis.py")]),
             godot_script(godot, "verify_loot_search_runtime.gd"),
             godot_script(godot, "verify_loot_sensing_runtime.gd"),
+            godot_script(godot, "verify_recovery_loot_patrol.gd"),
             godot_script(godot, "verify_release_identity.gd"),
             godot_script(godot, "verify_pacing_telemetry.gd"),
             godot_script(godot, "verify_release_persistence.gd"),

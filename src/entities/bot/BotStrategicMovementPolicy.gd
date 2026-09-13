@@ -150,6 +150,26 @@ static func select_destination(
 	return result
 
 
+# E078 opt-in caller: map knowledge only, never live item inventory or extra sensing.
+static func select_recovery_patrol_destination(
+	pois: Array[Dictionary], origin: Vector2, zone_center: Vector2, zone_radius: float,
+	spread_phase: int, occupancy_by_name: Dictionary, context: Dictionary
+) -> Dictionary:
+	if not origin.is_finite() or not zone_center.is_finite() or not is_finite(zone_radius) \
+			or zone_radius <= ZONE_EDGE_MARGIN or origin.distance_to(zone_center) > zone_radius:
+		return {}
+	var supply_pois: Array[Dictionary] = []
+	for poi in pois:
+		if String(poi.get("role", "")) in ["loot_hub", "recovery_pocket"] \
+				and float(poi.get("item_density", 0.0)) > 0.0:
+			supply_pois.append(poi)
+	# Spread without introducing a new RNG draw; successful selection replaces the
+	# old doctrine branch (and therefore skips any RNG draws that branch used).
+	var ticket := fposmod(float(spread_phase) * 0.38196601125, 1.0)
+	return select_destination(supply_pois, origin, zone_center, zone_radius, "loot_hub",
+		ticket, spread_phase, occupancy_by_name, "roam", context)
+
+
 static func occupancy_multiplier(occupancy: int, capacity: int) -> float:
 	var safe_capacity := maxf(1.0, float(capacity))
 	var load_ratio := maxf(0.0, float(occupancy)) / safe_capacity

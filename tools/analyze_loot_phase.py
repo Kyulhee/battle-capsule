@@ -38,7 +38,7 @@ def analyze(report):
     expected_scale = 1 if report.get("phase_window_only") else 5
     require(report["time_scale"] == expected_scale, "Phase-only windows require real-time; full runs use 5x")
     require(not any(report.get(k, False) for k in ("candidate", "ai_phase_trace_enabled",
-        "ai_phase_audit_loaded", "ai_phase_audit_created", "progress_enabled", "progress_window_only")), "Mixed diagnostics/candidates")
+        "ai_phase_audit_loaded", "ai_phase_audit_created", "progress_enabled", "progress_window_only", "recovery_patrol_candidate")), "Mixed diagnostics/candidates")
     require(report["checkpoints_not_reached"] == [], "Missing legacy checkpoint")
     snapshots = report["snapshots"]
     require([s["requested_time"] for s in snapshots] == [0, 120, 260], "Legacy checkpoints changed")

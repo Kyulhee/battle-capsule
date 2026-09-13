@@ -2,6 +2,12 @@
 
 > 최종 업데이트: 2026-09-13. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## E-078 회복 보급 목적지 opt-in
+
+- 승인된190fdb2/1559e9f를 원격 master에 푸시하고 SHA 확인했다. 이후 기본OFF 후보는 빈 탄약 RECOVER/patrol에서 기존 보급 투하 뒤 지도 POI를 선택하며 추가 재고/시야/ray/nav query·시간 연장은 없다. 기본/fallback RNG·우선순위·순수/stub 이동·6모드 초기ID/혼합6종 거부·전체 unit_smoke/tooling PASS다. ON 성공은 기존 분기의 난수 호출을 건너뛴다.
+- 진단 없는 대조/후보1+1은663.9/678.6초·AI max25,943/25,020us이며 초기ID/수동 hash불변이다. 빈 탄약120초10/23→6/25지만260초6/16→8/19·phase 불일치로 재고 비교 제외다. 후보 생존 봇의 선택24/21회는 기능 활성만 확인한다. 양군 upgrade0초로 전체 gate FAIL·기본/EXE/5-run 승격 보류다.
+- 요약 키 KeyError와 원래 runner를 보존하고 완료 대조의 명령/해시/종료를 검증해 재실행 없이 후보로 이어갔다. 원시/판정은 E078_recovery_patrol/RESULTS.md, 다음은 초기 근접 픽업/시계 순서 재현이며 하한/스폰 변경 없음. E-077/E-078 푸시는 하지 않았다.
+
 ## E-077 실제 감지 첫 탈락
 
 - 선택적 caller-owned 계수로 거리/FOV/LOS 실제 반환을 기록하며 추가 ray/predicate·기본 Dictionary/Resource는 없다. schema1 호환·schema2 합계·경계/실제 장애물·결정/RNG/ray parity·초기5모드 ID exact·전체 unit_smoke/tooling PASS. 45도 float 경계의 잘못된 fixture 기대값 실패2건을 보존하고 게임 비교식은 유지했다.
@@ -99,16 +105,9 @@
 - E-062 실행: pilot `C:\tmp\n2_play_11_e062_spatial_cover_commitment_pilot_20260901` 뒤 `C:\tmp\n2_play_11_e062_spatial_cover_commitment_5run_20260901`을 seed 41000-41004로 실행했다. 5-run 평균 753.5초(576.3-881.9), first upgrade 3.4초, fallback 0, AI 평균/최대 305.3/35,241us, `check_scale_telemetry` PASS다.
 - E-062 판정: alive 중앙 `52/39/30/26/23/19`, T50/T10 `33.2/322.8초`, survival-state death rate `4.78→4.18/100s`, DISENGAGE death rate `6.40→5.30/100s`, cover selected/reached `269/42`, 진행률 `0.11→0.26`, 빠른 동일 표적 재획득 `28.3→25.3%`, stuck/disengage `0.02/0.17`로 자동 후보를 유지한다. episode death `68→84`와 전체 DISENGAGE reengage `14.9→25.0%`는 수동 watch이며 M1/package PASS는 아니다.
 
-## N2-PLAY-11 opening survival exposure 진단과 릴리즈 재판정
+## 과거 opening survival exposure
 
-- 계측 계약: schema v1은 `Main.match_timer` 기준 opening 60초의 이전 held 상태·위치를 다음 관측까지 적분해 exact RECOVER/DISENGAGE actor-seconds·death·acquisition·entry를 POI/route 축으로 집계한다. identity·coverage·overflow가 위치 판정을 차단하며 bounded sample은 분모를 대신하지 않는다.
-- 자동 검증: exposure telemetry/analyzer·headless parse·`git diff --check`와 전체 `unit_smoke` 87.5초가 통과했다. behavior와 RNG를 바꾸지 않는 계측 계약·정적 위치 분류·비용 gate를 확인했다.
-- 1-run 구조 결과: `C:\tmp\n2_play_11_survival_exposure_sanity_20260828`은 849.696초, first upgrade 12.4초, spawn 60/60·fallback 0, AI 평균/최대 264.7/35,515us였다. data-quality와 `check_scale_telemetry`는 PASS다.
-- 생존 결과: alive@30/60/120/260은 `55/29/22/15`, T50/T10은 `35.8/279.8초`라 gameplay/survival은 FAIL이다. 단일 run이므로 기준선 승격이나 릴리즈 근거로 쓰지 않는다.
-- 상태 노출: exact 444.3 actor-sec는 known 100%·overflow false다. DISENGAGE 318.4초·사망 24명·7.54/100초, RECOVER 126.0초·사망 0명이며 entry/exit는 `305/303`이다.
-- 종료 문맥: 생존 상태 사망 24명 중 22명이 `survival_break` 진입이고 18명은 진입 2초 미만이었다. continuity release 78 중 1초 내 같은 대상 재획득은 22(28.2%)다.
-- 판정/후속: 위치 노출 정규화는 단일 hotspot을 지목하지 않아 topology를 바꾸지 않는다. E-056은 revert됐고 후속 E-057 exact linkage 결과는 위 최신 기록이 소유한다.
-- 릴리즈: 현재는 internal pre-alpha다. 공개 stable `v2.0.0-pre-expansion`을 유지하고, 폐쇄 알파 현실 창은 2026-09-28~10-09, 공개 데모 RC 현실 창은 2026-12-18~2027-01-15로 재조정했다. 날짜는 gate 통과 창이다.
+- Main.match_timer 기반 exact exposure 계약·전체 회귀와849.7초/AI max35,515us 단발 구조는 통과했지만 alive120/260=22/15·생존 FAIL이었다. DISENGAGE318.4초/사망24명,RECOVER126초/사망0·빠른 재획득22/78의 원시와 E-056 revert는 Git 이력에 보존하며 단일 hotspot/topology 변경·릴리즈 승격 근거로 쓰지 않는다. 최신 제품/출시 판정은 CURRENT가 기준이다.
 
 ## 과거 continuity·릴리즈 기반
 

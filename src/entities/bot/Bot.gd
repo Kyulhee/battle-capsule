@@ -97,6 +97,8 @@ var _loot_objective_kind: String = "none"
 var _loot_objective_selection_context: Dictionary = {}
 # E-071 외부 probe 전용 opt-in. 반복/수동 승격 전 제품 기본값은 유지한다.
 var _loot_progress_timeout_enabled: bool = false
+var _recovery_loot_patrol_enabled: bool = false
+var _recovery_loot_patrol_selections: int = 0
 var _loot_best_distance: float = INF
 var _loot_last_progress_time: float = 0.0
 # 외부 진단에서만 연결한다. 기본 실행에는 시간표본 배열/추가 시계 읽기가 없다.
@@ -3442,6 +3444,12 @@ func _pick_patrol_target() -> Vector3:
 	var main = get_tree().root.get_node_or_null("Main")
 	if main and (main.supply_telegraphed or main.supply_spawned) and _should_pursue_supply(main):
 		return Vector3(main.supply_pos.x, global_position.y, main.supply_pos.z)
+	if _recovery_loot_patrol_enabled and current_state == State.RECOVER and recovery_substate == "patrol" \
+			and stats.current_ammo <= 0 and reserve_ammo <= 0:
+		var supply_target := _pick_recovery_loot_patrol_target(main)
+		if supply_target.is_finite():
+			_recovery_loot_patrol_selections += 1
+			return supply_target
 	var patrol_preference = String(_doctrine_profile.get("patrol_preference", "random"))
 	if patrol_preference == "bush":
 		var bush = _find_nearest_bush()
@@ -3450,6 +3458,23 @@ func _pick_patrol_target() -> Vector3:
 		var hotspot = _find_nearest_hotspot()
 		if hotspot != Vector3.ZERO: return hotspot
 	return _random_zone_point()
+
+func _pick_recovery_loot_patrol_target(main) -> Vector3:
+	if main == null or main.zone == null or main.map_spec == null:
+		return Vector3.INF
+	var pois: Array[Dictionary] = []
+	if main.map_definition != null and main.map_definition.has_method("get_poi_descriptors"):
+		pois = main.map_definition.get_poi_descriptors()
+	else:
+		for poi in main.map_spec.pois:
+			if typeof(poi) == TYPE_DICTIONARY: pois.append(poi)
+	var origin := Vector2(global_position.x, global_position.z)
+	var result := BOT_STRATEGIC_MOVEMENT_POLICY.select_recovery_patrol_destination(
+		pois, origin, main.zone.current_center, float(main.zone.current_radius),
+		int(get_instance_id()) + _recovery_loot_patrol_selections,
+		_strategic_occupancy_by_name(pois), _strategic_utility_context(main, "roam", false, false))
+	var target: Vector2 = result.get("target", Vector2.INF)
+	return Vector3(target.x, global_position.y, target.y) if target.is_finite() else Vector3.INF
 
 func _move_toward_strategic_destination(main, delta: float) -> bool:
 	if main == null or main.zone == null or main.map_spec == null:

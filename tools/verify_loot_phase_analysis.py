@@ -59,6 +59,7 @@ class PhaseTests(unittest.TestCase):
             "empty": lambda r: r["phase_snapshots"][0]["needs"].update(no_ammo=0),
             "seed": lambda r: r.update(seed=41001),
             "mixed": lambda r: r.update(candidate=True),
+            "patrol_candidate": lambda r: r.update(recovery_patrol_candidate=True),
             "instrumented": lambda r: r.update(ai_phase_audit_loaded=True),
             "window": lambda r: r.update(phase_window_only=False),
             "accelerated_window": lambda r: r.update(time_scale=5),

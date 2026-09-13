@@ -73,7 +73,7 @@ def analyze(flow):
     require(flow["map"] == MAP and flow["preset"] == "night_br_m1_60", "Unexpected map/preset")
     require(type(flow["seed"]) is int and flow["seed"] >= 0, "Missing tracked seed")
     require(not any(flow.get(k, False) for k in ("candidate", "ai_phase_trace_enabled", "loot_phase_enabled",
-            "progress_enabled", "phase_window_only", "progress_window_only")), "Mixed diagnostics/candidates")
+            "progress_enabled", "phase_window_only", "progress_window_only", "recovery_patrol_candidate")), "Mixed diagnostics/candidates")
     require(flow["time_scale"] == (1 if flow["search_window_only"] else 5), "Wrong window time scale")
     require(flow["checkpoints_not_reached"] == [], "Missing checkpoints")
     snapshots = flow["snapshots"]

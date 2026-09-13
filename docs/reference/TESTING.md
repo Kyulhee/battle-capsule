@@ -160,6 +160,10 @@ E-076 `trace_loot_search=true`는 실제 IDLE/RECOVER 빈 탄약 검색의 cache
 
 E-077 search audit schema2는 실제 `can_sense_item`/`can_sense_world_point` 첫 반환에서 `no_stats/far_range/degenerate_direction/fov/los/passed`를 센다. 기본 인자는 null이며 ON 검색만 caller-owned Dictionary를 전달한다. 기존 수평 거리→근거리 FOV 우회→시야각→LOS 순서와 strict 경계 비교를 유지하고 ray/predicate를 재실행하지 않는다. 전체·scope·예시의 감지 합은 `pool-invalid-out_of_radius`, 감지 탈락 합은 `not_sensed`와 일치해야 하며 cache 반환은 모두0이다. schema1은 감지 상세를 null로 표시해 계속 읽는다. 감지 수치는 후보 아이템 방문 단위이며 검색 콜별 상호배타 원인 비율이 아니다. 거리/FOV 탈락 대상의 가림·탄종 적합성은 판정되지 않았다. `verify_loot_sensing_runtime.gd`는 실제 분기·거리/각도 경계·근거리 우회·실제 장애물과 OFF/ON의 결과/RNG/ray 횟수를, Python7개 테스트는 기존24종+감지10종 변조·schema1/2·cache/quiet/불변성을 검증한다.
 
+E-078 `recovery_patrol_candidate=true`는 외부 probe에서만 빈 탄약 `RECOVER/patrol`의 목적지 후보를 켠다. 기존 보급 투하를 먼저 판정하고, 기존 지도 POI의 양수 item_density·loot_hub/recovery_pocket 중 현 구역/출발 거리/anchor/occupancy utility로 선택한다. 실제 재고/호환 탄/추가 시야·표면·ray/nav query는 조회하지 않으며 회복4초/순찰8초/추적 시간과 적·존·보이는 loot 우선순위는 유지한다. 선택 실패·다른 상태·장전/예비탄 보유·OFF는 기존 성향/fallback과 RNG를 유지한다. 성공한 후보는 새 난수를 뽑지 않지만 대체한 기존 분기의 난수 호출은 건너뛰므로 이후 RNG 흐름까지 대조와 같다고 주장하지 않는다. 순찰 목적지를 다른 봇의 새 예약으로 등록하거나 도착 가능성을 보증하지 않는다.
+
+E-078은 E-068/E-071 및 다른 추가 trace와 혼합을 거부한다. `verify_ai_phase_probe.py`는 OFF/AI/loot/stock/search/patrol 6모드의 원시 초기 ID exact·6종 혼합 거부를, `verify_recovery_loot_patrol.gd`는 선택 policy·기본/fallback RNG·상태/보급/적/존/loot 우선순위·stub 이동을 검증한다. `recovery_patrol_observations`는 기존0/120/260 snapshot 밖에서 살아 있는 봇의 선택 계수만 읽는다. 사망 봇이 빠져 합계가 감소할 수 있으며 전체 선택 횟수·수집/생존 개선의 지표가 아니다. 비교용 전체 매치는 진단 OFF로 별도 실행하고 단일 쌍을 5-run/수동 승격으로 세지 않는다.
+
 `python tools/analyze_loot_progress.py <flow.json>`은 0-260초 261개 표본, 시각 순서/0.25초 이내 관측 지연, 인원/ID 중복, 기존 0/120/260초 checkpoint를 검사한다. 상태별 빈 탄약 표본·재무장 관측·같은 목표/episode 내 직선 접근량·동일 아이템 재추적을 출력하며 지연/누락은 실패시킨다. 인접 표본 사이 재무장/재소진이나 빠른 상태 전환은 놓칠 수 있다. 상태 체류 시간·실제 경로 길이·추적 중단 이유·가시성으로 단정하지 않는다. `tooling`과 `unit_smoke`에 불변성/회복/목표 교체/누락/지연/중복 fixture를 포함한다.
 
 ```powershell
