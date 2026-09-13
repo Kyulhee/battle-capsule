@@ -24,6 +24,8 @@ var phase_sampled := false
 var trace_loot_search := false
 var search_window_only := false
 var search_audit = null
+var first_collection_scale := 0.0
+var first_collection_start_delay_ms := 0
 
 func _init() -> void:
 	_run.call_deferred()
@@ -57,9 +59,27 @@ func _run() -> void:
 			trace_loot_search = true
 		elif arg == "search_window_only=true":
 			search_window_only = true
+		elif arg.begins_with("first_collection_scale="):
+			var value := arg.trim_prefix("first_collection_scale=")
+			if value not in ["1", "5"]:
+				_fail("first_collection_scale must be 1 or 5.")
+				return
+			first_collection_scale = float(value)
+		elif arg.begins_with("first_collection_start_delay_ms="):
+			var value := arg.trim_prefix("first_collection_start_delay_ms=")
+			if value not in ["0", "100"]:
+				_fail("first_collection_start_delay_ms must be 0 or 100.")
+				return
+			first_collection_start_delay_ms = int(value)
 		elif arg == "autostart=true":
 			_fail("Use this probe's controlled start, not autostart=true.")
 			return
+	if first_collection_start_delay_ms > 0 and first_collection_scale == 0.0:
+		_fail("Start delay requires first_collection_scale; never use it in performance runs.")
+		return
+	if first_collection_scale > 0.0 and (candidate or loot_progress_candidate or trace_progress or trace_ai_phases or trace_loot_phase or trace_loot_search or progress_window_only or phase_window_only or search_window_only):
+		_fail("Keep first collection observations separate from other diagnostics/tuning.")
+		return
 	if progress_window_only and (not trace_progress or initial_only):
 		_fail("progress_window_only requires trace_progress and excludes initial_only.")
 		return
@@ -113,6 +133,8 @@ func _run() -> void:
 	# 고밀도 초기 구간의 5배 가속은 process 관측을 0.5초 이상 늦출 수 있다.
 	# 정밀 진행 창만 실시간으로 읽으며 전체 pacing 실행과 섞지 않는다.
 	Engine.time_scale = 1.0 if progress_window_only or phase_window_only or search_window_only else 5.0
+	if first_collection_scale > 0.0:
+		Engine.time_scale = first_collection_scale
 	main.start_game()
 	# 비활성 진단은 Resource/RefCounted ID도 소비하지 않는다.
 	# 봇 생성 뒤에만 로드해 초기 ID 기반 엄폐/조향 선택을 보존한다.
@@ -161,6 +183,14 @@ func _run() -> void:
 	if failed:
 		return
 	checkpoint_index = 1
+	if first_collection_scale > 0.0:
+		report["first_collection"] = {"events": [], "process_boundaries": [], "dropped_events": 0,
+			"start": _collection_clock(), "window_seconds": 10.0, "event_limit": 8, "boundary_limit": 16,
+			"injected_start_delay_ms": first_collection_start_delay_ms}
+		for pickup in get_nodes_in_group("pickups"):
+			if pickup.item and pickup.item.type == ItemData.Type.WEAPON and pickup.item.weapon_stats \
+					and pickup.item.weapon_stats.weapon_type not in ["", "knife", "pistol"]:
+				pickup._collect_success_sink = Callable(self, "_record_first_collection")
 	if initial_only:
 		report["complete"] = true
 		_save()
@@ -169,11 +199,27 @@ func _run() -> void:
 		main.queue_free()
 		quit(0)
 		return
+	if first_collection_start_delay_ms > 0:
+		OS.delay_msec(first_collection_start_delay_ms)
 	process_frame.connect(_on_frame)
 	create_timer(600.0, true, false, true).timeout.connect(func(): _fail("Loot flow probe exceeded wall-clock budget."))
 
 func _on_frame() -> void:
 	if failed or not is_instance_valid(main) or report["complete"]:
+		return
+	if first_collection_scale > 0.0:
+		var trace: Dictionary = report["first_collection"]
+		if trace["process_boundaries"].size() < 16:
+			trace["process_boundaries"].append(_collection_clock())
+		if (not trace["events"].is_empty() and main.match_timer > trace["events"][0]["canonical_time"]) or main.match_timer >= 10.0:
+			trace["end"] = _collection_clock()
+			trace["telemetry"] = root.get_node("Telemetry").metrics["economy"].duplicate(true)
+			report["complete"] = true
+			report["end_time"] = main.match_timer
+			_save()
+			if not failed:
+				main.queue_free()
+				quit(0)
 		return
 	if main.game_over:
 		if search_window_only:
@@ -226,6 +272,25 @@ func _on_frame() -> void:
 		if not failed:
 			main.queue_free()
 			quit(0)
+
+func _collection_clock() -> Dictionary:
+	return {"canonical_time": main.match_timer, "physics_frame": Engine.get_physics_frames(),
+		"process_frame": Engine.get_process_frames(), "in_physics": Engine.is_in_physics_frame()}
+
+func _record_first_collection(pickup, collector) -> void:
+	var trace: Dictionary = report["first_collection"]
+	if trace["events"].size() >= 8:
+		trace["dropped_events"] += 1
+		return
+	var event := _collection_clock()
+	event.merge({"actor_id": collector.get_instance_id(), "actor_name": String(collector.name),
+		"pickup_id": pickup.get_instance_id(), "source": pickup._spawn_source,
+		"weapon": pickup.item.weapon_stats.weapon_type, "equipped_weapon": collector.stats.weapon_type,
+		"actor_position": [collector.global_position.x, collector.global_position.y, collector.global_position.z],
+		"pickup_position": [pickup.global_position.x, pickup.global_position.y, pickup.global_position.z],
+		"collect_distance": collector.global_position.distance_to(pickup.global_position),
+		"telemetry_first_upgrade": root.get_node("Telemetry").metrics["economy"]["first_upgrade_time"]})
+	trace["events"].append(event)
 
 func _sample_progress(requested_time: float) -> void:
 	var actors: Array = []

@@ -1,0 +1,119 @@
+"""E080: 실제 시작 경로의 1x/5x 수집 성공 순서. 전체 매치/승격은 실행하지 않는다."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parents[2]
+
+
+def digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def read(path):
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def save(path, data):
+    with path.open("x", encoding="utf-8") as stream:
+        json.dump(data, stream, indent=2, ensure_ascii=False)
+
+
+def sources():
+    paths = ["src/Main.gd", "src/entities/pickup/Pickup.gd", "src/entities/Entity.gd",
+             "src/entities/bot/Bot.gd", "src/core/Telemetry.gd", "tools/probe_loot_flow_runtime.gd",
+             "tools/experiments/run_first_collection.py", "project.godot",
+             "data/mapSpec_night_forest_expanded_candidate.json"]
+    return {path: digest(ROOT / path) for path in paths}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--out-dir", type=Path, required=True, help="New directory; existing directories are refused.")
+    parser.add_argument("--reference-flow", type=Path, required=True, help="Preserved flow with exact initial actor IDs.")
+    parser.add_argument("--godot", default=str(ROOT / "Godot_v4.6.2-stable_win64_console.exe"))
+    parser.add_argument("--seed", type=int, default=41001)
+    parser.add_argument("--start-delay-ms", type=int, choices=[0, 100], default=0,
+                        help="Explicit startup delay injection; separate from natural scheduling observations.")
+    parser.add_argument("--manual-result", type=Path, default=Path(os.environ.get("APPDATA", "")) / "Godot/app_userdata/BattleRoyalePrototype/sim_result_latest.json")
+    args = parser.parse_args()
+    reference = read(args.reference_flow)
+    if reference["seed"] != args.seed:
+        parser.error("Reference seed differs.")
+    initial = reference["snapshots"][0]
+    manual_hash = digest(args.manual_result)
+    frozen = sources()
+    output = args.out_dir.resolve()
+    output.mkdir(parents=True, exist_ok=False)
+    save(output / "inputs.json", dict(reference=str(args.reference_flow.resolve()), reference_sha256=digest(args.reference_flow),
+         source_sha256=frozen, manual_sha256=manual_hash, seed=args.seed, injected_start_delay_ms=args.start_delay_ms,
+         commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
+         engine_sha256=digest(Path(args.godot))))
+    summary = {}
+    for name, flags in [("off_initial", ["initial_only=true"]),
+                        ("control_1x", ["first_collection_scale=1"]),
+                        ("control_5x", ["first_collection_scale=5"]),
+                        ("candidate_1x", ["first_collection_scale=1", "recovery_patrol_candidate=true"]),
+                        ("candidate_5x", ["first_collection_scale=5", "recovery_patrol_candidate=true"])]:
+        if sources() != frozen or digest(args.manual_result) != manual_hash:
+            raise RuntimeError("Source/manual data changed during experiment.")
+        case = output / name
+        case.mkdir()
+        flow, result = case / "flow.json", case / "unused-result.json"
+        command = [args.godot, "--headless", "--path", str(ROOT), "--log-file", str(case / "runtime.log"),
+                   "--script", "res://tools/probe_loot_flow_runtime.gd", "--",
+                   "map_spec_path=res://data/mapSpec_night_forest_expanded_candidate.json",
+                   "scale_preset=night_br_m1_60", f"simulation_seed={args.seed}",
+                   f"flow_output={flow.as_posix()}", f"result_output={result.as_posix()}", *flags]
+        if name != "off_initial":
+            command.append(f"first_collection_start_delay_ms={args.start_delay_ms}")
+        save(case / "command.json", command)
+        print(f"START {name}", flush=True)
+        with (case / "stdout.log").open("x", encoding="utf-8") as stream:
+            try:
+                completed = subprocess.run(command, cwd=ROOT, stdout=stream, stderr=subprocess.STDOUT, timeout=90)
+                save(case / "exit.json", {"returncode": completed.returncode})
+                completed.check_returncode()
+            except subprocess.TimeoutExpired:
+                save(case / "exit.json", {"timeout_seconds": 90})
+                raise
+            finally:
+                save(case / "integrity.json", {"manual_unchanged": digest(args.manual_result) == manual_hash,
+                                               "source_unchanged": sources() == frozen})
+        if sources() != frozen or digest(args.manual_result) != manual_hash:
+            raise RuntimeError("Source/manual data changed during experiment.")
+        data = read(flow)
+        if not data["complete"] or result.exists() or data["snapshots"][0] != initial:
+            raise RuntimeError(f"{name}: incomplete, full-match output, or initial snapshot/IDs changed.")
+        if name == "off_initial":
+            if "first_collection" in data:
+                raise RuntimeError("OFF observation unexpectedly enabled.")
+            summary[name] = {"initial_exact": True}
+        else:
+            trace = data["first_collection"]
+            if trace["injected_start_delay_ms"] != args.start_delay_ms:
+                raise RuntimeError("Injected delay metadata differs.")
+            if not trace["events"] or len(trace["events"]) > 8 or len(trace["process_boundaries"]) > 16:
+                raise RuntimeError(f"{name}: no successful collection or sample bound exceeded.")
+            first = trace["events"][0]
+            if first["weapon"] != first["equipped_weapon"] or first["collect_distance"] > 2.5001:
+                raise RuntimeError(f"{name}: equip/collect contract differs.")
+            if first["canonical_time"] != first["telemetry_first_upgrade"]:
+                raise RuntimeError(f"{name}: first success does not explain the first telemetry record.")
+            summary[name] = {"initial_exact": True, "time_scale": data["time_scale"], "first": first,
+                             "injected_start_delay_ms": args.start_delay_ms,
+                             "start": trace["start"], "end": trace["end"], "event_count": len(trace["events"]),
+                             "dropped_events": trace["dropped_events"]}
+        save(case / "summary.json", summary[name])
+        print(f"DONE {name}: {json.dumps(summary[name])}", flush=True)
+    save(output / "summary.json", summary)
+    print("COMPLETE: initial IDs/manual preserved. Short diagnostic windows, not promotion evidence.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

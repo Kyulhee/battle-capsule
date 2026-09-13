@@ -24,6 +24,8 @@ var _light: OmniLight3D = null
 var _light_base_energy: float = 0.0
 var _light_base_range: float = 0.0
 var _spawn_source: String = "unknown"
+# 선택적 관측: 장비 적용 성공 뒤에만 호출하며 기본값은 객체/시계/검색을 만들지 않는다.
+var _collect_success_sink: Callable
 var _lifetime_age_seconds: float = 0.0
 var _lifetime_deadline_seconds: float = -1.0
 var _lifetime_hard_deadline_seconds: float = -1.0
@@ -409,6 +411,8 @@ func collect(collector: Entity) -> bool:
 				print("Picked up weapon: ", item.item_name)
 
 	_log_pickup_location("collect")
+	if _collect_success_sink.is_valid():
+		_collect_success_sink.call(self, collector)
 	queue_free()
 	return true
 

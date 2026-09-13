@@ -24,6 +24,9 @@ class ClockBot:
 class ClockPickup:
 	extends "res://src/entities/pickup/Pickup.gd"
 	func _ready(): pass
+class RejectClockBot:
+	extends ClockBot
+	func receive_weapon(_weapon: StatsData) -> bool: return false
 
 var failures: Array[String] = []
 
@@ -76,6 +79,10 @@ func _run():
 			if scenario == "process_before_physics": main.advance_process(physics_delta)
 			if scenario == "positive_clock": main.advance_process(12.5)
 			var expected_time := main.match_timer
+			var success_events: Array = []
+			_check(not pickup._collect_success_sink.is_valid(), "Default success observer is active")
+			pickup._collect_success_sink = func(observed_pickup, observed_bot):
+				success_events.append([observed_pickup == pickup, observed_bot == bot, observed_bot.stats.weapon_type])
 			var steps := 8 if scenario == "burst_before_process" else 1
 			for step in range(steps):
 				bot.state_timer += physics_delta
@@ -87,6 +94,7 @@ func _run():
 			_check(bot.nav_calls > 0 if scenario == "burst_before_process" else bot.nav_calls == int(not collected), "Collect radius/navigation boundary differs")
 			_check(tel.metrics.economy.first_upgrade_time == (expected_time if collected else -1.0), "Economy time differs")
 			_check(tel.metrics.pacing.first_non_pistol_upgrade_time == (expected_time if collected else -1.0), "Pacing/economy clock differs")
+			_check(success_events == ([[true, true, "shotgun"]] if collected else []), "Success observer must run once after actual equip")
 			if collected:
 				_check(tel.metrics.economy.first_upgrade_source == "initial_loot", "Collection source missing")
 				main.advance_process(3.0)
@@ -96,6 +104,29 @@ func _run():
 				scale, scenario, physics_delta, bot.nav_calls, bot.position.length(), collected, tel.metrics.economy.first_upgrade_time])
 			pickup.free()
 			bot.free()
+	var rejected_bot := RejectClockBot.new()
+	rejected_bot.stats = StatsData.new()
+	rejected_bot.stats.weapon_type = "pistol"
+	rejected_bot.stats.weapon_tier = 1
+	var rejected_ray := RayCast3D.new()
+	rejected_ray.name = "RayCast3D"
+	rejected_bot.add_child(rejected_ray)
+	root.add_child(rejected_bot)
+	var rejected_pickup := ClockPickup.new()
+	rejected_pickup.item = ItemData.new()
+	rejected_pickup.item.type = ItemData.Type.WEAPON
+	rejected_pickup.item.item_name = "shotgun"
+	rejected_pickup.item.weapon_stats = StatsData.new()
+	rejected_pickup.item.weapon_stats.weapon_type = "shotgun"
+	rejected_pickup.item.weapon_stats.weapon_tier = 2
+	root.add_child(rejected_pickup)
+	var rejected_events: Array = []
+	rejected_pickup._collect_success_sink = func(_pickup, _bot): rejected_events.append(true)
+	_check(not rejected_pickup.collect(rejected_bot), "Rejected equipment reported success")
+	_check(rejected_events.is_empty() and not rejected_pickup.is_queued_for_deletion(), "Rejected receive emitted success or deleted pickup")
+	_check(rejected_bot.stats.weapon_type == "pistol", "Rejected equipment changed weapon")
+	rejected_pickup.free()
+	rejected_bot.free()
 	Engine.time_scale = original_scale
 	tel.match_in_progress = false
 	main.free()

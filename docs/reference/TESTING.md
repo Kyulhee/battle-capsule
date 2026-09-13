@@ -1,6 +1,6 @@
 # 테스트와 검증 가이드
 
-> 최종 업데이트: 2026-09-13. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
+> 최종 업데이트: 2026-09-14. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
 
 ## 원칙
 
@@ -45,6 +45,8 @@ python tools\run_verify.py --profile visual_review
 `focused --test`는 정확한 파일명을 받으며 반복 지정할 수 있다. 같은 파일의 여러 preset은 모두 실행하고 중복 요청은 한 번만 실행한다. 빈 선택·오타는 실행 전에 실패한다. `--list-tests`는 목록만, `--dry-run`은 명령만 출력하며 테스트 PASS가 아니다.
 선택은 기존 `unit_smoke`/`tooling` 명령에서 가져온다. 등록되지 않은 verifier는 해당 직접 명령을 사용한다. 전체/승격 profile에는 `--test`를 사용할 수 없으며, 기존 전체 검증은 유지한다.
 문서 검사는 공백 오류만 검사한다. Python 도구 변경은 관련 fixture를, gameplay 변경은 해당 runtime까지 검증하고 영향 범위가 넓으면 통합 profile로 확장한다. 실험 코드/산출물 보관은 [실험 안내](../../tools/experiments/README.md)를 따른다.
+
+E080 첫 수집 순서의 짧은 실행과 지연 주입은 [실험 안내의 명령](../../tools/experiments/README.md#e080-실제-첫-수집-순서)을 사용한다. 성공 callback/거부 경계는 `focused --test verify_first_upgrade_clock.gd`로 검사한다. 진단 창과 지연 주입 결과는 pacing/scale run 수에 포함하지 않는다.
 
 ## 현재 pacing candidate gate
 
