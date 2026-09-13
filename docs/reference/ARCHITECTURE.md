@@ -117,6 +117,10 @@ Bush, tree, landmark는 기존 gameplay proxy에 catalog GLB를 붙인다. conce
 
 ## 변경 시 주의
 
+- 하단 Control은 `PRESET_CENTER_BOTTOM`과 `grow_vertical = GROW_DIRECTION_BEGIN`을 확인한다.
+- macOS export key는 `application/bundle_identifier`, headless export의 텍스처 설정은 `textures/vram_compression/import_etc2_astc=true`다.
+- 새 `class_name`의 headless parse timing 문제에는 명시적 script 참조를 검토한다. 단, 선택적 진단은 초기 actor ID를 바꾸지 않도록 봇 생성 뒤 로드하며 무조건적인 preload를 추가하지 않는다.
+
 - shared `Resource`는 런타임에서 오염될 수 있으므로 필요한 곳에서 `.duplicate()`를 사용한다.
 - Bot opening/loot/zone behavior 변경은 `verify_bot_opening_loot_rules.gd`와 pacing profile을 같이 본다.
 - UI 변경은 [PLAYTEST.md](../PLAYTEST.md)의 화면 리뷰 체크리스트와 screenshot을 사용한다.

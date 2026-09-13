@@ -160,6 +160,7 @@ def profile_steps(
         "tools/verify_loot_search_analysis.py",
         "tools/simulate_matches.py",
         "tools/run_verify.py",
+        "tools/verify_run_verify.py",
     ]
 
     if profile == "docs_only":
@@ -167,6 +168,7 @@ def profile_steps(
 
     if profile == "tooling":
         return [*docs_only, py_compile(report_scripts),
+                Step("verify_run_verify.py", [sys.executable, rel("tools/verify_run_verify.py")]),
                 Step("loot progress analysis", [sys.executable, rel("tools/verify_loot_progress_analysis.py")]),
                 Step("AI phase analysis", [sys.executable, rel("tools/verify_ai_phase_analysis.py")]),
                 Step("loot phase analysis", [sys.executable, rel("tools/verify_loot_phase_analysis.py")]),
@@ -176,6 +178,7 @@ def profile_steps(
         return [
             *docs_only,
             py_compile(report_scripts),
+            Step("verify_run_verify.py", [sys.executable, rel("tools/verify_run_verify.py")]),
             Step("verify_pacing_analysis.py", [sys.executable, rel("tools/verify_pacing_analysis.py")]),
             Step("verify_survival_curve.py", [sys.executable, rel("tools/verify_survival_curve.py")]),
             Step("verify_loot_progress_analysis.py", [sys.executable, rel("tools/verify_loot_progress_analysis.py")]),
@@ -467,6 +470,34 @@ def profile_steps(
     raise ValueError(f"Unknown profile: {profile}")
 
 
+def test_catalog(godot: str) -> dict[str, list[Step]]:
+    """기존 프로필의 명령/인자를 재사용하며 같은 테스트의 모든 변형을 보존한다."""
+    catalog: dict[str, list[Step]] = {}
+    seen: set[tuple[str, ...]] = set()
+    for profile in ("unit_smoke", "tooling"):
+        for step in profile_steps(profile, godot, 5, DEFAULT_OUT_ROOT):
+            if step.label == "python py_compile":
+                continue
+            names = [Path(arg).name for arg in step.argv
+                     if arg.endswith((".py", ".gd")) and Path(arg).name.startswith("verify_")]
+            key = tuple(step.argv)
+            if len(names) == 1 and key not in seen:
+                catalog.setdefault(names[0], []).append(step)
+                seen.add(key)
+    return catalog
+
+
+def focused_steps(godot: str, names: list[str]) -> list[Step]:
+    if not names:
+        raise ValueError("focused requires --test; use --list-tests to see exact filenames.")
+    catalog = test_catalog(godot)
+    unknown = sorted(set(names) - catalog.keys())
+    if unknown:
+        raise ValueError(f"Unknown test(s): {', '.join(unknown)}. Use --list-tests.")
+    selected = [step for name in dict.fromkeys(names) for step in catalog[name]]
+    return [Step("git diff --check", ["git", "diff", "--check"]), *selected]
+
+
 def run_step(step: Step, dry_run: bool) -> int:
     print(f"\n== {step.label} ==", flush=True)
     print(" ".join(step.argv), flush=True)
@@ -480,7 +511,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Run Battle Capsule verification profiles.")
     parser.add_argument(
         "--profile",
-        choices=["docs_only", "tooling", "unit_smoke", "ai_test_arena", "pacing_v2", "pacing_v3", "pacing_candidate", "scale_99", "visual_review"],
+        choices=["focused", "docs_only", "tooling", "unit_smoke", "ai_test_arena", "pacing_v2", "pacing_v3", "pacing_candidate", "scale_99", "visual_review"],
         required=True,
     )
     parser.add_argument("--pacing-preset", default="", help="Scale preset for --profile pacing_candidate.")
@@ -490,10 +521,20 @@ def main() -> int:
     parser.add_argument("--godot", default=str(DEFAULT_GODOT))
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--keep-going", action="store_true")
+    parser.add_argument("--test", action="append", default=[], help="Exact verifier filename; repeatable, focused only.")
+    parser.add_argument("--list-tests", action="store_true", help="List focused tests without executing anything.")
     args = parser.parse_args()
 
+    if (args.test or args.list_tests) and args.profile != "focused":
+        parser.error("--test/--list-tests require --profile focused; full profiles cannot be filtered.")
+    if args.list_tests:
+        if args.test:
+            parser.error("Use --list-tests separately from --test.")
+        for name, variants in sorted(test_catalog(args.godot).items()):
+            print(f"{name} ({len(variants)} variant(s))")
+        return 0
     try:
-        steps = profile_steps(
+        steps = focused_steps(args.godot, args.test) if args.profile == "focused" else profile_steps(
             args.profile,
             args.godot,
             max(1, args.runs),
@@ -503,6 +544,7 @@ def main() -> int:
         )
     except ValueError as exc:
         parser.error(str(exc))
+    print(f"Profile {args.profile}: {len(steps)} step(s).", flush=True)
     failures = 0
     for step in steps:
         code = run_step(step, args.dry_run)
@@ -514,7 +556,12 @@ def main() -> int:
     if failures:
         print(f"\nProfile {args.profile} finished with {failures} failure(s).", flush=True)
         return 1
-    print(f"\nProfile {args.profile} passed.", flush=True)
+    if args.dry_run:
+        print(f"\nDry run complete: {len(steps)} step(s) planned; no checks executed.", flush=True)
+    elif args.profile == "focused":
+        print("\nFocused checks passed; not a full-profile or promotion result.", flush=True)
+    else:
+        print(f"\nProfile {args.profile} passed.", flush=True)
     return 0
 
 

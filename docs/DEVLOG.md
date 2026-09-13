@@ -2,6 +2,12 @@
 
 > 최종 업데이트: 2026-09-13. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## M0 작업 지침·검증 경량화
+
+- 공통 AGENTS와 짧은 CLAUDE 안내, 조건별 문서 참조/갱신을 적용했다. CURRENT의 상세 결과·로드맵 중복을 줄였고, 줄 수를 맞추는 압축 대신 문서별 소유 기준을 사용한다. 게임 코드·승격 기준·공개판은 불변이다.
+- `focused --test`로 관련 verifier의 기존 인자/모든 변형을 선택한다. 빈 선택·오타·전체 profile 필터링은 거부하고, dry-run/선택 PASS를 전체 검증·승격 PASS와 구분한다. runner 회귀 15개 PASS, 기존 9개 profile의 명령 순서는 새 runner 자체 검사/compile 항목 외 동일함을 확인했다. Godot 전체 회귀는 실행하지 않았다.
+- E079 초기 기하 분석을 `tools/experiments/inspect_initial_geometry.py`의 읽기 전용 CLI로 이전했다. 보관된 geometry JSON과 동일한 출력, 누락 입력 종료 코드 2, 변경 문서의 파일 링크를 확인했다. 기존 runner·원시 결과·사용자 변경은 보존했고 추가 푸시는 하지 않았다.
+
 ## E-079 첫 수집 시계 소형 재현
 
 - 제품 코드/시계/스폰/하한은 유지하고 실제 chase→collect→equip→Telemetry를1x/5x×5경우로 검증했다.2.5m 포함/2.5001m 제외·process 전/후 시각·양수 시계 이중 배속 없음·미기록-1/유효0 유지가 PASS다. 첫 fixture 타입 추론 오류 로그를 보존했고 최종 전체 unit_smoke/tooling PASS다.

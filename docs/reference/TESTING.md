@@ -4,7 +4,7 @@
 
 ## 원칙
 
-- 가장 작은 검증 profile을 먼저 고른다.
+- 변경과 관련된 검증을 먼저 고른다. 통과 후 새 변경·실패·미해결 우려가 없으면 반복하지 않는다.
 - gameplay 변경은 단발 smoke만으로 닫지 않는다.
 - structural gate 실패는 gate를 낮추지 말고 원인을 고친다.
 - 모든 pacing 초 단위는 `Main.match_timer` 기준이다.
@@ -16,6 +16,9 @@
 
 ```powershell
 python tools\run_verify.py --profile docs_only
+python tools\run_verify.py --profile focused --list-tests
+python tools\run_verify.py --profile focused --test verify_first_upgrade_clock.gd
+python tools\run_verify.py --profile focused --test verify_run_verify.py --test verify_loot_search_analysis.py
 python tools\run_verify.py --profile tooling
 python tools\run_verify.py --profile unit_smoke
 python tools\run_verify.py --profile ai_test_arena
@@ -29,14 +32,19 @@ python tools\run_verify.py --profile visual_review
 | 프로필 | 사용 시점 | 최소 판정 |
 |---|---|---|
 | `docs_only` | 문서/계획만 변경 | `git diff --check` |
-| `tooling` | Python 분석/검증 도구 변경 | diff check + `py_compile` |
-| `unit_smoke` | GDScript verifier 또는 작은 로직 변경 | 핵심 `tools/verify_*.gd`, Night/확장 map 구조, catalog 오디오 |
+| `focused` | 좁은 코드/도구 변경의 관련 테스트 | diff check + 명시한 verifier의 모든 등록 변형; 전체 회귀/승격 아님 |
+| `tooling` | Python 도구 공통 영향·넓은 회귀 | diff check + `py_compile` + 검증 runner/분석 fixture |
+| `unit_smoke` | 여러 시스템 통합 영향·넓은 회귀 | Python fixture, 핵심 `tools/verify_*.gd`, 실제 runtime/맵/오디오 |
 | `ai_test_arena` | AI 정책·테스트 맵·고정 스폰·격리 옵션 변경 | 결정/이동 정책 + 8개 preset + duel/high rock + open/wall 4봇 traffic + squad |
 | `pacing_v2` | v2 late-zone 기준 재확인 | 3-run + analyze/summarize + scale gate |
 | `pacing_v3` | v3 first-upgrade 진단 후보 | 3-run + gate |
 | `pacing_candidate` | 현재 후보 승격/회귀 판단 | unit smoke + 최소 5-run + duration/upgrade gate |
 | `scale_99` | 99명 구조 변경 | 확장 Night `target_99_probe`, 입력 41000-41004 최소 5-run + 개체·분 scale gate |
 | `visual_review` | UI/가독성/체감 변경 | Night/player, 전체맵/미니맵 capture + 1-run + `PLAYTEST.md` 기록 |
+
+`focused --test`는 정확한 파일명을 받으며 반복 지정할 수 있다. 같은 파일의 여러 preset은 모두 실행하고 중복 요청은 한 번만 실행한다. 빈 선택·오타는 실행 전에 실패한다. `--list-tests`는 목록만, `--dry-run`은 명령만 출력하며 테스트 PASS가 아니다.
+선택은 기존 `unit_smoke`/`tooling` 명령에서 가져온다. 등록되지 않은 verifier는 해당 직접 명령을 사용한다. 전체/승격 profile에는 `--test`를 사용할 수 없으며, 기존 전체 검증은 유지한다.
+문서 검사는 공백 오류만 검사한다. Python 도구 변경은 관련 fixture를, gameplay 변경은 해당 runtime까지 검증하고 영향 범위가 넓으면 통합 profile로 확장한다. 실험 코드/산출물 보관은 [실험 안내](../../tools/experiments/README.md)를 따른다.
 
 ## 현재 pacing candidate gate
 
