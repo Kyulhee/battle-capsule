@@ -1,12 +1,13 @@
 extends RefCounted
 
 const FILTERS := ["invalid", "out_of_radius", "not_sensed", "ammo_mismatch", "weapon_rejected", "armor_not_upgrade", "accepted"]
+const SENSING := ["no_stats", "far_range", "degenerate_direction", "fov", "los", "passed"]
 const OUTCOMES := ["cached_none", "cached_hit", "selected", "empty_pool", "invalid_pool", "out_of_radius", "not_sensed", "item_rules"]
 const SCOPES := ["IDLE", "RECOVER/seek_loot", "RECOVER/patrol", "RECOVER/other"]
 const PER_BUCKET := 2
 const CAPACITY := 64
-var report := {"schema_version": 1, "valid": true, "calls": 0, "scans": 0, "pool_candidates": 0,
-	"outcomes": {}, "filters": {}, "by_scope": {}, "events": [], "omitted": 0,
+var report := {"schema_version": 2, "valid": true, "calls": 0, "scans": 0, "pool_candidates": 0,
+	"outcomes": {}, "filters": {}, "sensing": {}, "by_scope": {}, "events": [], "omitted": 0,
 	"capacity": CAPACITY, "per_bucket": PER_BUCKET}
 var retained := {}
 
@@ -24,6 +25,17 @@ func record(sample: Dictionary, match_time: float) -> void:
 		report["valid"] = false
 		return
 	var mode := String(sample.get("mode", ""))
+	var sensing: Dictionary = sample.get("sensing", {})
+	var sense_total := 0
+	for key in SENSING:
+		if not sensing.has(key) or typeof(sensing[key]) != TYPE_INT or int(sensing[key]) < 0:
+			report["valid"] = false
+			return
+		sense_total += int(sensing[key])
+	if sensing.size() != SENSING.size() or sense_total != total - int(counts["invalid"]) - int(counts["out_of_radius"]) \
+			or sense_total - int(sensing["passed"]) != int(counts["not_sensed"]):
+		report["valid"] = false
+		return
 	var selected: bool = sample.get("selected_id") != null
 	if mode not in ["scan", "cached_none", "cached_hit"] \
 			or (mode != "scan" and (total != 0 or selected != (mode == "cached_hit"))) \
@@ -43,13 +55,16 @@ func record(sample: Dictionary, match_time: float) -> void:
 		var substate := String(sample.get("recovery_substate", ""))
 		scope = "RECOVER/" + (substate if substate in ["seek_loot", "patrol"] else "other")
 	if not report["by_scope"].has(scope):
-		report["by_scope"][scope] = {"calls": 0, "outcomes": {}, "filters": {}, "pool_candidates": 0}
+		report["by_scope"][scope] = {"calls": 0, "outcomes": {}, "filters": {}, "sensing": {}, "pool_candidates": 0}
 	var bucket: Dictionary = report["by_scope"][scope]
 	report["calls"] += 1
 	report["scans"] += int(mode == "scan")
 	_increment(report["outcomes"], outcome, 1)
 	_increment(bucket["outcomes"], outcome, 1)
 	bucket["calls"] += 1
+	for key in SENSING:
+		_increment(report["sensing"], key, int(sensing[key]))
+		_increment(bucket["sensing"], key, int(sensing[key]))
 	for key in FILTERS:
 		_increment(report["filters"], key, int(counts[key]))
 		_increment(bucket["filters"], key, int(counts[key]))

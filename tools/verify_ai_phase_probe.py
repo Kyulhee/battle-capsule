@@ -45,6 +45,7 @@ def main():
         assert flow["search_audit_created"] == flow["search_audit_loaded"] == (name == "search_on")
         if name == "search_on":
             assert flow["loot_search"]["calls"] == 0
+            assert flow["loot_search"]["schema_version"] == 2 and flow["loot_search"]["sensing"] == {}
         snapshot = flow["snapshots"][0]
         assert snapshot["alive"] == len(snapshot["actors"]) == 60
         if reference is None:

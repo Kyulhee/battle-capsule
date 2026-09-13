@@ -6,6 +6,7 @@ import math
 from pathlib import Path
 
 FILTERS = ("invalid", "out_of_radius", "not_sensed", "ammo_mismatch", "weapon_rejected", "armor_not_upgrade", "accepted")
+SENSING = ("no_stats", "far_range", "degenerate_direction", "fov", "los", "passed")
 OUTCOMES = ("cached_none", "cached_hit", "selected", "empty_pool", "invalid_pool", "out_of_radius", "not_sensed", "item_rules")
 SCOPES = ("IDLE", "RECOVER/seek_loot", "RECOVER/patrol", "RECOVER/other")
 MAP = "res://data/mapSpec_night_forest_expanded_candidate.json"
@@ -28,6 +29,15 @@ def count(value):
 def counters(values, keys):
     require(isinstance(values, dict) and set(values) <= set(keys), "Unknown counter keys")
     return Counter({key: count(value) for key, value in values.items()})
+
+
+def sensing_counts(values, filters, pool):
+    result = counters(values, SENSING)
+    require(sum(result.values()) == pool - filters.get("invalid", 0) - filters.get("out_of_radius", 0),
+            "Sensing attempt total differs")
+    require(sum(result[k] for k in SENSING if k != "passed") == filters.get("not_sensed", 0),
+            "Sensing rejection total differs")
+    return result
 
 
 def event_outcome(event):
@@ -78,16 +88,19 @@ def analyze(flow):
     if flow["search_window_only"]:
         require(flow["end_time"] <= 260.25, "Search window ended late")
     audit = flow["loot_search"]
-    require(audit["schema_version"] == 1 and audit["valid"] is True, "Capture accounting invalid")
+    require(audit["schema_version"] in (1, 2) and audit["valid"] is True, "Capture accounting invalid")
+    has_sensing = audit["schema_version"] == 2
     require(audit["capacity"] == 64 and audit["per_bucket"] == 2, "Retention contract differs")
     calls, scans, pool = count(audit["calls"]), count(audit["scans"]), count(audit["pool_candidates"])
     outcomes, filters = counters(audit["outcomes"], OUTCOMES), counters(audit["filters"], FILTERS)
     require(sum(outcomes.values()) == calls and scans == calls - outcomes["cached_none"] - outcomes["cached_hit"], "Call/scan totals differ")
     require(sum(filters.values()) == pool, "Global filter sum differs")
+    sensing = sensing_counts(audit["sensing"], filters, pool) if has_sensing else None
     scopes = audit["by_scope"]
     require(set(scopes) <= set(SCOPES), "Unexpected search scope")
     sum_calls = sum_pool = 0
     sum_outcomes, sum_filters = Counter(), Counter()
+    sum_sensing = Counter()
     expected_retained = Counter()
     for scope, bucket in scopes.items():
         b_calls, b_pool = count(bucket["calls"]), count(bucket["pool_candidates"])
@@ -97,9 +110,13 @@ def analyze(flow):
         sum_pool += b_pool
         sum_outcomes.update(b_outcomes)
         sum_filters.update(b_filters)
+        if has_sensing:
+            sum_sensing.update(sensing_counts(bucket["sensing"], b_filters, b_pool))
         for outcome, population in b_outcomes.items():
             expected_retained[(scope, outcome)] = min(2, population)
     require((sum_calls, sum_pool, sum_outcomes, sum_filters) == (calls, pool, outcomes, filters), "Scope/global totals differ")
+    if has_sensing:
+        require(sum_sensing == sensing, "Scope/global sensing totals differ")
     events = audit["events"]
     require(len(events) <= 64 and len(events) + count(audit["omitted"]) == calls, "Retention/omitted totals differ")
     retained = Counter()
@@ -123,14 +140,21 @@ def analyze(flow):
         require(scope in scopes and scopes[scope]["outcomes"].get(outcome, 0) > 0, "Event absent from aggregate")
         for key in FILTERS:
             require(event["counts"][key] <= scopes[scope]["filters"].get(key, 0), "Event exceeds scope filter population")
+        if has_sensing:
+            require(set(event["sensing"]) == set(SENSING), "Event sensing fields differ")
+            event_sensing = sensing_counts(event["sensing"], event["counts"], event["counts"]["pool"])
+            for key in SENSING:
+                require(event_sensing[key] <= scopes[scope]["sensing"].get(key, 0), "Event exceeds scope sensing population")
         retained[(scope, outcome)] += 1
     require(retained == expected_retained, "Per-bucket retention differs")
     return {"integrity": "PASS", "seed": flow["seed"], "loot_progress_candidate": flow["loot_progress_candidate"],
             "search_window_only": flow["search_window_only"], "calls": calls, "fresh_scans": scans,
             "outcomes": dict(outcomes), "filter_candidate_visits": dict(filters), "by_scope": scopes,
+            "sensing_candidate_visits": dict(sensing) if has_sensing else None,
             "stored_examples": len(events), "omitted_examples": audit["omitted"],
             "limits": "Exact call/first-rejection counts, not unique items, scarcity duration, path reachability or causal proof. "
                       "Cache returns are not fresh scans; retained examples are the first two per scope/outcome, not random samples. "
+                      "Sensing reasons are candidate first exits, not mutually exclusive search outcomes; far/FOV exits never test LOS. "
                       "A large out-of-radius fraction of the global item pool alone does not establish a radius problem."}
 
 

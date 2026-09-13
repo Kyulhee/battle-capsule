@@ -17,13 +17,13 @@
 | 항목 | 값 |
 |---|---|
 | 현재 단위 | E-067 `N2-LOOT-FLOW-01` 탄약 손실 수정·패키지 검증 완료, 수동 대기. clean 소스 `78b5180`; Windows `builds/playtest/E-067_78b5180/BattleCapsule_E067_78b5180.exe`, 메뉴 `v2.1.0-demo-dev \| E-067`. macOS ZIP·checksum은 같은 폴더, 실기기 Mac 미검증 |
-| 바로 다음 단위 | E-077: 빈 탄약 검색의 감지 탈락을 시야 거리·시야각·가림(LOS)으로 기존 실제 판정에서 세분화한다. E-076 새 검색63.1%는 감지 통과 없음,35.5%는 탄종/장비 조건 탈락이며 반경만의 실패는0.31%다. 재검색/추가 ray query·전역 반경/시야 확대 없이 진단하고 초기ID/기본 비활성 비용을 유지한다. E-071 기본OFF·새 EXE 없음 |
-| 최신 검증 개발 단위 | E-076 선택적 검색 sink·함수 수준 선택/RNG/predicate/cache 보존·초기5모드 ID exact·전체 unit_smoke/tooling PASS. 실시간260초44,368콜·fresh2,907·예시27/누락44,341의 합계/상한 검증 PASS, 감지 없음1,835·아이템조건1,031·선택32. OFF 단발631.5초·AI268.3/17,112us는 비용 통과지만 first upgrade0.577초로 전체 gate FAIL 보존. `builds/verification/E076_loot_search/RESULTS.md` 참조, 수동 hash불변·게임플레이 승격 없음 |
+| 바로 다음 단위 | E-078: RECOVER 순찰 목적지 선택(supply→doctrine bush/hotspot/random zone)을 소형 재현하고, 기존 POI 지식을 이용한 보급 지향 목적지의 별도 opt-in 후보를 검토한다. E-077 감지 탈락 아이템 방문의84.93%가 거리 밖이지만 호환성/접근 가능성은 미판정이다. 적/존 우선·fallback·RNG/초기ID를 명시하고 단일 후보/회귀→1-run 순서로 진행한다. 전역 시야/반경/드랍 확대·E-071 기본 적용·새 EXE 없음 |
+| 최신 검증 개발 단위 | E-077 실제 감지 첫 반환을 거리/FOV/LOS로 분리, 추가 ray/predicate 없이 OFF/ON 결정·RNG·호출·초기5모드 ID exact·전체 unit_smoke/tooling PASS. 실시간54,195콜/fresh3,517·감지 탈락23,567방문 중 거리20,016/FOV3,169/LOS382, 예시26/누락54,169·시각/합계 PASS. OFF 단발546.6초·AI309.3/41,112us지만 duration/upgrade0.664초 하한으로 전체 gate FAIL 보존. `builds/verification/E077_loot_sensing/RESULTS.md`, 수동 hash불변·게임플레이 승격 없음 |
 | 최신 검증 게임플레이 단위 | E-065 60봇 1-run sanity는 683.2초, alive@30/60/90/120/180/260 `55/36/28/24/24/12`, stuck/disengage 0.016/0.189, fallback 0. 5-run 승격 근거가 아니다. 직전 E-064 5-run 평균 694.3초와 수동 1판 372.5초·alive@120/260 18/4의 괴리는 미해결 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 릴리즈 판정 | `v2.1.0-demo-dev`는 제한을 명시한 테스트 프리릴리즈다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 packaged/manual·M2/M3 gate 전 공개판을 교체하지 않는다 |
 | 목표 창 | 폐쇄 알파 현실 창 2026-09-28~10-09, 공개 데모 RC 현실 창 2026-12-18~2027-01-15, 유료 EA Go/No-Go 2027 Q1 이후. 날짜는 gate 통과 창이지 출시 약속이 아니다 |
-| 브랜치 메모 | 2026-09-12 사용자 재승인으로 `origin/master`에 E-074 `1eb345379c48b9d7bec952c87779af1fec107c44`까지 푸시·원격 SHA 확인 완료. 이후 E-075 작업은 로컬이며 새 푸시는 대상 commit을 명시한 승인을 다시 받은 뒤에만 한다 |
+| 브랜치 메모 | 원격 마지막 확인은 E-074 `1eb345379c48b9d7bec952c87779af1fec107c44`다. 2026-09-13 사용자 푸시 요청으로 E-075/E-076 `190fdb2`·`1559e9f`를 `Kyulhee/battle-capsule` master에 보내려 했으나 자동 검토가 전송 대상/내용의 명시적 승인을 요구해 차단했다. 해당 두 커밋 승인을 질문했고 재시도하지 않았다. E-077은 별도 로컬 작업 |
 | 로컬 메모 | `.gitignore`, `asset_generator/`, `plan_report/` 등 기존 로컬 산출물은 작업 범위 밖이면 건드리지 않는다. 재개 정보는 이 문서에만 둔다 |
 | 작업 운영 | 일반 구현·검증은 중간 확인 없이 계속한다. 사용자 판단이 필요한 중대한 문제나 범위/출시 변경 때 확인한다. 수동 체감·릴리즈 판정은 자동 실행으로 대체하지 않는다 |
 

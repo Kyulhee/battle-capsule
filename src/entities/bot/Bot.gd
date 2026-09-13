@@ -2830,6 +2830,7 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 			"radius": search_radius, "prefer_immediate": prefer_immediate_value,
 			"loaded": stats.current_ammo, "reserve": reserve_ammo,
 			"search_timer": _pickup_search_timer,
+			"sensing": {"no_stats": 0, "far_range": 0, "degenerate_direction": 0, "fov": 0, "los": 0, "passed": 0},
 			"counts": {"pool": 0, "invalid": 0, "out_of_radius": 0, "not_sensed": 0,
 				"ammo_mismatch": 0, "weapon_rejected": 0, "armor_not_upgrade": 0, "accepted": 0}}
 	var matching_query := is_equal_approx(search_radius, _cached_pickup_radius) \
@@ -2870,7 +2871,8 @@ func _find_best_pickup(search_radius: float, prefer_immediate_value: bool = fals
 		if d > search_radius:
 			if search_audit != null: search_audit["counts"]["out_of_radius"] += 1
 			continue
-		if not can_sense_item(p.global_position):
+		var sensed := can_sense_item(p.global_position, search_audit["sensing"]) if search_audit != null else can_sense_item(p.global_position)
+		if not sensed:
 			if search_audit != null: search_audit["counts"]["not_sensed"] += 1
 			continue
 		var score = d

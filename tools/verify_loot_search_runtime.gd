@@ -6,8 +6,9 @@ class SearchBot:
 	var senses := 0
 	var weapon_checks := 0
 	func _ready(): pass
-	func can_sense_item(pos: Vector3) -> bool:
+	func can_sense_item(pos: Vector3, sense_audit = null) -> bool:
 		senses += 1
+		if sense_audit != null: sense_audit["fov" if pos.x == 2.0 else "passed"] += 1
 		return pos.x != 2.0
 	func can_receive_weapon(_stats: StatsData) -> bool:
 		weapon_checks += 1
@@ -79,6 +80,8 @@ func _run():
 	_check(samples[-1]["counts"] == {"pool": 10, "invalid": 0, "out_of_radius": 1,
 		"not_sensed": 1, "ammo_mismatch": 1, "weapon_rejected": 2, "armor_not_upgrade": 1, "accepted": 4},
 		"First-rejection accounting differs")
+	_check(samples[-1]["sensing"] == {"no_stats": 0, "far_range": 0, "degenerate_direction": 0,
+		"fov": 1, "los": 0, "passed": 8}, "Sensing/filter accounting differs")
 	bot._find_best_pickup(20.0, true)
 	_check(samples[-1]["mode"] == "cached_hit" and bot.senses == senses, "Cache hit rescanned")
 	bot.current_state = bot.State.RECOVER
@@ -131,6 +134,9 @@ func _test_retention(base: Dictionary):
 			sample["state"] = "IDLE" if scope == "IDLE" else "RECOVER"
 			sample["recovery_substate"] = "" if scope == "IDLE" else scope.split("/")[1]
 			for key in sample["counts"]: sample["counts"][key] = 0
+			for key in sample["sensing"]: sample["sensing"][key] = 0
+			if outcome == "not_sensed": sample["sensing"]["fov"] = 1
+			if outcome in ["selected", "item_rules"]: sample["sensing"]["passed"] = 1
 			sample["mode"] = outcome if outcome.begins_with("cached_") else "scan"
 			sample["selected_id"] = 42 if outcome in ["selected", "cached_hit"] else null
 			var key: String = {"selected": "accepted", "invalid_pool": "invalid", "out_of_radius": "out_of_radius",
@@ -148,6 +154,20 @@ func _test_retention(base: Dictionary):
 	bad["counts"]["pool"] += 1
 	invalid.record(bad, 2.0)
 	_check(not invalid.report["valid"] and invalid.report["calls"] == 0, "Bad count sum accepted")
+	for mutation in ["missing", "unknown", "negative", "fraction", "attempts", "passed"]:
+		var broken = AUDIT.new()
+		var sample := base.duplicate(true)
+		match mutation:
+			"missing": sample["sensing"].erase("los")
+			"unknown": sample["sensing"]["unknown"] = 0
+			"negative": sample["sensing"]["los"] = -1
+			"fraction": sample["sensing"]["los"] = 0.0
+			"attempts": sample["sensing"]["los"] = 1
+			"passed":
+				sample["sensing"]["fov"] -= 1
+				sample["sensing"]["passed"] += 1
+		broken.record(sample, 2.0)
+		_check(not broken.report["valid"] and broken.report["calls"] == 0, "Bad sensing accepted: " + mutation)
 
 func _check(condition: bool, message: String):
 	if not condition: failures.append(message)

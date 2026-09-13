@@ -247,30 +247,37 @@ func has_los_to(target: Node3D) -> bool:
 	query.exclude = [get_rid()]
 	return get_world_3d().direct_space_state.intersect_ray(query).is_empty()
 
-func can_sense_item(world_pos: Vector3) -> bool:
+func can_sense_item(world_pos: Vector3, sense_audit = null) -> bool:
 	if not stats:
+		if sense_audit != null: sense_audit["no_stats"] += 1
 		return false
-	return can_sense_world_point(world_pos, stats.fov_near_range, stats.vision_range, stats.fov_angle)
+	return can_sense_world_point(world_pos, stats.fov_near_range, stats.vision_range, stats.fov_angle, sense_audit)
 
-func can_sense_world_point(world_pos: Vector3, near_range: float, far_range: float, fov_angle_deg: float) -> bool:
+# Optional caller-owned counters observe the actual first exit, never replay LOS.
+func can_sense_world_point(world_pos: Vector3, near_range: float, far_range: float, fov_angle_deg: float, sense_audit = null) -> bool:
 	var eye_pos = global_position + Vector3(0, 0.8, 0)
 	var item_pos = world_pos + Vector3(0, 0.35, 0)
 	var flat_to_item = item_pos - eye_pos
 	flat_to_item.y = 0.0
 	var dist = flat_to_item.length()
 	if dist > far_range:
+		if sense_audit != null: sense_audit["far_range"] += 1
 		return false
 	if dist > near_range:
 		var forward = -global_transform.basis.z
 		forward.y = 0.0
 		if forward.length_squared() < 0.001 or flat_to_item.length_squared() < 0.001:
+			if sense_audit != null: sense_audit["degenerate_direction"] += 1
 			return false
 		forward = forward.normalized()
 		var dir = flat_to_item.normalized()
 		var angle = rad_to_deg(acos(clamp(forward.dot(dir), -1.0, 1.0)))
 		if angle > fov_angle_deg * 0.5:
+			if sense_audit != null: sense_audit["fov"] += 1
 			return false
-	return _has_los_to_point(eye_pos, item_pos)
+	var visible := _has_los_to_point(eye_pos, item_pos)
+	if sense_audit != null: sense_audit["passed" if visible else "los"] += 1
+	return visible
 
 func _has_los_to_point(from: Vector3, to: Vector3) -> bool:
 	var query = PhysicsRayQueryParameters3D.create(from, to, ITEM_LOS_MASK)

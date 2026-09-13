@@ -2,6 +2,12 @@
 
 > 최종 업데이트: 2026-09-13. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## E-077 실제 감지 첫 탈락
+
+- 선택적 caller-owned 계수로 거리/FOV/LOS 실제 반환을 기록하며 추가 ray/predicate·기본 Dictionary/Resource는 없다. schema1 호환·schema2 합계·경계/실제 장애물·결정/RNG/ray parity·초기5모드 ID exact·전체 unit_smoke/tooling PASS. 45도 float 경계의 잘못된 fixture 기대값 실패2건을 보존하고 게임 비교식은 유지했다.
+- 실시간54,195콜/fresh3,517·감지 탈락23,567아이템 방문 중 거리20,016(84.932%)/FOV3,169(13.447%)/LOS382(1.621%)다. 예시26/누락54,169·최대지연0.004초·초기ID/수동 hash PASS. 콜별 원인/부족 시간·호환성/접근성 증거가 아니며 다음은 RECOVER 순찰 목적지 소형 재현/보급 지향 별도 후보다.
+- OFF546.6초·AI309.3/41,112us는 비용 통과지만 duration/upgrade0.664초 하한으로 전체 gate FAIL 보존. 원시/판정은 E077_loot_sensing/RESULTS.md. 기존190fdb2/1559e9f 푸시는 자동 검토가 대상/내용 승인을 요구해 차단·질문 대기다. E-077 로컬, 기본/EXE 승격 없음.
+
 ## E-076 빈 탄약 실제 검색 필터
 
 - 기본 비활성 sink는 실제 IDLE/RECOVER 검색을 cache/fresh 및 첫 탈락 조건으로 기록한다. 선택/동점·RNG·감지/장비 판정 횟수·cache/만료·96콜/64저장/32누락 fixture와 Python24종 오류·초기5모드 ID exact·전체 unit_smoke/tooling PASS. 개발 fixture 오류 로그는 보존했다.
@@ -70,9 +76,7 @@
 
 ## E-065 수동 피드백과 로드맵 우선순위 정리
 
-- E-065 근접 소리 반응 개선/후방 반응 잔여 관찰과 총·탄 부족/약한 존 압력/티어 혼동을 PLAYTEST에 기록했다. CURRENT/MASTERPLAN은 티어 가독성→유한 거점 보급→비파괴 cabin 내부 순으로 정렬하고 붕괴·폭격·보라 특수 장비는 조건부 후속으로 분리했다.
-- 오래된 현재 기준선과 중복 실험 기록을 정리했다. 게임 코드·아이템 수치·실행 후보는 변경하지 않았으며 새 출시 약속·기능 구현 완료로 취급하지 않는다.
-- 검증: `docs_only` PASS. 활성 문서 줄 수 예산과 현재/예정/조건부 기능의 구분을 확인했다.
+- E-065 수동 피드백으로 티어 가독성→유한 거점 보급→비파괴 cabin 순서를 정하고 붕괴·폭격·보라 장비는 조건부 후속으로 분리했다. 게임/수치/후보는 불변이며 `docs_only` PASS다. 상세 과거 기록은 Git 이력에 보존한다.
 
 ## v2.1.0-demo-dev 테스트 프리릴리즈 게시
 
@@ -106,14 +110,9 @@
 - 판정/후속: 위치 노출 정규화는 단일 hotspot을 지목하지 않아 topology를 바꾸지 않는다. E-056은 revert됐고 후속 E-057 exact linkage 결과는 위 최신 기록이 소유한다.
 - 릴리즈: 현재는 internal pre-alpha다. 공개 stable `v2.0.0-pre-expansion`을 유지하고, 폐쇄 알파 현실 창은 2026-09-28~10-09, 공개 데모 RC 현실 창은 2026-12-18~2027-01-15로 재조정했다. 날짜는 gate 통과 창이다.
 
-## N2-PLAY-11 continuity v2 기준선과 후보 폐기
+## 과거 continuity·릴리즈 기반
 
-- 과거 v2는 canonical match clock·unique episode·완료 aggregate와 bounded raw/누락 수를 분리했다. 2026-08-14 5-run 평균668.8초와 초기 교전/생존 노출 문제, 경제/스폰·HUD 변경의 상세 원시는 Git 이력과 기존 tmp 증거에 보존한다.
-- bot-only HP buffer와 DISENGAGE counteraction grace는 각각1-run 실패로 revert·5-run 금지했다. 과거 기준선을 수동/게임플레이 합격으로 올리거나 실패 후보를 재혼합하지 않는다. 현재 판정/다음 작업은 CURRENT가 기준이다.
-
-## N2-REL-01 과거 기반 요약
-
-- 저장의 원자 교체/backup/migration, simulation의 기록·배지 미기록, 브랜드/기존 user data 경로 유지, PCK payload exact 검증은 유지한다. 과거 E-062 export와 AI max57.914ms 실패 등 상세 근거는 Git 이력에 보존한다. 현재 패키지와 미해결 수동·성능·배포 gate는 CURRENT가 기준이다.
+- v2 5-run 평균668.8초·HP buffer/counteraction grace 실패 revert·E-062 export AI max57.914ms 실패와 상세 증거는 Git 이력에 보존한다. 원자 저장/backup/migration·simulation 기록/배지 미기록·브랜드/user data 경로·PCK exact 계약은 유지하며 현재 미해결 gate는 CURRENT가 기준이다.
 
 ## 기록 보존
 
