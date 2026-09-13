@@ -17,8 +17,8 @@
 | 항목 | 값 |
 |---|---|
 | 현재 단위 | E-067 `N2-LOOT-FLOW-01` 탄약 손실 수정·패키지 검증 완료, 수동 대기. clean 소스 `78b5180`; Windows `builds/playtest/E-067_78b5180/BattleCapsule_E067_78b5180.exe`, 메뉴 `v2.1.0-demo-dev \| E-067`. macOS ZIP·checksum은 같은 폴더, 실기기 Mac 미검증 |
-| 바로 다음 단위 | E-079: E-076~078에서 반복된 첫 비권총 수집0~0.7초 하한 실패를 소형 재현한다. Telemetry는 Main.match_timer를 읽으므로 실제 초기 근접 픽업과 시작 시 physics/process 시계 순서를 구분하고 actor/source/time을 확인한다. 하한·스폰·드랍을 임의 변경하거나 실패 run을 재시도해 교체하지 않는다. E-078은 기본OFF·5-run 보류이며 원인 확인 뒤 재판정한다. E-071 기본 적용·새 EXE 없음 |
-| 최신 검증 개발 단위 | E-078 빈 탄약 RECOVER/patrol의 지도 기반 보급 목적지 opt-in·기본/fallback RNG·보급/적/존/loot 우선순위·6모드 ID/혼합6종 거부·전체 unit_smoke/tooling PASS. 진단 없는1+1은663.9/678.6초·AI max25,943/25,020us지만 양군 first upgrade0초로 전체 gate FAIL. 빈 탄약120초10/23→6/25,260초6/16→8/19이며260초 phase 불일치로 재고 비교 제외. 선택 활성24/21회는 생존 봇 계수일 뿐이다. `builds/verification/E078_recovery_patrol/RESULTS.md`, 수동 hash불변·기본/EXE 승격 없음 |
+| 바로 다음 단위 | E-080: 첫 성공 비권총 수집의 actor/pickup/source·physics/process frame·canonical time을 실제 시작 창에서 연결해1x/5x 순서를 관측한다. E-079는 이동 뒤0초 기록 가능성을 통제 재현했지만 E078 실제 사건 순서는 미확정이다. 초기 원시ID·기본OFF 비용/추가 query 없음·표본 상한을 유지하고 수집 성공 이전 로그를 성공으로 오인하지 않는다. 원인 확인 전 시계/2초 하한/스폰 변경·E078 5-run/기본 적용·새 EXE 없음 |
+| 최신 검증 개발 단위 | E-079 제품 코드 불변, 실제 chase/collect/equip/Telemetry의1x/5x×5경우·전체 unit_smoke/tooling PASS. E078 초기1,080쌍 최소 수평4.16684m·2.5m 내0쌍으로 초기 겹침은 없었다.5배속8회 handler 재현은 stub2m 이동/실제 장착 후 canonical0초,1배속은 미수집이다. 유효0/미기록-1·이중 배속 없음·0유지 확인, 실제 collector/frame 인과는 미확정. E0781+1의663.9/678.6초·양군 upgrade0초 gate FAIL은 보존한다. E079_first_upgrade/RESULTS.md, 수동 hash불변·승격 없음 |
 | 최신 검증 게임플레이 단위 | E-065 60봇 1-run sanity는 683.2초, alive@30/60/90/120/180/260 `55/36/28/24/24/12`, stuck/disengage 0.016/0.189, fallback 0. 5-run 승격 근거가 아니다. 직전 E-064 5-run 평균 694.3초와 수동 1판 372.5초·alive@120/260 18/4의 괴리는 미해결 |
 | 첫 공개 범위 | Windows x64, 오프라인 싱글플레이, 한국어, 키보드/마우스, `night_br_m1_60` 한 맵, 무료 데모 |
 | 릴리즈 판정 | `v2.1.0-demo-dev`는 제한을 명시한 테스트 프리릴리즈다. 공개 stable은 `v2.0.0-pre-expansion`을 유지하며 packaged/manual·M2/M3 gate 전 공개판을 교체하지 않는다 |

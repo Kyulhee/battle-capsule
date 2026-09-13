@@ -2,6 +2,12 @@
 
 > 최종 업데이트: 2026-09-13. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## E-079 첫 수집 시계 소형 재현
+
+- 제품 코드/시계/스폰/하한은 유지하고 실제 chase→collect→equip→Telemetry를1x/5x×5경우로 검증했다.2.5m 포함/2.5001m 제외·process 전/후 시각·양수 시계 이중 배속 없음·미기록-1/유효0 유지가 PASS다. 첫 fixture 타입 추론 오류 로그를 보존했고 최종 전체 unit_smoke/tooling PASS다.
+- E078 초기1,080쌍 최소 수평4.16684m·2.5m 내0쌍으로 초기 겹침은 없었다. 시계 갱신 전8회 handler 재현에서5배속은 stub2m 이동/실제 장착 후0초,1배속은 미수집이다. 실제 매치 collector/frame은 미관측이므로 이 순서가 원인이라고 확정하지 않는다. 원시/판정은 E079_first_upgrade/RESULTS.md.
+- 다음은 E-080 실제 성공 수집/프레임 연결이다. E078 양군 첫 upgrade0초 gate FAIL·기본OFF/5-run 보류·EXE/수동 hash를 유지하며 새 전체 매치나 추가 푸시는 하지 않았다.
+
 ## E-078 회복 보급 목적지 opt-in
 
 - 승인된190fdb2/1559e9f를 원격 master에 푸시하고 SHA 확인했다. 이후 기본OFF 후보는 빈 탄약 RECOVER/patrol에서 기존 보급 투하 뒤 지도 POI를 선택하며 추가 재고/시야/ray/nav query·시간 연장은 없다. 기본/fallback RNG·우선순위·순수/stub 이동·6모드 초기ID/혼합6종 거부·전체 unit_smoke/tooling PASS다. ON 성공은 기존 분기의 난수 호출을 건너뛴다.
@@ -77,8 +83,7 @@
 
 ## E-066 N2-ITEM-VIS-01 티어 가독성
 
-- 공통 tier 색·필드 이름/교체 비교·HUD 등급/사용 표시를 연결하고 무기 바 중앙 정렬과 라벨 크기를 보정했다. 성능·경제·AI·존·맵 데이터는 불변이며 금색 신규 티어나 특수 장비는 추가하지 않았다.
-- 획득 경로/가림/교체 규칙/슬롯 상태 fixture와 전체 `unit_smoke` PASS. 실제 Night Forward+ 720p/1080p×6상태 12캡처로 두 산탄총과 재장전/빈 탄약 경고를 확인했다. 패키지 검증과 수동 결과는 CURRENT/PLAYTEST가 소유한다.
+- 공통 티어 표시/픽업 비교/HUD·정렬/가독성을 추가했다. 게임 수치 불변·신규 장비 없음, 전체 회귀와 Night Forward+720p/1080p×6상태12캡처를 통과했다. 상세 과거 기록은 Git 이력, 현재 패키지/수동은 CURRENT/PLAYTEST가 기준이다.
 
 ## E-065 수동 피드백과 로드맵 우선순위 정리
 
@@ -86,10 +91,7 @@
 
 ## v2.1.0-demo-dev 테스트 프리릴리즈 게시
 
-- 범위: 안정판 `v2.0.0-pre-expansion`은 유지하고 E-062 Night BR을 `v2.1.0-demo-dev` 프리릴리즈로 분리한다. Windows x64는 우선 검증 대상, macOS Universal 2는 Intel/Apple Silicon 호환성 피드백용 교차 빌드다.
-- 고지: README와 릴리즈 노트에 packaged AI max 1/2 strict 실패, 수동 3판·실제 Mac·서명/공증 미완료, PCK byte 재현성, legacy 저장 경로를 명시했다. Godot MIT와 CC0 오디오 출처 문서를 추가했다.
-- artifact: source `c33cdab` clean export의 Windows ZIP 37,990,493 bytes(`767412ae…`)와 macOS ZIP 64,771,016 bytes(`10364b17…`)를 GitHub 프리릴리즈에 게시했다. manifest와 `SHA256SUMS.txt`를 함께 첨부했다.
-- 검증/경계: 최종 ZIP 재압축 해제 뒤 두 PCK의 exact 계약과 동일 hash `3a8c195e…`, Windows `Battle Capsule`/`2.1.0.0`, 짧은 packaged 부팅을 통과했다. Mac binary는 x86_64+arm64이고 ZIP 실행 권한 속성을 보존했지만 실기기 smoke는 하지 않았으므로 stable/latest나 공개 데모 RC로 판정하지 않는다.
+- c33cdab clean Windows/macOS Universal2 ZIP·manifest/checksum을 테스트 프리릴리즈로 게시하고 PCK exact/Windows 짧은 부팅을 검증했다. AI max strict 실패·수동/Mac/서명 미검증과 상세 artifact는 Git 이력에 보존하며 stable v2.0.0-pre-expansion·공개 RC 비승격을 유지한다.
 
 ## N2-PLAY-11 E-059 진단과 E-060 fallback 반증
 

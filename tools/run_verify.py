@@ -184,6 +184,7 @@ def profile_steps(
             godot_script(godot, "verify_loot_search_runtime.gd"),
             godot_script(godot, "verify_loot_sensing_runtime.gd"),
             godot_script(godot, "verify_recovery_loot_patrol.gd"),
+            godot_script(godot, "verify_first_upgrade_clock.gd"),
             godot_script(godot, "verify_release_identity.gd"),
             godot_script(godot, "verify_pacing_telemetry.gd"),
             godot_script(godot, "verify_release_persistence.gd"),

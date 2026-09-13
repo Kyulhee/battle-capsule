@@ -164,6 +164,8 @@ E-078 `recovery_patrol_candidate=true`는 외부 probe에서만 빈 탄약 `RECO
 
 E-078은 E-068/E-071 및 다른 추가 trace와 혼합을 거부한다. `verify_ai_phase_probe.py`는 OFF/AI/loot/stock/search/patrol 6모드의 원시 초기 ID exact·6종 혼합 거부를, `verify_recovery_loot_patrol.gd`는 선택 policy·기본/fallback RNG·상태/보급/적/존/loot 우선순위·stub 이동을 검증한다. `recovery_patrol_observations`는 기존0/120/260 snapshot 밖에서 살아 있는 봇의 선택 계수만 읽는다. 사망 봇이 빠져 합계가 감소할 수 있으며 전체 선택 횟수·수집/생존 개선의 지표가 아니다. 비교용 전체 매치는 진단 OFF로 별도 실행하고 단일 쌍을 5-run/수동 승격으로 세지 않는다.
 
+E-079 `verify_first_upgrade_clock.gd`는 제품 코드를 바꾸지 않고 실제 chase→collect→equip→Telemetry 경로를 통제된 시계 순서로 호출한다.1x/5x×5경우에서2.5m 포함/2.5001m 제외·process 전/후 수집·양수 시계/이중 배속 없음·유효0 유지/미기록-1·4.16684m에서 이동 후0초 수집 가능성을 확인한다. 이동은4m/s stub이고8회 handler를 순서대로 호출하는 재현이며 실제 프레임 catch-up/경로 도달 증거가 아니다. E078 초기1,080개 actor/비권총 쌍의 최소 수평 거리는4.16684m라 초기 수집 반경 겹침은 없었다. 첫 수집 actor/프레임이 기록되지 않아 원래 매치의 사건 순서는 미확정이며,0초를 결측으로 바꾸거나2초 하한을 면제하지 않는다.
+
 `python tools/analyze_loot_progress.py <flow.json>`은 0-260초 261개 표본, 시각 순서/0.25초 이내 관측 지연, 인원/ID 중복, 기존 0/120/260초 checkpoint를 검사한다. 상태별 빈 탄약 표본·재무장 관측·같은 목표/episode 내 직선 접근량·동일 아이템 재추적을 출력하며 지연/누락은 실패시킨다. 인접 표본 사이 재무장/재소진이나 빠른 상태 전환은 놓칠 수 있다. 상태 체류 시간·실제 경로 길이·추적 중단 이유·가시성으로 단정하지 않는다. `tooling`과 `unit_smoke`에 불변성/회복/목표 교체/누락/지연/중복 fixture를 포함한다.
 
 ```powershell
