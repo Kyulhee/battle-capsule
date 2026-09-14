@@ -50,3 +50,16 @@ probe 전용 `physics_clock_candidate=true`는 Main의 비공개 기본 OFF 플�
 후보의 lifecycle/피해 호출 시점·빈도가 바뀌므로 초기 수집 검증만으로 기본 승격하지 않는다. 전체 매치 pair는 초기 ID·0/120/260초 checkpoint·flow/core 종료 시각·수동 hash를 검사한다. 각 case의 `run_1.json`은 기존 분석기의 입력이며 `case_summary.json`은 매치 결과 목록이 아니다. 최소 5-run, 전체 gate, 수동 성능/체감은 별도다. 새로운 clock의 시간 분포를 기존 process 기준선과 그대로 합산하지 않는다.
 
 시계 후보 식별은 `inputs.json`과 `flow.json`의 `physics_clock_candidate`를 함께 보관해 확인한다. 기존 `run_1.json` 단독으로 시계 종류를 추정하지 않는다.
+
+## E083 물리 시계 반복 비교
+
+기존 전체 매치 pair를 seed 41000-41004에 한 번씩 순차 실행한다. 보관된 `E083_clock_repeat/reference/<seed>.json`은 동일 소스에서 probe의 `initial_only=true`로 생성한 초기 기준이며 전체 경기 수에 넣지 않는다. 이 원시 자료가 없는 새 checkout에서는 같은 맵/preset/seed와 격리 `flow_output`/`result_output`을 지정해 기준을 먼저 생성한다.
+
+```powershell
+foreach ($seed in 41000..41004) {
+    python tools/experiments/run_first_collection.py --reference-flow "builds/verification/E083_clock_repeat/reference/$seed.json" --out-dir "builds/verification/E083_repeat_new/seed_$seed" --seed $seed --clock-candidate --full-match
+    if ($LASTEXITCODE -ne 0) { throw "Clock pair failed: $seed" }
+}
+```
+
+새 출력 경로만 사용하고 실행 중 소스를 수정하지 않는다. 각 seed의 `control_match/run_1.json`과 `candidate_match/run_1.json`을 별도 군으로 모아 `run_1..5.json`으로 복사할 경우 SHA 일치를 확인한다. 원시 inputs/flow/command/integrity는 그대로 보존한다. 두 군 모두 TESTING의 기존 최소 5-run gate와 `survival_curve`를 적용하며, 단발 pair 요약의 `promotion_eligible=false`는 전체 후보 승격을 뜻하지 않는다는 경계로 유지한다. 시계 모드·추가 trace OFF·초기 ID·체크포인트 인원/시각·수동 hash도 함께 확인한다. 최신 결과는 DEVLOG에만 기록한다.
