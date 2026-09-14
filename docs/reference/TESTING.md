@@ -62,6 +62,8 @@ E081의 기본 OFF 물리 시계 후보는 `focused --test verify_match_clock.gd
 - missing first-upgrade run: 0
 - scale sentinel PASS
 
+`avg first upgrade`는 각 경기에서 최초로 기록된 비권총 획득 시각을 모은 산술평균이다. 개별 경기의 2초 미만 기록을 금지하거나 각 봇/플레이어의 접근 시간을 보장하는 계약이 아니다. 유효한 0초도 평균에 포함하고 미기록 -1과 구분한다. `--min-runs 1`로 실행한 수치 검사의 FAIL은 그대로 기록하되, 그 결과만으로 최소 5-run 평균도 실패한다고 단정하거나 스폰을 조정하지 않는다. 시계·후보 모드가 다른 자료를 합산해 통과시키지 않는다. 단발 runtime 오류·성능/구조 회귀는 이 평균 해석과 별개로 처리한다.
+
 과거 비교 기준선:
 
 - v5 bot-only 5-run: 평균 duration 434.7초, 범위 271.0-655.5초, first upgrade 222.8초, stage2 220.1초, stage3 590.1초.
