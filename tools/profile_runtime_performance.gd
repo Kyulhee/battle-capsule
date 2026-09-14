@@ -7,6 +7,10 @@ const DEFAULT_SAMPLE_SECONDS := 20.0
 const PROFILE_VIEWPORT_SIZE := Vector2i(1280, 720)
 const TARGET_FRAME_SECONDS := 1.0 / 60.0
 const HITCH_FRAME_SECONDS := 1.0 / 30.0
+# Bot._ready() waits 0.05-0.2 seconds before enabling its ray; keep nodes alive until then.
+const INITIAL_READY_DRAIN_SECONDS := 0.25
+
+var _close_requested := false
 
 
 func _init() -> void:
@@ -21,6 +25,8 @@ func _run() -> void:
 	if not error.is_empty():
 		_fail(error)
 		return
+	# Let the suspended profiling coroutine release its scene/resources before exit.
+	auto_accept_quit = false
 	root.close_requested.connect(_on_profile_close_requested)
 	root.size = PROFILE_VIEWPORT_SIZE
 	var main_scene: PackedScene = load("res://src/Main.tscn")
@@ -37,6 +43,9 @@ func _run() -> void:
 	root.size = PROFILE_VIEWPORT_SIZE
 	await process_frame
 	await _wait_for_navigation(main)
+	if _close_requested:
+		await _cancel_profile(main)
+		return
 	Engine.time_scale = 1.0
 	main._physics_match_clock_enabled = bool(options["physics_clock_candidate"])
 	main.start_game()
@@ -48,7 +57,13 @@ func _run() -> void:
 		if minimap:
 			minimap.visible = false
 
-	await create_timer(float(options["warmup_seconds"])).timeout
+	var warmup_timer := create_timer(float(options["warmup_seconds"]))
+	while warmup_timer.time_left > 0.0 and not _close_requested:
+		await process_frame
+	if _close_requested:
+		warmup_timer.time_left = 0.0
+		await _cancel_profile(main)
+		return
 	var pipeline_start := _pipeline_compilation_counts()
 	var samples := {
 		"frame_interval_seconds": [],
@@ -67,6 +82,9 @@ func _run() -> void:
 	var sample_duration_usec := int(float(options["sample_seconds"]) * 1000000.0)
 	while Time.get_ticks_usec() - sample_start_usec < sample_duration_usec:
 		await process_frame
+		if _close_requested:
+			await _cancel_profile(main)
+			return
 		var now_usec := Time.get_ticks_usec()
 		samples.frame_interval_seconds.append(float(now_usec - previous_frame_usec) / 1000000.0)
 		previous_frame_usec = now_usec
@@ -198,7 +216,17 @@ func _initial_snapshot() -> Dictionary:
 
 
 func _on_profile_close_requested() -> void:
+	_close_requested = true
 	print("PERF_WINDOW_CLOSE_REQUESTED: profile may be incomplete; do not count as a completed sample.")
+
+
+func _cancel_profile(main: Node) -> void:
+	# Freeze gameplay, but let pending process-always startup timers release their awaits.
+	paused = true
+	await create_timer(INITIAL_READY_DRAIN_SECONDS, true, false, true).timeout
+	await _cleanup(main)
+	print("PERF_PROFILE_CANCELLED: no performance result written.")
+	quit(2)
 
 
 func _wait_for_navigation(main: Node) -> void:

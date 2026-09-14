@@ -73,3 +73,15 @@ python tools/experiments/run_clock_performance.py --out-dir builds/verification/
 Windows에서 실제 렌더링 창을 한 개씩 연다. 초기/완료 확인용이 아니라 Forward+ Vulkan·windowed 1280×720·1배속, live player/60봇·5초 준비+20초 표본의 성능 비교다. OFF1/ON1/ON2/OFF2/OFF3/ON3 순서로 동일 입력을 실행하고 모드·초기 ID/배치·GPU/vsync·해상도·draw call·관측 창을 검사한다. 플레이어 HP를 유지하는 기존 성능 프로필이므로 정상 플레이의 생존/전체 매치 판정이 아니다.
 
 새 출력 폴더만 허용한다. 실행 소스/기준 commit/엔진 SHA, 사용자 데이터 루트의 JSON/CFG/backup SHA, 모든 명령/로그/종료·timeout/무결성/profile을 저장한다. 소스/저장 변경, 실행 오류, 조건 불일치 시 중단하고 원시 자료를 유지한다. 완료된 6회 p95가 하나라도 20ms를 넘으면 summary를 보존한 뒤 실패 종료하며 재추첨하지 않는다. 중단된 첫 묶음과 새 재확인은 합산해 통과시키지 않는다. GPU 창을 닫으면 측정이 중단될 수 있으며 종료 요청 로그를 함께 확인한다. 실행 중 소스를 바꾸거나 다른 성능/게임 프로세스를 병행하지 않는다.
+
+## E085 측정 창 종료 회귀
+
+```powershell
+python tools/experiments/check_performance_window_close.py --out-dir builds/verification/E085_warmup_new --after-nav-seconds 0
+python tools/experiments/check_performance_window_close.py --out-dir builds/verification/E085_sampling_new --after-nav-seconds 7
+python tools/experiments/check_performance_window_close.py --out-dir builds/verification/E085_complete_new --complete
+```
+
+각 명령은 OFF/ON 1쌍이다. 콘솔 wrapper가 아닌 GUI 엔진을 직접 실행해 PID가 정확히 일치하는 가시 창 하나에만 WM_CLOSE를 보낸다. 요청/수신·정상 취소 로그, exit 2, 성능 결과 없음, 오류/경고 없음, 2초 이내 종료를 요구한다. 준비 완료 로그를 기준으로 지연을 세며 wall-clock 지연은 게임 시간을 의미하지 않는다. `--complete`는 닫지 않고 기존 5+20초 후 exit 0·유효 결과·초기 배치/시계 일치를 확인하는 종료 회귀이며 3회 성능 gate를 대체하지 않는다.
+
+모든 출력은 새 경로이며 실패도 보존한다. timeout 때만 자신이 실행한 프로세스를 강제 정리하고 exit 기록에 표시한다. `--verbose`는 미해결 자원 경고의 객체 식별용으로 GPU의 추가 진단 경고도 기록하므로 정상 gate/성능 표본과 분리한다. 측정 도구의 취소 처리는 gameplay를 잠시 pause하고 Bot 초기 대기 최대 0.2초를 넘는 0.25초를 기다린다. 초기 대기 계약을 바꾸면 준비 중 닫기 회귀도 다시 확인한다. 이 검증으로 과거 미계측 종료의 실제 사용자 동작을 단정하지 않는다.

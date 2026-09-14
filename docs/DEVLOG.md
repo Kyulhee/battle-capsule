@@ -2,6 +2,15 @@
 
 > 최종 업데이트: 2026-09-14. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## E-085 측정 창 취소 종료 수정
+
+- 외부 Win32 재현기는 직접 실행한 GUI 엔진의 PID에 속한 가시 창이 정확히 하나일 때만 WM_CLOSE를 보낸다. 다른 창/이름 기반 종료는 하지 않는다. seed 41000·Forward+·기존 측정 도구의 OFF/ON을 같은 조건으로 비교하고 명령/PID/HWND/요청 시각/종료/소스/저장 hash를 격리 보존했다.
+- `E085_window_close_before`는 nav 준비 7초 뒤 닫기에서 양군 모두 close 요청 로그·결과 미생성·exit **3221225477**을 기록했고, E084의 shader/RID/resource 오류 목록과 같았다. 측정 창 닫기가 같은 실패를 만드는 경로임을 입증했지만 E084 실제 사용자 동작은 여전히 미확정이며 과거 실패를 PASS로 소급하지 않는다.
+- `profile_runtime_performance.gd`만 자동 즉시 종료를 끄고 close flag를 준비/측정 루프에서 소비하게 했다. 장면을 정리하고 코루틴이 반환된 뒤 취소 코드 **2**로 끝내며 성능 JSON은 쓰지 않는다. 최초 수정의 측정 중 닫기는 오류 없이 끝났지만 준비 직후에는 ObjectDB 경고가 남았다. 별도 verbose 결과에서 다수 SceneTreeTimer를 확인했다.
+- 준비 타이머를 종료시키고 gameplay를 pause한 채 0.25초 동안 초기 대기를 마친 뒤 장면을 제거하도록 보완했다. Bot._ready의 기존 대기는 0.05-0.2초이며 봇/일반 게임 코드는 바꾸지 않았다. 준비 중 최종 OFF/ON은 **0.622/0.649초**, 측정 중 최종은 **0.602/0.602초**에 취소 코드 2·요청/취소 로그·결과 없음·ERROR/WARNING 없음으로 종료했다. 네 경우 모두 강제 종료는 없었다.
+- 정상 완료 OFF/ON 1쌍은 기존 5초 준비+20초 관측 후 exit **0**·유효 결과·초기 ID/배치 일치·시계/1배속·실제 Forward+·관측 창을 통과했다. 이는 종료 회귀 확인이며 새 3+3 성능 승격이 아니다. 기존 E084 6회 성능과 E083 5+5는 재실행하지 않았다. 옵션/출력 보호 focused fixture·Python compile·diff 공백 검사 PASS다.
+- 원시는 `builds/verification/E085_window_close_{before,sampling,warmup,warmup_verbose,warmup_final,sampling_final}` 및 `E085_normal_completion`에 실패 단계까지 보존했다. normal 입력의 expected_exit 표기는 이후 0으로 바로잡았으며 실제 `--complete` 판정/종료는 처음부터 0이다. 소스와 수동 JSON/CFG/backup 6개 SHA 불변, 모든 시험 프로세스 종료를 확인했다. 일반 게임 창 전체 종료/전체 매치/수동 체감 보장으로 확대하지 않는다. 기본 시계 OFF·E067 EXE·기존 릴리즈는 유지한다.
+
 ## E-084 화면 있는 물리 시계 성능 비교
 
 - 기존 `profile_runtime_performance.gd`에 기본 OFF `perf_physics_clock_candidate`만 연결했다. Main 기본값은 불변이며 live player/60봇·준비 5초+관측 20초·windowed 1280×720을 유지한다. 초기 actor/pickup ID/위치는 시작 직후 한 번만 기록하며 관측 loop에 검색을 추가하지 않는다. 실제 맵/preset/seed·시계 priority/처리·1배속·GPU/렌더러/vsync·canonical 창·종료 여부를 결과에 남긴다.

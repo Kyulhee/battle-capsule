@@ -200,6 +200,8 @@ AI 이동처럼 규모에 민감한 변경은 부모 커밋 worktree와 현재 �
 
 E084의 `perf_physics_clock_candidate=true|false`는 이 외부 도구에서만 물리 시계를 고른다(기본 false). 1배속·실제 renderer/GPU/vsync·초기 ID·시계/관측 창을 함께 확인하며 UI/live player가 있는 짧은 프로필은 headless 60봇 경기와 합산하지 않는다. 새 절대 출력 경로만 허용하고 user data/기존 파일은 거부한다. `autostart`·다른 probe 옵션·후보와 숨긴 미니맵 혼합은 금지한다. `focused --test verify_runtime_performance_options.gd`로 옵션/출력 보호를 검증하고 [실험 안내](../../tools/experiments/README.md#e084-화면-성능-비교)의 순차 3쌍 실행기를 사용한다. 중단/비정상 종료는 불완전 표본이며 이후 정상 반복과 별개로 보존한다. `PERF_WINDOW_CLOSE_REQUESTED`는 창 닫기 요청의 직접 기록이고 이 로그가 없던 과거 종료의 원인을 증명하지 않는다.
 
+E085부터 성능 창 닫기는 `PERF_PROFILE_CANCELLED`·exit 2·결과 미생성으로 구분한다. 자동 즉시 quit 대신 코루틴이 준비/측정을 중단하고 초기 대기·장면을 정리한 후 종료한다. 상위 3쌍 실행기는 취소에서도 멈추며 완료된 표본으로 세지 않는다. 취소 경로 수정은 [준비 중/측정 중 닫기와 정상 완료 1쌍](../../tools/experiments/README.md#e085-측정-창-종료-회귀)으로 검증하며 통과한 성능 표본을 무조건 반복하지 않는다. 일반 게임의 종료 정책은 이 외부 도구 변경에 포함하지 않는다.
+
 맵 엄폐 후보는 구조 분석만으로 승격하지 않는다. `analyze_map_structure.py`로 빈 셀·방사 대역·POI 개방률을 확인한 뒤 60/99봇 각 5-run의 spawn fallback, stuck, POI/route 피해와 Forward+ 2회를 비교하고, 고정 좌표 실제 카메라 캡처와 `PLAYTEST.md` 수동 판정을 함께 남긴다.
 
 ## 회귀 신호
