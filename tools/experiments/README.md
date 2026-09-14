@@ -85,3 +85,19 @@ python tools/experiments/check_performance_window_close.py --out-dir builds/veri
 각 명령은 OFF/ON 1쌍이다. 콘솔 wrapper가 아닌 GUI 엔진을 직접 실행해 PID가 정확히 일치하는 가시 창 하나에만 WM_CLOSE를 보낸다. 요청/수신·정상 취소 로그, exit 2, 성능 결과 없음, 오류/경고 없음, 2초 이내 종료를 요구한다. 준비 완료 로그를 기준으로 지연을 세며 wall-clock 지연은 게임 시간을 의미하지 않는다. `--complete`는 닫지 않고 기존 5+20초 후 exit 0·유효 결과·초기 배치/시계 일치를 확인하는 종료 회귀이며 3회 성능 gate를 대체하지 않는다.
 
 모든 출력은 새 경로이며 실패도 보존한다. timeout 때만 자신이 실행한 프로세스를 강제 정리하고 exit 기록에 표시한다. `--verbose`는 미해결 자원 경고의 객체 식별용으로 GPU의 추가 진단 경고도 기록하므로 정상 gate/성능 표본과 분리한다. 측정 도구의 취소 처리는 gameplay를 잠시 pause하고 Bot 초기 대기 최대 0.2초를 넘는 0.25초를 기다린다. 초기 대기 계약을 바꾸면 준비 중 닫기 회귀도 다시 확인한다. 이 검증으로 과거 미계측 종료의 실제 사용자 동작을 단정하지 않는다.
+
+## E086 회복 보급 순찰 반복 판정
+
+```powershell
+python tools/experiments/verify_recovery_patrol_repeat.py
+python tools/experiments/run_recovery_patrol_repeat.py --out-dir builds/verification/E086_repeat_new --check-only
+python tools/experiments/run_recovery_patrol_repeat.py --out-dir builds/verification/E086_repeat_new
+python tools/experiments/analyze_recovery_patrol_repeat.py --input-dir builds/verification/E086_repeat_new
+python tools/check_scale_telemetry.py builds/verification/E086_repeat_new/candidate --min-runs 5 --min-avg-duration 600 --max-avg-duration 900 --min-run-duration 480 --max-run-duration 960 --min-avg-first-upgrade 2 --max-avg-first-upgrade 30 --max-missing-first-upgrade 0
+```
+
+보관된 `E083_clock_repeat`의 **control_match만** 재사용한다. `--baseline`으로 원시 묶음을 지정할 수 있으나 소스 9개·엔진 SHA, seed 41000-41004·맵/preset·5배속·process 시계·추가 trace OFF, 실제 명령·정상 종료·무결성·초기 기준/분석 복사본을 모두 검사한다. 과거 pair 입력의 `candidate=physics_clock`은 후보 쪽 설정이며 대조군 flow/명령은 OFF여야 한다. 과거 자료가 없거나 불일치하면 중단하고 새 대조 설계를 별도로 정한다.
+
+`--check-only`는 읽기만 하며 새 초기 ID 검증/경기 PASS가 아니다. 실제 실행은 후보 초기-only 5회를 먼저 대조군의 원시 ID/배치와 exact 비교한 다음, 같은 입력의 E078 순찰 후보 5경기를 순차 실행한다. 초기-only의 기존 ObjectDB 종료 경고는 별도 보존하고 전체 경기 경고는 거부한다. 새 `builds/verification` 하위 폴더만 허용하며 소스/엔진/기준선/사용자 JSON·CFG·backup hash와 명령/로그/종료/timeout을 보존한다. 실행 중 관련 소스를 바꾸거나 다른 게임/성능 측정을 병행하지 않는다.
+
+분석기는 읽기 전용 stdout JSON이다. 120초 빈 탄약은 생존자의 장전탄·예비탄 모두 0인 수와 분모를 함께 보고, 생존 곡선은 기존 event staircase 분석기를 사용한다. 260초 재고 집계는 같은 seed에서 stage/shrinking이 일치한 쌍만 쓰며 다른 phase는 원시 쌍에 남기되 합산하지 않는다. 같은 phase도 정확히 같은 보급 후 경과 시간은 아니다. 생존자 순찰 선택 수를 재보급 성공으로 해석하지 않으며 5-run·gate 통과만으로 기본값/수동/EXE를 승격하지 않는다.
