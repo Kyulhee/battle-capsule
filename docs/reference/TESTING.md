@@ -196,7 +196,9 @@ python tools\compare_scale_profiles.py C:\tmp\parent_control C:\tmp\candidate --
 
 AI 이동처럼 규모에 민감한 변경은 부모 커밋 worktree와 현재 후보를 같은 맵·preset·seed base로 각각 최소 5회 실행한다. seed별 결과 일치를 기대하지 않고 종료 분포, 개체·분 기준 stuck/disengage, AI 평균·최대 비용을 함께 비교한다.
 
-`profile_runtime_performance.gd`는 Main이 저장 설정을 적용한 뒤 다시 windowed 1280×720으로 고정하고, headless가 아닌 Forward+ 실행에서 frame/process/physics/navigation, draw call, collision pair, pipeline compile, AI 비용을 JSON으로 남긴다. 같은 조건을 최소 3회 반복하며 `perf_hide_minimap=true`는 UI 병목 대조에만 쓴다. 최신 3회 p95/p99는 15.429/19.948, 15.059/17.641, 15.197/17.924ms이고 p95 20ms 초과는 0/3이다. 초과 run은 제외하지 않고 원시값과 추가 재현 결과를 함께 기록하며, 반복되면 승격을 중단한다.
+`profile_runtime_performance.gd`는 Main이 저장 설정을 적용한 뒤 다시 windowed 1280×720으로 고정하고, headless가 아닌 Forward+ 실행에서 frame/process/physics/navigation, draw call, collision pair, pipeline compile, AI 비용을 JSON으로 남긴다. 같은 조건을 최소 3회 반복하며 `perf_hide_minimap=true`는 UI 병목 대조에만 쓴다. p95 기준은 20ms이며 최신 측정 결과는 DEVLOG에 기록한다. 초과 run은 제외하지 않고 원시값과 추가 재현 결과를 함께 기록하며, 반복되면 승격을 중단한다.
+
+E084의 `perf_physics_clock_candidate=true|false`는 이 외부 도구에서만 물리 시계를 고른다(기본 false). 1배속·실제 renderer/GPU/vsync·초기 ID·시계/관측 창을 함께 확인하며 UI/live player가 있는 짧은 프로필은 headless 60봇 경기와 합산하지 않는다. 새 절대 출력 경로만 허용하고 user data/기존 파일은 거부한다. `autostart`·다른 probe 옵션·후보와 숨긴 미니맵 혼합은 금지한다. `focused --test verify_runtime_performance_options.gd`로 옵션/출력 보호를 검증하고 [실험 안내](../../tools/experiments/README.md#e084-화면-성능-비교)의 순차 3쌍 실행기를 사용한다. 중단/비정상 종료는 불완전 표본이며 이후 정상 반복과 별개로 보존한다. `PERF_WINDOW_CLOSE_REQUESTED`는 창 닫기 요청의 직접 기록이고 이 로그가 없던 과거 종료의 원인을 증명하지 않는다.
 
 맵 엄폐 후보는 구조 분석만으로 승격하지 않는다. `analyze_map_structure.py`로 빈 셀·방사 대역·POI 개방률을 확인한 뒤 60/99봇 각 5-run의 spawn fallback, stuck, POI/route 피해와 Forward+ 2회를 비교하고, 고정 좌표 실제 카메라 캡처와 `PLAYTEST.md` 수동 판정을 함께 남긴다.
 

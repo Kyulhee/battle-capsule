@@ -14,7 +14,14 @@ func _init() -> void:
 
 
 func _run() -> void:
-	var options := _parse_options()
+	var options := _parse_options(OS.get_cmdline_user_args())
+	var error := String(options["error"])
+	if error.is_empty():
+		error = _output_error(String(options["output_path"]), OS.get_user_data_dir())
+	if not error.is_empty():
+		_fail(error)
+		return
+	root.close_requested.connect(_on_profile_close_requested)
 	root.size = PROFILE_VIEWPORT_SIZE
 	var main_scene: PackedScene = load("res://src/Main.tscn")
 	if main_scene == null:
@@ -30,7 +37,11 @@ func _run() -> void:
 	root.size = PROFILE_VIEWPORT_SIZE
 	await process_frame
 	await _wait_for_navigation(main)
+	Engine.time_scale = 1.0
+	main._physics_match_clock_enabled = bool(options["physics_clock_candidate"])
 	main.start_game()
+	# Capture only once, before the first gameplay tick; no sampling-loop scans.
+	var initial := _initial_snapshot()
 	_keep_player_alive(main)
 	if bool(options["hide_minimap"]):
 		var minimap = main.get_node_or_null("CanvasLayer/Control/HUD/Minimap")
@@ -51,6 +62,7 @@ func _run() -> void:
 		"physics_pairs": [],
 	}
 	var sample_start_usec := Time.get_ticks_usec()
+	var sample_start_match_time: float = main.match_timer
 	var previous_frame_usec := sample_start_usec
 	var sample_duration_usec := int(float(options["sample_seconds"]) * 1000000.0)
 	while Time.get_ticks_usec() - sample_start_usec < sample_duration_usec:
@@ -69,8 +81,21 @@ func _run() -> void:
 
 	var pipeline_end := _pipeline_compilation_counts()
 	var result := {
-		"map_spec_path": options["map_spec_path"],
-		"scale_preset": options["scale_preset"],
+		"map_spec_path": main.map_spec_path,
+		"scale_preset": main.map_scale_preset,
+		"seed": main.simulation_seed,
+		"physics_clock_candidate": options["physics_clock_candidate"],
+		"clock_physics_processing": main.is_physics_processing(),
+		"clock_physics_priority": main.process_physics_priority,
+		"time_scale": Engine.time_scale,
+		"display_server": DisplayServer.get_name(),
+		"rendering_method": RenderingServer.get_current_rendering_method(),
+		"video_adapter": RenderingServer.get_video_adapter_name(),
+		"vsync_mode": DisplayServer.window_get_vsync_mode(),
+		"initial": initial,
+		"match_time_start": sample_start_match_time,
+		"match_time_end": main.match_timer,
+		"match_ended": main.game_over or main.current_state != main.GameState.PLAYING,
 		"warmup_seconds": options["warmup_seconds"],
 		"sample_seconds": options["sample_seconds"],
 		"hide_minimap": options["hide_minimap"],
@@ -109,7 +134,7 @@ func _run() -> void:
 	quit(0)
 
 
-func _parse_options() -> Dictionary:
+static func _parse_options(raw_args: PackedStringArray) -> Dictionary:
 	var result := {
 		"output_path": DEFAULT_OUTPUT_PATH,
 		"warmup_seconds": DEFAULT_WARMUP_SECONDS,
@@ -117,8 +142,10 @@ func _parse_options() -> Dictionary:
 		"map_spec_path": "",
 		"scale_preset": "",
 		"hide_minimap": false,
+		"physics_clock_candidate": false,
+		"error": "",
 	}
-	for raw_arg in OS.get_cmdline_user_args():
+	for raw_arg in raw_args:
 		var arg := String(raw_arg)
 		if arg.begins_with("perf_output="):
 			result.output_path = arg.trim_prefix("perf_output=")
@@ -132,7 +159,46 @@ func _parse_options() -> Dictionary:
 			result.scale_preset = arg.trim_prefix("scale_preset=")
 		elif arg.begins_with("perf_hide_minimap="):
 			result.hide_minimap = arg.trim_prefix("perf_hide_minimap=") == "true"
+		elif arg.begins_with("perf_physics_clock_candidate="):
+			var value := arg.trim_prefix("perf_physics_clock_candidate=")
+			if value not in ["true", "false"]:
+				result.error = "perf_physics_clock_candidate must be true or false."
+			result.physics_clock_candidate = value == "true"
+		elif arg.begins_with("autostart=") or arg.begins_with("trace_") \
+				or arg.begins_with("first_collection_") or arg.begins_with("recovery_patrol_candidate=") \
+				or arg.begins_with("loot_match_candidate=") or arg.begins_with("loot_progress_candidate=") \
+				or arg.begins_with("physics_clock_candidate="):
+			result.error = "Keep performance profiling separate from simulation/AI/collection probes."
+	if result.physics_clock_candidate and result.hide_minimap:
+		result.error = "Keep physics clock and hidden-minimap comparisons separate."
 	return result
+
+
+static func _output_error(output_path: String, user_dir: String) -> String:
+	var path := output_path.replace("\\", "/").simplify_path().to_lower()
+	var protected := user_dir.replace("\\", "/").simplify_path().to_lower().trim_suffix("/")
+	if path.is_empty() or not path.is_absolute_path() or "://" in path \
+			or path == protected or path.begins_with(protected + "/"):
+		return "Performance output must be an absolute path outside user data."
+	if FileAccess.file_exists(output_path) or DirAccess.dir_exists_absolute(output_path):
+		return "Performance output already exists; refusing overwrite."
+	return ""
+
+
+func _initial_snapshot() -> Dictionary:
+	var actors: Array = []
+	for actor in get_nodes_in_group("actors"):
+		actors.append({"id": actor.get_instance_id(),
+			"position": [actor.global_position.x, actor.global_position.y, actor.global_position.z]})
+	var pickups: Array = []
+	for pickup in get_nodes_in_group("pickups"):
+		pickups.append({"id": pickup.get_instance_id(), "item": pickup.item.item_name,
+			"position": [pickup.global_position.x, pickup.global_position.y, pickup.global_position.z]})
+	return {"actors": actors, "pickups": pickups, "bots": get_nodes_in_group("bots").size()}
+
+
+func _on_profile_close_requested() -> void:
+	print("PERF_WINDOW_CLOSE_REQUESTED: profile may be incomplete; do not count as a completed sample.")
 
 
 func _wait_for_navigation(main: Node) -> void:
@@ -243,6 +309,8 @@ func _dictionary_delta(before: Dictionary, after: Dictionary) -> Dictionary:
 
 
 func _write_result(output_path: String, result: Dictionary) -> bool:
+	if not _output_error(output_path, OS.get_user_data_dir()).is_empty():
+		return false
 	var error := DirAccess.make_dir_recursive_absolute(output_path.get_base_dir())
 	if error != OK:
 		return false

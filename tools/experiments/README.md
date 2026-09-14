@@ -63,3 +63,13 @@ foreach ($seed in 41000..41004) {
 ```
 
 새 출력 경로만 사용하고 실행 중 소스를 수정하지 않는다. 각 seed의 `control_match/run_1.json`과 `candidate_match/run_1.json`을 별도 군으로 모아 `run_1..5.json`으로 복사할 경우 SHA 일치를 확인한다. 원시 inputs/flow/command/integrity는 그대로 보존한다. 두 군 모두 TESTING의 기존 최소 5-run gate와 `survival_curve`를 적용하며, 단발 pair 요약의 `promotion_eligible=false`는 전체 후보 승격을 뜻하지 않는다는 경계로 유지한다. 시계 모드·추가 trace OFF·초기 ID·체크포인트 인원/시각·수동 hash도 함께 확인한다. 최신 결과는 DEVLOG에만 기록한다.
+
+## E084 화면 성능 비교
+
+```powershell
+python tools/experiments/run_clock_performance.py --out-dir builds/verification/E084_repeat_new --seed 41000
+```
+
+Windows에서 실제 렌더링 창을 한 개씩 연다. 초기/완료 확인용이 아니라 Forward+ Vulkan·windowed 1280×720·1배속, live player/60봇·5초 준비+20초 표본의 성능 비교다. OFF1/ON1/ON2/OFF2/OFF3/ON3 순서로 동일 입력을 실행하고 모드·초기 ID/배치·GPU/vsync·해상도·draw call·관측 창을 검사한다. 플레이어 HP를 유지하는 기존 성능 프로필이므로 정상 플레이의 생존/전체 매치 판정이 아니다.
+
+새 출력 폴더만 허용한다. 실행 소스/기준 commit/엔진 SHA, 사용자 데이터 루트의 JSON/CFG/backup SHA, 모든 명령/로그/종료·timeout/무결성/profile을 저장한다. 소스/저장 변경, 실행 오류, 조건 불일치 시 중단하고 원시 자료를 유지한다. 완료된 6회 p95가 하나라도 20ms를 넘으면 summary를 보존한 뒤 실패 종료하며 재추첨하지 않는다. 중단된 첫 묶음과 새 재확인은 합산해 통과시키지 않는다. GPU 창을 닫으면 측정이 중단될 수 있으며 종료 요청 로그를 함께 확인한다. 실행 중 소스를 바꾸거나 다른 성능/게임 프로세스를 병행하지 않는다.
