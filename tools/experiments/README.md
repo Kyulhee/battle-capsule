@@ -101,3 +101,17 @@ python tools/check_scale_telemetry.py builds/verification/E086_repeat_new/candid
 `--check-only`는 읽기만 하며 새 초기 ID 검증/경기 PASS가 아니다. 실제 실행은 후보 초기-only 5회를 먼저 대조군의 원시 ID/배치와 exact 비교한 다음, 같은 입력의 E078 순찰 후보 5경기를 순차 실행한다. 초기-only의 기존 ObjectDB 종료 경고는 별도 보존하고 전체 경기 경고는 거부한다. 새 `builds/verification` 하위 폴더만 허용하며 소스/엔진/기준선/사용자 JSON·CFG·backup hash와 명령/로그/종료/timeout을 보존한다. 실행 중 관련 소스를 바꾸거나 다른 게임/성능 측정을 병행하지 않는다.
 
 분석기는 읽기 전용 stdout JSON이다. 120초 빈 탄약은 생존자의 장전탄·예비탄 모두 0인 수와 분모를 함께 보고, 생존 곡선은 기존 event staircase 분석기를 사용한다. 260초 재고 집계는 같은 seed에서 stage/shrinking이 일치한 쌍만 쓰며 다른 phase는 원시 쌍에 남기되 합산하지 않는다. 같은 phase도 정확히 같은 보급 후 경과 시간은 아니다. 생존자 순찰 선택 수를 재보급 성공으로 해석하지 않으며 5-run·gate 통과만으로 기본값/수동/EXE를 승격하지 않는다.
+
+## E087 기존 초기 사망 자료 읽기
+
+```powershell
+python tools/summarize_pacing_baseline.py builds/verification/E083_clock_repeat/control
+python tools/summarize_pacing_baseline.py builds/verification/E086_recovery_patrol/candidate
+python -c "import json,os,sys; from pathlib import Path; sys.path.insert(0,'tools'); from summarize_pacing_baseline import print_opening_kill_context,print_opening_survival_exposure,print_survival_break_episode_linkage,print_opening_target_continuity; p=Path(os.environ['APPDATA'])/'Godot/app_userdata/BattleRoyalePrototype/sim_result_latest.json'; runs=[json.loads(p.read_text(encoding='utf-8'))]; print_opening_kill_context(runs); print_opening_survival_exposure(runs); print_survival_break_episode_linkage(runs); print_opening_target_continuity(runs)"
+```
+
+새 analyzer/계측/매치 없이 기존 읽기 전용 분석기를 사용한다. E087 입력 11개 SHA와 기준 commit은 로컬 `builds/verification/E087_opening_review/inputs.json`에 보존했다. 수동 파일은 변경될 수 있으므로 당시 SHA와 다르면 같은 관측으로 해석하지 않는다. 경로가 수동 저장이라는 이유만으로 E067 빌드라고 단정하지 않는다.
+
+사망 비교는 `pacing.kill_context_events`에서 `time <= 60`·`victim.kind == bot`으로 제한한다. 빈 탄약은 victim의 `mag <= 0 AND reserve <= 0`이며 무장 부족 지속 시간이 아니다. 노출 분모는 schema v1의 같은 60초 `actor_seconds_by_state`를 군별 합산한다. episode는 entry<=59초의 별도 schema v2 집계이고, 120초 raw 저장 창과 혼합하지 않는다.
+
+종료 예시는 `target_continuity_disengage_exit_samples`에서 `entry_reason == survival_break AND reason == pressure_no_target`만 읽는다. `nav_intent AND nav_target_distance > 2`를 세되 엄폐 목표 identity로 간주하지 않는다. 전체 종료 metadata의 stored/population/omitted와 기존 exact/raw validator를 함께 확인하며 bottom-k 표본을 전체 분포로 외삽하지 않는다. `visible_enemies`는 캐시 문맥, `duration_seconds`는 bot spawn-age 차이이므로 새 LOS 확인이나 canonical 진입 시각으로 재구성하지 않는다.
