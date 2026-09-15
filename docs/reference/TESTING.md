@@ -1,6 +1,6 @@
 # 테스트와 검증 가이드
 
-> 최종 업데이트: 2026-09-15. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
+> 최종 업데이트: 2026-09-16. 기준값을 낮춰 통과시키지 않는다. threshold 변경은 별도 결정이 필요하다.
 
 ## 원칙
 
@@ -82,6 +82,15 @@ N2-PACE-34 이전 결과와 N2-PACE-35 player 참가 결과는 weapon/source 맥
 고정 seed는 결과 재현 보장이 아니다. `simulate_matches.py`는 seed를 JSON에 남겨 입력을 추적하지만 physics/timer 순서가 달라질 수 있으므로 최소 5-run 분포로 판단한다. `seed_base=41000`처럼 실행 입력을 명시할 수 있다.
 
 ## 자주 쓰는 직접 검증
+
+E067 패키지의 제어된 정상 결과→RESTART→독립 재실행 저장 검증은 아래 전용 명령을 사용한다. 기존 artifact의 EXE/PCK SHA가 고정되어 있으며 출력은 반드시 **새 `builds/verification` 하위 경로**여야 한다. 빈 host에서 독립 APPDATA를 입증한 뒤 `--main-pack`으로 패키지 코드를 실행한다. `probe_release_flow.gd`를 실제 사용자 프로젝트에서 직접 실행하지 않는다.
+
+```powershell
+python tools/verify_release_flow.py
+python tools/run_release_flow.py --out-dir builds/verification/release_flow_new
+```
+
+실패 단계에서 중단하고 모든 로그/profile을 보존한다. 원본 사용자 저장·artifact·엔진/실행기 무결성, 재실행 전후 전체 기록과 저장 파일 불변을 요구한다. 봇/플레이어 사망과 미션을 제어하는 자동 fixture이므로 자연 경기 완주·EXE 조작·수동3판·Forward+·반복/장시간 soak를 대신하지 않는다. 새 패키지로 대상을 바꾸려면 provenance와 기대값을 따로 검토해야 한다.
 
 ```powershell
 git diff --check

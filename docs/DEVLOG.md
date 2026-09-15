@@ -1,6 +1,15 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-09-15. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-09-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## E-089 E067 격리 정상 결과→재시작→재실행 저장
+
+- 기존 `verify_release_persistence.gd`는 저장 함수·복구 fixture와 Main 소스의 commit 순서를 검사하므로 패키지 씬 재시작/독립 프로세스 재실행 증거와 구분했다. 새 `run_release_flow.py`/`probe_release_flow.gd`는 작업 공간 게임 코드를 preload하지 않고 기존 E067 PCK를 Godot 4.6.2 `--main-pack`으로 실행한다. EXE/PCK SHA를 `PLAYTEST_BUILD.txt`의 `78b5180850e0656ed5fd316c75053ea7b50ea4a2` artifact와 대조하고 실제 패키지 메뉴 `v2.1.0-demo-dev | E-067`을 확인했다. EXE 자체를 조작하거나 새로 export하지 않았다.
+- 실행 전 새 `builds/verification` 하위 폴더만 허용하고 기존 출력·상위/외부 경로·artifact hash 불일치를 거부한다. 자식 APPDATA/LOCALAPPDATA만 격리하며 autoload 없는 빈 host의 별도 사전 프로세스에서 실제 `user://` 절대 경로를 확인한 뒤에만 패키지를 시작한다. 패키지에서도 같은 user-dir과 기본 history/sim-result 경로를 확인한다. 원본 사용자 JSON/CFG/backup 6개는 매 단계와 종료 시 SHA로 보호하며 복원/덮어쓰기는 하지 않는다.
+- 최종 증거는 `builds/verification/E089_release_flow_03/{inputs,summary}.json`, 단계별 command/report/stdout/Godot log와 격리 profile이다. `isolation`, `write_restart`, `relaunch` 모두 exit 0·ERROR/WARNING 없음이다. `_01`은 격리 자체 PASS 후 sandbox의 root certificate store ERROR를 엄격하게 실패 처리해 게임을 시작하지 않았다. `_02`의 흐름 PASS 뒤 재실행 전후 전체 기록/파일 SHA와 엔진 무결성 비교를 추가하여 `_03`에서 검증했다. 중간 권한 검토의 용량 오류는 실행 전에 발생했으며 대상 미생성/PCK 동일성을 재확인한 재시도는 통과했다.
+- 시나리오: 실제 메뉴 START 버튼→카탈로그 아티팩트 선택 callback→일반 61명 시작, 게임 진행을 정지하고 카탈로그 `clean_win`을 지정한 뒤 봇 `die()` 신호로 승리 조건을 만든다. 실제 Main 결과의 rank 1·score **2450**(미션 **500** 포함)·성공 배지 1개를 확인했다. 실제 결과 RESTART 버튼은 새 씬에서 인원61·timer0·game_over=false·telemetry/미션 초기화, 난이도1/아티팩트 유지, 재시작 metadata 소모와 기록 중복 없음으로 이어졌다. 이후 플레이어 `die()`로 rank61 패배·score0·미션 실패를 만들고 기록2개/배지1개를 확인했다. 설정은 실제 변경/닫기 callback의 volume **0.37** 저장을 사용했다.
+- 별도 재실행은 일반 메뉴와 RECORDS 패널, 동일 기록2개 전체 payload·배지1개·volume0.37·JSON schema1을 확인했다. 재실행 전후 격리 저장 파일 SHA도 exact이며 원본 사용자6개·EXE/PCK·엔진·실행기 소스 SHA는 불변, 잔여 Godot 프로세스 없음이다. `verify_release_flow.py` 직접 fixture **7개**(실패/경고/불완전 증거·경로/해시·재실행 payload/파일 불일치 거부), Python compile, 공백 검사 PASS다. 게임 코드가 불변이라 기존 전체 unit_smoke/pacing을 재실행하지 않았다.
+- 판정: **제어된 정상 저장→단발 재시작→재실행 공백만 닫는다.** 경기 시간0초·강제 사망/미션 선택을 쓴 자동 fixture이며 자연 전투/완주·EXE 입력/화면·Forward+·장시간 soak·수동3판/후보 승격 증거가 아니다. simulation 무기록 검증과 합산하지 않는다. 제품 코드·기본 후보·E067 artifact·공개판·푸시는 변경하지 않았다.
 
 ## E-088 엄폐 미완료 압력 종료 후보 판정
 
