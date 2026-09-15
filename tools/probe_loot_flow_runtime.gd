@@ -27,6 +27,7 @@ var search_audit = null
 var first_collection_scale := 0.0
 var first_collection_start_delay_ms := 0
 var physics_clock_candidate := false
+var survival_cover_pressure_candidate := false
 
 func _init() -> void:
 	_run.call_deferred()
@@ -52,6 +53,8 @@ func _run() -> void:
 			recovery_patrol_candidate = true
 		elif arg == "physics_clock_candidate=true":
 			physics_clock_candidate = true
+		elif arg == "survival_cover_pressure_candidate=true":
+			survival_cover_pressure_candidate = true
 		elif arg == "trace_ai_phases=true":
 			trace_ai_phases = true
 		elif arg == "trace_loot_phase=true":
@@ -77,6 +80,12 @@ func _run() -> void:
 		elif arg == "autostart=true":
 			_fail("Use this probe's controlled start, not autostart=true.")
 			return
+	if survival_cover_pressure_candidate and (physics_clock_candidate or recovery_patrol_candidate \
+			or candidate or loot_progress_candidate or trace_progress or trace_ai_phases \
+			or trace_loot_phase or trace_loot_search or first_collection_scale > 0.0 \
+			or first_collection_start_delay_ms > 0):
+		_fail("Keep E088 cover pressure candidate separate from other candidates and traces.")
+		return
 	if first_collection_start_delay_ms > 0 and first_collection_scale == 0.0:
 		_fail("Start delay requires first_collection_scale; never use it in performance runs.")
 		return
@@ -152,6 +161,7 @@ func _run() -> void:
 	for bot in get_nodes_in_group("bots"):
 		bot._loot_progress_timeout_enabled = loot_progress_candidate
 		bot._recovery_loot_patrol_enabled = recovery_patrol_candidate
+		bot._survival_cover_pressure_enabled = survival_cover_pressure_candidate
 		if trace_ai_phases:
 			bot._ai_phase_trace_sink = Callable(self, "_record_ai_phase")
 		if trace_loot_search:
@@ -162,6 +172,7 @@ func _run() -> void:
 	report["clock_physics_processing"] = main.is_physics_processing()
 	report["loot_progress_candidate"] = loot_progress_candidate
 	report["recovery_patrol_candidate"] = recovery_patrol_candidate
+	report["survival_cover_pressure_candidate"] = survival_cover_pressure_candidate
 	if recovery_patrol_candidate: report["recovery_patrol_observations"] = []
 	report["map"] = main.map_spec_path
 	report["preset"] = main.map_scale_preset

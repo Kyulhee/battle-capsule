@@ -2,6 +2,16 @@
 
 > 최종 업데이트: 2026-09-15. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## E-088 엄폐 미완료 압력 종료 후보 판정
+
+- 수정 전 실제 Bot handler fixture에서 엄폐 **10m**·state_timer **4.6초**·survival_break·null 표적이 이동 0회로 `pressure_no_target/IDLE` 종료하는 것을 재현했다(`builds/verification/E088_cover_pressure_legacy.log`). 기본 OFF `_survival_cover_pressure_enabled`는 이 조건만 기존 ammo/8초 timeout/zone 검사와 엄폐 완료 분기로 이어 준다. 같은 tick의 null 검색을 재사용하고 RNG·추가 표적/ray 검색·속도/HP/드랍/존은 바꾸지 않았다. 일반 이탈·엄폐 없음/도달·유효 적/획득 거절·reload 경로는 유지한다.
+- 새 handler fixture의 상태/이동·안전/시간 경계·도달 후 종료·RNG와 기존 decision/threat/target-lifetime 및 runner 15개 회귀 PASS다. target-lifetime의 기존 ObjectDB 종료 경고는 남았고 새 fixture는 경고 없이 통과했다. probe 초기 **7모드 raw ID exact**, E078 혼합6종/E088 혼합9종 거부, Python compile·CLI 오용5종 출력 전 거부도 PASS다. 보강한 fixture만 최종 재검사했고 기존 통과 묶음/전체 unit_smoke·Forward+는 재실행하지 않았다.
+- `run_first_collection.py --cover-pressure-candidate --full-match`로 `builds/verification/E088_cover_pressure`에 OFF/ON 초기-only와 새 process 대조/후보 1쌍을 순차 보존했다. seed41000·M1 60봇·5배속·다른 후보/trace OFF이며 E083 자료는 초기 ID/배치 reference로만 사용했다. 초기4회 exact, 전체2회 exit0·ERROR/WARNING 없음, 0/120/260초 인원/탄약 재계산·timeline60→1/단조성·종료/관측 시각 검사는 PASS이고 최대 관측 지연은 **0.049318초 미만**이다. 초기-only 2회는 기존 ObjectDB 경고를 보존했다. 입력의 기준 commit은 `5594e2e`, 실제 실행 변경분은 소스9개 SHA로 식별하며 사용자 JSON/CFG/backup6개 불변·Godot 잔여 프로세스 없음이다.
+- `--min-runs 1`의 기존 duration/upgrade/scale 수치 검사로 양군 **pilot PASS(exit0)**다. 최소5경기 승격 gate가 아니다. duration **698.330→855.824초**, first **12.002585→12.013889초**, AI 평균/최대 **323.6/22,922→316.5/30,893µs**, stuck/disengage **0.03/0.19→0.01/0.16 per entity/min**, fallback0·최소 이격3.6m다. 매치 길이 증가를 생존 개선이나 화면 성능 근거로 해석하지 않는다.
+- exact survival_break episode의 `pressure_no_target` 종료는 **15→1건**, 관측 엄폐 진행률 평균은 **0.274→0.290**이다. 관련 종료 raw 표본의 nav>2m는 **10/10→0/1건**이지만 전체 exit 표본은 **128/183·128/175**이므로 전체 빈도로 외삽하지 않는다. 엄폐 도달 기록은 **7/51→11/50**이나 기존 도달 후 조기 반환 계측은 완전한 도착 계수가 아니므로 단독 판정에 쓰지 않는다. 생존 상태 사망률 **5.30→4.91/100 state-s**, episode 사망 **21→20**의 작은 방향성과 전체 생존을 구분했다.
+- event staircase alive@30/60/90/120/180/260은 **54/35/30/26/25/21→57/34/27/24/22/19**, T10은 **452.500→305.174초**다. 120초 빈 탄약은 **11/26→7/24**이지만 주요 생존 방향은 개선되지 않았다. 260초 대조 stage1/축소와 후보 stage2/비축소는 달라 재고를 직접 비교하지 않았다. **후보 기본 OFF 유지·추가5-run/기본값/EXE 승격 보류**로 E088을 닫는다. 조기 종료 경로의 재현·정합성 수정만 채택하며 단발 차이를 결정적 인과로 주장하지 않는다.
+- 공백 검사와 기존 exact exposure/episode/continuity·raw coverage 검증 PASS, 원시와 사용자 변경은 보존했다. 다음 E089는 이미 남아 있던 정상 결과·기록/배지·재시작/재실행 저장을 격리 환경에서 검증하는 작업이다. M1 생존 미달이나 수동 3판을 통과한 것으로 보지 않으며 새 밸런스 튜닝·패키지/릴리즈·푸시는 하지 않았다.
+
 ## E-087 초기 사망과 엄폐 종료 경로 검토
 
 - `c5a9d0d`에서 E083 process 대조 5개·E086 보급 순찰 후보 5개·보호된 수동 JSON 1개를 읽었다. 입력 SHA는 `builds/verification/E087_opening_review/inputs.json`, 재현 명령/필터는 실험 README에 기록했다. 기존 분석기의 exact exposure·episode·continuity 및 raw coverage 검사는 세 군 모두 오류 없음이다. 새 분석기/계측/게임 변경·경기는 없으며 60초 노출·entry<=59초 episode·120초 kill 저장 창을 분리했다.

@@ -99,6 +99,8 @@ var _loot_objective_selection_context: Dictionary = {}
 var _loot_progress_timeout_enabled: bool = false
 var _recovery_loot_patrol_enabled: bool = false
 var _recovery_loot_patrol_selections: int = 0
+# E088 외부 probe 전용. 압력 해제/null 표적이 기존 엄폐 완료를 우회하지 않게 한다.
+var _survival_cover_pressure_enabled: bool = false
 var _loot_best_distance: float = INF
 var _loot_last_progress_time: float = 0.0
 # 외부 진단에서만 연결한다. 기본 실행에는 시간표본 배열/추가 시계 읽기가 없다.
@@ -1257,6 +1259,7 @@ func _should_pursue_supply(main: Node) -> bool:
 
 func handle_disengage_state(delta):
 	_observe_survival_break_episode_progress()
+	var pressure_target_missing := false
 	# Reload retreat: once behind cover long enough, reload and re-engage
 	if _retreating_to_reload and state_timer > 1.5:
 		_try_reload()
@@ -1278,9 +1281,19 @@ func handle_disengage_state(delta):
 			var reengage_enemy = _find_nearest_target()
 			if acquire_enemy_target(reengage_enemy, "disengage_reengage"):
 				change_state(State.CHASE, "pressure_reengage")
+				return
+			elif _survival_cover_pressure_enabled and reengage_enemy == null \
+					and BOT_DECISION_POLICY.should_complete_survival_cover_after_threat_loss({
+						"entry_reason": _disengage_entry_reason,
+						"has_cover": _disengage_cover != Vector3.ZERO,
+						"cover_distance": global_position.distance_to(_disengage_cover),
+						"reached_distance": 2.0,
+					}):
+				# 아래 ammo/timeout/zone 검사를 먼저 거친다. 같은 tick에 재검색하지 않는다.
+				pressure_target_missing = true
 			else:
 				change_state(State.IDLE, "pressure_no_target")
-			return
+				return
 
 	# No ammo while disengaging — recover instead
 	if stats.current_ammo <= 0 and reserve_ammo <= 0:
@@ -1297,7 +1310,7 @@ func handle_disengage_state(delta):
 		if zone_dist > main.zone.current_radius:
 			change_state(State.ZONE_ESCAPE, "zone_override"); return
 
-	var nearest_threat = _find_nearest_target()
+	var nearest_threat = null if pressure_target_missing else _find_nearest_target()
 	if not nearest_threat:
 		_track_survival_break_episode_event("nearest_target_missing")
 		var cover_distance := 0.0

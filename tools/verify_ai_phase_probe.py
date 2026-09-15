@@ -22,6 +22,7 @@ def main():
         ("stock_phase_on", ["trace_loot_phase=true"]),
         ("search_on", ["trace_loot_search=true"]),
         ("patrol_on", ["recovery_patrol_candidate=true"]),
+        ("cover_pressure_on", ["survival_cover_pressure_candidate=true"]),
     ):
         flow_path = output / f"{name}.json"
         result_path = output / f"{name}-unused.json"
@@ -40,6 +41,7 @@ def main():
         assert flow["ai_phase_audit_created"] == flow["ai_phase_audit_loaded"] == (name == "phase_on")
         assert flow["loot_progress_candidate"] == (name == "loot_on")
         assert flow["recovery_patrol_candidate"] == (name == "patrol_on")
+        assert flow["survival_cover_pressure_candidate"] == (name == "cover_pressure_on")
         if name == "patrol_on":
             assert flow["recovery_patrol_observations"][0]["survivor_selections"] == 0
         assert flow["loot_phase_enabled"] == (name == "stock_phase_on")
@@ -64,7 +66,18 @@ def main():
         completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
         assert completed.returncode != 0 and "Keep E-078 patrol candidate separate" in completed.stdout + completed.stderr
         assert not flow_path.exists() and not result_path.exists(), "Rejected mixture wrote experiment output"
-    print(f"AI phase probe identity passed: six modes, OFF unloaded, ON deferred, raw actor IDs unchanged; six E078 mixtures rejected. Logs: {output}")
+    for conflict in ("physics_clock_candidate=true", "recovery_patrol_candidate=true", "loot_match_candidate=true",
+                     "loot_progress_candidate=true", "trace_progress=true", "trace_ai_phases=true",
+                     "trace_loot_phase=true", "trace_loot_search=true", "first_collection_scale=1"):
+        flow_path = output / f"cover-rejected-{conflict.split('=')[0]}.json"
+        result_path = flow_path.with_name(flow_path.stem + "-unused.json")
+        command = [args.godot, "--headless", "--path", str(ROOT), "--script", "res://tools/probe_loot_flow_runtime.gd",
+                   "--", "survival_cover_pressure_candidate=true", conflict,
+                   f"flow_output={flow_path.as_posix()}", f"result_output={result_path.as_posix()}"]
+        completed = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+        assert completed.returncode != 0 and "Keep E088 cover pressure candidate separate" in completed.stdout + completed.stderr
+        assert not flow_path.exists() and not result_path.exists(), "Rejected E088 mixture wrote output"
+    print(f"AI phase probe identity passed: seven modes, raw IDs unchanged; six E078/nine E088 mixtures rejected. Logs: {output}")
     return 0
 
 

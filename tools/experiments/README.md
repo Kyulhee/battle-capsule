@@ -115,3 +115,16 @@ python -c "import json,os,sys; from pathlib import Path; sys.path.insert(0,'tool
 사망 비교는 `pacing.kill_context_events`에서 `time <= 60`·`victim.kind == bot`으로 제한한다. 빈 탄약은 victim의 `mag <= 0 AND reserve <= 0`이며 무장 부족 지속 시간이 아니다. 노출 분모는 schema v1의 같은 60초 `actor_seconds_by_state`를 군별 합산한다. episode는 entry<=59초의 별도 schema v2 집계이고, 120초 raw 저장 창과 혼합하지 않는다.
 
 종료 예시는 `target_continuity_disengage_exit_samples`에서 `entry_reason == survival_break AND reason == pressure_no_target`만 읽는다. `nav_intent AND nav_target_distance > 2`를 세되 엄폐 목표 identity로 간주하지 않는다. 전체 종료 metadata의 stored/population/omitted와 기존 exact/raw validator를 함께 확인하며 bottom-k 표본을 전체 분포로 외삽하지 않는다. `visible_enemies`는 캐시 문맥, `duration_seconds`는 bot spawn-age 차이이므로 새 LOS 확인이나 canonical 진입 시각으로 재구성하지 않는다.
+
+## E088 엄폐 미완료/null-target 압력 종료 후보
+
+```powershell
+python tools/run_verify.py --profile focused --test verify_survival_cover_pressure.gd --test verify_ai_phase_probe.py
+python tools/experiments/run_first_collection.py --reference-flow builds/verification/E083_clock_repeat/reference/41000.json --out-dir builds/verification/E088_repeat_new --seed 41000 --cover-pressure-candidate --full-match
+```
+
+`verify_survival_cover_pressure.gd -- legacy_only=true`는 후보를 켜지 않고 기존 조기 종료만 재현한다. 기본 검증은 OFF 재현 뒤 ON의 이동·일반 이탈/목표 없음·도달·유효 적/획득 거절·reload·ammo/zone/8초 제한·RNG와 동일 tick 검색 횟수를 확인한다. 실제 handler를 호출하되 표적/이동은 작은 fixture로 격리하므로 맵 경로·전체 생존 효과는 별도다.
+
+외부 probe의 `survival_cover_pressure_candidate=true`만 Bot의 기본 OFF 플래그를 켠다. 엄폐 미도달·survival_break·압력 재교전 탐색 null일 때 조기 IDLE 반환 대신 기존 안전 override와 공간 완료 분기로 내려가며, 검색 결과 null을 재사용해 같은 tick에 표적을 다시 찾지 않는다. 공격/피해/속도/시간 제한은 바꾸지 않는다. 도달 후 기존 종료는 유지하므로 `cover_reached_episodes`를 실제 도착의 완전한 계수로 보지 않고, 기존 관측 진행률·생존과 함께 해석한다.
+
+`--cover-pressure-candidate`는 `--full-match` 전용이며 clock 옵션·시작 지연과 혼합할 수 없다. probe도 다른 AI/loot/시계·trace·수집 관측 혼합을 거부한다. 실행기는 OFF/ON 초기-only 후 **새 동일 소스의** process 대조/후보 한 경기씩 실행한다. 과거 reference는 초기 raw ID/배치 비교용일 뿐 E083 전체 경기를 대조군으로 재사용하지 않는다. 모든 새 결과는 별도 폴더에 저장하고 사용자 루트 JSON/CFG/backup SHA도 매회 검사한다. 실패를 보존하며 단발 pair는 5-run·기본값·수동/EXE 승격 근거가 아니다.
