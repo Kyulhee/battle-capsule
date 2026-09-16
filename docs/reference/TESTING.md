@@ -88,9 +88,13 @@ E067 패키지의 제어된 정상 결과→RESTART→독립 재실행 저장 �
 ```powershell
 python tools/verify_release_flow.py
 python tools/run_release_flow.py --out-dir builds/verification/release_flow_new
+python tools/run_release_flow.py --restart-count 5 --out-dir builds/verification/release_repeat_new
+python tools/run_release_flow.py --runtime-source workspace --restart-count 5 --out-dir builds/verification/source_repeat_new
 ```
 
-실패 단계에서 중단하고 모든 로그/profile을 보존한다. 원본 사용자 저장·artifact·엔진/실행기 무결성, 재실행 전후 전체 기록과 저장 파일 불변을 요구한다. 봇/플레이어 사망과 미션을 제어하는 자동 fixture이므로 자연 경기 완주·EXE 조작·수동3판·Forward+·반복/장시간 soak를 대신하지 않는다. 새 패키지로 대상을 바꾸려면 provenance와 기대값을 따로 검토해야 한다.
+실패 단계에서 중단하고 모든 로그/profile을 보존한다. 원본 사용자 저장·artifact·엔진/실행기 무결성, 재실행 전후 전체 기록과 저장 파일 불변을 요구한다. `--restart-count`는 기본1 또는5만 허용하고 총2/6개의 승패 결과를 만든다. 매 재시작에서 이전 Main 하위 노드 해제, actors61/bots60/players1·경기/미션 초기화와 기록 개수의 정확한 증가를 검사한다. 동일 결과도 서로 다른 경기 기록으로 남아야 하며 배지만 고유하다.
+
+`--runtime-source` 기본값 `e067`은 기존 PCK, `workspace`는 현재 소스의 격리 실행이다. 후자는 src/project/data도 해시로 고정하고 source 모드를 증거에 명시한다. 같은 메뉴 라벨이 보여도 workspace PASS를 패키지 PASS로 해석하지 않는다. 봇/플레이어 사망과 미션을 제어하는 자동 fixture이므로 자연 경기 완주·EXE 조작·수동3판·Forward+·장시간 soak를 대신하지 않는다. 새 패키지로 대상을 바꾸려면 provenance와 기대값을 따로 검토해야 한다.
 
 ```powershell
 git diff --check

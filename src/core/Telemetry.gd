@@ -2885,8 +2885,9 @@ func _normalize_history(raw_history: Dictionary) -> Dictionary:
 			var record := _normalize_history_record(raw_record, diff)
 			if record.is_empty():
 				continue
-			if not records.has(record):
-				records.append(record)
+			# Equal date/score/duration is not a match identity. Two real matches
+			# can have identical payloads; mirrored storage is merged by the store.
+			records.append(record)
 		if not records.is_empty():
 			records.sort_custom(
 				func(a, b): return int(a.get("score", 0)) > int(b.get("score", 0))

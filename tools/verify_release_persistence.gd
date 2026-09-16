@@ -22,6 +22,12 @@ func _run() -> void:
 	if not _verify_rollback_compatibility(base_path + "_rollback.json"):
 		_finish(false)
 		return
+	if not _verify_equal_history_records(base_path + "_equal_history.json"):
+		_finish(false)
+		return
+	if not _verify_rollback_multiplicity(base_path + "_rollback_counts.json"):
+		_finish(false)
+		return
 	if not _verify_future_schema_protection(base_path + "_future.json"):
 		_finish(false)
 		return
@@ -117,6 +123,63 @@ func _verify_rollback_compatibility(path: String) -> bool:
 	if persisted.get("data", {}).get("0", []).size() != 2 \
 			or persisted.get("0", []).size() != 2:
 		return _fail("Rollback merge was not preserved in data and legacy root views.")
+	return true
+
+
+func _verify_equal_history_records(path: String) -> bool:
+	_track_path_family(path)
+	var tel = TelemetryScript.new()
+	tel.history_path = path
+	root.add_child(tel)
+	tel.current_difficulty = 1
+	tel.start_match()
+	tel.metrics.session.rank = 1
+	tel.metrics.session.win = true
+	tel.metrics.core.duration = 12.0
+	for expected in range(1, 4):
+		if tel.save_current_match_history(500) != 2450:
+			tel.free()
+			return _fail("Equal-result fixture save failed.")
+		if tel.get_history_for_difficulty(1).size() != expected:
+			tel.free()
+			return _fail("Distinct matches with equal payloads were collapsed on load.")
+	var records: Array = tel.get_history_for_difficulty(1)
+	var reopened = TelemetryScript.new()
+	reopened.history_path = path
+	root.add_child(reopened)
+	var same: bool = reopened.get_history_for_difficulty(1) == records
+	reopened.free()
+	tel.free()
+	if not same:
+		return _fail("Equal-result records changed after reopening Telemetry.")
+	# The unversioned legacy path must preserve multiplicity too.
+	if not _write_text(path, JSON.stringify({"1": records})):
+		return _fail("Could not write repeated legacy records.")
+	return VersionedJsonStoreScript.load_dictionary(path, 1).get("1", []).size() == 3 \
+		or _fail("Legacy repeated records collapsed during migration.")
+
+
+func _verify_rollback_multiplicity(path: String) -> bool:
+	_track_path_family(path)
+	var a := {"rank": 1, "score": 2450}
+	var b := {"rank": 61, "score": 0}
+	# Merge mirrored arrays by maximum occurrence count, not set union or sum.
+	for pair in [
+		[[a, a, b], [a, a, b], [a, a, b]],
+		[[a, b], [a, b, a, a], [a, b, a, a]],
+		[[a, a, b], [a, b, b], [a, a, b, b]],
+	]:
+		if not _write_text(path, JSON.stringify({"schema_version": 1, "data": {"0": pair[0]}, "0": pair[1]})):
+			return _fail("Could not create rollback multiplicity fixture.")
+		var merged := VersionedJsonStoreScript.load_dictionary(path, 1)
+		# JSON decodes numeric fields as floats; compare like-for-like documents.
+		var expected = JSON.parse_string(JSON.stringify(pair[2]))
+		if merged.get("0", []) != expected:
+			return _fail("Rollback merge lost or doubled equal-result occurrences.")
+		if not VersionedJsonStoreScript.save_dictionary(path, merged, 1):
+			return _fail("Could not persist multiplicity merge.")
+		if VersionedJsonStoreScript.load_dictionary(path, 1) != merged:
+			return _fail("Multiplicity merge is not idempotent after save/reload.")
 	return true
 
 

@@ -226,8 +226,14 @@ static func _duplicate_variant(value):
 static func _merge_compatibility_value(current_value, compatibility_value):
 	if current_value is Array and compatibility_value is Array:
 		var merged: Array = (current_value as Array).duplicate(true)
+		# Consume one payload occurrence per mirrored item. Preserve repeated
+		# history records and rollback appends without doubling identical views.
+		var unmatched: Array = (current_value as Array).duplicate()
 		for item in compatibility_value:
-			if not merged.has(item):
+			var matched := unmatched.find(item)
+			if matched >= 0:
+				unmatched.remove_at(matched)
+			else:
 				merged.append(_duplicate_variant(item))
 		return merged
 	if current_value is Dictionary and compatibility_value is Dictionary:

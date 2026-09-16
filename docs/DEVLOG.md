@@ -2,6 +2,16 @@
 
 > 최종 업데이트: 2026-09-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## E-090 반복 재시작에서 발견한 동일 결과 기록 손실 수정
+
+- 사용자 승인으로 E086~E089 로컬 커밋4개를 `origin/master`에 일반 푸시하고 원격 `5fdecaadee6927cd9fd63d38daefabd8eb1734f3`을 확인했다. 이후 E090은 로컬 구현·검증이며 기존 사용자 `.gitignore`/원본 풀/UID·E067 artifact·공개 tag/Release를 변경하지 않았다.
+- `run_release_flow.py --restart-count 5`로 기존 격리 사전 검사 뒤 실제 결과 RESTART 버튼5회/일반61명 경기6회를 제어한다. 승리/패배를 번갈아 만들고 매 시작의 그룹61/60/1·timer0·난이도/아티팩트·설정·Telemetry/미션 초기화와 이전 Main 하위 **모든 노드 ID 해제**를 확인한다. 의도적으로 `_medkits_used=2`를 넣어 다음 미션이0으로 초기화되는지도 검사한다. 자연 전투·경기 시간/성능 측정이 아니라 제어된 짧은 재시작 시나리오다.
+- 기존 패키지는 `builds/verification/E090_restart_flow_01`에서 **FAIL**: cycle0 승리/기록1, cycle1 패배/기록2 이후 cycle2 승리의 기록이3이 아닌2로 줄어 중단했다. 실제 결과 UI 점수는 맞고 씬/그룹 초기화도 통과했지만 `Telemetry._normalize_history()`의 내용 동일성 dedup이 다른 경기까지 제거했다. 날짜/초 단위 duration/점수 등 모든 필드가 같은 정상 경기에도 가능한 결함이며, 빠른 fixture의0초 결과로 재현했다. E089의 서로 다른 두 결과 PASS는 유지하되 이를 반복 기록 무결성 PASS로 확대하지 않는다.
+- 소스 수정: Telemetry에서 내용 기반 dedup을 제거했다. `VersionedJsonStore`의 rollback 미러 배열 병합은 항목별 출현 횟수의 **최댓값**을 보존한다. 따라서 같은 내용의 경기 추가를 잃지 않으면서 data/root의 동일 미러가 두 배로 늘지도 않는다. 배지의 고유성은 기존 `MissionBadgeStore`가 계속 보장한다. schema1·기존 경로·기록50개 cap·정렬·미래 schema 보호는 유지하며 이미 손실된 사용자 기록을 추측해 복원하지 않았다.
+- 회귀 fixture로 동일 결과3경기 저장/재조회/새 Telemetry·legacy migration과 rollback의 동일 미러/같은 결과 추가/양쪽 출현 횟수 차이·save/reload 멱등성을 추가했다. 수정 전 `Distinct matches with equal payloads were collapsed on load`로 실패를 확인했다. 새 rollback fixture의 JSON float/int 비교 문제는 기대값도 JSON decode하여 바로잡았고, 관련 `focused` 저장/설정/Telemetry3개 PASS다. 복구·미래 schema fixture의 의도된 WARNING은 그대로 남겼다. Python fixture **11개**(반복 수/scene ID/이전 노드/그룹/기록 개수·runtime 혼합/CLI 거부 포함), compile·공백 검사 PASS다.
+- 수정 소스는 명시적 `--runtime-source workspace`로 같은 격리 경로 규칙을 사용하며 E067 PCK를 수정하거나 새로 export하지 않는다. `builds/verification/E090_restart_source_01`의 사전/실행/재실행3단계 모두 exit0·ERROR/WARNING 없음이다. 6개 씬에서 매번 actors61/bots60/players1, 이전 노드 **2696/2635/2649/2649/2628개 전부 해제**, 기록1→6 exact다. 승리3개(score2450/bonus500)·패배3개(score0/bonus0)·배지 `clean_win`1개·volume0.37과 재실행 전후 전체 기록/저장 파일 SHA 불변을 확인했다. workspace의 src GDScript/씬/리소스·project/data와 실행기를 해시로 고정했다.
+- 변경된 실행기의 기본1회 모드도 기존 E067에서 `builds/verification/E090_single_restart_regression`으로 PASS했다. 이를 E067 5회 FAIL 대신 쓰지 않는다. 모든 실행에서 원본 저장6개·artifact·엔진·선택 소스 해시 불변, fixture 전후 원본6개 비교도 동일, 잔여 Godot 없음이다. 밸런스/시뮬레이션 정책이 불변이라 전체 unit_smoke/pacing을 재실행하지 않았다. **소스 수정+짧은 반복 검증 완료, 수정 패키지·자연 완주·수동3판·장시간 soak는 미완료**다.
+
 ## E-089 E067 격리 정상 결과→재시작→재실행 저장
 
 - 기존 `verify_release_persistence.gd`는 저장 함수·복구 fixture와 Main 소스의 commit 순서를 검사하므로 패키지 씬 재시작/독립 프로세스 재실행 증거와 구분했다. 새 `run_release_flow.py`/`probe_release_flow.gd`는 작업 공간 게임 코드를 preload하지 않고 기존 E067 PCK를 Godot 4.6.2 `--main-pack`으로 실행한다. EXE/PCK SHA를 `PLAYTEST_BUILD.txt`의 `78b5180850e0656ed5fd316c75053ea7b50ea4a2` artifact와 대조하고 실제 패키지 메뉴 `v2.1.0-demo-dev | E-067`을 확인했다. EXE 자체를 조작하거나 새로 export하지 않았다.

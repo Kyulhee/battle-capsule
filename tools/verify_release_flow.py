@@ -16,7 +16,7 @@ class ReleaseFlowTests(unittest.TestCase):
         self.result = {
             "phase": "isolation", "exit_code": 0, "log_clean": True,
             "profile_sha256": {"match_history.json": "sha"},
-            "report": {"passed": True, "user_dir": str(self.profile), "records": [{"score": 2450}],
+            "report": {"passed": True, "user_dir": str(self.profile), "records": [{"score": 2450}], "restart_count": 1, "runtime_source": "e067",
                        "checks": ["user_dir_isolated", "no_autoloads_in_preflight", "empty_host_in_preflight"]},
         }
 
@@ -43,8 +43,48 @@ class ReleaseFlowTests(unittest.TestCase):
         self.result["phase"] = "write_restart"
         with self.assertRaises(RuntimeError):
             runner.validate_phase(self.result, self.profile)
-        self.result["report"]["checks"] += ["packaged_E067_label", "default_persistence_paths", "two_persistent_records"]
+        self.result["report"]["checks"] += ["E067_menu_label", "default_persistence_paths", "persistent_record_count"]
+        self.result["report"]["cycles"] = self.cycles(1)
         runner.validate_phase(self.result, self.profile)
+
+    @staticmethod
+    def cycles(restarts):
+        return [{"cycle": i, "scene_id": 100 + i, "record_count": i + 1,
+                 "actors": 61, "bots": 60, "players": 1, "previous_nodes_freed": True,
+                 "previous_node_count": 100 if i else 0, "won": i % 2 == 0}
+                for i in range(restarts + 1)]
+
+    def test_five_restart_evidence(self):
+        runner.validate_cycles({"cycles": self.cycles(5)}, 5)
+        with self.assertRaises(RuntimeError):
+            runner.validate_cycles({"cycles": self.cycles(1)}, 5)
+        with self.assertRaises(RuntimeError):
+            runner.validate_phase(self.result, self.profile, 5)
+
+    def test_runtime_sources_cannot_be_mixed(self):
+        with self.assertRaises(RuntimeError):
+            runner.validate_phase(self.result, self.profile, runtime_source="workspace")
+        self.result["report"]["runtime_source"] = "workspace"
+        runner.validate_phase(self.result, self.profile, runtime_source="workspace")
+
+    def test_cycle_count_lifetime_groups_and_duplicate_records_rejected(self):
+        for key, bad in [("cycle", 0), ("scene_id", 100), ("record_count", 3),
+                         ("actors", 122), ("bots", 61), ("players", 2),
+                         ("previous_nodes_freed", False), ("previous_node_count", 0), ("won", True)]:
+            with self.subTest(key=key):
+                cycles = self.cycles(5)
+                cycles[1][key] = bad
+                with self.assertRaises(RuntimeError):
+                    runner.validate_cycles({"cycles": cycles}, 5)
+
+    def test_unbounded_restart_cli_rejected_before_launch(self):
+        for value in ["0", "2", "6", "-1", "100", "bad"]:
+            with self.subTest(value=value), \
+                    patch.object(sys, "argv", ["run_release_flow.py", "--out-dir", str(self.profile), "--restart-count", value]), \
+                    patch.object(runner.subprocess, "run") as launch, contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    runner.main()
+                launch.assert_not_called()
 
     def test_relaunch_payload_and_bytes_unchanged(self):
         reader = copy.deepcopy(self.result)
