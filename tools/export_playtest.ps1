@@ -1,6 +1,7 @@
 param(
     [string]$Commit = 'HEAD',
-    [switch]$IncludeMac
+    [switch]$IncludeMac,
+    [switch]$VerificationOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -17,9 +18,13 @@ try {
     $identityMatch = [regex]::Match(($buildInfo -join "`n"), 'const PLAYTEST_BUILD := "(E-[0-9]+)"')
     if (-not $identityMatch.Success) { throw 'Missing playtest identity.' }
     $identity = $identityMatch.Groups[1].Value
-    $outputDir = Join-Path $projectRoot "builds/playtest/${identity}_${shortRevision}"
-    if (Test-Path -LiteralPath $outputDir) { throw "Refusing to overwrite existing build: $outputDir" }
     $scratchRoot = Join-Path $projectRoot ('builds/verification/export_' + [guid]::NewGuid().ToString('N'))
+    $outputDir = if ($VerificationOnly) {
+        Join-Path $scratchRoot 'artifacts'
+    } else {
+        Join-Path $projectRoot "builds/playtest/${identity}_${shortRevision}"
+    }
+    if (Test-Path -LiteralPath $outputDir) { throw "Refusing to overwrite existing build: $outputDir" }
     $sourceDir = Join-Path $scratchRoot 'source'
     New-Item -ItemType Directory -Path $outputDir, $sourceDir | Out-Null
     $archive = Join-Path $scratchRoot 'source.zip'

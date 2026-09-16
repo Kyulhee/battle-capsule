@@ -3,6 +3,25 @@
 재현에 필요한 실행 코드·입력 설명을 추적하는 위치다. 원시 로그·캡처·대용량 결과는 `builds/verification/<실험>/`에 두고 커밋하지 않는다.
 테스트 verifier의 기존 `tools/verify_*` 경로와 과거 결과는 유지한다. 기존 runner는 다시 사용할 때 입력·출력 경로를 명시적으로 받게 이전하며, 보관된 원본을 덮어쓰지 않는다.
 
+## E092 cold PCK 재현성 진단
+
+`tools/export_playtest.ps1 -Commit <SHA> -VerificationOnly`는 같은 소스를 새로운 `builds/verification/export_*/source`에서 import/export하고 `artifacts`에 보존한다. 기존 playtest 산출물을 덮어쓰지 않는다. 두 manifest의 source/build가 같고 engine/source archive SHA도 같은지 확인한다.
+
+양쪽 PCK를 각각 새 빈 host에서 `verify_release_package.gd`의 `pck_path=... expected_menu=... print_hashes=true`로 검사한다. `--log-file`은 반드시 host 밖을 가리켜야 한다. 출력 JSON은 새 경로만 허용한다.
+
+```powershell
+python tools/verify_package_hashes.py
+python tools/compare_package_hashes.py --left-dir $LeftPackage --right-dir $RightPackage --left-log $LeftLog --right-log $RightLog --output $NewComparisonJson
+```
+
+위 비교는 원래 EXE/PCK hash를 판정한다. exit1은 byte 불일치이며 내부 목록만 같다고 PASS로 바꾸지 않는다. scene payload 차이를 조사할 때만 `probe_scene_serialization.gd`를 별도 APPDATA/LOCALAPPDATA 자식 환경에서 `--main-pack <PCK> --script <절대 스크립트> -- comparison_path=... output_dir=<새 절대 경로> expected_user_dir=<실제 격리 user-dir>`로 실행한다. 게임 씬은 인스턴스화하지 않으며 원본 pack/scene을 재저장하지 않는다. 같은 비교 JSON의 변경 entry만 복사하고 SHA를 함께 남긴다.
+
+```powershell
+python tools/experiments/compare_scene_dumps.py --comparison $ComparisonJson --left $LeftDumpDir --right $RightDumpDir --output $NewSceneComparisonJson
+```
+
+텍스트 진단은 node 헤더의 `unique_id`와 ResourceSaver가 생성한 external resource 참조 별칭만 비교에서 제외한다. source PCK/dump SHA·전체 변경 entry 범위를 먼저 검증하고, 노드 이름·속성·리소스 경로 등 나머지 차이는 보존한다. 이는 full semantic equivalence가 아니며 원래 byte gate·수동/게임플레이 gate를 변경하지 않는다.
+
 ## 첫 이전: E079 초기 기하 분석
 
 `inspect_initial_geometry.py`는 기존 `builds/verification/E079_first_upgrade/inspect_geometry.py`를 읽기 전용 CLI로 이전했다. 원본은 보존한다.

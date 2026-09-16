@@ -1,6 +1,6 @@
 # 릴리즈 가이드
 
-> 최종 업데이트: 2026-09-01. 릴리즈 준비는 활성 작업이며 실제 tag·GitHub Release 공개는 사용자 명시 지시 뒤에만 진행한다.
+> 최종 업데이트: 2026-09-17. 릴리즈 준비는 활성 작업이며 실제 tag·GitHub Release 공개는 사용자 명시 지시 뒤에만 진행한다.
 
 ## 현재 범위
 
@@ -66,6 +66,10 @@ R1에는 짧은 profile 외에 실제 10-15분 전체 매치, 반복 재시작, 
 - source commit과 tag 후보를 manifest에 먼저 기록한다.
 - export preset은 runtime resource만 포함하고 로컬 생성 원본·테스트·도구·문서·debug screenshot·console wrapper를 제외한다.
 - 같은 commit을 독립 clean 환경에서 두 번 export해 EXE/PCK hash를 비교한다. 차이가 나면 두 artifact의 exact package contract가 같아도 byte 재현성 gate는 실패로 남기고 원인을 기록한다.
+
+기존 전달 빌드의 재현 확인에는 `tools/export_playtest.ps1 -Commit <고정 SHA> -VerificationOnly`를 쓴다. 새 clean source와 산출물 모두 고유 `builds/verification/export_*/` 안에만 생성하며 `builds/playtest`를 교체하지 않는다. 기본 모드의 기존 출력 거부는 유지한다.
+
+빈 host의 package verifier에 `print_hashes=true`를 추가하면 실제 PCK와 각 entry SHA/크기를 남긴다. 로그는 host 밖에 둔다. `compare_package_hashes.py`는 양쪽 manifest source/build·hash·exact contract PASS를 확인한 뒤 추가/누락/상이 entry를 기록하고 바이트 불일치에 exit1을 반환한다. 씬 텍스트의 ID/별칭 제외 비교는 원인 진단에만 쓰며 byte gate 통과나 전체 의미 동등성으로 대신하지 않는다. [실험 명령](../../tools/experiments/README.md#e092-cold-pck-재현성-진단)
 
 ## 3. 버전·브랜드
 

@@ -231,6 +231,18 @@ func _init() -> void:
 		inventory.sort()
 		for path in inventory:
 			print("PACKAGE_FILE ", path)
+	if bool(args.get("print_hashes", false)):
+		print("PACKAGE_DIGEST ", FileAccess.get_sha256(pck_path))
+		inventory.sort()
+		for path in inventory:
+			var file := FileAccess.open(path, FileAccess.READ)
+			if file == null:
+				failures.append("Cannot hash package entry: %s." % path)
+				continue
+			print("PACKAGE_HASH ", JSON.stringify({
+				"path": path, "size": file.get_length(), "sha256": FileAccess.get_sha256(path),
+			}))
+			file.close()
 
 	var catalog := _read_json(REQUIRED_JSON_PATHS[0], failures)
 	var game_config := _read_json(REQUIRED_JSON_PATHS[1], failures)

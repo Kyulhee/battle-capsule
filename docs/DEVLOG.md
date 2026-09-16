@@ -1,6 +1,16 @@
 # Battle Capsule 개발 로그
 
-> 최종 업데이트: 2026-09-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+> 최종 업데이트: 2026-09-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
+
+## E-092 cold PCK 재현성 차이를 씬 노드 ID로 국소화
+
+- E091 수동3판은 새 증거가 없어 대기로 유지하고, 기존 RELEASE 잔여 gate인 독립 clean byte 재현성만 진단했다. exporter에 `-VerificationOnly`를 추가해 같은 커밋 `b1ac5903cb117fdfe81da1ce49a92fd3342ae3a4`를 새 `builds/verification/export_795321d0fbc84e4e83a629adfe014581/{source,artifacts}`로 내보냈다. 원래 전달 경로는 그대로이며 기본 exporter의 기존 빌드 덮어쓰기 거부/새 디렉터리 미생성도 PASS다. sandbox PowerShell 정책으로 막힌 경계 테스트는 승인된 실행에서 확인했고 정책 자체는 바꾸지 않았다.
+- 두 clean source.zip SHA는 `8f042ffec7876b3bdc75e50124905b51005aa580655fb20bab38220f09e4c307`, 엔진 SHA는 기존 E091과 같은 `2a12df24d1545ff3924a1f40e8ed9f4ec7ce9b140814c1b566dcd2bdf7b79492`다. EXE는 양쪽104,548,352bytes·SHA `b241a13f6fb1e7fb297018d6d622601f9d68a5b4f8b0b389ed7f6cd5690e238d`로 exact다. PCK는 양쪽2,153,252bytes지만 기존 `abd6dcbd4d8b12087ae6acd215c42daa19fe159f92d9d224fdcc8c90c9b489e4`, 재빌드 `13f64b9bf371b79ef034e9480b29d5f658464c36fd60b80d7f01fac3268e408a`로 **FAIL**이다. 같은 파일 크기를 동일 바이트로 취급하지 않았다.
+- `verify_release_package.gd print_hashes=true`로 PCK SHA와 실제 각 entry의 크기/SHA를 출력하고 새 비교 도구가 manifest의 source/build/hash·exact contract PASS·log의 PCK identity를 대조한다. `builds/verification/E092_package_repro/{left,right}.log`, `comparison.json`에 원시/판정을 보존했다. 양쪽 catalog44/JSON3/runtime124/load20/closure exact는 PASS, 파일목록343개 exact·추가/누락0, **318개 동일/25개 상이**다. 차이는 export된 runtime 씬12개와 import된 GLB 씬13개뿐이며 GDC·JSON·project.binary·script class cache·UID cache는 같다. 비교 CLI는 원래 바이트 불일치에 exit1을 반환한다.
+- 대표 Main.scn의 raw118byte 차이는 `node_ids` 배열 구간에 있었다. 전체25개를 게임 인스턴스 생성 없이 별도 APPDATA 프로세스에서 로드해 텍스트 복사본과 `_bundled.node_ids`를 만들었다. 두 dump의 원본 entry SHA/텍스트 SHA를 검사한 `scene_comparison.json`에서 **25/25가 노드 unique_id와 ResourceSaver 텍스트 외부 참조 별칭을 제외하면 동일**하다. 별칭 치환 충돌을 막는 보완 후에도 `scene_comparison_alias_safe.json`에서25/25 일치했다. 변환 별칭은 새로운 텍스트 덤프의 차이이므로 원래 PCK 내용 차이와 구분한다. 이 진단은 원래 binary gate를 정규화하거나 모든 의미/참조 호환성을 증명하지 않는다.
+- 엔진 근거: [Godot 4.6.2 SceneState::_parse_node](https://github.com/godotengine/godot/blob/4.6.2-stable/scene/resources/packed_scene.cpp#L1016)는 미지정/충돌 노드 ID를 `ResourceUID::create_id()`로 만들고 `node_ids`로 저장한다. [create_id 구현](https://github.com/godotengine/godot/blob/4.6.2-stable/core/io/resource_uid.cpp#L102)은 난수 생성기를 사용한다. 로컬 authored 씬에 unique_id가 없고 node ID가 서로 다른 사실과 일치하므로 원인을 이 생성 경로로 좁혔다. 기존 `.gd.uid` 추적 상태/원본 풀을 바꾸거나 PCK를 사후 패치하지 않았다.
+- PowerShell parse, Python compile와 전용 fixture **6개**(잘못된 PCK/log/누락 PASS/중복 entry 거부·raw hash/size 차이 유지·노드 ID 외 속성/경로 차이 보존·별칭 치환 충돌 방지), docs_only 공백 검사 PASS다. 새 import/export·양쪽 package/dump 실행은 exit0·ERROR/WARNING 없음이다. 사용자 저장6개·전달 E091 EXE/PCK 해시 불변과 잔여 게임 프로세스 없음을 확인했다. 처음 보호 파일 개수 비교에서 PowerShell property collection을 배열로 감싸지 않은 검사식 오류가 있었으나 실제6개/mtime/hash는 그대로였다. 원본은 복원/삭제하지 않았다.
+- 판정: **재현성 FAIL의 원인 진단 완료, 수정/승격 미완료**. E091 패키지의 이전 저장/재시작 PASS는 유지하되 새 진단 빌드를 수동 대상으로 바꾸지 않는다. 추가 경기·밸런스 변경·수동 판정·푸시/공개 릴리즈는 없다. 후속 결정적 노드 ID 처리는 id_paths·상속/인스턴스·신호 연결을 보존하는 별도 작은 재현부터 검토한다.
 
 ## E-091 저장 수정 clean Windows 패키지 검증
 
