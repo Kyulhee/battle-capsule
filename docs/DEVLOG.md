@@ -2,6 +2,16 @@
 
 > 최종 업데이트: 2026-09-16. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## E-091 저장 수정 clean Windows 패키지 검증
+
+- BuildInfo의 식별자를 E091로 변경하고 identity focused PASS 후 소스 `b1ac5903cb117fdfe81da1ce49a92fd3342ae3a4`를 고정했다. 기존 `export_playtest.ps1`의 clean git archive로 `builds/playtest/E-091_b1ac590/BattleCapsule_E091_b1ac590.exe`/`.pck`를 새로 생성했다. 저장 수정 E090을 포함하고 E078/E081/E088 기본 OFF는 유지한다. Windows만 내보냈으며 E067/사용자 변경·원본 풀/UID·공개판은 보존했다. import/export 로그에는 ERROR/WARNING이 없고, 로그/clean 소스는 `builds/verification/export_79cfe240eae24b8c80fbb99d8c28b1ad`에 남겼다.
+- EXE SHA256 `b241a13f6fb1e7fb297018d6d622601f9d68a5b4f8b0b389ed7f6cd5690e238d`, PCK `abd6dcbd4d8b12087ae6acd215c42daa19fe159f92d9d224fdcc8c90c9b489e4`다. EXE의 ProductName `Battle Capsule`, FileDescription `Battle Capsule Windows demo`, File/ProductVersion `2.1.0.0`을 확인했다. manifest는 소스/빌드/시각/해시를 기록하고 동봉 README는 엔진 `4.6.2.stable.official.71f334935`, 검증 한계·저장 경로·수동 결과 출처 기록을 안내한다. 같은 template EXE hash는 PCK 동일성이나 독립 cold build byte 재현성의 증거가 아니다.
+- 실행기는 `--runtime-source package --package-dir ...`를 추가했다. `PLAYTEST_BUILD.txt`의 유일한 build/source와 EXE/PCK hash를 검사하고 해당 Git 소스의 BuildInfo와 대조하며, 실제 로드한 메뉴 라벨도 비교한다. 잘못된 옵션 조합·중복/불완전 manifest·source label 불일치·해시 불일치·잘못된 runtime 라벨·EXE 로그 실패를 거부하는 Python fixture **15개**, compile PASS다. 기존 E067 기본 모드와 명시적 workspace 모드를 보존한다.
+- `builds/verification/E091_package_restart_02`에서 사전 격리→동일 PCK 제어 흐름→독립 재실행→실제 EXE 메뉴 부팅 모두 PASS다. 5회 실제 RESTART/6개 씬에서 groups61/60/1, 기록1→6 exact, 이전 하위 노드 **2696/2649/2642/2649/2656개 전부 해제**를 확인했다. 승리3개(score2450/bonus500)·패배3개(score0/bonus0), 성공 배지1개·volume0.37과 재실행/EXE 부팅 전후 저장 파일 SHA가 불변이다. 사용자 저장6개·EXE/PCK·엔진·실행기/manifest SHA도 불변, 모든 최종 단계 exit0·ERROR/WARNING 없음, 잔여 Godot/BattleCapsule 프로세스 없음이다.
+- 실제 배포 EXE는 path override를 허용하지 않는다. 첫 외부 스크립트 시도 `E091_exe_restart_01`은 `--path` 거부로 게임 시작 전에 FAIL했고 보존했다. 최종 검증은 콘솔 엔진에 실제 PCK를 로드한 반복 흐름과, override 없이 EXE의 headless 메뉴 초기화/120프레임 후 종료를 분리했다. EXE에서 사람이 재시작을 조작했다거나 Forward+ 화면을 확인했다는 뜻이 아니다.
+- exact package 검사의 첫 시도는 로그를 빈 host 내부에 둬 `res://probe.log`를 추가 파일로 발견한 검사 구성 오류였다. 기준을 낮추지 않고 새 빈 host/외부 로그로 분리한 `E091_package_contract_02/probe.log`에서 실제 메뉴 E091·catalog44·JSON3·runtime124·load probe20·generated payload closure exact가 PASS했다. 테스트/원본 풀/문서/도구가 PCK에 없음을 확인했다.
+- 판정: **저장 수정의 clean Windows 검증용 패키지 전달 완료**. 자연 전투/완주·수동3판·Forward+·장시간 soak·cold PCK byte 재현성·실제 Mac·전체 후보/릴리즈 승격은 미완료다. 기존 E067 5회 FAIL은 보존한다. E090 저장/설정/Telemetry 회귀를 소급 재실행하지 않았으며 새 게임플레이 튜닝·5-run·공개 tag/Release·푸시는 없다. 현재 수동 대상/다음은 CURRENT, 절차는 PLAYTEST에 둔다.
+
 ## E-090 반복 재시작에서 발견한 동일 결과 기록 손실 수정
 
 - 사용자 승인으로 E086~E089 로컬 커밋4개를 `origin/master`에 일반 푸시하고 원격 `5fdecaadee6927cd9fd63d38daefabd8eb1734f3`을 확인했다. 이후 E090은 로컬 구현·검증이며 기존 사용자 `.gitignore`/원본 풀/UID·E067 artifact·공개 tag/Release를 변경하지 않았다.

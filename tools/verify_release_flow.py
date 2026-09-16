@@ -16,7 +16,7 @@ class ReleaseFlowTests(unittest.TestCase):
         self.result = {
             "phase": "isolation", "exit_code": 0, "log_clean": True,
             "profile_sha256": {"match_history.json": "sha"},
-            "report": {"passed": True, "user_dir": str(self.profile), "records": [{"score": 2450}], "restart_count": 1, "runtime_source": "e067",
+            "report": {"passed": True, "user_dir": str(self.profile), "records": [{"score": 2450}], "restart_count": 1, "runtime_source": "e067", "menu_label": runner.LEGACY_MENU,
                        "checks": ["user_dir_isolated", "no_autoloads_in_preflight", "empty_host_in_preflight"]},
         }
 
@@ -43,7 +43,7 @@ class ReleaseFlowTests(unittest.TestCase):
         self.result["phase"] = "write_restart"
         with self.assertRaises(RuntimeError):
             runner.validate_phase(self.result, self.profile)
-        self.result["report"]["checks"] += ["E067_menu_label", "default_persistence_paths", "persistent_record_count"]
+        self.result["report"]["checks"] += ["runtime_menu_label", "default_persistence_paths", "persistent_record_count"]
         self.result["report"]["cycles"] = self.cycles(1)
         runner.validate_phase(self.result, self.profile)
 
@@ -66,6 +66,49 @@ class ReleaseFlowTests(unittest.TestCase):
             runner.validate_phase(self.result, self.profile, runtime_source="workspace")
         self.result["report"]["runtime_source"] = "workspace"
         runner.validate_phase(self.result, self.profile, runtime_source="workspace")
+
+    def test_package_options_fail_closed(self):
+        for args in [["--runtime-source", "package"], ["--package-dir", "ignored"],
+                     ["--runtime-source", "workspace", "--package-dir", "ignored"]]:
+            with self.subTest(args=args), patch.object(sys, "argv", ["run_release_flow.py", "--out-dir", str(self.profile), *args]), \
+                    patch.object(runner.subprocess, "run") as launch, contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    runner.main()
+                launch.assert_not_called()
+
+    def test_manifest_identity_and_hashes(self):
+        source = "a" * 40
+        info = 'const PRODUCT_VERSION := "2.1.0"\nconst RELEASE_CHANNEL := "demo-dev"\nconst PLAYTEST_BUILD := "E-091"\n'
+        manifest = (f"Build: E-091\nSource commit: {source}\n"
+                    "Source: clean git archive; untracked working files excluded\n"
+                    f"{'b' * 64}  BattleCapsule_E091_aaaaaaa.exe\n{'b' * 64}  BattleCapsule_E091_aaaaaaa.pck\n")
+        with patch.object(Path, "read_text", return_value=manifest), patch.object(runner.subprocess, "check_output", return_value=info), \
+                patch.object(runner, "digest", return_value="b" * 64):
+            expected, actual_source, menu = runner.load_package(self.profile)
+            self.assertEqual(len(expected), 2)
+            self.assertEqual(actual_source, source)
+            self.assertEqual(menu, "v2.1.0-demo-dev | E-091")
+        for text, build_info, digest in [(manifest + "Build: E-091\n", info, "b" * 64),
+                                         (manifest.replace(".pck", ".other"), info, "b" * 64),
+                                         (manifest, info.replace("E-091", "E-067"), "b" * 64),
+                                         (manifest, info, "c" * 64)]:
+            with self.subTest(text=text, build_info=build_info, digest=digest), patch.object(Path, "read_text", return_value=text), \
+                    patch.object(runner.subprocess, "check_output", return_value=build_info), patch.object(runner, "digest", return_value=digest):
+                with self.assertRaises(ValueError):
+                    runner.load_package(self.profile)
+
+    def test_wrong_runtime_menu_rejected(self):
+        self.result["phase"] = "relaunch"
+        self.result["report"]["checks"] += ["runtime_menu_label", "default_persistence_paths", "persistent_record_count"]
+        with self.assertRaises(RuntimeError):
+            runner.validate_phase(self.result, self.profile, expected_menu="v2.1.0-demo-dev | E-091")
+
+    def test_exe_boot_requires_clean_exit_and_menu_markers(self):
+        text = "[MAIN] Starting initialization...\n[MAIN] MapSpec loaded successfully: Night\n[MAIN] Generating world via WorldBuilder...\n"
+        runner.validate_exe_boot(0, text)
+        for code, log in [(1, text), (0, ""), (0, text + "ERROR: failed\n"), (0, text + "WARNING: leak\n")]:
+            with self.subTest(code=code, log=log), self.assertRaises(RuntimeError):
+                runner.validate_exe_boot(code, log)
 
     def test_cycle_count_lifetime_groups_and_duplicate_records_rejected(self):
         for key, bad in [("cycle", 0), ("scene_id", 100), ("record_count", 3),

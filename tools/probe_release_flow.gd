@@ -7,6 +7,7 @@ var _failed := false
 var _records: Array = []
 var _restart_count := 1
 var _cycles: Array[Dictionary] = []
+var _menu_label := ""
 
 
 func _init() -> void:
@@ -53,7 +54,8 @@ func _run() -> void:
 	_check(tel.history_path == "user://match_history.json" and tel.sim_result_path == "user://sim_result_latest.json", "default_persistence_paths")
 	var label = load("res://src/ui/BuildVersionLabel.gd").new()
 	label._ready()
-	_check(label.text == "v2.1.0-demo-dev | E-067", "E067_menu_label")
+	_menu_label = label.text
+	_check(_menu_label == String(_args.get("expected_menu", "v2.1.0-demo-dev | E-067")), "runtime_menu_label")
 	label.free()
 	if not _check(change_scene_to_file("res://src/Main.tscn") == OK, "runtime_scene_loaded"):
 		_finish()
@@ -214,6 +216,7 @@ func _finish() -> void:
 	file.store_string(JSON.stringify({"passed": not _failed, "checks": _checks,
 		"user_dir": OS.get_user_data_dir(), "records": _records,
 		"restart_count": _restart_count, "cycles": _cycles,
+		"menu_label": _menu_label,
 		"runtime_source": String(_args.get("runtime_source", "e067"))}, "\t"))
 	file.close()
 	quit(1 if _failed else 0)

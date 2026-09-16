@@ -1,24 +1,21 @@
 # 플레이테스트 노트
 
-> 최종 업데이트: 2026-09-07. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다.
+> 최종 업데이트: 2026-09-16. 텔레메트리가 말하지 못하는 체감과 화면 판단을 짧게 기록한다. 최신 빌드/검증 상태는 CURRENT가 소유한다.
 
-## 현재 수동 테스트 대상
+## 수동 테스트 표면과 출처
 
 | 항목 | 값 |
 |---|---|
 | 빌드 표면 | `mapSpec_night_forest_expanded_candidate.json` M1 개발 기준 맵 |
 | 권장 preset | `night_br_m1_60` 공통 기준선. `target_99_probe`는 자동 부하 검증 전용 |
-| 현재 단위 | E-067 탄약 보존 후보: 메뉴 `v2.1.0-demo-dev \| E-067`. E-065 소리 반응/E-066 티어 표시를 보존하며 거점 재배치·건물은 미구현. GitHub 첨부는 이전 E-062다 |
+| 실행 파일/빌드 | [CURRENT의 수동 검증과 릴리즈](CURRENT.md#수동-검증과-릴리즈)에서 정확한 경로·메뉴 식별자를 확인한다. 소스 실행과 GitHub의 과거 첨부를 같은 빌드로 취급하지 않는다 |
 | 승격 목적 | 초기 인원 붕괴가 이동 수렴인지 교전 지속/연쇄 사망인지 분리하고, 플레이어 이탈이 쉬운 직접 원인을 맵 변경 전에 확인 |
 
-현재 전달 파일(clean 소스 커밋 `78b5180`, E-067):
+실행 전에는 EXE와 같은 폴더의 PCK·`PLAYTEST_BUILD.txt`·`README_PLAYTEST.txt`를 함께 확인한다. manifest의 source commit과 메뉴의 E번호가 수동 기록에 함께 있어야 한다. 자동 fixture PASS는 자연 완주/화면/수동3판 PASS가 아니다.
 
-- Windows: `C:\test\game_dev\builds\playtest\E-067_78b5180\BattleCapsule_E067_78b5180.exe` — 같은 폴더의 `.pck`를 함께 유지한다.
-- macOS: `C:\test\game_dev\builds\playtest\E-067_78b5180\BattleCapsule_E067_78b5180_macos_unsigned.zip` — 미서명/미공증 교차 빌드, 실제 Mac 실행 미검증.
-- SHA256/출처: 같은 폴더 `PLAYTEST_BUILD.txt`. Windows EXE Forward+ 기본 맵 부팅/종료 PASS; 두 플랫폼 PCK는 empty host에서 catalog 44·JSON 3·runtime 124·load probe 20·payload closure와 실제 label `v2.1.0-demo-dev | E-067` PASS.
-- 이 파일은 로컬 진단 후보다. 기존 GitHub 릴리즈 첨부를 교체하지 않았고, 공개 데모 승격이나 사람 전체 루프 PASS를 의미하지 않는다.
+일반 EXE는 기존 `%APPDATA%/Godot/app_userdata/BattleRoyalePrototype` 저장을 사용한다. 보관할 `sim_result_latest.json`은 다음 판 전에 별도 복사하고, 새 결과에도 플레이 시각·난이도·빌드/소스 정보를 붙인다. JSON만으로 빌드가 확인되지 않으면 출처 미확인으로 남긴다. 저장 확인은 결과 점수/기록 개수·배지→RESTART의 초기 상태→종료/재실행 후 보존을 직접 본다. 기존 기록을 지우거나 자동 fixture 기록으로 대체하지 않는다.
 
-E-067 수동 초점: 총이 없는 탄종/예비탄이 가득 찬 묶음이 바닥에 남고, 낡은→표준 같은 계열 교체 시 예비탄이 유지되는지 확인한다. 가방 기능은 없으며 일부 용량만 남았을 때는 기존처럼 용량만 채우고 묶음을 소비한다. 총량·AI·맵·존은 불변이다. `builds/verification/E067_pck_visual`의 실제 PCK Forward+ 720p/1080p×7상태 14캡처에서 상위 산탄총 예비탄 +6 및 수집 불가 안내를 확인했고 packaged 수집 회귀 테스트도 PASS했다. 사람의 자연 파밍/생존 결과는 아직 없다.
+인벤토리 수동 초점은 총이 없는 탄종/예비탄이 가득 찬 묶음이 바닥에 남는지, 낡은→표준 같은 계열 교체 시 예비탄이 유지되는지다. 가방 기능은 없으며 일부 용량만 남았을 때는 기존처럼 용량만 채우고 묶음을 소비한다. 저장 검증과 자연 파밍/생존 판정은 분리한다.
 
 ## N2-PLAY-11 재판정 프로토콜
 
@@ -86,6 +83,9 @@ R1 후보의 HUD·지도·메뉴 변경은 같은 상태와 여러 해상도를 
 
 ```text
 날짜:
+플레이 시각/난이도:
+메뉴 빌드 E번호/manifest source commit:
+보관한 해당 판 JSON/캡처 경로:
 표면:
 테스트 변경:
 결과: 채택 / 폐기 / 반복 필요
