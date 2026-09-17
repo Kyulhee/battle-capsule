@@ -3,6 +3,19 @@
 재현에 필요한 실행 코드·입력 설명을 추적하는 위치다. 원시 로그·캡처·대용량 결과는 `builds/verification/<실험>/`에 두고 커밋하지 않는다.
 테스트 verifier의 기존 `tools/verify_*` 경로와 과거 결과는 유지한다. 기존 runner는 다시 사용할 때 입력·출력 경로를 명시적으로 받게 이전하며, 보관된 원본을 덮어쓰지 않는다.
 
+## E093 씬 ID 호환성 최소 재현
+
+게임 없이 새 합성 Godot 프로젝트7개를 만들고 기본/상속/복수 인스턴스 씬을 pack→binary 저장→재로드한다. 기본/교차 인스턴스 신호, override와 자식 소유/부모를 검사한다. 미지정 ID 대조2회와 고정 초기 ID 후보2회의 입력 및 raw SCN SHA를 비교하며 일반 exporter에는 연결하지 않는다.
+
+```powershell
+python tools/verify_scene_id_contract.py
+python tools/experiments/run_scene_id_contract.py --out-dir builds/verification/E093_new_run
+```
+
+출력은 `builds/verification` 아래 새 디렉터리만 허용한다. 각 실행은 자체 APPDATA/LOCALAPPDATA를 사용하고 실제 user dir와 autoload 없음부터 확인한다. 원본 게임 저장 해시·엔진/probe 해시를 전후 대조하며 기존 결과는 덮어쓰지 않는다. Windows sandbox의 인증서 저장소 접근 제한이 있으면 오류를 무시하지 말고 권한 정책에 따라 실행한다.
+
+rename은 세 경우로 구분한다: 기존 ID/의존 경로 모두 유지·갱신한 경우는28개 검사가 참이어야 한다. ID만 보존한 stale-parent 사례는 정해진2개, ID까지 재계산한 사례는 정해진10개 검사가 거짓이어야 한다. 음성 대조의 알려진 복구 경고만 허용하며 다른 ERROR/WARNING·누락 검사·상속 flatten은 거부한다. harness PASS는 실패 경계 검출을 포함하므로 모든 씬의 의미 동등성이나 실제 PCK gate PASS가 아니다. 기존 ID의 영속성/참조 관계를 무시하는 범용 이름 기반 ID 재계산에 이 실험의 해시 함수를 사용하지 않는다.
+
 ## E092 cold PCK 재현성 진단
 
 `tools/export_playtest.ps1 -Commit <SHA> -VerificationOnly`는 같은 소스를 새로운 `builds/verification/export_*/source`에서 import/export하고 `artifacts`에 보존한다. 기존 playtest 산출물을 덮어쓰지 않는다. 두 manifest의 source/build가 같고 engine/source archive SHA도 같은지 확인한다.

@@ -2,6 +2,16 @@
 
 > 최종 업데이트: 2026-09-17. 최근 검증된 작업만 유지한다. 과거 내용은 Git 이력을 참조한다.
 
+## E-093 씬 ID 초기 부여와 참조 호환성 최소 재현
+
+- E092의 후속 결정을 위해 게임과 무관한 기본/상속/복수 인스턴스 씬3개를 생성하는 `run_scene_id_contract.py`와 Godot probe를 추가했다. 미지정 ID 대조2회·고정 초기 ID 후보2회·이름 변경3경우를 각각 새로운 host/APPDATA/LOCALAPPDATA에서 실행한다. 원본 `.tscn`/GLB·엔진·exporter·기존 패키지를 수정하거나 binary의 ID를 지우는 도구가 아니다. fixture의 초기 ID는 논리 키의 SHA256 양수31bit이며 충돌은 거부하고, 상속 override는 해당 원본 ID를 참조한다. 범용 ID 할당/마이그레이션 구현으로 해석하지 않는다.
+- 기준 소스 `caba13b`와 실험 스크립트 SHA, 엔진 SHA, 입력/명령/로그/씬 SHA/검사는 `builds/verification/E093_scene_id_contract_03/`에 보존했다. 입력 동일인 독립 두 실행에서 미지정 대조 SCN3개는 모두 상이, 고정 ID 후보는 **3/3 raw byte exact**다. 후보 base `bc1eb799a018107db2774c6dfc500cfbc9d115f91ca5844eec0a668dd9594892`, derived `adfcfab6061f2999a1ec56a648381a9ca720c9a579d64bbf68a8f4935b4aeb9f`, container `0153199c7bcc2cb693bd0708e24f8bf1860fe9fda15488564c0c70a0da21dbb8`다. 정규화된 텍스트 해시가 아니며 전체 PCK byte gate는 여전히 FAIL이다.
+- 정상 대조/후보와 이름·의존 경로를 함께 갱신한 경우는 각28개 검사 PASS, ERROR/WARNING 없음이다. pack/save·binary 재로드 전후 위치 override·상속 자식 소유/부모·같은 base의 독립 인스턴스·기본 신호/다른 인스턴스로의 신호를 검사했다. derived의 base scene 의존도 유지되며 flatten으로 우회하지 않았다. Timer의 timeout을 명시적으로 발생시킨 합성 검증이지 실제 게임/수동 판정이 아니다.
+- **ID만 보존하고 의존 경로를 방치한 rename은 2/28 FAIL**: 상속 Target override 자체는 복구됐지만 그 아래 Child의 오래된 부모 경로가 복구되지 않았다. 복수 인스턴스 쪽 ID 경로/교차 신호는 이 fixture에서 유지됐다. **이름에 따라 base ID까지 재계산한 rename은 10/28 FAIL**: 상속 override·자식 부모와 복수 인스턴스 override·부모·교차 신호가 source/binary 양쪽에서 손실됐다. 실패를 PASS로 바꾸지 않고 두 방식을 배제하는 음성 대조로 유지한다. 전체 harness PASS는 이 실패 경계를 정확히 검출했다는 뜻이다.
+- 엔진 경계 근거: [SceneState instantiate/ID 복구](https://github.com/godotengine/godot/blob/4.6.2-stable/scene/resources/packed_scene.cpp#L260), [ID path 복구](https://github.com/godotengine/godot/blob/4.6.2-stable/scene/resources/packed_scene.cpp#L1813). 로컬 관측상 ID 보존은 필요하지만 오래된 상속 override/부모 경로를 자동으로 모두 복구한다는 보장은 성립하지 않았다. 후속 후보는 기존 ID를 덮어쓰지 않고 의존 씬의 참조 경로/id_paths를 일관되게 유지해야 한다.
+- 초기 `_01`은 sandbox 인증서 저장소 오류와 fixture의 Second editable 누락으로 실패했다. editable 선언을 보완하고 승인된 실행으로 재검증했으며 `_02`에서는 위 stale-parent 실패를 처음 확인했다. 두 실패 폴더를 보존했다. 최종 `_03`은7개 프로세스 exit0, 의도된 rename 음성 대조 경고 외 오류 없음이다. 이후 판정기를 엄격하게 보완하고 기존7개 report를 읽기 전용으로 재검사했다(실행 당시 runner SHA와 이후 판정기 변경은 구분). 누락/비boolean 검사·상속 flatten·잘못된 격리/종료 코드·음성 대조에 섞인 무관 ERROR/WARNING 거부 등 Python fixture6개와 compile, docs_only 공백 검사 PASS다.
+- 사용자 저장6개·엔진·probe 불변, E091 EXE/PCK 기존 SHA 일치와 잔여 게임 프로세스 없음을 확인했다. 게임/밸런스·수동 대상·공개판·UID 정책·푸시는 변경하지 않았다. **E093 합성 호환 경계 검증 완료, 실제 GLB import/전체 export 재현성 수정은 미완료**다. 다음은 이 조건을 지키는 GLB import 경계의 격리 재현이며 E091은 계속 수동 대상이다.
+
 ## E-092 cold PCK 재현성 차이를 씬 노드 ID로 국소화
 
 - E091 수동3판은 새 증거가 없어 대기로 유지하고, 기존 RELEASE 잔여 gate인 독립 clean byte 재현성만 진단했다. exporter에 `-VerificationOnly`를 추가해 같은 커밋 `b1ac5903cb117fdfe81da1ce49a92fd3342ae3a4`를 새 `builds/verification/export_795321d0fbc84e4e83a629adfe014581/{source,artifacts}`로 내보냈다. 원래 전달 경로는 그대로이며 기본 exporter의 기존 빌드 덮어쓰기 거부/새 디렉터리 미생성도 PASS다. sandbox PowerShell 정책으로 막힌 경계 테스트는 승인된 실행에서 확인했고 정책 자체는 바꾸지 않았다.
